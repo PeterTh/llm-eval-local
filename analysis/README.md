@@ -73,6 +73,38 @@ Canonical outputs:
 - `figures/4c_gpt56_score_vs_cost.pdf`
 - `tables/4c_gpt56_score_vs_cost.csv`
 
+## All-model score/cost comparison
+
+`src/all_models_score_vs_cost.py` extends the score-versus-cost view to every
+evaluated model except the Qwen Pi-T experiment. To keep the figure readable, only
+the xhigh result is retained for each GPT-5.6 variant. Prices are a dated snapshot of
+OpenRouter's public, non-batch endpoints. For each model, the selected endpoint is
+the one that minimizes estimated cost for that model's observed token mix; Flex is
+eligible, and cached tokens use the normal input rate if an endpoint lists no cache
+discount. Gemini 3 Pro Preview is retired and absent from the live catalog, so its
+last OpenRouter input/output price is paired with a current public cached-input
+price. The evaluated Qwen 3.6 27B U-DQ4 model is matched to the cheapest endpoint for
+the underlying Qwen 3.6 27B model, currently an FP8 endpoint.
+
+Where the retained data has token categories, cost is computed per run from uncached
+input, cached input, and output tokens before averaging. GPT-5.6 retains only a
+combined token count, so those three xhigh points use the same fixed 50% input / 50%
+output proxy as the focused GPT-5.6 figure. The backing CSV records both methods,
+all rates, selected providers and routing tags, model matches, source URLs, and the
+2026-08-22 pricing date. Long-context surcharges, storage, tools, future provider
+routing changes, and batch discounts are not modeled.
+
+Rebuild with:
+
+```bash
+python analysis/src/all_models_score_vs_cost.py
+```
+
+Canonical outputs:
+
+- `figures/4d_all_models_score_vs_cost.pdf`
+- `tables/4d_all_models_score_vs_cost.csv`
+
 Focused follow-up notes:
 
 - `notes/2026-08-22-sol-xhigh-mpi-simd-classification.md` documents why the larger
