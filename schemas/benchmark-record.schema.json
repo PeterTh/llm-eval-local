@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/PeterTh/llm-eval-local/schemas/benchmark-record.schema.json",
+  "title": "Local benchmark record",
+  "type": "object",
+  "required": [
+    "schema_version", "id", "benchmark", "model", "backend", "repetition", "batch",
+    "source_path", "args", "timeout_seconds", "configuration_sha256", "wall_seconds",
+    "warmup_wall_seconds", "all_execution_wall_seconds", "executions", "success", "metrics"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string" },
+    "benchmark": { "type": "string" },
+    "model": { "type": "string" },
+    "backend": { "enum": ["omp", "cuda", "mpi", "hybrid"] },
+    "repetition": { "type": "integer", "minimum": 1 },
+    "batch": { "type": "string" },
+    "source_path": { "type": "string" },
+    "args": { "type": "array", "items": { "type": "string" } },
+    "timeout_seconds": { "type": "integer", "minimum": 1 },
+    "configuration_sha256": { "$ref": "#/$defs/sha256" },
+    "pipeline_amendment_sha256": { "$ref": "#/$defs/sha256" },
+    "wall_seconds": { "type": "array", "items": { "type": "number" } },
+    "warmup_wall_seconds": { "type": ["number", "null"] },
+    "all_execution_wall_seconds": { "type": "array", "items": { "type": "number" } },
+    "executions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repetition", "success", "timed_out", "wall_seconds"],
+        "properties": {
+          "repetition": { "type": ["integer", "string"] },
+          "success": { "type": ["boolean", "null"] },
+          "exit_code": { "type": ["integer", "null"] },
+          "term_signal": { "type": ["integer", "null"] },
+          "timed_out": { "type": "boolean" },
+          "wall_seconds": { "type": "number" },
+          "output_truncated": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "success": { "type": "boolean" },
+    "metrics": { "type": "array", "items": { "type": "object" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}

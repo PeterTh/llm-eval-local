@@ -1,0 +1,13 @@
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/cahn-hilliard_gpt-5.6-luna-low_mpi_r5/source/cahn-hilliard/cahn_hilliard.cpp: In function ‘int main(int, char**)’:
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/cahn-hilliard_gpt-5.6-luna-low_mpi_r5/source/cahn-hilliard/cahn_hilliard.cpp:194:5: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+  194 |     if(rank==0)printf("Running Cahn-Hilliard simulation...\n"); MPI_Barrier(MPI_COMM_WORLD); double start=MPI_Wtime();
+      |     ^~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/cahn-hilliard_gpt-5.6-luna-low_mpi_r5/source/cahn-hilliard/cahn_hilliard.cpp:194:65: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+  194 |     if(rank==0)printf("Running Cahn-Hilliard simulation...\n"); MPI_Barrier(MPI_COMM_WORLD); double start=MPI_Wtime();
+      |                                                                 ^~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/cahn-hilliard_gpt-5.6-luna-low_mpi_r5/source/cahn-hilliard/cahn_hilliard.cpp:222:9: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+  222 |         if(rank==0)printf("Validating result...\n"); double lmin=*std::min_element(cold.begin()+plane,cold.end()-plane),lmax=*std::max_element(cold.begin()+plane,cold.end()-plane),gmin,gmax;MPI_Reduce(&lmin,&gmin,1,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD);MPI_Reduce(&lmax,&gmax,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);bool valid=true;if(rank==0){printf("Concentration range: [%.6f, %.6f]\n",gmin,gmax);valid=gmin>=-10&&gmax<=10;}MPI_Bcast(&valid,1,MPI_C_BOOL,0,MPI_COMM_WORLD);
+      |         ^~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/cahn-hilliard_gpt-5.6-luna-low_mpi_r5/source/cahn-hilliard/cahn_hilliard.cpp:222:54: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+  222 |         if(rank==0)printf("Validating result...\n"); double lmin=*std::min_element(cold.begin()+plane,cold.end()-plane),lmax=*std::max_element(cold.begin()+plane,cold.end()-plane),gmin,gmax;MPI_Reduce(&lmin,&gmin,1,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD);MPI_Reduce(&lmax,&gmax,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);bool valid=true;if(rank==0){printf("Concentration range: [%.6f, %.6f]\n",gmin,gmax);valid=gmin>=-10&&gmax<=10;}MPI_Bcast(&valid,1,MPI_C_BOOL,0,MPI_COMM_WORLD);
+      |                                                      ^~~~~~

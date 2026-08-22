@@ -1,0 +1,1192 @@
+---
+physical_cpu_ids:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+- 6
+- 7
+- 8
+- 9
+- 10
+- 11
+- 12
+- 13
+- 14
+- 15
+- 16
+- 17
+- 18
+- 19
+- 20
+- 21
+- 22
+- 23
+- 24
+- 25
+- 26
+- 27
+- 28
+- 29
+- 30
+- 31
+- 32
+- 33
+- 34
+- 35
+- 36
+- 37
+- 38
+- 39
+- 40
+- 41
+- 42
+- 43
+- 44
+- 45
+- 46
+- 47
+- 48
+- 49
+- 50
+- 51
+- 52
+- 53
+- 54
+- 55
+- 56
+- 57
+- 58
+- 59
+- 60
+- 61
+- 62
+- 63
+- 64
+- 65
+- 66
+- 67
+- 68
+- 69
+- 70
+- 71
+- 72
+- 73
+- 74
+- 75
+- 76
+- 77
+- 78
+- 79
+- 80
+- 81
+- 82
+- 83
+- 84
+- 85
+- 86
+- 87
+- 88
+- 89
+- 90
+- 91
+- 92
+- 93
+- 94
+- 95
+- 96
+- 97
+- 98
+- 99
+- 100
+- 101
+- 102
+- 103
+- 104
+- 105
+- 106
+- 107
+- 108
+- 109
+- 110
+- 111
+- 112
+- 113
+- 114
+- 115
+- 116
+- 117
+- 118
+- 119
+- 120
+- 121
+- 122
+- 123
+- 124
+- 125
+- 126
+- 127
+physical_cores: 128
+numa_nodes:
+- 0
+- 1
+gpu_indices:
+- 0
+- 1
+- 2
+- 3
+gpu_devices:
+- index: 0
+  name: NVIDIA GeForce RTX 3090
+  memory_mib: 24576
+  numa_node: 0
+  cpu_affinity: 0-63,128-191
+- index: 1
+  name: NVIDIA GeForce RTX 3090
+  memory_mib: 24576
+  numa_node: 0
+  cpu_affinity: 0-63,128-191
+- index: 2
+  name: NVIDIA GeForce RTX 3090
+  memory_mib: 24576
+  numa_node: 1
+  cpu_affinity: 64-127,192-255
+- index: 3
+  name: NVIDIA GeForce RTX 3090
+  memory_mib: 24576
+  numa_node: 1
+  cpu_affinity: 64-127,192-255
+gpu_topology:
+  '0':
+    numa_node: 0
+    cpu_affinity: 0-63,128-191
+  '1':
+    numa_node: 0
+    cpu_affinity: 0-63,128-191
+  '2':
+    numa_node: 1
+    cpu_affinity: 64-127,192-255
+  '3':
+    numa_node: 1
+    cpu_affinity: 64-127,192-255
+cgroup_containment: true
+launcher_probes:
+  validation/omp:
+    wall_seconds: 0.16645922884345055
+    command:
+    - numactl
+    - "--physcpubind=0-7"
+    - "--membind=0"
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      OMP_NUM_THREADS: '8'
+      OMP_DYNAMIC: 'FALSE'
+      OMP_PLACES: cores
+      OMP_PROC_BIND: close
+      CUDA_VISIBLE_DEVICES: ''
+    observations:
+    - pid: 3161098
+      rank:
+      local_rank:
+      omp_threads: '8'
+      cuda_visible_devices: ''
+      cpus_allowed_list: 0-7
+  validation/cuda:
+    wall_seconds: 0.16598156094551086
+    command:
+    - numactl
+    - "--physcpubind=0-7"
+    - "--membind=0"
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      CUDA_VISIBLE_DEVICES: '0'
+      OMP_NUM_THREADS: '1'
+    observations:
+    - pid: 3161102
+      rank:
+      local_rank:
+      omp_threads: '1'
+      cuda_visible_devices: '0'
+      cpus_allowed_list: 0-7
+  validation/mpi:
+    wall_seconds: 0.7680024039000273
+    command:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=1
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      CUDA_VISIBLE_DEVICES: ''
+      OMP_NUM_THREADS: '1'
+    observations:
+    - pid: 3161109
+      rank: '0'
+      local_rank: '0'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: 0,128
+    - pid: 3161110
+      rank: '1'
+      local_rank: '1'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '1,129'
+    - pid: 3161111
+      rank: '2'
+      local_rank: '2'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '64,192'
+    - pid: 3161112
+      rank: '3'
+      local_rank: '3'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '65,193'
+  validation/hybrid:
+    wall_seconds: 2.4223153553903103
+    command:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=8
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb"
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      OMP_NUM_THREADS: '8'
+      OMP_DYNAMIC: 'FALSE'
+      OMP_PLACES: cores
+      OMP_PROC_BIND: close
+      CUDA_VISIBLE_DEVICES: '0,1,2,3'
+    observations:
+    - pid: 3161131
+      rank: '0'
+      local_rank: '0'
+      omp_threads: '8'
+      cuda_visible_devices: '0'
+      cpus_allowed_list: 0-7,128-135
+    - pid: 3161132
+      rank: '1'
+      local_rank: '1'
+      omp_threads: '8'
+      cuda_visible_devices: '1'
+      cpus_allowed_list: 8-15,136-143
+    - pid: 3161133
+      rank: '2'
+      local_rank: '2'
+      omp_threads: '8'
+      cuda_visible_devices: '2'
+      cpus_allowed_list: 64-71,192-199
+    - pid: 3161134
+      rank: '3'
+      local_rank: '3'
+      omp_threads: '8'
+      cuda_visible_devices: '3'
+      cpus_allowed_list: 72-79,200-207
+  benchmark/omp:
+    wall_seconds: 0.1668497258797288
+    command:
+    - numactl
+    - "--physcpubind=0-127"
+    - "--interleave=0,1"
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      OMP_NUM_THREADS: '128'
+      OMP_DYNAMIC: 'FALSE'
+      OMP_PLACES: cores
+      OMP_PROC_BIND: spread
+      CUDA_VISIBLE_DEVICES: ''
+    observations:
+    - pid: 3161138
+      rank:
+      local_rank:
+      omp_threads: '128'
+      cuda_visible_devices: ''
+      cpus_allowed_list: 0-127
+  benchmark/cuda:
+    wall_seconds: 0.16573952231556177
+    command:
+    - numactl
+    - "--physcpubind=0-63"
+    - "--membind=0"
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      CUDA_VISIBLE_DEVICES: '0'
+      OMP_NUM_THREADS: '1'
+    observations:
+    - pid: 3161142
+      rank:
+      local_rank:
+      omp_threads: '1'
+      cuda_visible_devices: '0'
+      cpus_allowed_list: 0-63
+  benchmark/mpi:
+    wall_seconds: 1.220206548459828
+    command:
+    - mpirun
+    - "--np"
+    - '128'
+    - "--map-by"
+    - ppr:64:socket:PE=1
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      CUDA_VISIBLE_DEVICES: ''
+      OMP_NUM_THREADS: '1'
+    observations:
+    - pid: 3161153
+      rank: '0'
+      local_rank: '0'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: 0,128
+    - pid: 3161154
+      rank: '1'
+      local_rank: '1'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '1,129'
+    - pid: 3161155
+      rank: '2'
+      local_rank: '2'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '2,130'
+    - pid: 3161157
+      rank: '3'
+      local_rank: '3'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '3,131'
+    - pid: 3161156
+      rank: '4'
+      local_rank: '4'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '4,132'
+    - pid: 3161158
+      rank: '5'
+      local_rank: '5'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '5,133'
+    - pid: 3161159
+      rank: '6'
+      local_rank: '6'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '6,134'
+    - pid: 3161160
+      rank: '7'
+      local_rank: '7'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '7,135'
+    - pid: 3161161
+      rank: '8'
+      local_rank: '8'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '8,136'
+    - pid: 3161162
+      rank: '9'
+      local_rank: '9'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '9,137'
+    - pid: 3161163
+      rank: '10'
+      local_rank: '10'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '10,138'
+    - pid: 3161164
+      rank: '11'
+      local_rank: '11'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '11,139'
+    - pid: 3161165
+      rank: '12'
+      local_rank: '12'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '12,140'
+    - pid: 3161166
+      rank: '13'
+      local_rank: '13'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '13,141'
+    - pid: 3161167
+      rank: '14'
+      local_rank: '14'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '14,142'
+    - pid: 3161168
+      rank: '15'
+      local_rank: '15'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '15,143'
+    - pid: 3161169
+      rank: '16'
+      local_rank: '16'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '16,144'
+    - pid: 3161170
+      rank: '17'
+      local_rank: '17'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '17,145'
+    - pid: 3161171
+      rank: '18'
+      local_rank: '18'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '18,146'
+    - pid: 3161172
+      rank: '19'
+      local_rank: '19'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '19,147'
+    - pid: 3161173
+      rank: '20'
+      local_rank: '20'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '20,148'
+    - pid: 3161174
+      rank: '21'
+      local_rank: '21'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '21,149'
+    - pid: 3161175
+      rank: '22'
+      local_rank: '22'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '22,150'
+    - pid: 3161176
+      rank: '23'
+      local_rank: '23'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '23,151'
+    - pid: 3161177
+      rank: '24'
+      local_rank: '24'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '24,152'
+    - pid: 3161178
+      rank: '25'
+      local_rank: '25'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '25,153'
+    - pid: 3161179
+      rank: '26'
+      local_rank: '26'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '26,154'
+    - pid: 3161180
+      rank: '27'
+      local_rank: '27'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '27,155'
+    - pid: 3161181
+      rank: '28'
+      local_rank: '28'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '28,156'
+    - pid: 3161182
+      rank: '29'
+      local_rank: '29'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '29,157'
+    - pid: 3161183
+      rank: '30'
+      local_rank: '30'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '30,158'
+    - pid: 3161184
+      rank: '31'
+      local_rank: '31'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '31,159'
+    - pid: 3161185
+      rank: '32'
+      local_rank: '32'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '32,160'
+    - pid: 3161186
+      rank: '33'
+      local_rank: '33'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '33,161'
+    - pid: 3161187
+      rank: '34'
+      local_rank: '34'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '34,162'
+    - pid: 3161188
+      rank: '35'
+      local_rank: '35'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '35,163'
+    - pid: 3161189
+      rank: '36'
+      local_rank: '36'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '36,164'
+    - pid: 3161190
+      rank: '37'
+      local_rank: '37'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '37,165'
+    - pid: 3161191
+      rank: '38'
+      local_rank: '38'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '38,166'
+    - pid: 3161192
+      rank: '39'
+      local_rank: '39'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '39,167'
+    - pid: 3161193
+      rank: '40'
+      local_rank: '40'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '40,168'
+    - pid: 3161194
+      rank: '41'
+      local_rank: '41'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '41,169'
+    - pid: 3161195
+      rank: '42'
+      local_rank: '42'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '42,170'
+    - pid: 3161196
+      rank: '43'
+      local_rank: '43'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '43,171'
+    - pid: 3161197
+      rank: '44'
+      local_rank: '44'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '44,172'
+    - pid: 3161198
+      rank: '45'
+      local_rank: '45'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '45,173'
+    - pid: 3161199
+      rank: '46'
+      local_rank: '46'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '46,174'
+    - pid: 3161200
+      rank: '47'
+      local_rank: '47'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '47,175'
+    - pid: 3161201
+      rank: '48'
+      local_rank: '48'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '48,176'
+    - pid: 3161202
+      rank: '49'
+      local_rank: '49'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '49,177'
+    - pid: 3161203
+      rank: '50'
+      local_rank: '50'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '50,178'
+    - pid: 3161204
+      rank: '51'
+      local_rank: '51'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '51,179'
+    - pid: 3161205
+      rank: '52'
+      local_rank: '52'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '52,180'
+    - pid: 3161206
+      rank: '53'
+      local_rank: '53'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '53,181'
+    - pid: 3161207
+      rank: '54'
+      local_rank: '54'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '54,182'
+    - pid: 3161208
+      rank: '55'
+      local_rank: '55'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '55,183'
+    - pid: 3161209
+      rank: '56'
+      local_rank: '56'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '56,184'
+    - pid: 3161210
+      rank: '57'
+      local_rank: '57'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '57,185'
+    - pid: 3161211
+      rank: '58'
+      local_rank: '58'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '58,186'
+    - pid: 3161212
+      rank: '59'
+      local_rank: '59'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '59,187'
+    - pid: 3161213
+      rank: '60'
+      local_rank: '60'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '60,188'
+    - pid: 3161214
+      rank: '61'
+      local_rank: '61'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '61,189'
+    - pid: 3161215
+      rank: '62'
+      local_rank: '62'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '62,190'
+    - pid: 3161216
+      rank: '63'
+      local_rank: '63'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '63,191'
+    - pid: 3161217
+      rank: '64'
+      local_rank: '64'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '64,192'
+    - pid: 3161218
+      rank: '65'
+      local_rank: '65'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '65,193'
+    - pid: 3161219
+      rank: '66'
+      local_rank: '66'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '66,194'
+    - pid: 3161220
+      rank: '67'
+      local_rank: '67'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '67,195'
+    - pid: 3161221
+      rank: '68'
+      local_rank: '68'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '68,196'
+    - pid: 3161222
+      rank: '69'
+      local_rank: '69'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '69,197'
+    - pid: 3161223
+      rank: '70'
+      local_rank: '70'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '70,198'
+    - pid: 3161224
+      rank: '71'
+      local_rank: '71'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '71,199'
+    - pid: 3161225
+      rank: '72'
+      local_rank: '72'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '72,200'
+    - pid: 3161226
+      rank: '73'
+      local_rank: '73'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '73,201'
+    - pid: 3161227
+      rank: '74'
+      local_rank: '74'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '74,202'
+    - pid: 3161228
+      rank: '75'
+      local_rank: '75'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '75,203'
+    - pid: 3161229
+      rank: '76'
+      local_rank: '76'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '76,204'
+    - pid: 3161230
+      rank: '77'
+      local_rank: '77'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '77,205'
+    - pid: 3161231
+      rank: '78'
+      local_rank: '78'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '78,206'
+    - pid: 3161232
+      rank: '79'
+      local_rank: '79'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '79,207'
+    - pid: 3161233
+      rank: '80'
+      local_rank: '80'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '80,208'
+    - pid: 3161234
+      rank: '81'
+      local_rank: '81'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '81,209'
+    - pid: 3161235
+      rank: '82'
+      local_rank: '82'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '82,210'
+    - pid: 3161236
+      rank: '83'
+      local_rank: '83'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '83,211'
+    - pid: 3161237
+      rank: '84'
+      local_rank: '84'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '84,212'
+    - pid: 3161238
+      rank: '85'
+      local_rank: '85'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '85,213'
+    - pid: 3161239
+      rank: '86'
+      local_rank: '86'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '86,214'
+    - pid: 3161240
+      rank: '87'
+      local_rank: '87'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '87,215'
+    - pid: 3161241
+      rank: '88'
+      local_rank: '88'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '88,216'
+    - pid: 3161242
+      rank: '89'
+      local_rank: '89'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '89,217'
+    - pid: 3161243
+      rank: '90'
+      local_rank: '90'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '90,218'
+    - pid: 3161244
+      rank: '91'
+      local_rank: '91'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '91,219'
+    - pid: 3161245
+      rank: '92'
+      local_rank: '92'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '92,220'
+    - pid: 3161246
+      rank: '93'
+      local_rank: '93'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '93,221'
+    - pid: 3161247
+      rank: '94'
+      local_rank: '94'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '94,222'
+    - pid: 3161248
+      rank: '95'
+      local_rank: '95'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '95,223'
+    - pid: 3161249
+      rank: '96'
+      local_rank: '96'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '96,224'
+    - pid: 3161250
+      rank: '97'
+      local_rank: '97'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '97,225'
+    - pid: 3161251
+      rank: '98'
+      local_rank: '98'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '98,226'
+    - pid: 3161253
+      rank: '99'
+      local_rank: '99'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '99,227'
+    - pid: 3161252
+      rank: '100'
+      local_rank: '100'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '100,228'
+    - pid: 3161254
+      rank: '101'
+      local_rank: '101'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '101,229'
+    - pid: 3161255
+      rank: '102'
+      local_rank: '102'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '102,230'
+    - pid: 3161256
+      rank: '103'
+      local_rank: '103'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '103,231'
+    - pid: 3161257
+      rank: '104'
+      local_rank: '104'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '104,232'
+    - pid: 3161258
+      rank: '105'
+      local_rank: '105'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '105,233'
+    - pid: 3161259
+      rank: '106'
+      local_rank: '106'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '106,234'
+    - pid: 3161260
+      rank: '107'
+      local_rank: '107'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '107,235'
+    - pid: 3161262
+      rank: '108'
+      local_rank: '108'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '108,236'
+    - pid: 3161261
+      rank: '109'
+      local_rank: '109'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '109,237'
+    - pid: 3161263
+      rank: '110'
+      local_rank: '110'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '110,238'
+    - pid: 3161264
+      rank: '111'
+      local_rank: '111'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '111,239'
+    - pid: 3161267
+      rank: '112'
+      local_rank: '112'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '112,240'
+    - pid: 3161265
+      rank: '113'
+      local_rank: '113'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '113,241'
+    - pid: 3161266
+      rank: '114'
+      local_rank: '114'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '114,242'
+    - pid: 3161268
+      rank: '115'
+      local_rank: '115'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '115,243'
+    - pid: 3161272
+      rank: '116'
+      local_rank: '116'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '116,244'
+    - pid: 3161269
+      rank: '117'
+      local_rank: '117'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '117,245'
+    - pid: 3161270
+      rank: '118'
+      local_rank: '118'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '118,246'
+    - pid: 3161271
+      rank: '119'
+      local_rank: '119'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '119,247'
+    - pid: 3161276
+      rank: '120'
+      local_rank: '120'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '120,248'
+    - pid: 3161274
+      rank: '121'
+      local_rank: '121'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '121,249'
+    - pid: 3161273
+      rank: '122'
+      local_rank: '122'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '122,250'
+    - pid: 3161275
+      rank: '123'
+      local_rank: '123'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '123,251'
+    - pid: 3161280
+      rank: '124'
+      local_rank: '124'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '124,252'
+    - pid: 3161277
+      rank: '125'
+      local_rank: '125'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '125,253'
+    - pid: 3161279
+      rank: '126'
+      local_rank: '126'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '126,254'
+    - pid: 3161278
+      rank: '127'
+      local_rank: '127'
+      omp_threads: '1'
+      cuda_visible_devices: ''
+      cpus_allowed_list: '127,255'
+  benchmark/hybrid:
+    wall_seconds: 2.4219956574961543
+    command:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=32
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb"
+    - "/usr/bin/ruby3.2"
+    - "/tmp/local-evaluation-preflight20260819-3161018-vkgq94/observe.rb"
+    environment:
+      OMP_NUM_THREADS: '32'
+      OMP_DYNAMIC: 'FALSE'
+      OMP_PLACES: cores
+      OMP_PROC_BIND: close
+      CUDA_VISIBLE_DEVICES: '0,1,2,3'
+    observations:
+    - pid: 3161316
+      rank: '0'
+      local_rank: '0'
+      omp_threads: '32'
+      cuda_visible_devices: '0'
+      cpus_allowed_list: 0-31,128-159
+    - pid: 3161317
+      rank: '1'
+      local_rank: '1'
+      omp_threads: '32'
+      cuda_visible_devices: '1'
+      cpus_allowed_list: 32-63,160-191
+    - pid: 3161318
+      rank: '2'
+      local_rank: '2'
+      omp_threads: '32'
+      cuda_visible_devices: '2'
+      cpus_allowed_list: 64-95,192-223
+    - pid: 3161319
+      rank: '3'
+      local_rank: '3'
+      omp_threads: '32'
+      cuda_visible_devices: '3'
+      cpus_allowed_list: 96-127,224-255
+checked_at: '2026-08-19T00:36:03+02:00'
+manifest_sha256: 3634bc842a57e1681ead78d74a90b26135b6efee698e6276521328a98dfd9496
+input_revisions:
+  experiments:
+    path: "/home/petert/llm_para_experiments"
+    commit: e8d10c43d7fcdca42862537b0eb7d0d5fab6da66
+    clean: true
+  benchmarks:
+    path: "/home/petert/llm_eval/benchmarks"
+    commit: 2bc11aeac658a87b5cae25d03e0669f65d32922e
+    clean: true
+  pipeline_source_sha256: '009245afff7679cca5333a2220ce6697d92631446908ff017773391a966623f7'
+  toolchain_paths:
+    cc: "/usr/bin/gcc-13"
+    cxx: "/usr/bin/g++-13"
+    nvcc: "/usr/local/cuda/bin/nvcc"
+free_disk_bytes: 2552571232256

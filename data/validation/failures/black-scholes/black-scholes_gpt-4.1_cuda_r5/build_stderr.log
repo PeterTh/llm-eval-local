@@ -1,0 +1,53 @@
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:48:1: error: ‘__host__’ does not name a type
+   48 | __host__ __device__ inline double cumulativeNormal(const double x) {
+      | ^~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:53:1: error: ‘__host__’ does not name a type
+   53 | __host__ __device__ inline double normalPDF(const double x) {
+      | ^~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:58:1: error: ‘__host__’ does not name a type
+   58 | __host__ __device__ double blackScholesDevice(const OptionInput& option) {
+      | ^~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp: In function ‘double blackScholes(const OptionInput&)’:
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:88:12: error: ‘blackScholesDevice’ was not declared in this scope; did you mean ‘blackScholes’?
+   88 |     return blackScholesDevice(option);
+      |            ^~~~~~~~~~~~~~~~~~
+      |            blackScholes
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp: In function ‘int main(int, char**)’:
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:205:5: error: ‘cudaMalloc’ was not declared in this scope; did you mean ‘calloc’?
+  205 |     cudaMalloc(&d_options, numOptions * sizeof(OptionInput));
+      |     ^~~~~~~~~~
+      |     calloc
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:207:77: error: ‘cudaMemcpyHostToDevice’ was not declared in this scope
+  207 |     cudaMemcpy(d_options, options.data(), numOptions * sizeof(OptionInput), cudaMemcpyHostToDevice);
+      |                                                                             ^~~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:207:5: error: ‘cudaMemcpy’ was not declared in this scope
+  207 |     cudaMemcpy(d_options, options.data(), numOptions * sizeof(OptionInput), cudaMemcpyHostToDevice);
+      |     ^~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:212:5: error: ‘blackScholesKernel’ was not declared in this scope; did you mean ‘blackScholes’?
+  212 |     blackScholesKernel<<<numBlocks, blockSize>>>(d_options, d_results, numOptions);
+      |     ^~~~~~~~~~~~~~~~~~
+      |     blackScholes
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:212:25: error: expected primary-expression before ‘<’ token
+  212 |     blackScholesKernel<<<numBlocks, blockSize>>>(d_options, d_results, numOptions);
+      |                         ^
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:212:48: error: expected primary-expression before ‘>’ token
+  212 |     blackScholesKernel<<<numBlocks, blockSize>>>(d_options, d_results, numOptions);
+      |                                                ^
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:212:50: warning: left operand of comma operator has no effect [-Wunused-value]
+  212 |     blackScholesKernel<<<numBlocks, blockSize>>>(d_options, d_results, numOptions);
+      |                                                  ^~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:212:72: warning: right operand of comma operator has no effect [-Wunused-value]
+  212 |     blackScholesKernel<<<numBlocks, blockSize>>>(d_options, d_results, numOptions);
+      |                                                                        ^~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:213:5: error: ‘cudaDeviceSynchronize’ was not declared in this scope
+  213 |     cudaDeviceSynchronize();
+      |     ^~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:214:72: error: ‘cudaMemcpyDeviceToHost’ was not declared in this scope
+  214 |     cudaMemcpy(results.data(), d_results, numOptions * sizeof(double), cudaMemcpyDeviceToHost);
+      |                                                                        ^~~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/black-scholes_gpt-4.1_cuda_r5/source/black-scholes/black_scholes.cpp:215:5: error: ‘cudaFree’ was not declared in this scope
+  215 |     cudaFree(d_options);
+      |     ^~~~~~~~
+gmake[2]: *** [CMakeFiles/black_scholes.dir/build.make:76: CMakeFiles/black_scholes.dir/black_scholes.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/black_scholes.dir/all] Error 2
+gmake: *** [Makefile:91: all] Error 2

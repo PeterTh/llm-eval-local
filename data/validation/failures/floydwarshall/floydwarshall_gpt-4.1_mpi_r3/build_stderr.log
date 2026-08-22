@@ -1,0 +1,33 @@
+In file included from /usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/mpicxx.h:277,
+                 from /usr/lib/x86_64-linux-gnu/openmpi/include/mpi.h:2911,
+                 from /home/petert/llm_para_local_evaluation/20260819-003427/validation/floydwarshall_gpt-4.1_mpi_r3/source/floydwarshall/floydwarshall.cpp:8:
+/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/op_inln.h: In member function ‘virtual void MPI::Op::Init(void (*)(const void*, void*, int, const MPI::Datatype&), bool)’:
+/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/op_inln.h:121:25: warning: cast between incompatible function types from ‘void (*)(void*, void*, int*, ompi_datatype_t**, void (*)(void*, void*, int*, ompi_datatype_t**))’ to ‘void (*)(void*, void*, int*, ompi_datatype_t**)’ [-Wcast-function-type]
+  121 |     (void)MPI_Op_create((MPI_User_function*) ompi_mpi_cxx_op_intercept,
+      |                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/op_inln.h:123:38: warning: cast between incompatible function types from ‘void (*)(const void*, void*, int, const MPI::Datatype&)’ to ‘void (*)(void*, void*, int*, ompi_datatype_t**)’ [-Wcast-function-type]
+  123 |     ompi_op_set_cxx_callback(mpi_op, (MPI_User_function*) func);
+      |                                      ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/floydwarshall_gpt-4.1_mpi_r3/source/floydwarshall/floydwarshall.cpp: In function ‘void floydWarshall(std::vector<unsigned int>&, std::vector<unsigned int>&, size_t)’:
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/floydwarshall_gpt-4.1_mpi_r3/source/floydwarshall/floydwarshall.cpp:55:56: warning: comparison of integer expressions of different signedness: ‘int’ and ‘size_t’ {aka ‘long unsigned int’} [-Wsign-compare]
+   55 |     size_t row_end = row_start + rows_per_proc + (rank < extra ? 1 : 0);
+      |                                                   ~~~~~^~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/floydwarshall_gpt-4.1_mpi_r3/source/floydwarshall/floydwarshall.cpp:89:58: error: invalid conversion from ‘unsigned int*’ to ‘const int*’ [-fpermissive]
+   89 |                       all_dist.data(), gather_counts.data(), displs.data(), MPI_UNSIGNED, MPI_COMM_WORLD);
+      |                                        ~~~~~~~~~~~~~~~~~~^~
+      |                                                          |
+      |                                                          unsigned int*
+/usr/lib/x86_64-linux-gnu/openmpi/include/mpi.h:1338:60: note:   initializing argument 5 of ‘int MPI_Allgatherv(const void*, int, MPI_Datatype, void*, const int*, const int*, MPI_Datatype, MPI_Comm)’
+ 1338 |                                   void *recvbuf, const int recvcounts[],
+      |                                                  ~~~~~~~~~~^~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/floydwarshall_gpt-4.1_mpi_r3/source/floydwarshall/floydwarshall.cpp:89:73: error: invalid conversion from ‘unsigned int*’ to ‘const int*’ [-fpermissive]
+   89 |                       all_dist.data(), gather_counts.data(), displs.data(), MPI_UNSIGNED, MPI_COMM_WORLD);
+      |                                                              ~~~~~~~~~~~^~
+      |                                                                         |
+      |                                                                         unsigned int*
+/usr/lib/x86_64-linux-gnu/openmpi/include/mpi.h:1339:45: note:   initializing argument 6 of ‘int MPI_Allgatherv(const void*, int, MPI_Datatype, void*, const int*, const int*, MPI_Datatype, MPI_Comm)’
+ 1339 |                                   const int displs[], MPI_Datatype recvtype, MPI_Comm comm);
+      |                                   ~~~~~~~~~~^~~~~~~~
+gmake[2]: *** [CMakeFiles/floydwarshall.dir/build.make:76: CMakeFiles/floydwarshall.dir/floydwarshall.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/floydwarshall.dir/all] Error 2
+gmake: *** [Makefile:91: all] Error 2

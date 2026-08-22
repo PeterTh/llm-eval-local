@@ -1,0 +1,48 @@
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:119:1: error: ‘__global__’ does not name a type
+  119 | __global__ void runSimulationKernel(const ElementStatic* elements_static, const ElementDynamic* elements_dynamic, const Material* materials, ElementDynamic* elements_dynamic_swap, size_t n_elems) {
+      | ^~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp: In function ‘void runSimulation(World&, int)’:
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:144:5: error: ‘cudaMalloc’ was not declared in this scope; did you mean ‘calloc’?
+  144 |     cudaMalloc(&d_elements_static, n_elems * sizeof(ElementStatic));
+      |     ^~~~~~~~~~
+      |     calloc
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:149:98: error: ‘cudaMemcpyHostToDevice’ was not declared in this scope
+  149 |     cudaMemcpy(d_elements_static, world.elements_static.data(), n_elems * sizeof(ElementStatic), cudaMemcpyHostToDevice);
+      |                                                                                                  ^~~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:149:5: error: ‘cudaMemcpy’ was not declared in this scope
+  149 |     cudaMemcpy(d_elements_static, world.elements_static.data(), n_elems * sizeof(ElementStatic), cudaMemcpyHostToDevice);
+      |     ^~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:157:9: error: ‘runSimulationKernel’ was not declared in this scope; did you mean ‘runSimulation’?
+  157 |         runSimulationKernel<<<gridSize, blockSize>>>(d_elements_static, d_elements_dynamic, d_materials, d_elements_dynamic_swap, n_elems);
+      |         ^~~~~~~~~~~~~~~~~~~
+      |         runSimulation
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:157:30: error: expected primary-expression before ‘<’ token
+  157 |         runSimulationKernel<<<gridSize, blockSize>>>(d_elements_static, d_elements_dynamic, d_materials, d_elements_dynamic_swap, n_elems);
+      |                              ^
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:157:52: error: expected primary-expression before ‘>’ token
+  157 |         runSimulationKernel<<<gridSize, blockSize>>>(d_elements_static, d_elements_dynamic, d_materials, d_elements_dynamic_swap, n_elems);
+      |                                                    ^
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:157:54: warning: left operand of comma operator has no effect [-Wunused-value]
+  157 |         runSimulationKernel<<<gridSize, blockSize>>>(d_elements_static, d_elements_dynamic, d_materials, d_elements_dynamic_swap, n_elems);
+      |                                                      ^~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:157:93: warning: right operand of comma operator has no effect [-Wunused-value]
+  157 |         runSimulationKernel<<<gridSize, blockSize>>>(d_elements_static, d_elements_dynamic, d_materials, d_elements_dynamic_swap, n_elems);
+      |                                                                                             ^~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:157:106: warning: right operand of comma operator has no effect [-Wunused-value]
+  157 |         runSimulationKernel<<<gridSize, blockSize>>>(d_elements_static, d_elements_dynamic, d_materials, d_elements_dynamic_swap, n_elems);
+      |                                                                                                          ^~~~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:157:131: warning: right operand of comma operator has no effect [-Wunused-value]
+  157 |         runSimulationKernel<<<gridSize, blockSize>>>(d_elements_static, d_elements_dynamic, d_materials, d_elements_dynamic_swap, n_elems);
+      |                                                                                                                                   ^~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:158:9: error: ‘cudaDeviceSynchronize’ was not declared in this scope
+  158 |         cudaDeviceSynchronize();
+      |         ^~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:163:101: error: ‘cudaMemcpyDeviceToHost’ was not declared in this scope
+  163 |     cudaMemcpy(world.elements_dynamic.data(), d_elements_dynamic, n_elems * sizeof(ElementDynamic), cudaMemcpyDeviceToHost);
+      |                                                                                                     ^~~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/unstructured_gpt-4.1_cuda_r5/source/unstructured/unstructured.cpp:166:5: error: ‘cudaFree’ was not declared in this scope
+  166 |     cudaFree(d_elements_static);
+      |     ^~~~~~~~
+gmake[2]: *** [CMakeFiles/unstructured.dir/build.make:76: CMakeFiles/unstructured.dir/unstructured.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/unstructured.dir/all] Error 2
+gmake: *** [Makefile:91: all] Error 2

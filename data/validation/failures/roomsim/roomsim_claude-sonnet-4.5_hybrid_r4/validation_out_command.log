@@ -1,0 +1,31 @@
+chdir: /home/petert/llm_para_local_evaluation/20260819-003427/validation/roomsim_claude-sonnet-4.5_hybrid_r4
+containment_unit: local-evaluation-3165006-95b1fd178cbf.scope
+io_write_device: /dev/nvme2n1p1
+network_policy: deny external; allow localhost
+limits:
+  file_size_max_bytes=67108864
+  io_write_bandwidth_bytes_per_second=16777216
+  memory_max_bytes=68719476736
+  output_limit_bytes=8388608
+  tasks_max=256
+environment:
+  CC=/usr/bin/gcc-13
+  CUDA_VISIBLE_DEVICES=0,1,2,3
+  CXX=/usr/bin/g++-13
+  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1004/bus
+  HOME=/home/petert
+  LANG=en_US.UTF-8
+  LC_ALL=C.UTF-8
+  LC_CTYPE=C.UTF-8
+  LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64:
+  LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64:
+  LOGNAME=petert
+  OMP_DYNAMIC=FALSE
+  OMP_NUM_THREADS=8
+  OMP_PLACES=cores
+  OMP_PROC_BIND=close
+  PATH=/home/petert/.codex/packages/standalone/releases/0.147.0-x86_64-unknown-linux-musl/codex-path:/home/petert/.local/bin:/home/petert/bin:/home/petert/.codex/tmp/arg0/codex-arg0aVSkhu:/home/petert/.codex/packages/standalone/releases/0.147.0-x86_64-unknown-linux-musl/codex-path:/home/petert/.local/bin:/home/petert/bin:/home/petert/bin:/usr/local/cuda/bin:/home/petert/.local/bin:/home/petert/bin:/home/petert/.cargo/bin:/home/petert/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+  USER=petert
+  XDG_RUNTIME_DIR=/run/user/1004
+command: mpirun --np 4 --map-by ppr:2:socket:PE\=8 --bind-to core --rank-by slot /usr/bin/ruby3.2 /home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb /home/petert/llm_para_local_evaluation/20260819-003427/validation/roomsim_claude-sonnet-4.5_hybrid_r4/roomsim -v -o -n 256 -t 100
+effective_command: systemd-run --user --scope --quiet --collect --unit\=local-evaluation-3165006-95b1fd178cbf --property\=MemoryMax\=68719476736 --property\=MemorySwapMax\=0 --property\=TasksMax\=256 --property\=OOMPolicy\=kill --property\=IPAddressDeny\=any --property\=IPAddressAllow\=localhost --property\=RuntimeMaxSec\=35s --property\=IOWriteBandwidthMax\=/dev/nvme2n1p1\ 16777216 -- mpirun --np 4 --map-by ppr:2:socket:PE\=8 --bind-to core --rank-by slot /usr/bin/ruby3.2 /home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb /home/petert/llm_para_local_evaluation/20260819-003427/validation/roomsim_claude-sonnet-4.5_hybrid_r4/roomsim -v -o -n 256 -t 100

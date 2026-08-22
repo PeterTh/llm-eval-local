@@ -1,0 +1,29 @@
+In file included from /usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/mpicxx.h:277,
+                 from /usr/lib/x86_64-linux-gnu/openmpi/include/mpi.h:2911,
+                 from /home/petert/llm_para_local_evaluation/20260819-003427/validation/nbody_gpt-4.1_mpi_r4/source/nbody/nbody.cpp:7:
+/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/op_inln.h: In member function ‘virtual void MPI::Op::Init(void (*)(const void*, void*, int, const MPI::Datatype&), bool)’:
+/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/op_inln.h:121:25: warning: cast between incompatible function types from ‘void (*)(void*, void*, int*, ompi_datatype_t**, void (*)(void*, void*, int*, ompi_datatype_t**))’ to ‘void (*)(void*, void*, int*, ompi_datatype_t**)’ [-Wcast-function-type]
+  121 |     (void)MPI_Op_create((MPI_User_function*) ompi_mpi_cxx_op_intercept,
+      |                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/ompi/mpi/cxx/op_inln.h:123:38: warning: cast between incompatible function types from ‘void (*)(const void*, void*, int, const MPI::Datatype&)’ to ‘void (*)(void*, void*, int*, ompi_datatype_t**)’ [-Wcast-function-type]
+  123 |     ompi_op_set_cxx_callback(mpi_op, (MPI_User_function*) func);
+      |                                      ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/nbody_gpt-4.1_mpi_r4/source/nbody/nbody.cpp: In function ‘int main(int, char**)’:
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/nbody_gpt-4.1_mpi_r4/source/nbody/nbody.cpp:189:21: warning: unused variable ‘offset’ [-Wunused-variable]
+  189 |     for (int i = 0, offset = 0; i < world_size; ++i) {
+      |                     ^~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/nbody_gpt-4.1_mpi_r4/source/nbody/nbody.cpp:210:47: error: ‘local_positions’ was not declared in this scope
+  210 |         for (int i = 0; i < local_count; ++i) local_positions[i] = local_bodies[i].pos;
+      |                                               ^~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/nbody_gpt-4.1_mpi_r4/source/nbody/nbody.cpp:214:41: error: ‘local_positions’ was not declared in this scope
+  214 |             local_pos_flat[i * 3 + 0] = local_positions[i].x;
+      |                                         ^~~~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/nbody_gpt-4.1_mpi_r4/source/nbody/nbody.cpp:239:13: error: ‘all_positions’ was not declared in this scope
+  239 |             all_positions[i].x = all_pos_flat[i * 3 + 0];
+      |             ^~~~~~~~~~~~~
+/home/petert/llm_para_local_evaluation/20260819-003427/validation/nbody_gpt-4.1_mpi_r4/source/nbody/nbody.cpp:246:17: warning: unused variable ‘global_i’ [-Wunused-variable]
+  246 |             int global_i = local_start + i;
+      |                 ^~~~~~~~
+gmake[2]: *** [CMakeFiles/nbody.dir/build.make:76: CMakeFiles/nbody.dir/nbody.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/nbody.dir/all] Error 2
+gmake: *** [Makefile:91: all] Error 2

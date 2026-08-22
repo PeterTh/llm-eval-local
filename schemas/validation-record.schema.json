@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/PeterTh/llm-eval-local/schemas/validation-record.schema.json",
+  "title": "Local validation record",
+  "type": "object",
+  "required": [
+    "schema_version", "id", "benchmark", "model", "backend", "repetition",
+    "manifest_sha256", "completed_at", "source", "stages", "result", "execution"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string" },
+    "benchmark": { "type": "string" },
+    "model": { "type": "string" },
+    "backend": { "enum": ["omp", "cuda", "mpi", "hybrid"] },
+    "repetition": { "type": "integer", "minimum": 1 },
+    "manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "completed_at": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["batch", "path", "content_sha256", "copied_files", "copied_bytes"],
+      "properties": {
+        "batch": { "type": "string" },
+        "path": { "type": "string" },
+        "content_sha256": { "$ref": "#/$defs/sha256" },
+        "copied_files": { "type": "integer", "minimum": 0 },
+        "seen_entries": { "type": "integer", "minimum": 0 },
+        "copied_bytes": { "type": "integer", "minimum": 0 },
+        "skipped_generated_entries": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "object",
+      "required": [
+        "basic_para", "validation_build", "validation_run",
+        "internal_validation", "output_comparison"
+      ],
+      "additionalProperties": { "type": ["boolean", "null"] }
+    },
+    "result": { "type": "string" },
+    "execution": {
+      "type": ["object", "null"],
+      "properties": {
+        "stdout": { "type": "string" },
+        "stderr": { "type": "string" },
+        "exit_code": { "type": ["integer", "null"] },
+        "wall_seconds": { "type": ["number", "null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}
