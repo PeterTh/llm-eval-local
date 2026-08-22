@@ -36,6 +36,43 @@ Canonical outputs:
 - `figures/8_success_rate_tiers.pdf`
 - `tables/8_success_rate_tiers.csv`
 
+## GPT-5.6 score/cost comparison
+
+`src/gpt56_score_vs_cost.py` compares the nine evaluated GPT-5.6 variant/effort
+combinations using the compact scatter-plot style of the paper's score-versus-token
+and score-versus-time figures. Marker shape and color identify the model variant;
+lines connect low, medium, and xhigh reasoning effort for the same variant. The cost
+axis is logarithmic because the current Luna and Sol prices differ by more than an
+order of magnitude.
+
+The retained GPT-5.6 runs contain Codex's combined non-cached-input-plus-output token
+count, but not the billing split or cached-input count. The plotted cost is therefore
+a consistent comparison estimate rather than reconstructed billing: mean reported
+tokens multiplied by a fixed 50% input / 50% output price mix. Cached input is
+excluded. The backing CSV records the assumption, prices, pricing date, and official
+source URL for every point.
+
+Prices versioned for 2026-08-22 are $4/$20 per million input/output tokens for Sol,
+$2/$12 for Terra, and $0.20/$1.20 for Luna:
+
+- <https://developers.openai.com/api/docs/models/gpt-5.6-sol>
+- <https://developers.openai.com/api/docs/models/gpt-5.6-terra>
+- <https://developers.openai.com/api/docs/models/gpt-5.6-luna>
+
+Rebuild with:
+
+```bash
+python analysis/src/gpt56_score_vs_cost.py
+```
+
+Roboto Condensed must be installed. The script fails instead of silently substituting
+a different font so the paper styling remains reproducible.
+
+Canonical outputs:
+
+- `figures/4c_gpt56_score_vs_cost.pdf`
+- `tables/4c_gpt56_score_vs_cost.csv`
+
 Focused follow-up notes:
 
 - `notes/2026-08-22-sol-xhigh-mpi-simd-classification.md` documents why the larger
