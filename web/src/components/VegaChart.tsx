@@ -5,10 +5,12 @@ export function VegaChart({
   spec,
   ariaLabel,
   onDatumClick,
+  interactiveMarkSelector,
 }: {
   spec: VisualizationSpec;
   ariaLabel: string;
   onDatumClick?: (datum: Record<string, unknown>) => void;
+  interactiveMarkSelector?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +46,20 @@ export function VegaChart({
           }
         });
       }
+      if (interactiveMarkSelector) {
+        container.querySelectorAll<SVGElement>(interactiveMarkSelector).forEach((mark) => {
+          mark.classList.add("interactive-chart-mark");
+          mark.setAttribute("role", "button");
+          mark.setAttribute("tabindex", "0");
+          mark.setAttribute("aria-keyshortcuts", "Enter Space");
+          mark.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              mark.dispatchEvent(new MouseEvent("click", { bubbles: true, view: window }));
+            }
+          });
+        });
+      }
       resizeObserver = new ResizeObserver(() => {
         void result.view.resize().runAsync();
       });
@@ -56,7 +72,7 @@ export function VegaChart({
       finalize?.();
       container.replaceChildren();
     };
-  }, [onDatumClick, spec]);
+  }, [interactiveMarkSelector, onDatumClick, spec]);
 
-  return <div ref={containerRef} className="chart" role="img" aria-label={ariaLabel} />;
+  return <div ref={containerRef} className="chart" role={interactiveMarkSelector ? "region" : "img"} aria-label={ariaLabel} />;
 }

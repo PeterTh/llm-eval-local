@@ -6,6 +6,7 @@ import { MethodologyView } from "./views/MethodologyView";
 import { PlaceholderView } from "./views/PlaceholderView";
 import { RunDetailView } from "./views/RunDetailView";
 import { RunsView } from "./views/RunsView";
+import { ScoresView } from "./views/ScoresView";
 import { TiersView } from "./views/TiersView";
 
 export function App() {
@@ -17,7 +18,7 @@ export function App() {
         <Route path="/tiers" element={<TiersView />} />
         <Route path="/runs" element={<RunsView />} />
         <Route path="/run/:id" element={<RunDetailView />} />
-        <Route path="/scores" element={<PlaceholderView />} />
+        <Route path="/scores" element={<ScoresView />} />
         <Route path="/complexity" element={<PlaceholderView />} />
         <Route path="/performance" element={<PlaceholderView />} />
         <Route path="/methodology" element={<MethodologyView />} />

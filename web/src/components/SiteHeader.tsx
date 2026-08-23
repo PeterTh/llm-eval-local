@@ -6,7 +6,7 @@ import { CopyLinkButton } from "./CopyLinkButton";
 
 const navigation = [
   { to: "/tiers", label: "Tiered Success", enabled: true, className: "nav-tiers" },
-  { to: "/scores", label: "Model scores", enabled: false, className: "nav-scores" },
+  { to: "/scores", label: "Model scores", enabled: true, className: "nav-scores" },
   { to: "/complexity", label: "Complexity", enabled: false, className: "nav-complexity" },
   { to: "/performance", label: "Performance", enabled: false, className: "nav-performance" },
   { to: "/runs", label: "Runs", enabled: true, className: "nav-runs" },

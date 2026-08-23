@@ -9,6 +9,7 @@ import { DatasetProvider } from "./data/context";
 const fixtures = vi.hoisted(() => ({
   dataset: null as null | { manifest: unknown; scoreCube: unknown },
   runs: null as null | unknown[],
+  runError: null as Error | null,
 }));
 
 vi.mock("./data/client", async () => {
@@ -16,21 +17,35 @@ vi.mock("./data/client", async () => {
   return {
     ...actual,
     loadDataset: vi.fn(async () => fixtures.dataset),
-    loadRuns: vi.fn(async () => fixtures.runs),
+    loadRuns: vi.fn(async () => {
+      if (fixtures.runError) throw fixtures.runError;
+      return fixtures.runs;
+    }),
     loadRunById: vi.fn(async (_manifest, id: string) => fixtures.runs?.find((run: any) => run.id === id) ?? null),
   };
 });
 
 vi.mock("./components/VegaChart", () => ({
-  VegaChart: ({ onDatumClick }: { onDatumClick?: (datum: Record<string, unknown>) => void }) => (
-    <button type="button" onClick={() => onDatumClick?.({ modelId: "model/a?x", bandId: "invalid" })}>Synthetic chart segment</button>
-  ),
+  VegaChart: ({ ariaLabel, onDatumClick }: { ariaLabel: string; onDatumClick?: (datum: Record<string, unknown>) => void }) => {
+    const scores = ariaLabel.startsWith("Score distribution chart");
+    return (
+      <button
+        type="button"
+        onClick={() => onDatumClick?.(scores
+          ? { runId: "bench&one_model/a?x_gpu+x_r1" }
+          : { modelId: "model/a?x", bandId: "invalid" })}
+      >
+        {scores ? "Synthetic score point" : "Synthetic chart segment"}
+      </button>
+    );
+  },
 }));
 
-async function renderApp(initial = "/tiers") {
+async function renderApp(initial = "/tiers", options: { runError?: Error } = {}) {
   const { manifestFixture, scoreCubeFixture, runsFixture } = await import("./test/fixtures");
   fixtures.dataset = { manifest: manifestFixture, scoreCube: scoreCubeFixture };
   fixtures.runs = runsFixture;
+  fixtures.runError = options.runError ?? null;
   const rendered = render(<MemoryRouter initialEntries={[initial]}><DatasetProvider><App /></DatasetProvider></MemoryRouter>);
   await screen.findByRole("link", { name: "LLM Autoparallelization Benchmark home" });
   return rendered;
@@ -57,6 +72,34 @@ describe("explorer routing", () => {
     expect(screen.getByRole("combobox", { name: "Order" })).toHaveValue("strongest");
     fireEvent.click(screen.getByRole("button", { name: /Reset/ }));
     expect(screen.getByText("All models")).toBeInTheDocument();
+  });
+
+  it("loads filtered model-score distributions and returns from a selected run with context", async () => {
+    await renderApp("/scores?model=model%2Fa%3Fx&benchmark=bench%26one&backend=gpu%2Bx&sort=strongest");
+    expect(await screen.findByRole("heading", { name: "Model scores" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Model scores" })).toHaveClass("active");
+    expect(screen.getByRole("combobox", { name: "Order" })).toHaveValue("strongest");
+    await waitFor(() => expect(screen.getByLabelText("Current score selection summary")).toHaveTextContent(/1 model\s*2 runs\s*6\.00 mean score/));
+    expect(screen.getByText("Synthetic score point")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic score point" }));
+    expect(await screen.findByRole("heading", { name: "bench&one_model/a?x_gpu+x_r1" })).toBeInTheDocument();
+    const back = screen.getByRole("link", { name: /Back to model scores/ });
+    expect(back).toHaveAttribute("href", expect.stringContaining("/scores?model=model%2Fa%3Fx"));
+    expect(back).toHaveAttribute("href", expect.stringContaining("benchmark=bench%26one"));
+    expect(back).toHaveAttribute("href", expect.stringContaining("backend=gpu%2Bx"));
+    expect(back).toHaveAttribute("href", expect.stringContaining("sort=strongest"));
+  });
+
+  it("shows explicit empty and error states for model-score observations", async () => {
+    const empty = await renderApp("/scores?benchmark=missing-cell");
+    expect(await screen.findByRole("heading", { name: "This filter combination has no scored runs." })).toBeInTheDocument();
+    empty.unmount();
+
+    await renderApp("/scores", { runError: new Error("synthetic shard failure") });
+    expect(await screen.findByRole("heading", { name: "The score observations could not be loaded." })).toBeInTheDocument();
+    expect(screen.getByText("synthetic shard failure")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("dismisses an open filter menu on outside pointer input or Escape", async () => {

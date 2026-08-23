@@ -29,10 +29,15 @@ export function RunDetailView() {
     return () => { active = false; };
   }, [id, manifest]);
 
-  const backPath = `/runs${location.search}`;
-  if (error) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Data error</p><h1>The result could not be loaded.</h1><p>{error.message}</p><Link to={backPath}>Return to runs</Link></div></main>;
+  const returnParams = new URLSearchParams(location.search);
+  const origin = returnParams.get("from");
+  returnParams.delete("from");
+  const returnQuery = returnParams.toString();
+  const backPath = `${origin === "scores" ? "/scores" : "/runs"}${returnQuery ? `?${returnQuery}` : ""}`;
+  const backLabel = origin === "scores" ? "Back to model scores" : "Back to matching runs";
+  if (error) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Data error</p><h1>The result could not be loaded.</h1><p>{error.message}</p><Link to={backPath}>Return to {origin === "scores" ? "model scores" : "runs"}</Link></div></main>;
   if (run === undefined) return <main id="main-content" className="page-shell"><div className="detail-loading">Loading run evidence…</div></main>;
-  if (run === null) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Unknown result</p><h1>No run has this identifier.</h1><Link to={backPath}>Return to runs</Link></div></main>;
+  if (run === null) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Unknown result</p><h1>No run has this identifier.</h1><Link to={backPath}>Return to {origin === "scores" ? "model scores" : "runs"}</Link></div></main>;
 
   const band = manifest.scoreScale.bands.find((candidate) => candidate.id === run.scoreBandId);
   const tierQuery = new URLSearchParams();
@@ -43,7 +48,7 @@ export function RunDetailView() {
 
   return (
     <main id="main-content" className="page-shell detail-page">
-      <Link className="back-link" to={backPath}>← Back to matching runs</Link>
+      <Link className="back-link" to={backPath}>← {backLabel}</Link>
       <PageIntro
         eyebrow="Individual result"
         title={run.id}
@@ -101,7 +106,8 @@ export function RunDetailView() {
         <aside className="detail-card related-card">
           <p className="eyebrow">Related data</p>
           <h2>Related views</h2>
-          <Link to={`/tiers?${tierQuery}`}>This model in Tiered success <span>→</span></Link>
+          <Link to={`/tiers?${tierQuery}`}>This model in Tiered Success <span>→</span></Link>
+          <Link to={`/scores?${tierQuery}`}>This model in Model scores <span>→</span></Link>
           <Link to={`/runs?${cellQuery}`}>All runs in this benchmark cell <span>→</span></Link>
         </aside>
       </div>

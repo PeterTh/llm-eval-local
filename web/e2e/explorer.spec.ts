@@ -107,6 +107,76 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   expect(problems).toEqual([]);
 });
 
+test("model scores filters distributions and opens individual runs", async ({ page }) => {
+  const problems = watchPage(page);
+  await goto(page, "/scores");
+  const scoresLink = page.getByRole("link", { name: "Model scores" });
+  await expect(scoresLink).toHaveClass(/active/);
+  await expect(page.getByRole("heading", { name: "Model scores" })).toBeVisible();
+  await expect(page.getByLabel("Current score selection summary").getByText(/4[,.]620/, { exact: true })).toBeVisible();
+  await expect(page.locator(".score-analysis .chart svg.marks")).toBeVisible();
+  await expect(page.locator(".score-analysis .mark-rect path").first()).toBeVisible();
+
+  const modelMenu = page.locator(".filter-menu").first();
+  await modelMenu.locator("summary").click();
+  await page.getByRole("checkbox", { name: "Haiku 4.5" }).click();
+  await expect(page).toHaveURL(/model=claude-haiku-4.5/);
+  await expect(page.getByLabel("Current score selection summary").getByText("220", { exact: true })).toBeVisible();
+  await page.getByRole("combobox", { name: "Order" }).selectOption("strongest");
+  await expect(page).toHaveURL(/sort=strongest/);
+
+  const box = page.locator('.score-analysis [aria-roledescription="box"]').first();
+  const scorePoints = page.locator('.score-analysis svg [role="button"][aria-label^="Run "]');
+  await expect(box).toBeVisible();
+  await expect(scorePoints.first()).toBeVisible();
+  const boxBounds = await box.boundingBox();
+  const pointCenters = await scorePoints.evaluateAll((marks) => marks.map((mark) => {
+    const bounds = mark.getBoundingClientRect();
+    return bounds.top + bounds.height / 2;
+  }));
+  expect(boxBounds).not.toBeNull();
+  const boxCenter = boxBounds!.y + boxBounds!.height / 2;
+  expect(Math.max(...pointCenters.map((center) => Math.abs(center - boxCenter)))).toBeLessThanOrEqual(11);
+
+  const meanMarker = page.locator('.score-analysis [aria-label^="meanScore"]').first();
+  await meanMarker.hover({ force: true });
+  const summaryTooltip = page.locator("#vg-tooltip-element");
+  await expect(summaryTooltip).toContainText("Lower whisker");
+  await expect(summaryTooltip).toContainText("Median");
+  await expect(summaryTooltip).toContainText("Upper whisker");
+  await expect(summaryTooltip).toContainText("Outliers");
+  await page.mouse.move(1, 1);
+  await expect(summaryTooltip).toBeHidden();
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /Export records/ }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe("llm-eval-model-scores.csv");
+
+  // The final SVG point is painted on top when runs share a score and nearly share jitter.
+  const scorePoint = scorePoints.last();
+  await expect(scorePoint).toBeVisible();
+  await expect(scorePoint).toHaveAttribute("tabindex", "0");
+  await scorePoint.hover({ force: true });
+  const tooltip = page.locator("#vg-tooltip-element");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("Run");
+  await expect(tooltip).toContainText("Benchmark");
+  await expect(tooltip).toContainText("Repetition");
+  await expect(tooltip).toContainText("Tukey outlier");
+
+  await scorePoint.focus();
+  await expect(scorePoint).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#\/run\/.*model=claude-haiku-4.5.*sort=strongest.*from=scores/);
+  await expect(page.getByRole("heading", { name: /claude-haiku-4.5/ })).toBeVisible();
+  const back = page.getByRole("link", { name: /Back to model scores/ });
+  await expect(back).toHaveAttribute("href", /#\/scores\?model=claude-haiku-4.5&sort=strongest/);
+  await back.click();
+  await expect(page.getByRole("link", { name: "Model scores", exact: true })).toHaveClass(/active/);
+  await expect(page.getByLabel("Current score selection summary").getByText("220", { exact: true })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test("runs combine outcome filters, paginate, and retain context through detail", async ({ page }) => {
   const problems = watchPage(page);
   await goto(page, "/runs?model=gpt-4.1&band=invalid");
@@ -140,7 +210,7 @@ test("runs combine outcome filters, paginate, and retain context through detail"
 
 test("all Pages-safe routes have deliberate states", async ({ page }) => {
   const problems = watchPage(page);
-  for (const route of ["/scores", "/complexity", "/performance"]) {
+  for (const route of ["/complexity", "/performance"]) {
     await goto(page, route);
     await expect(page.getByRole("heading", { name: "This analysis view is intentionally staged." })).toBeVisible();
   }
