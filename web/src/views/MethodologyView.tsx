@@ -74,7 +74,8 @@ export function MethodologyView() {
             <p>
               The current snapshot contains {manifest.counts.runs.toLocaleString()} records across {manifest.counts.models} models,
               {` ${manifest.counts.benchmarks} benchmarks, and ${manifest.counts.backends} backends: ${backendLabels}.`}
-              Entity lists and observed combinations are derived from the data rather than fixed by the website.
+              {" "}For each model, benchmark, and backend combination, five independent agent invocations were performed
+              to characterize result variability under otherwise identical experimental conditions.
             </p>
           </section>
 
@@ -110,7 +111,6 @@ export function MethodologyView() {
               {modelsWithoutHarness.length > 0 && (
                 <p className="method-note">
                   No harness metadata is recorded for {formatEntityList(modelsWithoutHarness.map((model) => model.label))}.
-                  Their raw identifiers remain available in the data views.
                 </p>
               )}
             </div>
@@ -215,11 +215,6 @@ export function MethodologyView() {
         </div>
 
         <aside className="methodology-references" aria-label="Methodology records">
-          <section>
-            <p className="eyebrow">Scope</p>
-            <h2>Current dataset</h2>
-            <p>This is an ongoing evaluation. The figures report the retained observations in the identified snapshot; they do not estimate missing combinations as zero.</p>
-          </section>
           <section>
             <p className="eyebrow">Primary records</p>
             <h2>Repository sources</h2>

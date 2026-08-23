@@ -28,6 +28,8 @@ export const manifestFixture: DatasetManifest = {
     },
     { id: "unknown-model", label: "unknown-model", invocation: null },
   ],
+  modelSets: [{ id: "default", label: "Default", modelIds: ["unknown-model"] }],
+  defaultModelSetId: "default",
   benchmarks: [{ id: "bench&one", label: "Bench & One" }, { id: "missing-cell", label: "missing-cell" }],
   backends: [{ id: "gpu+x", label: "GPU + X" }, { id: "cpu", label: "cpu" }],
   methodology: {

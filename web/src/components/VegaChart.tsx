@@ -55,7 +55,12 @@ export function VegaChart({
           mark.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              mark.dispatchEvent(new MouseEvent("click", { bubbles: true, view: window }));
+              const sceneItem = (mark as SVGElement & { __data__?: { datum?: unknown } }).__data__;
+              if (onDatumClick && sceneItem?.datum && typeof sceneItem.datum === "object") {
+                onDatumClick(sceneItem.datum as Record<string, unknown>);
+              } else {
+                mark.dispatchEvent(new MouseEvent("click", { bubbles: true, view: window }));
+              }
             }
           });
         });

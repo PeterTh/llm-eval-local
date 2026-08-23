@@ -15,6 +15,7 @@ import { useMediaQuery } from "../utils/media";
 function runLink(modelId: string, bandId: string, current: URLSearchParams): string {
   const next = new URLSearchParams(current);
   next.delete("model");
+  next.delete("model-set");
   next.append("model", modelId);
   next.delete("band");
   next.append("band", bandId);
@@ -42,6 +43,7 @@ export function TiersView() {
   const visibleRuns = summaries.reduce((total, model) => total + model.runCount, 0);
   const weightedMean = visibleRuns === 0 ? null : summaries.reduce((total, model) => total + model.meanScore * model.runCount, 0) / visibleRuns;
   const modelOrder = summaries.map((summary) => summary.modelLabel);
+  const minimumTierLabelWidthPx = isNarrow ? 24 : 28;
 
   const spec = useMemo<VisualizationSpec>(() => ({
     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
@@ -109,7 +111,7 @@ export function TiersView() {
         encoding: { x2: { field: "endPercentage" } },
       },
       {
-        transform: [{ filter: "datum.percentage >= 7" }],
+        transform: [{ filter: `datum.percentage * width / 100 >= ${minimumTierLabelWidthPx}` }],
         mark: { type: "text", color: "white", fontSize: isNarrow ? 11 : 13, fontWeight: 650, baseline: "middle" },
         encoding: {
           x: { field: "midpointPercentage", type: "quantitative" },
@@ -155,7 +157,10 @@ export function TiersView() {
       legend: { labelColor: isDark ? "#edf0eb" : "#303941", labelFontSize: isNarrow ? 12 : 14, offset: 12 },
       view: { stroke: null },
     },
-  }) as VisualizationSpec, [isDark, isNarrow, manifest.scoreScale.bands, modelLabels, modelOrder, segments, summaries.length]);
+  }) as VisualizationSpec, [
+    isDark, isNarrow, manifest.scoreScale.bands, minimumTierLabelWidthPx,
+    modelLabels, modelOrder, segments, summaries.length,
+  ]);
 
   const openSegment = useCallback((datum: Record<string, unknown>) => {
     if (typeof datum.modelId === "string" && typeof datum.bandId === "string") {
@@ -227,7 +232,7 @@ export function TiersView() {
         {summaries.length > 0 ? (
           <>
             <VegaChart spec={spec} ariaLabel={`Stacked score-tier chart for ${summaries.length} models and ${visibleRuns} runs`} onDatumClick={openSegment} />
-            <p className="chart-footnote"><span aria-hidden="true">↳</span> Percentages use each model’s filtered sample size. Hover for counts and mean scores.</p>
+            <p className="chart-footnote">Percentages use each model’s filtered sample size. Hover for counts and mean scores.</p>
           </>
         ) : (
           <div className="empty-state">

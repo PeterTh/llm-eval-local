@@ -1,4 +1,5 @@
 import type { DatasetManifest, FilterState, RunRecord } from "../data/types";
+import { summarizeDistribution } from "./statistics";
 
 export interface ScoreDistributionPoint {
   runId: string;
@@ -41,16 +42,6 @@ export interface ModelScoreSummary {
   points: ScoreDistributionPoint[];
 }
 
-function quantileSorted(values: readonly number[], probability: number): number {
-  if (values.length === 1) return values[0]!;
-  const index = (values.length - 1) * probability;
-  const lowerIndex = Math.floor(index);
-  const upperIndex = Math.ceil(index);
-  const lower = values[lowerIndex]!;
-  const upper = values[upperIndex]!;
-  return lower + (upper - lower) * (index - lowerIndex);
-}
-
 export function deterministicJitter(id: string): number {
   let hash = 0x811c9dc5;
   for (let index = 0; index < id.length; index += 1) {
@@ -87,15 +78,11 @@ export function summarizeModelScores(
 
   const summaries = [...grouped].map(([modelId, modelRuns]) => {
     const scores = modelRuns.map((run) => run.overallScore).sort((left, right) => left - right);
-    const firstQuartile = quantileSorted(scores, 0.25);
-    const median = quantileSorted(scores, 0.5);
-    const thirdQuartile = quantileSorted(scores, 0.75);
-    const interquartileRange = thirdQuartile - firstQuartile;
-    const lowerFence = firstQuartile - 1.5 * interquartileRange;
-    const upperFence = thirdQuartile + 1.5 * interquartileRange;
-    const lowerWhisker = scores.find((score) => score >= lowerFence) ?? scores[0]!;
-    const upperWhisker = [...scores].reverse().find((score) => score <= upperFence) ?? scores.at(-1)!;
-    const meanScore = scores.reduce((total, score) => total + score, 0) / scores.length;
+    const statistics = summarizeDistribution(scores);
+    const {
+      firstQuartile, median, thirdQuartile, lowerWhisker, upperWhisker, outlierCount,
+    } = statistics;
+    const meanScore = statistics.mean;
     const model = models.get(modelId);
     const invocation = model?.invocation;
     const modelLabel = model?.label ?? modelId;
@@ -103,8 +90,6 @@ export function summarizeModelScores(
     const modelInvocationLabel = invocation
       ? `${invocation.invokedModelId}${invocation.reasoningEffort ? ` · ${invocation.reasoningEffort} reasoning` : ""}`
       : "Not recorded";
-    const outlierCount = scores.filter((score) => score < lowerWhisker || score > upperWhisker).length;
-
     const points = modelRuns
       .map((run): ScoreDistributionPoint => {
         const band = scoreBands.get(run.scoreBandId)

@@ -7,7 +7,7 @@ import { CopyLinkButton } from "./CopyLinkButton";
 const navigation = [
   { to: "/tiers", label: "Tiered Success", enabled: true, className: "nav-tiers" },
   { to: "/scores", label: "Model scores", enabled: true, className: "nav-scores" },
-  { to: "/complexity", label: "Complexity", enabled: false, className: "nav-complexity" },
+  { to: "/complexity", label: "Complexity", enabled: true, className: "nav-complexity" },
   { to: "/performance", label: "Performance", enabled: false, className: "nav-performance" },
   { to: "/runs", label: "Runs", enabled: true, className: "nav-runs" },
 ] as const;
@@ -23,7 +23,7 @@ export function SiteHeader() {
   const snapshotUrl = `${manifest.artifactRepository}/tree/${manifest.artifactCommit}`;
   const persistentParams = new URLSearchParams();
   const currentParams = new URLSearchParams(location.search);
-  for (const key of ["model", "benchmark", "backend"]) {
+  for (const key of ["model", "model-set", "benchmark", "backend"]) {
     currentParams.getAll(key).forEach((value) => persistentParams.append(key, value));
   }
   const persistentSearch = persistentParams.toString();
@@ -68,7 +68,6 @@ export function SiteHeader() {
           <details ref={aboutMenu} className="about-menu">
             <summary className="quiet-button">About</summary>
             <div className="about-panel">
-              <p className="eyebrow">Dataset snapshot</p>
               <h2>About this evaluation</h2>
               <p>
                 This page presents data from an ongoing evaluation of LLM parallelization capabilities
@@ -76,7 +75,7 @@ export function SiteHeader() {
                 and Parallel Systems Research Group</a> at the <a href="https://www.uibk.ac.at/" target="_blank" rel="noreferrer">University of Innsbruck</a>.
               </p>
               <p><Link to={{ pathname: "/methodology", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Methodology</Link> summarizes the experimental design, validation pipeline, performance measurements, and scoring procedure.</p>
-              <p><Link to={{ pathname: "/cite", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Citation information</Link> lists the authors, current publication target, and copyable BibTeX.</p>
+              <p><Link to={{ pathname: "/cite", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Citation information</Link> lists the authors and copyable BibTeX.</p>
               <dl className="provenance-list compact">
                 <div><dt>Artifact</dt><dd><a href={snapshotUrl} target="_blank" rel="noreferrer">{shortHash(manifest.artifactCommit)}</a></dd></div>
                 <div><dt>Scoring digest</dt><dd><code>{shortHash(manifest.scoringDigest)}</code></dd></div>
@@ -98,8 +97,8 @@ export function SiteHeader() {
               {item.label}
             </NavLink>
           ) : (
-            <span key={item.to} className={`nav-pending ${item.className}`} aria-disabled="true" title="Planned for the next review step">
-              {item.label}<small>Next</small>
+            <span key={item.to} className={`nav-pending ${item.className}`} aria-disabled="true">
+              {item.label}
             </span>
           ))}
           <span className="nav-separator" aria-hidden="true">|</span>

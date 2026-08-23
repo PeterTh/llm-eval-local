@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { PageIntro } from "../components/PageIntro";
 import { useDataset } from "../data/context";
 
 const PAPER_URL = "https://link.springer.com/chapter/10.1007/978-3-032-35248-4_2";
@@ -43,11 +42,7 @@ export function CiteView() {
 
   return (
     <main id="main-content" className="page-shell cite-page">
-      <PageIntro
-        eyebrow="Citation"
-        title="Cite this work"
-        description={<>The peer-reviewed Euro-Par 2026 paper is the current citation target for this explorer.</>}
-      />
+      <h1 className="sr-only">Citation</h1>
 
       <div className="cite-layout">
         <section className="cite-card cite-authors" aria-labelledby="cite-authors-heading">
@@ -69,7 +64,7 @@ export function CiteView() {
 
         <section className="cite-card cite-publication" aria-labelledby="cite-publication-heading">
           <header>
-            <p className="eyebrow">Current citation target</p>
+            <p className="eyebrow">Please Cite the following paper if you use this work</p>
             <span>Original paper</span>
           </header>
           <h2 id="cite-publication-heading">

@@ -2,8 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { SiteHeader } from "./components/SiteHeader";
 import { CiteView } from "./views/CiteView";
+import { ComplexityView } from "./views/ComplexityView";
 import { MethodologyView } from "./views/MethodologyView";
-import { PlaceholderView } from "./views/PlaceholderView";
 import { RunDetailView } from "./views/RunDetailView";
 import { RunsView } from "./views/RunsView";
 import { ScoresView } from "./views/ScoresView";
@@ -19,14 +19,13 @@ export function App() {
         <Route path="/runs" element={<RunsView />} />
         <Route path="/run/:id" element={<RunDetailView />} />
         <Route path="/scores" element={<ScoresView />} />
-        <Route path="/complexity" element={<PlaceholderView />} />
-        <Route path="/performance" element={<PlaceholderView />} />
+        <Route path="/complexity" element={<ComplexityView />} />
+        <Route path="/performance" element={<Navigate to="/tiers" replace />} />
         <Route path="/methodology" element={<MethodologyView />} />
         <Route path="/cite" element={<CiteView />} />
         <Route path="*" element={<Navigate to="/tiers" replace />} />
       </Routes>
       <footer className="site-footer">
-        <p>Client-only · No cookies · No runtime service</p>
         <div className="footer-brands" aria-label="Institutional affiliations">
           <a href="https://dps.uibk.ac.at/" target="_blank" rel="noreferrer" aria-label="Distributed and Parallel Systems Research Group">
             <img className="footer-dps-logo" src={`${import.meta.env.BASE_URL}brand/dps-logo.svg`} alt="DPS" />

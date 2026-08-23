@@ -352,15 +352,6 @@ code {
   opacity: 0.55;
 }
 
-.nav-pending small {
-  padding: 0.12rem 0.28rem;
-  border-radius: 0.2rem;
-  background: var(--surface-soft);
-  font-size: 0.55rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .snapshot-link {
   display: flex;
   align-items: center;
@@ -543,6 +534,12 @@ code {
 .filter-actions button {
   padding: 0.28rem 0.55rem;
   font-size: 0.7rem;
+}
+
+.filter-actions button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--navy);
 }
 
 .filter-options {
@@ -782,16 +779,26 @@ code {
 
 .score-analysis .chart { min-height: 220px; }
 
+.complexity-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(360px, 0.9fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.complexity-grid > * { min-width: 0; }
+.complexity-grid .chart.vega-embed { padding-right: 0 !important; padding-left: 0; }
+.complexity-grid .chart-wrapper { display: flex; justify-content: center; }
+.benchmark-complexity .chart { min-height: 592px; padding-top: 2.75rem; padding-left: 0; overflow-x: hidden; }
+.target-complexity .chart { min-height: 510px; overflow-x: hidden; }
+.accessible-data .table-scroll + .table-scroll { border-top: 1px solid var(--line); }
+
 .chart-footnote {
   margin: 0;
   padding: 0.75rem 1.3rem 1rem;
-  color: var(--muted);
-  font-size: 0.72rem;
-}
-
-.chart-footnote span {
-  margin-right: 0.35rem;
-  color: var(--accent);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.4;
 }
 
 .accessible-data {
@@ -1435,9 +1442,9 @@ code {
   display: grid;
   grid-template-columns: minmax(260px, 0.65fr) minmax(0, 1.35fr);
   gap: 1rem;
-  border-top: 1px solid var(--line-strong);
-  padding-top: 1rem;
 }
+
+.cite-layout > * { min-width: 0; }
 
 .cite-card {
   padding: 1.35rem;
@@ -1625,7 +1632,7 @@ code {
 
 .site-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 1rem clamp(1rem, 3vw, 3rem) 1.35rem;
   border-top: 1px solid var(--line);
@@ -1698,8 +1705,8 @@ code {
   .provenance-card { grid-row: auto; }
   .methodology-layout { grid-template-columns: 1fr; gap: 0; }
   .methodology-main { max-width: none; }
-  .methodology-references { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1rem; }
-  .methodology-references section + section { border-top: 1px solid var(--line); border-left: 0; }
+  .methodology-references { position: static; display: grid; grid-template-columns: 1fr; margin-top: 1rem; }
+  .complexity-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -1729,6 +1736,8 @@ code {
   .panel-heading { align-items: flex-start; flex-direction: column; }
   .panel-heading .secondary-button { width: 100%; }
   .chart { padding-left: 0; padding-right: 0.35rem; overflow-x: auto; }
+  .benchmark-complexity .chart { min-height: 532px; }
+  .target-complexity .chart { min-height: 380px; }
   .run-controls { grid-template-columns: 1fr; }
   .run-search { grid-column: auto; }
   .detail-page .page-intro { gap: 1.25rem; }
@@ -1751,7 +1760,6 @@ code {
   .about-panel { right: -0.25rem; }
   .nav-scroll > a,
   .nav-pending { font-size: 0.77rem; }
-  .nav-pending small { display: none; }
   .filter-group { grid-template-columns: 1fr; }
   .filter-menu > summary,
   .inline-select { min-height: 44px; }

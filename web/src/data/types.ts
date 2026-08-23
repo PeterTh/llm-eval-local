@@ -22,6 +22,10 @@ export interface ModelMetadata extends EntityMetadata {
   invocation: ModelInvocationMetadata | null;
 }
 
+export interface ModelSetMetadata extends EntityMetadata {
+  modelIds: string[];
+}
+
 export interface HarnessMetadata {
   id: string;
   label: string;
@@ -106,6 +110,8 @@ export interface DatasetManifest {
     backends: number;
   };
   models: ModelMetadata[];
+  modelSets: ModelSetMetadata[];
+  defaultModelSetId: string | null;
   benchmarks: EntityMetadata[];
   backends: EntityMetadata[];
   methodology: MethodologyMetadata;

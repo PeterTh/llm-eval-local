@@ -17,5 +17,10 @@ describe("runtime dataset validation", () => {
       ...manifestFixture,
       models: [{ ...manifestFixture.models[0], invocation: { ...manifestFixture.models[0]!.invocation!, harnessId: "" } }],
     })).toThrow();
+    expect(() => datasetManifestSchema.parse({ ...manifestFixture, defaultModelSetId: "missing" })).toThrow();
+    expect(() => datasetManifestSchema.parse({
+      ...manifestFixture,
+      modelSets: [{ ...manifestFixture.modelSets[0], modelIds: ["missing-model"] }],
+    })).toThrow();
   });
 });

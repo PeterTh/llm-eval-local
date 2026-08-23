@@ -14,6 +14,7 @@ import type {
   HarnessMetadata,
   MethodologyMetadata,
   ModelMetadata,
+  ModelSetMetadata,
   RunRecord,
   RunIndexEntry,
   ScoreBand,
@@ -30,6 +31,12 @@ interface SiteConfig {
   };
   labels?: Record<string, Record<string, string>>;
   orders?: Record<string, string[]>;
+  modelSets?: Array<{
+    id: string;
+    label: string;
+    excludeModelIds: string[];
+  }>;
+  defaultModelSetId?: string;
 }
 
 interface MethodologyConfig {
@@ -437,6 +444,29 @@ export async function buildData(): Promise<void> {
       },
     };
   });
+  const knownModelIds = new Set(models.map((model) => model.id));
+  const modelSetIds = new Set<string>();
+  const modelSets: ModelSetMetadata[] = (config.modelSets ?? []).map((configuredSet) => {
+    const id = requiredString(configuredSet.id, "model set ID");
+    const label = requiredString(configuredSet.label, `model set ${id} label`);
+    invariant(Array.isArray(configuredSet.excludeModelIds)
+      && configuredSet.excludeModelIds.every((modelId) => typeof modelId === "string" && modelId.trim() !== ""),
+    `model set ${id} exclusions are malformed`);
+    invariant(!modelSetIds.has(id), `duplicate model set ID: ${id}`);
+    modelSetIds.add(id);
+    const excludedModelIds = new Set(configuredSet.excludeModelIds);
+    invariant(excludedModelIds.size === configuredSet.excludeModelIds.length,
+      `model set ${id} contains duplicate exclusions`);
+    for (const modelId of excludedModelIds) {
+      invariant(knownModelIds.has(modelId), `model set ${id} excludes unknown model ${modelId}`);
+    }
+    const modelIds = models.filter((model) => !excludedModelIds.has(model.id)).map((model) => model.id);
+    invariant(modelIds.length > 0, `model set ${id} is empty`);
+    return { id, label, modelIds };
+  });
+  const defaultModelSetId = config.defaultModelSetId ?? null;
+  invariant(defaultModelSetId === null || modelSetIds.has(defaultModelSetId),
+    `default model set is unknown: ${defaultModelSetId}`);
   const benchmarks = orderedEntities("benchmarks", runs.map((run) => run.benchmarkId), config);
   const backends = orderedEntities("backends", runs.map((run) => run.backendId), config);
   const modelOrder = new Map(models.map((entity, index) => [entity.id, index]));
@@ -534,6 +564,8 @@ export async function buildData(): Promise<void> {
       backends: backends.length,
     },
     models,
+    modelSets,
+    defaultModelSetId,
     benchmarks,
     backends,
     methodology: {

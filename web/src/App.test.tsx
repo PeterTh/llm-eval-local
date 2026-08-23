@@ -28,14 +28,29 @@ vi.mock("./data/client", async () => {
 vi.mock("./components/VegaChart", () => ({
   VegaChart: ({ ariaLabel, onDatumClick }: { ariaLabel: string; onDatumClick?: (datum: Record<string, unknown>) => void }) => {
     const scores = ariaLabel.startsWith("Score distribution chart");
+    const benchmarkComplexity = ariaLabel.startsWith("Benchmark complexity violin chart");
+    const targetComplexity = ariaLabel.startsWith("Target complexity violin chart");
+    const label = scores
+      ? "Synthetic score point"
+      : benchmarkComplexity
+        ? "Synthetic benchmark violin"
+        : targetComplexity
+          ? "Synthetic target violin"
+          : "Synthetic chart segment";
     return (
       <button
         type="button"
-        onClick={() => onDatumClick?.(scores
-          ? { runId: "bench&one_model/a?x_gpu+x_r1" }
-          : { modelId: "model/a?x", bandId: "invalid" })}
+        onClick={() => onDatumClick?.(
+          scores
+            ? { runId: "bench&one_model/a?x_gpu+x_r1" }
+            : benchmarkComplexity
+              ? { categoryType: "benchmark", categoryId: "bench&one" }
+              : targetComplexity
+                ? { categoryType: "backend", categoryId: "gpu+x" }
+                : { modelId: "model/a?x", bandId: "invalid" },
+        )}
       >
-        {scores ? "Synthetic score point" : "Synthetic chart segment"}
+        {label}
       </button>
     );
   },
@@ -71,7 +86,33 @@ describe("explorer routing", () => {
     expect(summaries[2]).toHaveTextContent("GPU + X");
     expect(screen.getByRole("combobox", { name: "Order" })).toHaveValue("strongest");
     fireEvent.click(screen.getByRole("button", { name: /Reset/ }));
-    expect(screen.getByText("All models")).toBeInTheDocument();
+    expect(container.querySelector(".filter-menu > summary > strong")).toHaveTextContent("Default");
+  });
+
+  it("starts with the named default model set and keeps all-selection modes distinct", async () => {
+    const { container } = await renderApp();
+    const modelMenu = container.querySelector<HTMLDetailsElement>(".filter-menu")!;
+    const modelSummary = within(modelMenu).getByText("Default", { selector: "summary strong" });
+    expect(screen.getByLabelText("Current selection summary")).toHaveTextContent(/1 model\s*1 run/);
+
+    await userEvent.click(modelMenu.querySelector("summary")!);
+    expect(within(modelMenu).getByRole("checkbox", { name: "Model A" })).not.toBeChecked();
+    expect(within(modelMenu).getByRole("checkbox", { name: "unknown-model" })).toBeChecked();
+    expect(within(modelMenu).getByRole("button", { name: "Default", pressed: true })).toBeInTheDocument();
+
+    await userEvent.click(within(modelMenu).getByRole("button", { name: /^All$/ }));
+    expect(modelSummary).toHaveTextContent("All models");
+    expect(screen.getByRole("link", { name: "Model scores" })).toHaveAttribute("href", "/scores?model-set=all");
+
+    await userEvent.click(within(modelMenu).getByRole("button", { name: "Select all" }));
+    expect(modelSummary).toHaveTextContent("2 models");
+    const explicitSelection = new URL(screen.getByRole("link", { name: "Model scores" }).getAttribute("href")!, "https://example.test");
+    expect(explicitSelection.searchParams.getAll("model")).toEqual(["model/a?x", "unknown-model"]);
+    expect(explicitSelection.searchParams.has("model-set")).toBe(false);
+
+    await userEvent.click(within(modelMenu).getByRole("button", { name: "Default" }));
+    expect(modelSummary).toHaveTextContent("Default");
+    expect(screen.getByRole("link", { name: "Model scores" })).toHaveAttribute("href", "/scores");
   });
 
   it("loads filtered model-score distributions and returns from a selected run with context", async () => {
@@ -91,6 +132,21 @@ describe("explorer routing", () => {
     expect(back).toHaveAttribute("href", expect.stringContaining("sort=strongest"));
   });
 
+  it("preserves wildcard model selection through score details and complexity drill-down", async () => {
+    const scoreView = await renderApp("/scores?model-set=all");
+    await userEvent.click(await screen.findByRole("button", { name: "Synthetic score point" }));
+    expect(await screen.findByRole("link", { name: /Back to model scores/ })).toHaveAttribute(
+      "href", expect.stringContaining("model-set=all"),
+    );
+    scoreView.unmount();
+
+    await renderApp("/complexity?model-set=all");
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic benchmark violin" }));
+    expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("3 matching runs")).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "Model scores" })).toHaveAttribute("href", expect.stringContaining("model-set=all"));
+  });
+
   it("shows explicit empty and error states for model-score observations", async () => {
     const empty = await renderApp("/scores?benchmark=missing-cell");
     expect(await screen.findByRole("heading", { name: "This filter combination has no scored runs." })).toBeInTheDocument();
@@ -100,6 +156,31 @@ describe("explorer routing", () => {
     expect(await screen.findByRole("heading", { name: "The score observations could not be loaded." })).toBeInTheDocument();
     expect(screen.getByText("synthetic shard failure")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
+  it("recomputes complexity distributions and drills from benchmarks or targets to runs", async () => {
+    const benchmarkView = await renderApp("/complexity?model=model%2Fa%3Fx");
+    expect(await screen.findByRole("heading", { name: "Benchmark / Target complexity" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Complexity" })).toHaveClass("active");
+    expect(screen.getByLabelText("Current complexity selection summary")).toHaveTextContent(/1 model\s*2 runs\s*6\.00 grand mean/);
+    expect(screen.getByText("Synthetic benchmark violin")).toBeInTheDocument();
+    expect(screen.getByText("Synthetic target violin")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic benchmark violin" }));
+    expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
+    expect(screen.getByText("Bench & One", { selector: ".filter-menu summary strong" })).toBeInTheDocument();
+    benchmarkView.unmount();
+
+    await renderApp("/complexity?model=model%2Fa%3Fx");
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic target violin" }));
+    expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
+    expect(screen.getByText("GPU + X", { selector: ".filter-menu summary strong" })).toBeInTheDocument();
+  });
+
+  it("shows an explicit empty state for complexity filters without observations", async () => {
+    await renderApp("/complexity?benchmark=missing-cell");
+    expect(await screen.findByRole("heading", { name: "This filter combination has no scored runs." })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeInTheDocument();
   });
 
   it("dismisses an open filter menu on outside pointer input or Escape", async () => {
@@ -139,17 +220,25 @@ describe("explorer routing", () => {
   it("presents institutional context and the methodology at navigation level", async () => {
     const { container } = await renderApp();
     const view = within(container);
+    expect(view.queryByText("Next", { exact: true })).not.toBeInTheDocument();
+    expect(container.querySelector(".nav-performance")).not.toHaveAttribute("title");
     await userEvent.click(view.getByText("About", { selector: "summary" }));
     const aboutPanel = within(container.querySelector(".about-panel")!);
     const groupLink = aboutPanel.getByRole("link", { name: "Distributed and Parallel Systems Research Group" });
     expect(groupLink).toHaveAttribute("href", "https://dps.uibk.ac.at/");
     expect(aboutPanel.getByRole("link", { name: "University of Innsbruck" })).toHaveAttribute("href", "https://www.uibk.ac.at/");
     expect(aboutPanel.getByRole("link", { name: "Citation information" })).toHaveAttribute("href", "/cite");
+    expect(aboutPanel.queryByText("Dataset snapshot")).not.toBeInTheDocument();
+    expect(aboutPanel.queryByText(/current publication target/)).not.toBeInTheDocument();
+    expect(aboutPanel.getByText(/lists the authors and copyable BibTeX/)).toBeInTheDocument();
     await userEvent.click(aboutPanel.getByRole("link", { name: "Methodology" }));
     expect(await view.findByRole("heading", { name: "Methodology" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Agent harnesses" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Five sequential stages" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Recorded local execution system" })).toBeInTheDocument();
+    expect(view.getByText(/five independent agent invocations were performed/)).toBeInTheDocument();
+    expect(view.queryByRole("heading", { name: "Current dataset" })).not.toBeInTheDocument();
+    expect(view.queryByText(/derived from the data rather than fixed by the website/)).not.toBeInTheDocument();
     expect(view.getByText("GitHub Copilot CLI", { selector: "h3" })).toBeInTheDocument();
     expect(view.getAllByText("one test GPU", { exact: true })).toHaveLength(2);
     expect(view.getByRole("link", { name: /Experiment harness configuration/ })).toHaveAttribute(
@@ -158,6 +247,7 @@ describe("explorer routing", () => {
     );
     expect(view.getByRole("link", { name: /Threshold review/ })).toHaveAttribute("target", "_blank");
     const footer = within(container.querySelector(".site-footer")!);
+    expect(footer.queryByText(/Client-only/)).not.toBeInTheDocument();
     expect(footer.getByRole("link", { name: "Distributed and Parallel Systems Research Group" })).toHaveAttribute("href", "https://dps.uibk.ac.at/");
     expect(footer.getByRole("link", { name: "University of Innsbruck" })).toHaveAttribute("href", "https://www.uibk.ac.at/");
   });
@@ -170,7 +260,9 @@ describe("explorer routing", () => {
     });
 
     await renderApp("/cite");
-    expect(screen.getByRole("heading", { name: "Cite this work" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Citation" })).toHaveClass("sr-only");
+    expect(screen.queryByRole("heading", { name: "Cite this work" })).not.toBeInTheDocument();
+    expect(screen.getByText("Please Cite the following paper if you use this work")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Cite" })).toHaveClass("active");
     expect(screen.getByRole("link", { name: "Peter Thoman" })).toHaveAttribute("href", "https://dps.uibk.ac.at/~petert");
     expect(screen.getByRole("link", { name: "Philipp Gschwandtner" })).toHaveAttribute("href", "https://dps.uibk.ac.at/~philipp");

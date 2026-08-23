@@ -40,7 +40,7 @@ npm run test:e2e
 - one run index used for direct result URLs;
 - one lazily loaded run shard for each observed benchmark/backend cell.
 
-Entity IDs are arbitrary strings. Existing presentation labels and backend order are optional overrides in `config/site.json`; an unseen ID is displayed verbatim.
+Entity IDs are arbitrary strings. Existing presentation labels, backend order, and named model sets are optional overrides in `config/site.json`; an unseen ID is displayed verbatim. Exclusion-based model sets include newly observed models automatically.
 
 ## Routes and filter state
 

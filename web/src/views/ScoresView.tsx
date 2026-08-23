@@ -14,7 +14,7 @@ import { useMediaQuery } from "../utils/media";
 
 function copySharedParams(source: URLSearchParams): URLSearchParams {
   const target = new URLSearchParams();
-  for (const key of ["model", "benchmark", "backend"]) {
+  for (const key of ["model", "model-set", "benchmark", "backend"]) {
     source.getAll(key).forEach((value) => target.append(key, value));
   }
   const sort = source.get("sort");
@@ -359,7 +359,7 @@ export function ScoresView() {
               onDatumClick={openPoint}
               interactiveMarkSelector='[aria-roledescription="circle"]'
             />
-            <p className="chart-footnote"><span aria-hidden="true">◆</span> Diamond: filtered mean. Points are individual runs; color labels the reviewed score tier.</p>
+            <p className="chart-footnote">The diamond marks the filtered mean. Points are individual runs; color labels the reviewed score tier.</p>
           </>
         ) : (
           <div className="empty-state">

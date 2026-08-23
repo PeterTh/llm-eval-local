@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { DatasetManifest, FilterState } from "../data/types";
+import { getDefaultModelSet, selectionsMatch } from "../state/modelSets";
 import { FilterMenu } from "./FilterMenu";
 
 export function FilterBar({
@@ -24,12 +25,24 @@ export function FilterBar({
   resultSummary?: ReactNode;
   children?: ReactNode;
 }) {
-  const activeCount = filters.models.length + filters.benchmarks.length + filters.backends.length + filters.scoreBands.length
+  const defaultModelSet = getDefaultModelSet(manifest);
+  const activeModelCount = defaultModelSet && selectionsMatch(filters.models, defaultModelSet.modelIds)
+    ? 0
+    : filters.models.length === 0 && defaultModelSet
+      ? 1
+      : filters.models.length;
+  const activeCount = activeModelCount + filters.benchmarks.length + filters.backends.length + filters.scoreBands.length
     + (filters.outcome === "all" ? 0 : 1) + additionalActiveCount;
   return (
     <section className="filter-bar" aria-label="Data filters">
       <div className="filter-group">
-        <FilterMenu label="Models" entities={manifest.models} selected={filters.models} onChange={onModels} />
+        <FilterMenu
+          label="Models"
+          entities={manifest.models}
+          selected={filters.models}
+          onChange={onModels}
+          namedSelection={defaultModelSet ? { label: defaultModelSet.label, values: defaultModelSet.modelIds } : undefined}
+        />
         <FilterMenu label="Benchmarks" entities={manifest.benchmarks} selected={filters.benchmarks} onChange={onBenchmarks} />
         <FilterMenu label="Backends" entities={manifest.backends} selected={filters.backends} onChange={onBackends} />
         {children}

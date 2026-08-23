@@ -24,6 +24,10 @@ const modelSchema = entitySchema.extend({
   invocation: modelInvocationSchema.nullable(),
 });
 
+const modelSetSchema = entitySchema.extend({
+  modelIds: z.array(z.string().min(1)).min(1),
+});
+
 const harnessSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -106,12 +110,36 @@ export const datasetManifestSchema = z.object({
     backends: z.number().int().nonnegative(),
   }),
   models: z.array(modelSchema),
+  modelSets: z.array(modelSetSchema),
+  defaultModelSetId: z.string().min(1).nullable(),
   benchmarks: z.array(entitySchema),
   backends: z.array(entitySchema),
   methodology: methodologySchema,
   cells: z.array(cellSchema),
   scoreCubePath: z.string().min(1),
   runIndexPath: z.string().min(1),
+}).superRefine((manifest, context) => {
+  const knownModels = new Set(manifest.models.map((model) => model.id));
+  const knownModelSets = new Set<string>();
+  manifest.modelSets.forEach((modelSet, setIndex) => {
+    if (knownModelSets.has(modelSet.id)) {
+      context.addIssue({ code: "custom", message: `duplicate model set: ${modelSet.id}`, path: ["modelSets", setIndex, "id"] });
+    }
+    knownModelSets.add(modelSet.id);
+    const members = new Set<string>();
+    modelSet.modelIds.forEach((modelId, modelIndex) => {
+      if (!knownModels.has(modelId)) {
+        context.addIssue({ code: "custom", message: `unknown model in set: ${modelId}`, path: ["modelSets", setIndex, "modelIds", modelIndex] });
+      }
+      if (members.has(modelId)) {
+        context.addIssue({ code: "custom", message: `duplicate model in set: ${modelId}`, path: ["modelSets", setIndex, "modelIds", modelIndex] });
+      }
+      members.add(modelId);
+    });
+  });
+  if (manifest.defaultModelSetId !== null && !knownModelSets.has(manifest.defaultModelSetId)) {
+    context.addIssue({ code: "custom", message: `unknown default model set: ${manifest.defaultModelSetId}`, path: ["defaultModelSetId"] });
+  }
 });
 
 export const scoreCubeSchema = z.array(z.object({

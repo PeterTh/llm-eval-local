@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { EntityMetadata } from "../data/types";
+import { selectionsMatch } from "../state/modelSets";
 
 export function FilterMenu({
   label,
   entities,
   selected,
   onChange,
+  namedSelection,
 }: {
   label: string;
   entities: EntityMetadata[];
   selected: readonly string[];
   onChange: (values: string[]) => void;
+  namedSelection?: { label: string; values: readonly string[] };
 }) {
   const [query, setQuery] = useState("");
   const menuRef = useRef<HTMLDetailsElement>(null);
@@ -19,11 +22,16 @@ export function FilterMenu({
   const visible = entities.filter((entity) =>
     entity.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
     || entity.id.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
-  const summary = selected.length === 0
-    ? `All ${label.toLocaleLowerCase()}`
-    : selected.length === 1
-      ? entities.find((entity) => entity.id === selected[0])?.label ?? selected[0]
-      : `${selected.length} ${label.toLocaleLowerCase()}`;
+  const isNamedSelection = namedSelection ? selectionsMatch(selected, namedSelection.values) : false;
+  const allExplicitlySelected = selected.length === entities.length
+    && entities.every((entity) => selectedSet.has(entity.id));
+  const summary = isNamedSelection && namedSelection
+    ? namedSelection.label
+    : selected.length === 0
+      ? `All ${label.toLocaleLowerCase()}`
+      : selected.length === 1
+        ? entities.find((entity) => entity.id === selected[0])?.label ?? selected[0]
+        : `${selected.length} ${label.toLocaleLowerCase()}`;
 
   useEffect(() => {
     function closeOnOutsidePointer(event: PointerEvent) {
@@ -63,8 +71,13 @@ export function FilterMenu({
           </label>
         )}
         <div className="filter-actions">
-          <button type="button" onClick={() => onChange([])}>All</button>
-          <button type="button" onClick={() => onChange(entities.map((entity) => entity.id))}>Select all</button>
+          {namedSelection && (
+            <button type="button" aria-pressed={isNamedSelection} onClick={() => onChange([...namedSelection.values])}>
+              {namedSelection.label}
+            </button>
+          )}
+          <button type="button" aria-pressed={selected.length === 0} onClick={() => onChange([])}>All</button>
+          <button type="button" aria-pressed={allExplicitlySelected} onClick={() => onChange(entities.map((entity) => entity.id))}>Select all</button>
         </div>
         <div className="filter-options">
           {visible.map((entity) => (
