@@ -52,6 +52,6 @@ Pull requests build and test without publishing. Updates to `web/` or `data/` on
 
 Every coherent build proposed as final for a development step is held for visual review before that step is accepted. Do not publish or treat a review build as accepted merely because automation passes.
 
-## First implementation step
+## Implemented analysis views
 
-The accepted first implementation step includes Tiered Success, the full Runs table, individual result provenance/detail, methodology, and citation information. Model Scores, Complexity, and Performance remain deliberately staged for later implementation steps.
+The explorer currently includes Tiered Success, Model Scores, Benchmark / Target Complexity, Performance, the full Runs table, individual result provenance/detail, methodology, and citation information.

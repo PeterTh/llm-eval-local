@@ -88,6 +88,11 @@ export interface CellDescriptor {
   thresholds: PerformanceThresholds | null;
 }
 
+export interface PerformanceCellSelection {
+  benchmarkId: string;
+  backendId: string;
+}
+
 export interface DatasetManifest {
   schemaVersion: 1;
   title: string;
@@ -112,6 +117,7 @@ export interface DatasetManifest {
   models: ModelMetadata[];
   modelSets: ModelSetMetadata[];
   defaultModelSetId: string | null;
+  defaultPerformanceCell: PerformanceCellSelection | null;
   benchmarks: EntityMetadata[];
   backends: EntityMetadata[];
   methodology: MethodologyMetadata;

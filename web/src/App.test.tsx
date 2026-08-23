@@ -21,6 +21,10 @@ vi.mock("./data/client", async () => {
       if (fixtures.runError) throw fixtures.runError;
       return fixtures.runs;
     }),
+    loadCellRuns: vi.fn(async () => {
+      if (fixtures.runError) throw fixtures.runError;
+      return fixtures.runs;
+    }),
     loadRunById: vi.fn(async (_manifest, id: string) => fixtures.runs?.find((run: any) => run.id === id) ?? null),
   };
 });
@@ -30,12 +34,15 @@ vi.mock("./components/VegaChart", () => ({
     const scores = ariaLabel.startsWith("Score distribution chart");
     const benchmarkComplexity = ariaLabel.startsWith("Benchmark complexity violin chart");
     const targetComplexity = ariaLabel.startsWith("Target complexity violin chart");
+    const performance = ariaLabel.startsWith("Performance chart");
     const label = scores
       ? "Synthetic score point"
       : benchmarkComplexity
         ? "Synthetic benchmark violin"
         : targetComplexity
           ? "Synthetic target violin"
+          : performance
+            ? "Synthetic performance point"
           : "Synthetic chart segment";
     return (
       <button
@@ -45,8 +52,10 @@ vi.mock("./components/VegaChart", () => ({
             ? { runId: "bench&one_model/a?x_gpu+x_r1" }
             : benchmarkComplexity
               ? { categoryType: "benchmark", categoryId: "bench&one" }
-              : targetComplexity
-                ? { categoryType: "backend", categoryId: "gpu+x" }
+            : targetComplexity
+              ? { categoryType: "backend", categoryId: "gpu+x" }
+              : performance
+                ? { runId: "bench&one_model/a?x_gpu+x_r2" }
                 : { modelId: "model/a?x", bandId: "invalid" },
         )}
       >
@@ -76,6 +85,9 @@ describe("explorer routing", () => {
     expect(await screen.findByRole("heading", { name: "bench&one_model/a?x_gpu+x_r1" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Generated source directory/ })).toHaveAttribute("target", "_blank");
     expect(screen.getByRole("link", { name: /Back to matching runs/ })).toHaveAttribute("href", expect.stringContaining("benchmark=bench%26one"));
+    const performanceLink = screen.getByRole("link", { name: /Performance in this benchmark cell/ });
+    expect(performanceLink).toHaveAttribute("href", expect.stringContaining("model=model%2Fa%3Fx"));
+    expect(performanceLink).toHaveAttribute("href", expect.stringContaining("focus=model%2Fa%3Fx"));
   });
 
   it("restores repeated special-character filters from the URL and can reset them", async () => {
@@ -138,6 +150,9 @@ describe("explorer routing", () => {
     expect(await screen.findByRole("link", { name: /Back to model scores/ })).toHaveAttribute(
       "href", expect.stringContaining("model-set=all"),
     );
+    const performanceLink = screen.getByRole("link", { name: /Performance in this benchmark cell/ });
+    expect(performanceLink).toHaveAttribute("href", expect.stringContaining("model-set=all"));
+    expect(performanceLink).toHaveAttribute("href", expect.stringContaining("focus=model%2Fa%3Fx"));
     scoreView.unmount();
 
     await renderApp("/complexity?model-set=all");
@@ -145,6 +160,16 @@ describe("explorer routing", () => {
     expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("3 matching runs")).toBeInTheDocument());
     expect(screen.getByRole("link", { name: "Model scores" })).toHaveAttribute("href", expect.stringContaining("model-set=all"));
+  });
+
+  it("adds a directly opened result model to the focused performance comparison", async () => {
+    await renderApp("/run/bench%26one_model%2Fa%3Fx_gpu%2Bx_r1");
+    const performanceLink = await screen.findByRole("link", { name: /Performance in this benchmark cell/ });
+    expect(performanceLink).toHaveAttribute("href", expect.stringContaining("focus=model%2Fa%3Fx"));
+
+    await userEvent.click(performanceLink);
+    expect(await screen.findByRole("heading", { name: "Performance" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText("Current performance selection summary")).toHaveTextContent(/2 models/));
   });
 
   it("shows explicit empty and error states for model-score observations", async () => {
@@ -156,6 +181,37 @@ describe("explorer routing", () => {
     expect(await screen.findByRole("heading", { name: "The score observations could not be loaded." })).toBeInTheDocument();
     expect(screen.getByText("synthetic shard failure")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
+  it("loads a performance cell, restores its controls, and returns from a selected run", async () => {
+    await renderApp("/performance?model=model%2Fa%3Fx&mode=relative&scale=linear&ranges=shown&order=slowest");
+    expect(await screen.findByRole("heading", { name: "Performance" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Performance" })).toHaveClass("active");
+    expect(screen.getByRole("combobox", { name: "Benchmark" })).toHaveValue("bench&one");
+    expect(screen.getByRole("combobox", { name: "Target" })).toHaveValue("gpu+x");
+    expect(screen.getByRole("combobox", { name: "Values" })).toHaveValue("relative");
+    expect(screen.getByRole("combobox", { name: "Scale" })).toHaveValue("linear");
+    expect(screen.getByRole("combobox", { name: "Order" })).toHaveValue("slowest");
+    expect(screen.getByRole("checkbox", { name: "Show measurement ranges" })).toBeChecked();
+    await waitFor(() => expect(screen.getByLabelText("Current performance selection summary")).toHaveTextContent(/1 model\s*1 timed\s*1 omitted/));
+    expect(screen.getByText("Synthetic performance point")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic performance point" }));
+    expect(await screen.findByRole("heading", { name: "bench&one_model/a?x_gpu+x_r2" })).toBeInTheDocument();
+    const back = screen.getByRole("link", { name: /Back to performance/ });
+    expect(back).toHaveAttribute("href", expect.stringContaining("/performance?model=model%2Fa%3Fx"));
+    expect(back).toHaveAttribute("href", expect.stringContaining("mode=relative"));
+    expect(back).toHaveAttribute("href", expect.stringContaining("ranges=shown"));
+  });
+
+  it("shows explicit empty and error states for performance observations", async () => {
+    const empty = await renderApp("/performance");
+    expect(await screen.findByRole("heading", { name: "The active models have no successful benchmark runs in this cell." })).toBeInTheDocument();
+    empty.unmount();
+
+    await renderApp("/performance?model=model%2Fa%3Fx", { runError: new Error("synthetic timing shard failure") });
+    expect(await screen.findByRole("heading", { name: "The performance observations could not be loaded." })).toBeInTheDocument();
+    expect(screen.getByText("synthetic timing shard failure")).toBeInTheDocument();
   });
 
   it("recomputes complexity distributions and drills from benchmarks or targets to runs", async () => {

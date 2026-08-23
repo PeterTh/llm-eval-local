@@ -37,6 +37,10 @@ interface SiteConfig {
     excludeModelIds: string[];
   }>;
   defaultModelSetId?: string;
+  defaultPerformanceCell?: {
+    benchmarkId: string;
+    backendId: string;
+  };
 }
 
 interface MethodologyConfig {
@@ -540,6 +544,22 @@ export async function buildData(): Promise<void> {
     });
   }
 
+  const configuredPerformanceCell = config.defaultPerformanceCell;
+  const defaultPerformanceCell = configuredPerformanceCell
+    ? {
+        benchmarkId: requiredString(configuredPerformanceCell.benchmarkId, "default performance benchmark"),
+        backendId: requiredString(configuredPerformanceCell.backendId, "default performance backend"),
+      }
+    : (() => {
+        const fallback = cells.find((cell) => cell.successfulRunCount > 0);
+        return fallback ? { benchmarkId: fallback.benchmarkId, backendId: fallback.backendId } : null;
+      })();
+  invariant(defaultPerformanceCell === null || cells.some((cell) =>
+    cell.benchmarkId === defaultPerformanceCell.benchmarkId
+    && cell.backendId === defaultPerformanceCell.backendId
+    && cell.successfulRunCount > 0),
+  `default performance cell is unavailable or has no successful runs: ${defaultPerformanceCell?.benchmarkId}/${defaultPerformanceCell?.backendId}`);
+
   const scoreCubePath = await writeHashedAsset("score-cube", scoreCube);
   const runIndex = Object.fromEntries(runs.map((run) => [run.id, {
     benchmarkId: run.benchmarkId,
@@ -566,6 +586,7 @@ export async function buildData(): Promise<void> {
     models,
     modelSets,
     defaultModelSetId,
+    defaultPerformanceCell,
     benchmarks,
     backends,
     methodology: {

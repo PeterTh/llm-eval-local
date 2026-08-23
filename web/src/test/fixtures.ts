@@ -30,6 +30,7 @@ export const manifestFixture: DatasetManifest = {
   ],
   modelSets: [{ id: "default", label: "Default", modelIds: ["unknown-model"] }],
   defaultModelSetId: "default",
+  defaultPerformanceCell: { benchmarkId: "bench&one", backendId: "gpu+x" },
   benchmarks: [{ id: "bench&one", label: "Bench & One" }, { id: "missing-cell", label: "missing-cell" }],
   backends: [{ id: "gpu+x", label: "GPU + X" }, { id: "cpu", label: "cpu" }],
   methodology: {

@@ -20,6 +20,10 @@ describe("runtime dataset validation", () => {
     expect(() => datasetManifestSchema.parse({ ...manifestFixture, defaultModelSetId: "missing" })).toThrow();
     expect(() => datasetManifestSchema.parse({
       ...manifestFixture,
+      defaultPerformanceCell: { benchmarkId: "missing-cell", backendId: "cpu" },
+    })).toThrow();
+    expect(() => datasetManifestSchema.parse({
+      ...manifestFixture,
       modelSets: [{ ...manifestFixture.modelSets[0], modelIds: ["missing-model"] }],
     })).toThrow();
   });

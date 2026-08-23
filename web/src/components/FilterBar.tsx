@@ -13,6 +13,10 @@ export function FilterBar({
   onReset,
   additionalActiveCount = 0,
   resultSummary,
+  benchmarkControl,
+  backendControl,
+  baselineBenchmarks = [],
+  baselineBackends = [],
   children,
 }: {
   manifest: DatasetManifest;
@@ -23,6 +27,10 @@ export function FilterBar({
   onReset: () => void;
   additionalActiveCount?: number;
   resultSummary?: ReactNode;
+  benchmarkControl?: ReactNode;
+  backendControl?: ReactNode;
+  baselineBenchmarks?: readonly string[];
+  baselineBackends?: readonly string[];
   children?: ReactNode;
 }) {
   const defaultModelSet = getDefaultModelSet(manifest);
@@ -31,7 +39,9 @@ export function FilterBar({
     : filters.models.length === 0 && defaultModelSet
       ? 1
       : filters.models.length;
-  const activeCount = activeModelCount + filters.benchmarks.length + filters.backends.length + filters.scoreBands.length
+  const activeBenchmarkCount = selectionsMatch(filters.benchmarks, baselineBenchmarks) ? 0 : filters.benchmarks.length;
+  const activeBackendCount = selectionsMatch(filters.backends, baselineBackends) ? 0 : filters.backends.length;
+  const activeCount = activeModelCount + activeBenchmarkCount + activeBackendCount + filters.scoreBands.length
     + (filters.outcome === "all" ? 0 : 1) + additionalActiveCount;
   return (
     <section className="filter-bar" aria-label="Data filters">
@@ -43,8 +53,8 @@ export function FilterBar({
           onChange={onModels}
           namedSelection={defaultModelSet ? { label: defaultModelSet.label, values: defaultModelSet.modelIds } : undefined}
         />
-        <FilterMenu label="Benchmarks" entities={manifest.benchmarks} selected={filters.benchmarks} onChange={onBenchmarks} />
-        <FilterMenu label="Backends" entities={manifest.backends} selected={filters.backends} onChange={onBackends} />
+        {benchmarkControl ?? <FilterMenu label="Benchmarks" entities={manifest.benchmarks} selected={filters.benchmarks} onChange={onBenchmarks} />}
+        {backendControl ?? <FilterMenu label="Backends" entities={manifest.backends} selected={filters.backends} onChange={onBackends} />}
         {children}
       </div>
       <div className="filter-bar-end">

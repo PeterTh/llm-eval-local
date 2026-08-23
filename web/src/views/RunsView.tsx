@@ -9,6 +9,7 @@ import { useDataset } from "../data/context";
 import type { EntityMetadata, RunRecord } from "../data/types";
 import { useFilterState } from "../state/filters";
 import { downloadText, runsToCsv } from "../utils/csv";
+import { formatMilliseconds } from "../utils/format";
 
 const pageSize = 50;
 const validationOutcomes = new Set<ValidationOutcome>(["all", "passed", "failed"]);
@@ -176,7 +177,7 @@ export function RunsView() {
                       <td><span className={`score-chip band-${run.scoreBandId}`}>{run.overallScore}</span></td>
                       <td><span className={`status-dot ${run.validationStatus === 5 ? "success" : "failure"}`} />{run.validationStatus === 5 ? "Passed" : `Stage ${run.validationStatus}`}</td>
                       <td>{outcomeLabel(run)}</td>
-                      <td className="numeric">{run.benchmarkMedianMs === null ? "—" : `${run.benchmarkMedianMs.toLocaleString(undefined, { maximumFractionDigits: 2 })} ms`}</td>
+                      <td className="numeric">{formatMilliseconds(run.benchmarkMedianMs)}</td>
                       <td><a className="source-arrow" href={run.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Open source for ${run.id}`}>↗</a></td>
                     </tr>
                   );

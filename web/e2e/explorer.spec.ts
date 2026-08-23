@@ -190,6 +190,8 @@ test("model scores filters distributions and opens individual runs", async ({ pa
   await expect(page.getByLabel("Current score selection summary").getByText(/3[,.]080/, { exact: true })).toBeVisible();
   await expect(page.locator(".score-analysis .chart svg.marks")).toBeVisible();
   await expect(page.locator(".score-analysis .mark-rect path").first()).toBeVisible();
+  const scoreRowBands = page.locator(".score-analysis .score_row_bands_marks path");
+  await expect(scoreRowBands).toHaveCount(7);
 
   const modelMenu = page.locator(".filter-menu").first();
   await modelMenu.locator("summary").click();
@@ -197,6 +199,7 @@ test("model scores filters distributions and opens individual runs", async ({ pa
   await page.getByRole("checkbox", { name: "Haiku 4.5" }).click();
   await expect(page).toHaveURL(/model=claude-haiku-4.5/);
   await expect(page.getByLabel("Current score selection summary").getByText("220", { exact: true })).toBeVisible();
+  await expect(scoreRowBands).toHaveCount(0);
   await page.getByRole("combobox", { name: "Order" }).selectOption("strongest");
   await expect(page).toHaveURL(/sort=strongest/);
 
@@ -249,6 +252,248 @@ test("model scores filters distributions and opens individual runs", async ({ pa
   await back.click();
   await expect(page.getByRole("link", { name: "Model scores", exact: true })).toHaveClass(/active/);
   await expect(page.getByLabel("Current score selection summary").getByText("220", { exact: true })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test("performance compares successful timings with a fixed full-cell baseline", async ({ page }, testInfo) => {
+  const problems = watchPage(page);
+  await goto(page, "/performance");
+  const performanceLink = page.getByRole("link", { name: "Performance", exact: true });
+  await expect(performanceLink).toHaveClass(/active/);
+  await expect(page.getByRole("heading", { name: "Performance" })).toBeAttached();
+  await expect(page.getByRole("heading", { name: "Floyd–Warshall · OpenMP" })).toBeVisible();
+
+  const selectionSummary = page.getByLabel("Current performance selection summary");
+  await expect(selectionSummary.getByText("14", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("59", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("11", { exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Benchmark" })).toHaveValue("floydwarshall");
+  await expect(page.getByRole("combobox", { name: "Target" })).toHaveValue("omp");
+  await expect(page.getByRole("combobox", { name: "Order" })).toHaveValue("fastest");
+  await expect(page.getByRole("combobox", { name: "Values" })).toHaveValue("absolute");
+  await expect(page.getByRole("combobox", { name: "Scale" })).toHaveValue("log");
+  await expect(page.getByRole("checkbox", { name: "Show measurement ranges" })).not.toBeChecked();
+
+  const chart = page.locator(".performance-analysis .chart");
+  await expect(chart.locator("svg.marks")).toBeVisible();
+  const runPoints = chart.locator('svg [role="button"][aria-label^="Run "]');
+  await expect(runPoints).toHaveCount(59);
+  await expect(page.locator(".performance-analysis + .accessible-data tbody tr").first().locator("th")).toHaveText("GPT-5.6 Sol Medium");
+
+  const pointRows = await runPoints.evaluateAll((marks) => {
+    const rows = new Map<string, { centers: number[]; shapePaths: Set<string> }>();
+    for (const mark of marks) {
+      const label = mark.getAttribute("aria-label") ?? "";
+      const model = label.split("; ")[1];
+      const bounds = mark.getBoundingClientRect();
+      if (!model || bounds.height === 0) continue;
+      const row = rows.get(model) ?? { centers: [], shapePaths: new Set<string>() };
+      row.centers.push(bounds.top + bounds.height / 2);
+      row.shapePaths.add(mark.getAttribute("d") ?? "");
+      rows.set(model, row);
+    }
+    return [...rows].map(([model, row]) => ({
+      model,
+      centers: row.centers,
+      shapePaths: [...row.shapePaths],
+    }));
+  });
+  const fivePointRow = pointRows.find((row) => row.centers.length === 5);
+  expect(fivePointRow, "expected at least one model with five successful runs").toBeDefined();
+  const pointSpread = Math.max(...fivePointRow!.centers) - Math.min(...fivePointRow!.centers);
+  expect(pointSpread).toBeGreaterThan(testInfo.project.name === "mobile" ? 28 : 34);
+  expect(pointRows.every((row) => row.shapePaths.length === 1)).toBe(true);
+  const rowsByPosition = [...pointRows].sort((left, right) =>
+    Math.min(...left.centers) - Math.min(...right.centers));
+  expect(new Set(rowsByPosition.map((row) => row.shapePaths[0])).size).toBe(4);
+  for (let index = 1; index < rowsByPosition.length; index += 1) {
+    expect(rowsByPosition[index]!.shapePaths[0]).not.toBe(rowsByPosition[index - 1]!.shapePaths[0]);
+  }
+  const pointSizes = await runPoints.evaluateAll((marks) => {
+    const sizes = new Map<string, number>();
+    for (const mark of marks) {
+      const sceneItem = (mark as SVGElement & { __data__?: { datum?: Record<string, unknown> } }).__data__;
+      const shape = sceneItem?.datum?.pointShape;
+      const size = sceneItem?.datum?.pointSize;
+      if (typeof shape === "string" && typeof size === "number") sizes.set(shape, size);
+    }
+    return Object.fromEntries(sizes);
+  });
+  expect(pointSizes["triangle-up"]).toBeGreaterThan(pointSizes.circle!);
+  expect(pointSizes.diamond).toBeGreaterThan(pointSizes.square!);
+
+  const rowBands = chart.locator(".performance_row_bands_marks path");
+  await expect(rowBands).toHaveCount(7);
+  const medianRules = chart.locator(".performance_model_medians_marks path");
+  await expect(medianRules).toHaveCount(14);
+  const medianBounds = await medianRules.first().boundingBox();
+  expect(medianBounds).not.toBeNull();
+  expect(medianBounds!.height).toBeGreaterThan(pointSpread + 4);
+
+  await runPoints.first().hover({ force: true });
+  const tooltip = page.locator("#vg-tooltip-element");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("Median");
+  await expect(tooltip).toContainText("Measurements");
+  await expect(tooltip).toContainText("Relative to fastest");
+  await expect(tooltip).toContainText("Source evidence");
+  await expect(tooltip).not.toContainText("Score");
+  await page.mouse.move(1, 1);
+
+  const modelLabel = chart.locator(".mark-text.role-mark text").filter({ hasText: /^GPT-5\.6 Sol Medium$/ });
+  await modelLabel.hover({ force: true });
+  await expect(tooltip).toContainText("Agent harness");
+  await expect(tooltip).toContainText("Codex CLI");
+  await expect(tooltip).toContainText("Invocation");
+  await page.mouse.move(1, 1);
+
+  const rangeRules = chart.locator(".mark-rule.role-mark line, .mark-rule.role-mark path");
+  await expect(rangeRules).toHaveCount(0);
+  await page.getByRole("checkbox", { name: "Show measurement ranges" }).click();
+  await expect(page.getByRole("checkbox", { name: "Show measurement ranges" })).toBeChecked();
+  await expect(page).toHaveURL(/ranges=shown/);
+  await expect(rangeRules).toHaveCount(59);
+  await page.getByRole("combobox", { name: "Values" }).selectOption("relative");
+  await page.getByRole("combobox", { name: "Scale" }).selectOption("linear");
+  await page.getByRole("combobox", { name: "Order" }).selectOption("slowest");
+  await expect(page).toHaveURL(/mode=relative/);
+  await expect(page).toHaveURL(/scale=linear/);
+  await expect(page).toHaveURL(/order=slowest/);
+  await expect(page.getByText(/Relative values use the full-cell fastest median of 1[,.]274 ms/)).toBeVisible();
+
+  const modelMenu = page.locator(".filter-menu").first();
+  await modelMenu.locator("summary").click();
+  await modelMenu.getByRole("button", { name: "All", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Haiku 4.5" }).click();
+  await expect(page).toHaveURL(/model=claude-haiku-4.5/);
+  await expect(selectionSummary.getByText("1", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("2", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("3", { exact: true })).toBeVisible();
+  await expect(page.getByText(/full-cell fastest median of 1[,.]274 ms/)).toBeVisible();
+
+  const filteredPoint = chart.locator('svg [role="button"][aria-label^="Run "]').first();
+  await filteredPoint.focus();
+  await expect(filteredPoint).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#\/run\//);
+  for (const parameter of [
+    "model=claude-haiku-4.5", "mode=relative", "scale=linear", "ranges=shown", "order=slowest", "from=performance",
+  ]) {
+    await expect(page).toHaveURL(new RegExp(parameter));
+  }
+  const back = page.getByRole("link", { name: /Back to performance/ });
+  const backHref = await back.getAttribute("href");
+  expect(backHref).toContain("#/performance?");
+  for (const parameter of [
+    "model=claude-haiku-4.5", "mode=relative", "scale=linear", "ranges=shown", "order=slowest",
+  ]) {
+    expect(backHref).toContain(parameter);
+  }
+  await back.click();
+  await expect(performanceLink).toHaveClass(/active/);
+  await expect(page.getByRole("checkbox", { name: "Show measurement ranges" })).toBeChecked();
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /Export active records/ }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe("llm-eval-performance-cell.csv");
+
+  await page.getByRole("combobox", { name: "Benchmark" }).selectOption("nbody");
+  await expect(page).toHaveURL(/benchmark=nbody/);
+  await expect(page).toHaveURL(/backend=omp/);
+  await page.goBack();
+  await expect(page.getByRole("combobox", { name: "Benchmark" })).toHaveValue("floydwarshall");
+  await expect(page.getByRole("combobox", { name: "Target" })).toHaveValue("omp");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    await page.evaluate(() => window.innerWidth),
+  );
+  expect(problems).toEqual([]);
+});
+
+test.describe("localized duration labels", () => {
+  test.use({ locale: "de-DE" });
+
+  test("uses the same millisecond representation in model, median, and run tooltips", async ({ page }) => {
+    const problems = watchPage(page);
+    await goto(page, "/performance");
+
+    const chart = page.locator(".performance-analysis .chart");
+    const tooltip = page.locator("#vg-tooltip-element");
+    const expectedMedian = "1.278 ms";
+
+    const modelLabel = chart.locator(".mark-text.role-mark text")
+      .filter({ hasText: /^GPT-5\.6 Sol Medium$/ });
+    await modelLabel.hover({ force: true });
+    await expect(tooltip).toContainText(expectedMedian);
+    await page.mouse.move(1, 1);
+
+    await chart.locator(".performance_model_medians_marks path").first().hover({ force: true });
+    await expect(tooltip).toContainText(expectedMedian);
+    await page.mouse.move(1, 1);
+
+    const firstRun = chart.locator('svg [role="button"][aria-label^="Run "]').first();
+    const runMedian = await firstRun.evaluate((mark) => {
+      const sceneItem = (mark as SVGElement & { __data__?: { datum?: Record<string, unknown> } }).__data__;
+      return sceneItem?.datum?.medianMs;
+    });
+    expect(typeof runMedian).toBe("number");
+    const expectedRunMedian = `${Number(runMedian).toLocaleString("de-DE", { maximumFractionDigits: 3 })} ms`;
+    await firstRun.hover({ force: true });
+    await expect(tooltip).toContainText(expectedRunMedian);
+    expect(problems).toEqual([]);
+  });
+});
+
+test("run detail keeps all models and highlights its model in the performance cell", async ({ page }) => {
+  const problems = watchPage(page);
+  await goto(page, "/runs?model-set=all&q=gpt-5.6-sol-xhigh");
+  await expect(page.getByRole("heading", { name: /matching runs/ })).toBeVisible();
+  const sourceRun = page.locator(".run-id-link").filter({ hasText: "gpt-5.6-sol-xhigh" }).first();
+  await expect(sourceRun).toBeVisible();
+  await sourceRun.click();
+
+  const performanceLink = page.getByRole("link", { name: /Performance in this benchmark cell/ });
+  const performanceHref = await performanceLink.getAttribute("href");
+  expect(performanceHref).toContain("model-set=all");
+  expect(performanceHref).toContain("focus=gpt-5.6-sol-xhigh");
+  await performanceLink.click();
+
+  const performanceParams = await page.evaluate(() => {
+    const query = new URLSearchParams(location.hash.split("?")[1] ?? "");
+    return {
+      modelSet: query.get("model-set"),
+      focus: query.get("focus"),
+      benchmark: query.get("benchmark"),
+      backend: query.get("backend"),
+    };
+  });
+  expect(performanceParams).toMatchObject({
+    modelSet: "all",
+    focus: "gpt-5.6-sol-xhigh",
+  });
+  expect(performanceParams.benchmark).toBeTruthy();
+  expect(performanceParams.backend).toBeTruthy();
+  const selectionSummary = page.getByLabel("Current performance selection summary");
+  await expect(selectionSummary.getByText("21", { exact: true })).toBeVisible();
+
+  const chart = page.locator(".performance-analysis .chart");
+  const focusedRow = chart.locator(".performance_focused_row_marks path");
+  await expect(focusedRow).toHaveCount(1);
+  const focusedLabel = chart.locator(".mark-text.role-mark text").filter({ hasText: /^GPT-5\.6 Sol XHigh$/ });
+  await expect(focusedLabel).toBeVisible();
+  const focusedBounds = await focusedRow.boundingBox();
+  const labelBounds = await focusedLabel.boundingBox();
+  expect(focusedBounds).not.toBeNull();
+  expect(labelBounds).not.toBeNull();
+  const labelCenter = labelBounds!.y + labelBounds!.height / 2;
+  expect(labelCenter).toBeGreaterThan(focusedBounds!.y);
+  expect(labelCenter).toBeLessThan(focusedBounds!.y + focusedBounds!.height);
+
+  const modelMenu = page.locator(".filter-menu").first();
+  await modelMenu.locator("summary").click();
+  await modelMenu.getByRole("button", { name: "Default" }).click();
+  await expect(page).not.toHaveURL(/focus=/);
+  await expect(selectionSummary.getByText("14", { exact: true })).toBeVisible();
+  await expect(focusedRow).toHaveCount(0);
   expect(problems).toEqual([]);
 });
 
@@ -400,8 +645,8 @@ test("runs combine outcome filters, paginate, and retain context through detail"
 test("Pages-safe routes and information pages remain functional", async ({ page }) => {
   const problems = watchPage(page);
   await goto(page, "/performance");
-  await expect(page).toHaveURL(/#\/tiers$/);
-  await expect(page.getByRole("link", { name: "Tiered Success" })).toHaveClass(/active/);
+  await expect(page).toHaveURL(/#\/performance$/);
+  await expect(page.getByRole("link", { name: "Performance" })).toHaveClass(/active/);
   await expect(page.getByText("Next", { exact: true })).toHaveCount(0);
   await expect(page.locator(".site-footer")).not.toContainText("Client-only");
   await goto(page, "/methodology");

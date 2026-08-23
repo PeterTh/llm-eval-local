@@ -5,6 +5,7 @@ import { PageIntro } from "../components/PageIntro";
 import { loadRunById } from "../data/client";
 import { useDataset } from "../data/context";
 import type { RunRecord } from "../data/types";
+import { formatMilliseconds } from "../utils/format";
 
 function boolLabel(value: boolean | null): string {
   if (value === true) return "Passed";
@@ -33,15 +34,24 @@ export function RunDetailView() {
   const origin = returnParams.get("from");
   returnParams.delete("from");
   const returnQuery = returnParams.toString();
-  const backPath = `${origin === "scores" ? "/scores" : "/runs"}${returnQuery ? `?${returnQuery}` : ""}`;
-  const backLabel = origin === "scores" ? "Back to model scores" : "Back to matching runs";
-  if (error) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Data error</p><h1>The result could not be loaded.</h1><p>{error.message}</p><Link to={backPath}>Return to {origin === "scores" ? "model scores" : "runs"}</Link></div></main>;
+  const originPath = origin === "scores" ? "/scores" : origin === "performance" ? "/performance" : "/runs";
+  const originLabel = origin === "scores" ? "model scores" : origin === "performance" ? "performance" : "runs";
+  const backPath = `${originPath}${returnQuery ? `?${returnQuery}` : ""}`;
+  const backLabel = origin === "scores" ? "Back to model scores" : origin === "performance" ? "Back to performance" : "Back to matching runs";
+  if (error) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Data error</p><h1>The result could not be loaded.</h1><p>{error.message}</p><Link to={backPath}>Return to {originLabel}</Link></div></main>;
   if (run === undefined) return <main id="main-content" className="page-shell"><div className="detail-loading">Loading run evidence…</div></main>;
-  if (run === null) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Unknown result</p><h1>No run has this identifier.</h1><Link to={backPath}>Return to {origin === "scores" ? "model scores" : "runs"}</Link></div></main>;
+  if (run === null) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Unknown result</p><h1>No run has this identifier.</h1><Link to={backPath}>Return to {originLabel}</Link></div></main>;
 
   const band = manifest.scoreScale.bands.find((candidate) => candidate.id === run.scoreBandId);
   const tierQuery = new URLSearchParams();
   tierQuery.append("model", run.modelId);
+  const performanceQuery = new URLSearchParams();
+  for (const key of ["model", "model-set"]) {
+    returnParams.getAll(key).forEach((value) => performanceQuery.append(key, value));
+  }
+  performanceQuery.append("benchmark", run.benchmarkId);
+  performanceQuery.append("backend", run.backendId);
+  performanceQuery.set("focus", run.modelId);
   const cellQuery = new URLSearchParams();
   cellQuery.append("benchmark", run.benchmarkId);
   cellQuery.append("backend", run.backendId);
@@ -76,12 +86,12 @@ export function RunDetailView() {
 
         <section className="detail-card performance-card">
           <p className="eyebrow">Performance</p>
-          <h2>{run.benchmarkMedianMs === null ? "No benchmark result" : `${run.benchmarkMedianMs.toLocaleString(undefined, { maximumFractionDigits: 3 })} ms median`}</h2>
+          <h2>{run.benchmarkMedianMs === null ? "No benchmark result" : `${formatMilliseconds(run.benchmarkMedianMs)} median`}</h2>
           <p>{run.benchmarkSuccess === true ? "Successful benchmark execution." : run.benchmarkSuccess === false ? "Benchmark execution failed." : "Validation did not produce a benchmarkable program."}</p>
           {run.benchmarkMeasurementsMs.length > 0 && (
             <div className="measurement-list" aria-label="Five benchmark measurements">
               {run.benchmarkMeasurementsMs.map((measurement, index) => (
-                <div key={`${measurement}-${index}`}><span>Run {index + 1}</span><strong>{measurement.toLocaleString(undefined, { maximumFractionDigits: 3 })} ms</strong></div>
+                <div key={`${measurement}-${index}`}><span>Run {index + 1}</span><strong>{formatMilliseconds(measurement)}</strong></div>
               ))}
             </div>
           )}
@@ -108,6 +118,7 @@ export function RunDetailView() {
           <h2>Related views</h2>
           <Link to={`/tiers?${tierQuery}`}>This model in Tiered Success <span>→</span></Link>
           <Link to={`/scores?${tierQuery}`}>This model in Model scores <span>→</span></Link>
+          <Link to={`/performance?${performanceQuery}`}>Performance in this benchmark cell <span>→</span></Link>
           <Link to={`/runs?${cellQuery}`}>All runs in this benchmark cell <span>→</span></Link>
         </aside>
       </div>

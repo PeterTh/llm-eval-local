@@ -88,6 +88,11 @@ const cellSchema = z.object({
   thresholds: thresholdsSchema.nullable(),
 });
 
+const performanceCellSelectionSchema = z.object({
+  benchmarkId: z.string().min(1),
+  backendId: z.string().min(1),
+});
+
 export const datasetManifestSchema = z.object({
   schemaVersion: z.literal(1),
   title: z.string().min(1),
@@ -112,6 +117,7 @@ export const datasetManifestSchema = z.object({
   models: z.array(modelSchema),
   modelSets: z.array(modelSetSchema),
   defaultModelSetId: z.string().min(1).nullable(),
+  defaultPerformanceCell: performanceCellSelectionSchema.nullable(),
   benchmarks: z.array(entitySchema),
   backends: z.array(entitySchema),
   methodology: methodologySchema,
@@ -139,6 +145,15 @@ export const datasetManifestSchema = z.object({
   });
   if (manifest.defaultModelSetId !== null && !knownModelSets.has(manifest.defaultModelSetId)) {
     context.addIssue({ code: "custom", message: `unknown default model set: ${manifest.defaultModelSetId}`, path: ["defaultModelSetId"] });
+  }
+  if (manifest.defaultPerformanceCell !== null && !manifest.cells.some((cell) =>
+    cell.benchmarkId === manifest.defaultPerformanceCell?.benchmarkId
+    && cell.backendId === manifest.defaultPerformanceCell?.backendId)) {
+    context.addIssue({
+      code: "custom",
+      message: `unknown default performance cell: ${manifest.defaultPerformanceCell.benchmarkId}/${manifest.defaultPerformanceCell.backendId}`,
+      path: ["defaultPerformanceCell"],
+    });
   }
 });
 

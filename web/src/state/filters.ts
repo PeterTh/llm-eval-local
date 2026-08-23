@@ -45,6 +45,7 @@ export function useFilterState(manifest: DatasetManifest) {
       const next = new URLSearchParams(current);
       next.delete(key);
       if (key === "model") {
+        next.delete("focus");
         next.delete("model-set");
         if (defaultModelSet && selectionsMatch(values, defaultModelSet.modelIds)) {
           // The default set is the canonical omitted URL state.

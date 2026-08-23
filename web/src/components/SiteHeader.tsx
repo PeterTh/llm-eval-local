@@ -8,7 +8,7 @@ const navigation = [
   { to: "/tiers", label: "Tiered Success", enabled: true, className: "nav-tiers" },
   { to: "/scores", label: "Model scores", enabled: true, className: "nav-scores" },
   { to: "/complexity", label: "Complexity", enabled: true, className: "nav-complexity" },
-  { to: "/performance", label: "Performance", enabled: false, className: "nav-performance" },
+  { to: "/performance", label: "Performance", enabled: true, className: "nav-performance" },
   { to: "/runs", label: "Runs", enabled: true, className: "nav-runs" },
 ] as const;
 

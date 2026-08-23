@@ -92,14 +92,20 @@ export function ScoresView() {
     jitterOffset: rowStep / 2 + (point.jitter - 0.5) * (isNarrow ? 16 : 20),
     accessibleDescription: `Run ${point.runId}; ${point.modelLabel}; score ${point.score}; ${point.benchmarkLabel}; ${point.backendLabel}; repetition ${point.repetition}`,
   }))), [isNarrow, rowStep, summaries]);
-  const modelLabels = useMemo(() => summaries.map((summary) => ({
+  const modelLabels = useMemo(() => summaries.map((summary, rowIndex) => ({
     modelId: summary.modelId,
     modelLabel: summary.modelLabel,
     modelHarnessLabel: summary.modelHarnessLabel,
     modelInvocationLabel: summary.modelInvocationLabel,
     runCount: summary.runCount,
     meanScore: summary.meanScore,
+    rowIndex,
   })), [summaries]);
+  const rowBandRows = modelLabels.filter((model) => model.rowIndex % 2 === 1).map((model) => ({
+    ...model,
+    bandMinimum: manifest.scoreScale.minimum,
+    bandMaximum: manifest.scoreScale.maximum,
+  }));
 
   const spec = useMemo<VisualizationSpec>(() => ({
     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
@@ -111,6 +117,7 @@ export function ScoresView() {
     encoding: {
       y: {
         field: "modelId", type: "nominal", sort: modelOrder,
+        scale: { domain: modelOrder },
         axis: {
           title: null,
           labelLimit: isNarrow ? 150 : 220,
@@ -138,6 +145,20 @@ export function ScoresView() {
       },
     },
     layer: [
+      {
+        name: "score_row_bands",
+        data: { values: rowBandRows },
+        mark: {
+          type: "rect",
+          color: isDark ? "#8fb8f5" : "#0b5bbb",
+          opacity: isDark ? 0.04 : 0.035,
+          aria: false,
+        },
+        encoding: {
+          x: { field: "bandMinimum", type: "quantitative" },
+          x2: { field: "bandMaximum" },
+        },
+      },
       {
         mark: {
           type: "boxplot",
@@ -279,7 +300,7 @@ export function ScoresView() {
       legend: { labelColor: isDark ? "#edf0eb" : "#303941", offset: 12 },
       view: { stroke: null },
     },
-  }) as VisualizationSpec, [chartHeight, isDark, isNarrow, manifest.scoreScale, modelLabels, modelOrder, points, summaries]);
+  }) as VisualizationSpec, [chartHeight, isDark, isNarrow, manifest.scoreScale, modelLabels, modelOrder, points, rowBandRows, summaries]);
 
   const openPoint = useCallback((datum: Record<string, unknown>) => {
     if (typeof datum.runId === "string") {

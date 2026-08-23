@@ -4,6 +4,7 @@ import { SiteHeader } from "./components/SiteHeader";
 import { CiteView } from "./views/CiteView";
 import { ComplexityView } from "./views/ComplexityView";
 import { MethodologyView } from "./views/MethodologyView";
+import { PerformanceView } from "./views/PerformanceView";
 import { RunDetailView } from "./views/RunDetailView";
 import { RunsView } from "./views/RunsView";
 import { ScoresView } from "./views/ScoresView";
@@ -20,7 +21,7 @@ export function App() {
         <Route path="/run/:id" element={<RunDetailView />} />
         <Route path="/scores" element={<ScoresView />} />
         <Route path="/complexity" element={<ComplexityView />} />
-        <Route path="/performance" element={<Navigate to="/tiers" replace />} />
+        <Route path="/performance" element={<PerformanceView />} />
         <Route path="/methodology" element={<MethodologyView />} />
         <Route path="/cite" element={<CiteView />} />
         <Route path="*" element={<Navigate to="/tiers" replace />} />
