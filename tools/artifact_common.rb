@@ -10,6 +10,14 @@ require "set"
 require "yaml"
 
 module LocalEvalArtifact
+  # The interactive website is versioned in this repository for convenience, but it
+  # is deliberately not part of the scientific artifact. Keep this list narrow:
+  # entries here are omitted from checksums, retention budgets, and artifact exports.
+  ARTIFACT_EXCLUDED_PATHS = %w[
+    web
+    .github/workflows/web.yml
+  ].freeze
+
   EXPECTED = {
     validation_records: 4_620,
     fully_valid: 3_825,
@@ -47,12 +55,17 @@ module LocalEvalArtifact
     text
   end
 
-  def regular_files(root, exclude_git: true)
+  def regular_files(root, exclude_git: true, excluded_paths: ARTIFACT_EXCLUDED_PATHS)
     root = File.expand_path(root)
+    excluded_paths = excluded_paths.map { |path| path.tr("\\", "/").delete_suffix("/") }
     files = []
     Find.find(root) do |path|
-      relative = path.delete_prefix("#{root}/")
+      relative = path.delete_prefix("#{root}/").tr("\\", "/")
       if exclude_git && (relative == ".git" || relative.start_with?(".git/"))
+        Find.prune if File.directory?(path)
+        next
+      end
+      if excluded_paths.any? { |excluded| relative == excluded || relative.start_with?("#{excluded}/") }
         Find.prune if File.directory?(path)
         next
       end
