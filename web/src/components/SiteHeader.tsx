@@ -2,19 +2,17 @@ import { useEffect, useRef } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { useDataset } from "../data/context";
+import { shortHash } from "../utils/format";
 import { CopyLinkButton } from "./CopyLinkButton";
 
 const navigation = [
   { to: "/tiers", label: "Tiered Success", enabled: true, className: "nav-tiers" },
-  { to: "/scores", label: "Model scores", enabled: true, className: "nav-scores" },
+  { to: "/scores", label: "Model Scores", enabled: true, className: "nav-scores" },
   { to: "/complexity", label: "Complexity", enabled: true, className: "nav-complexity" },
   { to: "/performance", label: "Performance", enabled: true, className: "nav-performance" },
+  { to: "/cost", label: "Cost Efficiency", enabled: true, className: "nav-cost" },
   { to: "/runs", label: "Runs", enabled: true, className: "nav-runs" },
 ] as const;
-
-function shortHash(value: string): string {
-  return value.slice(0, 9);
-}
 
 export function SiteHeader() {
   const { manifest } = useDataset();
@@ -74,7 +72,7 @@ export function SiteHeader() {
                 carried out by the <a href="https://dps.uibk.ac.at/" target="_blank" rel="noreferrer">Distributed
                 and Parallel Systems Research Group</a> at the <a href="https://www.uibk.ac.at/" target="_blank" rel="noreferrer">University of Innsbruck</a>.
               </p>
-              <p><Link to={{ pathname: "/methodology", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Methodology</Link> summarizes the experimental design, validation pipeline, performance measurements, and scoring procedure.</p>
+              <p><Link to={{ pathname: "/methodology", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Methodology</Link> summarizes the experimental design, validation pipeline, performance measurements, scoring, and cost estimation.</p>
               <p><Link to={{ pathname: "/cite", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Citation information</Link> lists the authors and copyable BibTeX.</p>
               <dl className="provenance-list compact">
                 <div><dt>Artifact</dt><dd><a href={snapshotUrl} target="_blank" rel="noreferrer">{shortHash(manifest.artifactCommit)}</a></dd></div>
@@ -115,9 +113,6 @@ export function SiteHeader() {
             Cite
           </NavLink>
         </div>
-        <a className="snapshot-link" href={snapshotUrl} target="_blank" rel="noreferrer">
-          Snapshot <code>{shortHash(manifest.artifactCommit)}</code> ↗
-        </a>
       </nav>
     </>
   );

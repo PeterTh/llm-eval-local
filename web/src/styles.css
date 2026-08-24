@@ -310,7 +310,7 @@ code {
   min-height: 42px;
   padding: 0.15rem clamp(0.65rem, 1.5vw, 1.1rem);
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   font-weight: 650;
   text-decoration: none;
   white-space: nowrap;
@@ -350,20 +350,6 @@ code {
 .nav-pending {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.snapshot-link {
-  display: flex;
-  align-items: center;
-  margin-left: 1rem;
-  color: var(--muted);
-  font-size: 0.72rem;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.snapshot-link code {
-  margin-inline: 0.35rem 0.15rem;
 }
 
 .page-shell {
@@ -809,6 +795,7 @@ code {
 
 .score-analysis .chart { min-height: 220px; }
 .performance-analysis .chart { min-height: 360px; padding-top: 1rem; overflow-x: hidden; }
+.cost-analysis .chart { min-height: 420px; padding: 1rem 1.25rem 0.35rem 0.6rem; overflow: hidden; }
 
 .complexity-grid {
   display: grid;
@@ -823,6 +810,12 @@ code {
 .benchmark-complexity .chart { min-height: 592px; padding-top: 2.75rem; padding-left: 0; overflow-x: hidden; }
 .target-complexity .chart { min-height: 510px; overflow-x: hidden; }
 .accessible-data .table-scroll + .table-scroll { border-top: 1px solid var(--line); }
+
+.cost-data table { min-width: 1480px; }
+.cost-data td:nth-child(8) { min-width: 150px; }
+.cost-data td:nth-child(9) { min-width: 270px; white-space: normal; }
+.cost-data td:nth-child(10) { min-width: 190px; white-space: normal; }
+.cost-data td small { display: block; margin-top: 0.18rem; }
 
 .chart-footnote {
   margin: 0;
@@ -1663,13 +1656,30 @@ code {
 
 .site-footer {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
   padding: 1rem clamp(1rem, 3vw, 3rem) 1.35rem;
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 0.68rem;
 }
+
+.footer-snapshot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.footer-snapshot span,
+.footer-snapshot time { white-space: nowrap; }
+.footer-snapshot code { margin-inline: 0.25rem 0.1rem; }
+.footer-snapshot:hover span { color: var(--ink); }
 
 .footer-brands {
   display: flex;
@@ -1680,6 +1690,12 @@ code {
 .footer-brands a {
   display: inline-flex;
   align-items: center;
+}
+
+.footer-dps-link {
+  padding: 0.22rem 0.35rem;
+  border-radius: 0.3rem;
+  background: #fff;
 }
 
 .footer-brands img {
@@ -1696,6 +1712,15 @@ code {
   font-size: 14px !important;
   line-height: 1.25 !important;
   z-index: 10 !important;
+  border: 1px solid var(--line-strong) !important;
+  background: var(--surface-raised) !important;
+  color: var(--ink) !important;
+  box-shadow: var(--shadow) !important;
+  pointer-events: none !important;
+}
+
+#vg-tooltip-element table {
+  color: var(--ink) !important;
 }
 
 #vg-tooltip-element table tr td {
@@ -1706,10 +1731,39 @@ code {
 #vg-tooltip-element table tr td.key {
   max-width: 180px !important;
   padding-right: 7px !important;
+  color: var(--muted) !important;
 }
 
 #vg-tooltip-element table tr td.value {
   max-width: 380px !important;
+  color: var(--ink) !important;
+}
+
+@media (max-width: 600px) {
+  #vg-tooltip-element {
+    left: 8px !important;
+    top: 51px !important;
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  #vg-tooltip-element table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  #vg-tooltip-element table tr td.key {
+    width: 35% !important;
+    max-width: none !important;
+    white-space: normal !important;
+  }
+
+  #vg-tooltip-element table tr td.value {
+    width: 65% !important;
+    max-width: none !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+  }
 }
 
 .sr-only {
@@ -1753,7 +1807,6 @@ code {
   .nav-methodology,
   .nav-cite { order: 2; }
   .nav-pending { order: 3; }
-  .snapshot-link { display: none; }
   .page-shell { padding-top: 0.9rem; }
   .page-intro h1 { font-size: clamp(1.65rem, 8vw, 2.15rem); }
   .filter-bar { flex-direction: column; }
@@ -1770,12 +1823,14 @@ code {
   .benchmark-complexity .chart { min-height: 532px; }
   .target-complexity .chart { min-height: 380px; }
   .performance-analysis .chart { min-height: 430px; }
+  .cost-analysis .chart { min-height: 440px; padding-right: 0.55rem; overflow-x: hidden; }
   .run-controls { grid-template-columns: 1fr; }
   .run-search { grid-column: auto; }
   .detail-page .page-intro { gap: 1.25rem; }
   .score-medallion { min-width: 115px; }
   .evidence-links a { flex-direction: column; gap: 0.35rem; }
   .site-footer { gap: 0.8rem; }
+  .footer-snapshot { align-items: flex-start; flex-direction: column; gap: 0.1rem; }
   .methodology-references { grid-template-columns: 1fr; }
   .methodology-references section + section { border-top: 0; border-left: 1px solid var(--line); }
   .method-stage-list li { grid-template-columns: 1.5rem minmax(0, 1fr); }
@@ -1791,7 +1846,7 @@ code {
   .brand-name { max-width: 130px; line-height: 1.1; }
   .about-panel { right: -0.25rem; }
   .nav-scroll > a,
-  .nav-pending { font-size: 0.77rem; }
+  .nav-pending { font-size: 0.8rem; }
   .filter-group { grid-template-columns: 1fr; }
   .filter-menu > summary,
   .inline-select,
@@ -1802,6 +1857,9 @@ code {
   .pagination { justify-content: space-between; gap: 0.4rem; }
   .pagination button { min-width: 0; }
   .provenance-list > div { grid-template-columns: 1fr; gap: 0.2rem; }
+}
+
+@media (max-width: 360px) {
   .site-footer { align-items: flex-start; flex-direction: column; }
 }
 

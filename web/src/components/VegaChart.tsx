@@ -6,11 +6,13 @@ export function VegaChart({
   ariaLabel,
   onDatumClick,
   interactiveMarkSelector,
+  fitContainerWidth = false,
 }: {
   spec: VisualizationSpec;
   ariaLabel: string;
   onDatumClick?: (datum: Record<string, unknown>) => void;
   interactiveMarkSelector?: string;
+  fitContainerWidth?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -21,7 +23,9 @@ export function VegaChart({
     let resizeObserver: ResizeObserver | null = null;
     let finalize: (() => void) | null = null;
 
-    void import("vega-embed").then(({ default: vegaEmbed }) => vegaEmbed(container, spec, {
+    const initialWidth = Math.max(280, container.clientWidth - 32);
+    const embeddedSpec = fitContainerWidth ? { ...spec, width: initialWidth } as VisualizationSpec : spec;
+    void import("vega-embed").then(({ default: vegaEmbed }) => vegaEmbed(container, embeddedSpec, {
         renderer: "svg",
         actions: {
           export: { svg: true, png: true },
@@ -65,7 +69,15 @@ export function VegaChart({
           });
         });
       }
+      let responsiveWidth = initialWidth;
       resizeObserver = new ResizeObserver(() => {
+        if (fitContainerWidth) {
+          const nextWidth = Math.max(280, container.clientWidth - 32);
+          if (nextWidth !== responsiveWidth) {
+            responsiveWidth = nextWidth;
+            result.view.width(nextWidth);
+          }
+        }
         void result.view.resize().runAsync();
       });
       resizeObserver.observe(container);
@@ -77,7 +89,7 @@ export function VegaChart({
       finalize?.();
       container.replaceChildren();
     };
-  }, [interactiveMarkSelector, onDatumClick, spec]);
+  }, [fitContainerWidth, interactiveMarkSelector, onDatumClick, spec]);
 
   return <div ref={containerRef} className="chart" role={interactiveMarkSelector ? "region" : "img"} aria-label={ariaLabel} />;
 }

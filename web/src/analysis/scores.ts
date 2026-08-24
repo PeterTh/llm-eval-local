@@ -1,4 +1,5 @@
 import type { DatasetManifest, FilterState, RunRecord } from "../data/types";
+import { stableStringHash } from "../utils/hash";
 import { summarizeDistribution } from "./statistics";
 
 export interface ScoreDistributionPoint {
@@ -43,12 +44,7 @@ export interface ModelScoreSummary {
 }
 
 export function deterministicJitter(id: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < id.length; index += 1) {
-    hash ^= id.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return 0.1 + (hash >>> 0) / 0xffff_ffff * 0.8;
+  return 0.1 + stableStringHash(id) / 0xffff_ffff * 0.8;
 }
 
 export function summarizeModelScores(

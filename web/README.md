@@ -38,7 +38,10 @@ npm run test:e2e
 - one manifest containing dataset identity, score bands, entities, cells, thresholds, and asset locations;
 - one compact score-count cube loaded by analytical overview pages;
 - one run index used for direct result URLs;
+- one lazy cost dataset containing frozen pricing profiles and per-run token/cost records;
 - one lazily loaded run shard for each observed benchmark/backend cell.
+
+Cost profiles are read from the canonical 4d analysis table. Explicit model/profile aliases and token-accounting conventions live in `config/cost.json`; missing profiles or token records remain unavailable rather than being represented as zero.
 
 Entity IDs are arbitrary strings. Existing presentation labels, backend order, and named model sets are optional overrides in `config/site.json`; an unseen ID is displayed verbatim. Exclusion-based model sets include newly observed models automatically.
 
@@ -54,4 +57,4 @@ Every coherent build proposed as final for a development step is held for visual
 
 ## Implemented analysis views
 
-The explorer currently includes Tiered Success, Model Scores, Benchmark / Target Complexity, Performance, the full Runs table, individual result provenance/detail, methodology, and citation information.
+The explorer currently includes Tiered Success, Model Scores, Benchmark / Target Complexity, Performance, Cost Efficiency, the full Runs table, individual result provenance/detail, methodology, and citation information.

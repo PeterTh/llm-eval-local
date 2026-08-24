@@ -93,8 +93,16 @@ const performanceCellSelectionSchema = z.object({
   backendId: z.string().min(1),
 });
 
+const costDatasetDescriptorSchema = z.object({
+  datasetPath: z.string().min(1),
+  pricingAsOf: z.iso.date(),
+  sourcePath: z.string().min(1),
+  sourceDigest: z.string().regex(/^[0-9a-f]{64}$/),
+  selectionPolicy: z.string().min(1),
+});
+
 export const datasetManifestSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   title: z.string().min(1),
   subtitle: z.string().min(1),
   artifactRepository: z.string().url(),
@@ -121,6 +129,7 @@ export const datasetManifestSchema = z.object({
   benchmarks: z.array(entitySchema),
   backends: z.array(entitySchema),
   methodology: methodologySchema,
+  cost: costDatasetDescriptorSchema,
   cells: z.array(cellSchema),
   scoreCubePath: z.string().min(1),
   runIndexPath: z.string().min(1),
@@ -192,3 +201,97 @@ export const runIndexSchema = z.record(z.string(), z.object({
   benchmarkId: z.string().min(1),
   backendId: z.string().min(1),
 }));
+
+export const costPricingProfileSchema = z.object({
+  id: z.string().min(1),
+  modelLabel: z.string().min(1),
+  inputPriceUsdPerMillion: z.number().nonnegative(),
+  cachedInputPriceUsdPerMillion: z.number().nonnegative(),
+  outputPriceUsdPerMillion: z.number().nonnegative(),
+  effectivePriceUsdPerMillion: z.number().positive().nullable(),
+  pricingAsOf: z.iso.date(),
+  pricingModelId: z.string().min(1),
+  pricingProvider: z.string().min(1),
+  pricingProviderTag: z.string().min(1),
+  pricingQuantization: z.string().min(1),
+  pricingSourceKind: z.string().min(1),
+  pricingSelectionPolicy: z.string().min(1),
+  pricingCatalogUrl: z.string().url(),
+  pricingEndpointUrl: z.string().url().nullable(),
+  pricingSourceUrl: z.string().url(),
+  secondaryPricingSourceUrl: z.string().url().nullable(),
+  pricingMatchNote: z.string().min(1),
+  costMethod: z.string().min(1),
+});
+
+export const costRunRecordSchema = z.object({
+  id: z.string().min(1),
+  modelId: z.string().min(1),
+  benchmarkId: z.string().min(1),
+  backendId: z.string().min(1),
+  repetition: z.number().int().positive(),
+  overallScore: z.number().int(),
+  pricingProfileId: z.string().min(1).nullable(),
+  inputTokens: z.number().int().nonnegative().nullable(),
+  cachedInputTokens: z.number().int().nonnegative().nullable(),
+  outputTokens: z.number().int().nonnegative().nullable(),
+  totalTokens: z.number().int().nonnegative().nullable(),
+  estimatedCostUsd: z.number().nonnegative().nullable(),
+});
+
+export const costDatasetSchema = z.object({
+  schemaVersion: z.literal(1),
+  pricingAsOf: z.iso.date(),
+  sourceDigest: z.string().regex(/^[0-9a-f]{64}$/),
+  profiles: z.array(costPricingProfileSchema).min(1),
+  aliases: z.record(z.string().min(1), z.string().min(1)),
+  inputTokenAccounting: z.record(z.string().min(1), z.enum(["includes-cached", "excludes-cached"])),
+  runs: z.array(costRunRecordSchema),
+}).superRefine((dataset, context) => {
+  const profiles = new Set<string>();
+  dataset.profiles.forEach((profile, index) => {
+    if (profiles.has(profile.id)) {
+      context.addIssue({ code: "custom", message: `duplicate cost profile: ${profile.id}`, path: ["profiles", index, "id"] });
+    }
+    profiles.add(profile.id);
+    if (profile.pricingAsOf !== dataset.pricingAsOf) {
+      context.addIssue({ code: "custom", message: `inconsistent pricing date: ${profile.id}`, path: ["profiles", index, "pricingAsOf"] });
+    }
+  });
+  Object.entries(dataset.aliases).forEach(([modelId, profileId]) => {
+    if (!profiles.has(profileId)) {
+      context.addIssue({ code: "custom", message: `unknown aliased cost profile: ${profileId}`, path: ["aliases", modelId] });
+    }
+  });
+  const knownCostModels = new Set<string>([
+    ...dataset.profiles.map((profile) => profile.id),
+    ...Object.keys(dataset.aliases),
+    ...dataset.runs.map((run) => run.modelId),
+  ]);
+  Object.keys(dataset.inputTokenAccounting).forEach((modelId) => {
+    if (!knownCostModels.has(modelId)) {
+      context.addIssue({ code: "custom", message: `unknown input-token accounting model: ${modelId}`, path: ["inputTokenAccounting", modelId] });
+    }
+  });
+  const runIds = new Set<string>();
+  dataset.runs.forEach((run, index) => {
+    if (runIds.has(run.id)) {
+      context.addIssue({ code: "custom", message: `duplicate cost run: ${run.id}`, path: ["runs", index, "id"] });
+    }
+    runIds.add(run.id);
+    if (run.pricingProfileId !== null && !profiles.has(run.pricingProfileId)) {
+      context.addIssue({ code: "custom", message: `unknown run cost profile: ${run.pricingProfileId}`, path: ["runs", index, "pricingProfileId"] });
+    }
+    const expectedProfileId = profiles.has(run.modelId) ? run.modelId : dataset.aliases[run.modelId] ?? null;
+    if (run.pricingProfileId !== expectedProfileId) {
+      context.addIssue({ code: "custom", message: `run pricing profile disagrees with model policy: ${run.id}`, path: ["runs", index, "pricingProfileId"] });
+    }
+    if ((dataset.inputTokenAccounting[run.modelId] ?? "includes-cached") === "includes-cached"
+      && run.cachedInputTokens !== null && run.inputTokens !== null && run.cachedInputTokens > run.inputTokens) {
+      context.addIssue({ code: "custom", message: "cached tokens exceed input tokens", path: ["runs", index, "cachedInputTokens"] });
+    }
+    if (run.estimatedCostUsd !== null && run.pricingProfileId === null) {
+      context.addIssue({ code: "custom", message: "estimated cost lacks a pricing profile", path: ["runs", index, "estimatedCostUsd"] });
+    }
+  });
+});

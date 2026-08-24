@@ -1,7 +1,7 @@
-import type { DatasetManifest, RunRecord, ScoreCubeCell } from "../data/types";
+import type { CostDataset, DatasetManifest, RunRecord, ScoreCubeCell } from "../data/types";
 
 export const manifestFixture: DatasetManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   title: "Test evaluation",
   subtitle: "Synthetic fixture",
   artifactRepository: "https://github.com/example/artifact",
@@ -59,6 +59,13 @@ export const manifestFixture: DatasetManifest = {
       ],
     },
   },
+  cost: {
+    datasetPath: "data/cost-test.json",
+    pricingAsOf: "2026-08-22",
+    sourcePath: "analysis/tables/4d_all_models_score_vs_cost.csv",
+    sourceDigest: "f".repeat(64),
+    selectionPolicy: "synthetic endpoint selection policy",
+  },
   cells: [{
     benchmarkId: "bench&one", backendId: "gpu+x", runCount: 3, successfulRunCount: 1,
     shardPath: "data/runs-test.json", thresholds: { fastestMs: 10, topMs: 12, greatMs: 15, goodMs: 20 },
@@ -98,3 +105,49 @@ export const runsFixture: RunRecord[] = [
     benchmarkEvidenceUrl: "https://github.com/example/artifact/blob/aaaa/benchmark.jsonl#L2",
   },
 ];
+
+export const costDatasetFixture: CostDataset = {
+  schemaVersion: 1,
+  pricingAsOf: "2026-08-22",
+  sourceDigest: "f".repeat(64),
+  profiles: [{
+    id: "unknown-model",
+    modelLabel: "unknown-model",
+    inputPriceUsdPerMillion: 1,
+    cachedInputPriceUsdPerMillion: 0.1,
+    outputPriceUsdPerMillion: 4,
+    effectivePriceUsdPerMillion: null,
+    pricingAsOf: "2026-08-22",
+    pricingModelId: "provider/unknown-model",
+    pricingProvider: "Test provider",
+    pricingProviderTag: "test/fp8",
+    pricingQuantization: "fp8",
+    pricingSourceKind: "Synthetic pricing source",
+    pricingSelectionPolicy: "Synthetic endpoint selection policy",
+    pricingCatalogUrl: "https://example.test/catalog",
+    pricingEndpointUrl: "https://example.test/endpoints/unknown-model",
+    pricingSourceUrl: "https://example.test/models/unknown-model",
+    secondaryPricingSourceUrl: null,
+    pricingMatchNote: "synthetic profile",
+    costMethod: "uncached input, cached input, and output tokens priced separately",
+  }],
+  aliases: { "model/a?x": "unknown-model" },
+  inputTokenAccounting: {},
+  runs: [
+    {
+      id: "bench&one_model/a?x_gpu+x_r1", modelId: "model/a?x", benchmarkId: "bench&one", backendId: "gpu+x",
+      repetition: 1, overallScore: 4, pricingProfileId: "unknown-model", inputTokens: 100, cachedInputTokens: 80,
+      outputTokens: 20, totalTokens: 120, estimatedCostUsd: 0.000108,
+    },
+    {
+      id: "bench&one_model/a?x_gpu+x_r2", modelId: "model/a?x", benchmarkId: "bench&one", backendId: "gpu+x",
+      repetition: 2, overallScore: 8, pricingProfileId: "unknown-model", inputTokens: 200, cachedInputTokens: 150,
+      outputTokens: 30, totalTokens: 230, estimatedCostUsd: 0.000185,
+    },
+    {
+      id: "bench&one_unknown-model_gpu+x_r1", modelId: "unknown-model", benchmarkId: "bench&one", backendId: "gpu+x",
+      repetition: 1, overallScore: 10, pricingProfileId: "unknown-model", inputTokens: 80, cachedInputTokens: 40,
+      outputTokens: 10, totalTokens: 90, estimatedCostUsd: 0.000084,
+    },
+  ],
+};

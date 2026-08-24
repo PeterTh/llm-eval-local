@@ -1,12 +1,14 @@
 import { DATASET_MANIFEST_PATH } from "../generated/dataset";
 import {
   datasetManifestSchema,
+  costDatasetSchema,
   runIndexSchema,
   runShardSchema,
   scoreCubeSchema,
 } from "./schema";
 import type {
   CellDescriptor,
+  CostDataset,
   DatasetManifest,
   RunIndexEntry,
   RunRecord,
@@ -15,6 +17,7 @@ import type {
 
 const shardCache = new Map<string, Promise<RunRecord[]>>();
 let runIndexPromise: Promise<Record<string, RunIndexEntry>> | null = null;
+let costDatasetPromise: Promise<CostDataset> | null = null;
 
 function assetUrl(path: string): string {
   const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
@@ -71,7 +74,29 @@ export async function loadRunById(manifest: DatasetManifest, id: string): Promis
   return (await loadCellRuns(cell)).find((run) => run.id === id) ?? null;
 }
 
+export function loadCostDataset(manifest: DatasetManifest): Promise<CostDataset> {
+  if (!costDatasetPromise) {
+    costDatasetPromise = fetchJson(manifest.cost.datasetPath)
+      .then((value) => {
+        const dataset = costDatasetSchema.parse(value);
+        if (dataset.sourceDigest !== manifest.cost.sourceDigest) {
+          throw new Error("Cost dataset source digest disagrees with its manifest");
+        }
+        if (dataset.pricingAsOf !== manifest.cost.pricingAsOf) {
+          throw new Error("Cost dataset pricing date disagrees with its manifest");
+        }
+        return dataset;
+      })
+      .catch((error: unknown) => {
+        costDatasetPromise = null;
+        throw error;
+      });
+  }
+  return costDatasetPromise;
+}
+
 export function clearDataCacheForTests(): void {
   shardCache.clear();
   runIndexPromise = null;
+  costDatasetPromise = null;
 }

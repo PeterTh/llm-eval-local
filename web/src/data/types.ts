@@ -93,8 +93,63 @@ export interface PerformanceCellSelection {
   backendId: string;
 }
 
-export interface DatasetManifest {
+export interface CostDatasetDescriptor {
+  datasetPath: string;
+  pricingAsOf: string;
+  sourcePath: string;
+  sourceDigest: string;
+  selectionPolicy: string;
+}
+
+export interface CostPricingProfile {
+  id: string;
+  modelLabel: string;
+  inputPriceUsdPerMillion: number;
+  cachedInputPriceUsdPerMillion: number;
+  outputPriceUsdPerMillion: number;
+  effectivePriceUsdPerMillion: number | null;
+  pricingAsOf: string;
+  pricingModelId: string;
+  pricingProvider: string;
+  pricingProviderTag: string;
+  pricingQuantization: string;
+  pricingSourceKind: string;
+  pricingSelectionPolicy: string;
+  pricingCatalogUrl: string;
+  pricingEndpointUrl: string | null;
+  pricingSourceUrl: string;
+  secondaryPricingSourceUrl: string | null;
+  pricingMatchNote: string;
+  costMethod: string;
+}
+
+export interface CostRunRecord {
+  id: string;
+  modelId: string;
+  benchmarkId: string;
+  backendId: string;
+  repetition: number;
+  overallScore: number;
+  pricingProfileId: string | null;
+  inputTokens: number | null;
+  cachedInputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+  estimatedCostUsd: number | null;
+}
+
+export interface CostDataset {
   schemaVersion: 1;
+  pricingAsOf: string;
+  sourceDigest: string;
+  profiles: CostPricingProfile[];
+  aliases: Record<string, string>;
+  inputTokenAccounting: Record<string, "includes-cached" | "excludes-cached">;
+  runs: CostRunRecord[];
+}
+
+export interface DatasetManifest {
+  schemaVersion: 2;
   title: string;
   subtitle: string;
   artifactRepository: string;
@@ -121,6 +176,7 @@ export interface DatasetManifest {
   benchmarks: EntityMetadata[];
   backends: EntityMetadata[];
   methodology: MethodologyMetadata;
+  cost: CostDatasetDescriptor;
   cells: CellDescriptor[];
   scoreCubePath: string;
   runIndexPath: string;

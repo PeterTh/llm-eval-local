@@ -184,9 +184,9 @@ test("tier overview filters, exports, and drills into its source runs", async ({
 test("model scores filters distributions and opens individual runs", async ({ page }) => {
   const problems = watchPage(page);
   await goto(page, "/scores");
-  const scoresLink = page.getByRole("link", { name: "Model scores" });
+  const scoresLink = page.getByRole("link", { name: "Model Scores" });
   await expect(scoresLink).toHaveClass(/active/);
-  await expect(page.getByRole("heading", { name: "Model scores" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Model Scores" })).toBeVisible();
   await expect(page.getByLabel("Current score selection summary").getByText(/3[,.]080/, { exact: true })).toBeVisible();
   await expect(page.locator(".score-analysis .chart svg.marks")).toBeVisible();
   await expect(page.locator(".score-analysis .mark-rect path").first()).toBeVisible();
@@ -247,10 +247,10 @@ test("model scores filters distributions and opens individual runs", async ({ pa
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#\/run\/.*model=claude-haiku-4.5.*sort=strongest.*from=scores/);
   await expect(page.getByRole("heading", { name: /claude-haiku-4.5/ })).toBeVisible();
-  const back = page.getByRole("link", { name: /Back to model scores/ });
+  const back = page.getByRole("link", { name: /Back to Model Scores/ });
   await expect(back).toHaveAttribute("href", /#\/scores\?model=claude-haiku-4.5&sort=strongest/);
   await back.click();
-  await expect(page.getByRole("link", { name: "Model scores", exact: true })).toHaveClass(/active/);
+  await expect(page.getByRole("link", { name: "Model Scores", exact: true })).toHaveClass(/active/);
   await expect(page.getByLabel("Current score selection summary").getByText("220", { exact: true })).toBeVisible();
   expect(problems).toEqual([]);
 });
@@ -403,6 +403,145 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await page.goBack();
   await expect(page.getByRole("combobox", { name: "Benchmark" })).toHaveValue("floydwarshall");
   await expect(page.getByRole("combobox", { name: "Target" })).toHaveValue("omp");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    await page.evaluate(() => window.innerWidth),
+  );
+  expect(problems).toEqual([]);
+});
+
+test("score and cost recomputes model aggregates from frozen pricing", async ({ page }) => {
+  const problems = watchPage(page);
+  await goto(page, "/cost");
+
+  const costLink = page.getByRole("link", { name: "Cost Efficiency" });
+  await expect(costLink).toHaveClass(/active/);
+  await expect(page.getByRole("heading", { name: "Cost Efficiency" })).toBeAttached();
+  const summary = page.getByLabel("Current cost efficiency selection summary");
+  await expect(summary.getByText("14", { exact: true })).toBeVisible();
+  await expect(summary.getByText(/3[,.]080/, { exact: true })).toBeVisible();
+  await expect(summary.getByText(/3[,.]077/, { exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
+
+  const chart = page.locator(".cost-analysis .chart");
+  await expect(chart.locator("svg.marks")).toBeVisible();
+  const points = chart.locator(".cost_points path");
+  await expect(points).toHaveCount(14);
+  const labels = chart.locator(".cost_labels text");
+  await expect(labels).toHaveCount(14);
+  await expect(labels.filter({ hasText: "GPT-5.6 Luna Medium" })).toHaveCount(1);
+  await expect(labels.filter({ hasText: /GPT-5\.6 Luna (Low|XHigh)/ })).toHaveCount(0);
+
+  const visibleLabelCount = await labels.evaluateAll((elements) => elements.filter((element) => {
+    const style = getComputedStyle(element);
+    const bounds = element.getBoundingClientRect();
+    return style.opacity !== "0" && style.visibility !== "hidden" && bounds.width > 0 && bounds.height > 0;
+  }).length);
+  expect(visibleLabelCount).toBe(14);
+
+  await points.first().hover({ force: true });
+  const tooltip = page.locator("#vg-tooltip-element");
+  await expect(tooltip).toBeVisible();
+  for (const field of [
+    "Mean score", "Estimated mean cost", "Runs", "Mean tokens", "Rates (USD/M tokens)",
+    "Pricing profile", "Provider", "Quantization", "Pricing date", "Sources",
+  ]) {
+    await expect(tooltip).toContainText(field);
+  }
+  await expect(tooltip).not.toContainText("Cost method");
+  await expect(tooltip).not.toContainText("Pricing match");
+  await expect(tooltip.locator("tr")).toHaveCount(11);
+  const compactTooltip = await tooltip.evaluate((element) => ({
+    left: element.getBoundingClientRect().left,
+    right: element.getBoundingClientRect().right,
+    top: element.getBoundingClientRect().top,
+    width: element.getBoundingClientRect().width,
+    height: element.getBoundingClientRect().height,
+    viewportWidth: window.innerWidth,
+  }));
+  expect(compactTooltip.width).toBeLessThan(560);
+  expect(compactTooltip.width).toBeLessThanOrEqual(compactTooltip.viewportWidth - 8);
+  expect(compactTooltip.left).toBeGreaterThanOrEqual(0);
+  expect(compactTooltip.right).toBeLessThanOrEqual(compactTooltip.viewportWidth);
+  if (compactTooltip.viewportWidth <= 600) expect(compactTooltip.top).toBeGreaterThanOrEqual(43);
+  expect(compactTooltip.height).toBeLessThan(420);
+  await page.mouse.move(1, 1);
+
+  await page.getByRole("combobox", { name: "Cost scale" }).selectOption("linear");
+  await expect(page).toHaveURL(/scale=linear/);
+  await expect(page.getByText("Estimated API cost per run (USD)", { exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
+  await page.goForward();
+  await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("linear");
+
+  const benchmarkMenu = page.locator(".filter-menu").nth(1);
+  await benchmarkMenu.locator("summary").click();
+  await benchmarkMenu.getByRole("checkbox", { name: "Black Scholes" }).click();
+  await page.mouse.click(4, 400);
+  await expect(benchmarkMenu).not.toHaveAttribute("open", "");
+  const backendMenu = page.locator(".filter-menu").nth(2);
+  await backendMenu.locator("summary").click();
+  await backendMenu.getByRole("checkbox", { name: "OpenMP" }).click();
+  await expect(page).toHaveURL(/benchmark=black-scholes/);
+  await expect(page).toHaveURL(/backend=omp/);
+  await expect(summary.getByText("70", { exact: true })).toHaveCount(2);
+  await page.getByRole("button", { name: /Reset/ }).click();
+  await expect(page).toHaveURL(/#\/cost$/);
+  await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
+
+  const modelMenu = page.locator(".filter-menu").first();
+  await modelMenu.locator("summary").click();
+  await modelMenu.getByRole("button", { name: "All", exact: true }).click();
+  await expect(page).toHaveURL(/model-set=all/);
+  await expect(summary.getByText("21", { exact: true })).toBeVisible();
+  await expect(summary.getByText(/4[,.]620/, { exact: true })).toBeVisible();
+  await expect(summary.getByText(/4[,.]617/, { exact: true })).toBeVisible();
+  await expect(points).toHaveCount(21);
+  await expect(labels).toHaveCount(21);
+  await expect(labels.filter({ hasText: /Qwen 3\.6 .*Pi-T/ })).toHaveCount(1);
+
+  const allLabelLayout = await labels.evaluateAll((elements) => {
+    const visible = elements.filter((element) => {
+      const style = getComputedStyle(element);
+      const bounds = element.getBoundingClientRect();
+      return style.opacity !== "0" && style.visibility !== "hidden" && bounds.width > 0 && bounds.height > 0;
+    });
+    const bounds = visible.map((element) => ({
+      label: element.textContent,
+      rect: element.getBoundingClientRect(),
+    }));
+    const materialOverlaps: Array<[string | null, string | null]> = [];
+    for (let left = 0; left < bounds.length; left += 1) {
+      for (let right = left + 1; right < bounds.length; right += 1) {
+        const overlapWidth = Math.min(bounds[left].rect.right, bounds[right].rect.right)
+          - Math.max(bounds[left].rect.left, bounds[right].rect.left);
+        const overlapHeight = Math.min(bounds[left].rect.bottom, bounds[right].rect.bottom)
+          - Math.max(bounds[left].rect.top, bounds[right].rect.top);
+        if (overlapWidth > 2 && overlapHeight > 2) {
+          materialOverlaps.push([bounds[left].label, bounds[right].label]);
+        }
+      }
+    }
+    return { visibleCount: visible.length, materialOverlaps };
+  });
+  expect(allLabelLayout).toEqual({ visibleCount: 21, materialOverlaps: [] });
+
+  const exportPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /Export aggregates/ }).click();
+  expect((await exportPromise).suggestedFilename()).toBe("llm-eval-score-cost.csv");
+  await page.getByText("Accessible cost efficiency table", { exact: true }).click();
+  const pricingSource = page.locator(".cost-data tbody tr").first().getByRole("link", { name: "Pricing source" });
+  await expect(pricingSource).toHaveAttribute("target", "_blank");
+
+  const firstPoint = points.first();
+  await expect(firstPoint).toHaveAttribute("tabindex", "0");
+  await firstPoint.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#\/runs\?model=/);
+  await expect(page.getByRole("heading", { name: /matching runs/ })).toBeVisible();
+  await page.goBack();
+  await expect(costLink).toHaveClass(/active/);
+
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
     await page.evaluate(() => window.innerWidth),
   );
@@ -632,6 +771,14 @@ test("runs combine outcome filters, paginate, and retain context through detail"
   const runId = (await firstRun.textContent())!;
   await firstRun.click();
   await expect(page.getByRole("heading", { name: runId })).toBeVisible();
+  await expect(page.getByText("Tokens and cost", { exact: true })).toBeVisible();
+  const tokenConsumption = page.getByLabel("Token consumption");
+  await expect(tokenConsumption).toBeVisible();
+  await expect(tokenConsumption).toContainText("Priced token volume");
+  await expect(tokenConsumption).toContainText("Input tokens (cache included)");
+  await expect(tokenConsumption).toContainText("Cached input tokens");
+  await expect(tokenConsumption).toContainText("Output tokens");
+  await expect(page.getByRole("link", { name: /This model in Cost Efficiency/ })).toHaveAttribute("href", /#\/cost\?/);
   const sourceLink = page.getByRole("link", { name: /Generated source directory/ });
   await expect(sourceLink).toHaveAttribute("href", /\/tree\/[0-9a-f]{40}\//);
   await expect(sourceLink).toHaveAttribute("target", "_blank");
@@ -642,13 +789,43 @@ test("runs combine outcome filters, paginate, and retain context through detail"
   expect(problems).toEqual([]);
 });
 
+test("run detail distinguishes combined and separately cached token records", async ({ page }) => {
+  const problems = watchPage(page);
+
+  await goto(page, "/runs?model=gpt-5.6-sol-medium");
+  await expect(page.getByRole("heading", { name: "220 matching runs" })).toBeVisible();
+  await page.locator(".run-id-link").first().click();
+  const combinedTokens = page.getByLabel("Token consumption");
+  await expect(combinedTokens).toContainText("Combined tokens");
+  await expect(combinedTokens).not.toContainText("Cached input tokens");
+  await expect(page.getByRole("heading", { name: /estimated API cost$/ })).toBeVisible();
+
+  await goto(page, "/runs?model=qwen-3.6-27B-udq4-pi-t");
+  await expect(page.getByRole("heading", { name: "220 matching runs" })).toBeVisible();
+  await page.locator(".run-id-link").first().click();
+  const splitTokens = page.getByLabel("Token consumption");
+  await expect(splitTokens).toContainText("Priced token volume");
+  await expect(splitTokens).toContainText("Uncached input tokens");
+  await expect(splitTokens).toContainText("Cached input tokens");
+  await expect(splitTokens).toContainText("Output tokens");
+  expect(problems).toEqual([]);
+});
+
 test("Pages-safe routes and information pages remain functional", async ({ page }) => {
   const problems = watchPage(page);
   await goto(page, "/performance");
   await expect(page).toHaveURL(/#\/performance$/);
   await expect(page.getByRole("link", { name: "Performance" })).toHaveClass(/active/);
   await expect(page.getByText("Next", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".site-footer")).not.toContainText("Client-only");
+  const footer = page.locator(".site-footer");
+  await expect(footer).not.toContainText("Client-only");
+  const snapshot = footer.getByRole("link", { name: /Snapshot [0-9a-f]{9}/ });
+  await expect(snapshot).toHaveAttribute("href", /\/tree\/[0-9a-f]{40}$/);
+  const snapshotCommit = (await snapshot.getAttribute("href"))!.split("/").at(-1)!;
+  await expect(snapshot.locator("code")).toHaveText(snapshotCommit.slice(0, 9));
+  await expect(snapshot.locator("time")).toHaveText("2026-08-22 18:12:20 UTC+02:00");
+  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-08-22T18:12:20+02:00");
+  await expect(page.locator(".primary-nav")).not.toContainText("Snapshot");
   await goto(page, "/methodology");
   await expect(page.getByRole("heading", { name: "Methodology" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Agent harnesses" })).toBeVisible();
@@ -663,6 +840,10 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(page.getByText("128 ranks, 64 per socket, 1 physical core per rank", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /Experiment harness configuration/ })).toHaveAttribute("href", /\/blob\/[0-9a-f]{40}\/experiment\.rb$/);
   await expect(page.getByRole("link", { name: /Threshold review/ })).toHaveAttribute("href", /local_scoring_threshold_review\.yaml$/);
+  await expect(page.getByRole("heading", { name: "Frozen API pricing" })).toBeVisible();
+  await expect(page.getByText(/Shown API cost is based on API rates/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cost estimation generator" })).toHaveAttribute("href", /all_models_score_vs_cost\.py$/);
+  await expect(page.getByRole("link", { name: "Frozen pricing profiles" })).toHaveAttribute("href", /4d_all_models_score_vs_cost\.csv$/);
   await goto(page, "/cite");
   await expect(page.getByRole("heading", { name: "Citation" })).toBeAttached();
   await expect(page.getByRole("heading", { name: "Cite this work" })).toHaveCount(0);
@@ -729,9 +910,29 @@ test("dark selects and chart tooltips retain readable compact styling", async ({
   await expect(tooltip).toContainText("Invocation");
   await expect(tooltip).not.toContainText("Tier");
   await expect(tooltip).toHaveCSS("font-size", "14px");
+  const tooltipTheme = await tooltip.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      color: style.color,
+      borderColor: style.borderColor,
+    };
+  });
+  expect(tooltipTheme).toEqual({
+    background: "rgb(32, 42, 48)",
+    color: "rgb(237, 240, 235)",
+    borderColor: "rgb(74, 91, 97)",
+  });
   const chartFontSizes = await page.locator(".chart svg text").evaluateAll((nodes) =>
     [...new Set(nodes.map((node) => getComputedStyle(node).fontSize))]);
   expect(chartFontSizes).toContain(testInfo.project.name === "desktop" ? "14px" : "12px");
+  await expect(page.locator(".footer-dps-link")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator(".footer-dps-link")).toHaveCSS("border-radius", "4.8px");
+  await expect(page.locator(".site-footer")).toHaveCSS("flex-direction", "row");
+  await expect(page.getByRole("link", { name: "Tiered Success" })).toHaveCSS(
+    "font-size",
+    testInfo.project.name === "desktop" ? "14.08px" : "12.8px",
+  );
   const layout = await tooltip.evaluate((element) => ({
     width: element.getBoundingClientRect().width,
     rowHeights: [...element.querySelectorAll("tr")].map((row) => row.getBoundingClientRect().height),

@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { manifestFixture, runsFixture, scoreCubeFixture } from "../test/fixtures";
-import { datasetManifestSchema, runShardSchema, scoreCubeSchema } from "./schema";
+import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture } from "../test/fixtures";
+import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema } from "./schema";
 
 describe("runtime dataset validation", () => {
   it("accepts the stable public interfaces", () => {
     expect(datasetManifestSchema.parse(manifestFixture)).toEqual(manifestFixture);
     expect(scoreCubeSchema.parse(scoreCubeFixture)).toEqual(scoreCubeFixture);
     expect(runShardSchema.parse(runsFixture)).toEqual(runsFixture);
+    expect(costDatasetSchema.parse(costDatasetFixture)).toEqual(costDatasetFixture);
   });
 
   it("rejects malformed performance metrics and provenance", () => {
@@ -16,6 +17,15 @@ describe("runtime dataset validation", () => {
     expect(() => datasetManifestSchema.parse({
       ...manifestFixture,
       models: [{ ...manifestFixture.models[0], invocation: { ...manifestFixture.models[0]!.invocation!, harnessId: "" } }],
+    })).toThrow();
+    expect(() => costDatasetSchema.parse({
+      ...costDatasetFixture,
+      aliases: { "model/a?x": "missing-profile" },
+    })).toThrow();
+    expect(() => costDatasetSchema.parse({ ...costDatasetFixture, sourceDigest: "not-a-digest" })).toThrow();
+    expect(() => costDatasetSchema.parse({
+      ...costDatasetFixture,
+      runs: [{ ...costDatasetFixture.runs[0], cachedInputTokens: 101 }],
     })).toThrow();
     expect(() => datasetManifestSchema.parse({ ...manifestFixture, defaultModelSetId: "missing" })).toThrow();
     expect(() => datasetManifestSchema.parse({

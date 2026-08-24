@@ -1,8 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { CiteView } from "./views/CiteView";
 import { ComplexityView } from "./views/ComplexityView";
+import { CostView } from "./views/CostView";
 import { MethodologyView } from "./views/MethodologyView";
 import { PerformanceView } from "./views/PerformanceView";
 import { RunDetailView } from "./views/RunDetailView";
@@ -22,20 +24,12 @@ export function App() {
         <Route path="/scores" element={<ScoresView />} />
         <Route path="/complexity" element={<ComplexityView />} />
         <Route path="/performance" element={<PerformanceView />} />
+        <Route path="/cost" element={<CostView />} />
         <Route path="/methodology" element={<MethodologyView />} />
         <Route path="/cite" element={<CiteView />} />
         <Route path="*" element={<Navigate to="/tiers" replace />} />
       </Routes>
-      <footer className="site-footer">
-        <div className="footer-brands" aria-label="Institutional affiliations">
-          <a href="https://dps.uibk.ac.at/" target="_blank" rel="noreferrer" aria-label="Distributed and Parallel Systems Research Group">
-            <img className="footer-dps-logo" src={`${import.meta.env.BASE_URL}brand/dps-logo.svg`} alt="DPS" />
-          </a>
-          <a href="https://www.uibk.ac.at/" target="_blank" rel="noreferrer" aria-label="University of Innsbruck">
-            <img className="footer-uibk-logo" src={`${import.meta.env.BASE_URL}brand/uibk-logo.svg`} alt="University of Innsbruck" />
-          </a>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

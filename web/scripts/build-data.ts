@@ -9,6 +9,7 @@ import { parse as parseYaml } from "yaml";
 
 import type {
   CellDescriptor,
+  CostDataset,
   DatasetManifest,
   EntityMetadata,
   HarnessMetadata,
@@ -20,6 +21,12 @@ import type {
   ScoreBand,
   ScoreCubeCell,
 } from "../src/data/types";
+import {
+  costRunFromScoredRow,
+  parseCostPricingProfiles,
+  reconcileCanonicalCostAggregates,
+  validateCostConfig,
+} from "./cost-data";
 
 interface SiteConfig {
   title: string;
@@ -297,6 +304,7 @@ async function writeHashedAsset(prefix: string, value: unknown): Promise<string>
 export async function buildData(): Promise<void> {
   const config = JSON.parse(await readFile(resolve(webRoot, "config", "site.json"), "utf8")) as SiteConfig;
   const methodologyConfig = JSON.parse(await readFile(resolve(webRoot, "config", "methodology.json"), "utf8")) as MethodologyConfig;
+  const costConfig = JSON.parse(await readFile(resolve(webRoot, "config", "cost.json"), "utf8")) as unknown;
   invariant(config.scoreScale.bands.length > 0, "at least one score band is required");
 
   const harnessIds = new Set<string>();
@@ -315,6 +323,14 @@ export async function buildData(): Promise<void> {
     columns: true,
     skip_empty_lines: true,
   }) as CsvRow[];
+  const costSourcePath = "analysis/tables/4d_all_models_score_vs_cost.csv";
+  const costSourceContent = await readFile(resolve(repositoryRoot, ...costSourcePath.split("/")), "utf8");
+  const costSourceDigest = digest(costSourceContent);
+  const costSourceRows = parseCsv(costSourceContent, {
+    columns: true,
+    skip_empty_lines: true,
+  }) as CsvRow[];
+  const parsedCostProfiles = parseCostPricingProfiles(costSourceRows);
   const thresholdRows = parseCsv(await readFile(resolve(repositoryRoot, "data", "scoring", "local_scoring_thresholds.csv"), "utf8"), {
     columns: true,
     skip_empty_lines: true,
@@ -449,6 +465,40 @@ export async function buildData(): Promise<void> {
     };
   });
   const knownModelIds = new Set(models.map((model) => model.id));
+  for (const profile of parsedCostProfiles.profiles) {
+    invariant(knownModelIds.has(profile.id), `cost pricing profile has no scored model: ${profile.id}`);
+  }
+  const validatedCostConfig = validateCostConfig(costConfig, parsedCostProfiles.profiles, knownModelIds);
+  const costAliases = validatedCostConfig.aliases;
+  const costProfileMap = new Map(parsedCostProfiles.profiles.map((profile) => [profile.id, profile]));
+  const costRuns = scoredRows.map((row) => costRunFromScoredRow(
+    row,
+    costProfileMap,
+    costAliases,
+    validatedCostConfig.inputTokenAccounting,
+    config.scoreScale.minimum,
+    config.scoreScale.maximum,
+  ));
+  const runsById = new Map(runs.map((run) => [run.id, run]));
+  const costRunIds = new Set<string>();
+  for (const costRun of costRuns) {
+    invariant(!costRunIds.has(costRun.id), `duplicate generated cost run: ${costRun.id}`);
+    costRunIds.add(costRun.id);
+    const run = runsById.get(costRun.id);
+    invariant(run, `cost run has no scored record: ${costRun.id}`);
+    invariant(run.modelId === costRun.modelId
+      && run.benchmarkId === costRun.benchmarkId
+      && run.backendId === costRun.backendId
+      && run.repetition === costRun.repetition
+      && run.overallScore === costRun.overallScore,
+    `cost/scored identity mismatch: ${costRun.id}`);
+  }
+  invariant(runs.every((run) => costRunIds.has(run.id)), "scored results contain runs outside the cost dataset");
+  costRuns.sort((left, right) => left.benchmarkId.localeCompare(right.benchmarkId, "en")
+    || left.backendId.localeCompare(right.backendId, "en")
+    || left.modelId.localeCompare(right.modelId, "en")
+    || left.repetition - right.repetition);
+  reconcileCanonicalCostAggregates(costRuns, costSourceRows);
   const modelSetIds = new Set<string>();
   const modelSets: ModelSetMetadata[] = (config.modelSets ?? []).map((configuredSet) => {
     const id = requiredString(configuredSet.id, "model set ID");
@@ -561,13 +611,23 @@ export async function buildData(): Promise<void> {
   `default performance cell is unavailable or has no successful runs: ${defaultPerformanceCell?.benchmarkId}/${defaultPerformanceCell?.backendId}`);
 
   const scoreCubePath = await writeHashedAsset("score-cube", scoreCube);
+  const costDataset: CostDataset = {
+    schemaVersion: 1,
+    pricingAsOf: parsedCostProfiles.pricingAsOf,
+    sourceDigest: costSourceDigest,
+    profiles: parsedCostProfiles.profiles,
+    aliases: costAliases,
+    inputTokenAccounting: validatedCostConfig.inputTokenAccounting,
+    runs: costRuns,
+  };
+  const costDatasetPath = await writeHashedAsset("cost", costDataset);
   const runIndex = Object.fromEntries(runs.map((run) => [run.id, {
     benchmarkId: run.benchmarkId,
     backendId: run.backendId,
   } satisfies RunIndexEntry]));
   const runIndexPath = await writeHashedAsset("run-index", runIndex);
   const manifest: DatasetManifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     title: config.title,
     subtitle: config.subtitle,
     artifactRepository,
@@ -594,6 +654,13 @@ export async function buildData(): Promise<void> {
       harnesses: methodologyConfig.harnesses,
       executionSystem: executionSystemFrom(evaluationManifest),
     },
+    cost: {
+      datasetPath: costDatasetPath,
+      pricingAsOf: parsedCostProfiles.pricingAsOf,
+      sourcePath: costSourcePath,
+      sourceDigest: costSourceDigest,
+      selectionPolicy: parsedCostProfiles.selectionPolicy,
+    },
     cells,
     scoreCubePath,
     runIndexPath,
@@ -603,7 +670,7 @@ export async function buildData(): Promise<void> {
     `// Generated by scripts/build-data.ts. Do not edit.\nexport const DATASET_MANIFEST_PATH = ${JSON.stringify(manifestPath)};\n`,
     "utf8");
 
-  console.log(`Generated ${runs.length} runs, ${scoreCube.length} score cells, and ${cells.length} shards.`);
+  console.log(`Generated ${runs.length} runs, ${scoreCube.length} score cells, ${costRuns.length} cost records, and ${cells.length} shards.`);
 }
 
 if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {

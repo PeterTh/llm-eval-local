@@ -322,7 +322,7 @@ export function ScoresView() {
   return (
     <main id="main-content" className="page-shell">
       <header className="view-summary">
-        <h1 className="sr-only">Model scores</h1>
+        <h1 className="sr-only">Model Scores</h1>
         <p>Tukey box plots summarize overall scores by model; jittered points show individual runs. Statistics are recomputed for the active filters.</p>
       </header>
 

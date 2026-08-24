@@ -48,7 +48,7 @@ export function MethodologyView() {
       <PageIntro
         eyebrow="Study design"
         title="Methodology"
-        description={<>Summary of the program generation, validation, performance measurement, and scoring procedure represented by this dataset snapshot.</>}
+        description={<>Summary of the program generation, validation, performance measurement, scoring, and cost-estimation procedures represented by this dataset snapshot.</>}
         aside={(
           <div className="metric-strip" aria-label="Dataset design summary">
             <div><strong>{manifest.counts.runs.toLocaleString()}</strong><span>runs</span></div>
@@ -212,6 +212,25 @@ export function MethodologyView() {
               measurement-noise floor, then reviewed and frozen before scoring.
             </p>
           </section>
+
+          <section className="methodology-section" aria-labelledby="method-cost">
+            <p className="eyebrow">Cost estimation</p>
+            <h2 id="method-cost">Frozen API pricing</h2>
+            <p>
+              Shown API cost is based on API rates for the given token volume rather than observed billing. Where input, cache-read, and output counts are recorded,
+              each token class is priced separately. Copilot reports cached tokens as part of its input count, while
+              Pi reports uncached input and cache reads separately; the calculation follows the recorded convention.
+              GPT-5.6 provides only a combined token count, so its estimate uses a fixed 50/50 input/output price mix.
+            </p>
+            <p>
+              Rates are frozen to the endpoint snapshot dated {manifest.cost.pricingAsOf}. Each profile uses the lowest
+              estimated cost among the available live, non-batch OpenRouter endpoints for that model's observed token mix;
+              Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired
+              models use the last known live rate as a fallback.
+              Active filters change the run averages but not these rates. Long-context surcharges,
+              storage, tools, batch discounts, and later pricing or routing changes are not modeled.
+            </p>
+          </section>
         </div>
 
         <aside className="methodology-references" aria-label="Methodology records">
@@ -225,6 +244,8 @@ export function MethodologyView() {
               <a href={`${artifactBlob}/data/calibration/benchmark_config.yaml`} target="_blank" rel="noreferrer"><span>Benchmark configuration</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/data/scoring/local_scoring_threshold_review.yaml`} target="_blank" rel="noreferrer"><span>Threshold review</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/data/scoring/scoring_metadata.yaml`} target="_blank" rel="noreferrer"><span>Scoring metadata</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/analysis/src/all_models_score_vs_cost.py`} target="_blank" rel="noreferrer"><span>Cost estimation generator</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/${manifest.cost.sourcePath}`} target="_blank" rel="noreferrer"><span>Frozen pricing profiles</span><strong>GitHub ↗</strong></a>
               <a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer"><span>Generated programs</span><strong>GitHub ↗</strong></a>
             </div>
           </section>

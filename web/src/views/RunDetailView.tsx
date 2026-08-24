@@ -1,11 +1,12 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
+import { pricedTokenCountForRun } from "../analysis/cost";
 import { PageIntro } from "../components/PageIntro";
-import { loadRunById } from "../data/client";
+import { loadCostDataset, loadRunById } from "../data/client";
 import { useDataset } from "../data/context";
-import type { RunRecord } from "../data/types";
-import { formatMilliseconds } from "../utils/format";
+import type { CostDataset, RunRecord } from "../data/types";
+import { formatCount, formatMilliseconds, formatUsd } from "../utils/format";
 
 function boolLabel(value: boolean | null): string {
   if (value === true) return "Passed";
@@ -19,6 +20,8 @@ export function RunDetailView() {
   const location = useLocation();
   const [run, setRun] = useState<RunRecord | null | undefined>(undefined);
   const [error, setError] = useState<Error | null>(null);
+  const [costDataset, setCostDataset] = useState<CostDataset | undefined>(undefined);
+  const [costError, setCostError] = useState<Error | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -30,19 +33,41 @@ export function RunDetailView() {
     return () => { active = false; };
   }, [id, manifest]);
 
+  useEffect(() => {
+    let active = true;
+    setCostDataset(undefined);
+    setCostError(null);
+    loadCostDataset(manifest).then((loaded) => {
+      if (active) setCostDataset(loaded);
+    }).catch((reason: unknown) => {
+      if (active) setCostError(reason instanceof Error ? reason : new Error(String(reason)));
+    });
+    return () => { active = false; };
+  }, [manifest]);
+
   const returnParams = new URLSearchParams(location.search);
   const origin = returnParams.get("from");
   returnParams.delete("from");
   const returnQuery = returnParams.toString();
   const originPath = origin === "scores" ? "/scores" : origin === "performance" ? "/performance" : "/runs";
-  const originLabel = origin === "scores" ? "model scores" : origin === "performance" ? "performance" : "runs";
+  const originLabel = origin === "scores" ? "Model Scores" : origin === "performance" ? "performance" : "runs";
   const backPath = `${originPath}${returnQuery ? `?${returnQuery}` : ""}`;
-  const backLabel = origin === "scores" ? "Back to model scores" : origin === "performance" ? "Back to performance" : "Back to matching runs";
+  const backLabel = origin === "scores" ? "Back to Model Scores" : origin === "performance" ? "Back to performance" : "Back to matching runs";
   if (error) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Data error</p><h1>The result could not be loaded.</h1><p>{error.message}</p><Link to={backPath}>Return to {originLabel}</Link></div></main>;
   if (run === undefined) return <main id="main-content" className="page-shell"><div className="detail-loading">Loading run evidence…</div></main>;
   if (run === null) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Unknown result</p><h1>No run has this identifier.</h1><Link to={backPath}>Return to {originLabel}</Link></div></main>;
 
   const band = manifest.scoreScale.bands.find((candidate) => candidate.id === run.scoreBandId);
+  const costRun = costDataset?.runs.find((candidate) => candidate.id === run.id) ?? null;
+  const costProfile = costRun?.pricingProfileId
+    ? costDataset?.profiles.find((candidate) => candidate.id === costRun.pricingProfileId) ?? null
+    : null;
+  const tokenConvention = costDataset?.inputTokenAccounting[run.modelId] ?? "includes-cached";
+  const pricedTokens = costRun ? pricedTokenCountForRun(costRun, tokenConvention) : null;
+  const hasSplitTokens = costRun !== null
+    && costRun.inputTokens !== null
+    && costRun.cachedInputTokens !== null
+    && costRun.outputTokens !== null;
   const tierQuery = new URLSearchParams();
   tierQuery.append("model", run.modelId);
   const performanceQuery = new URLSearchParams();
@@ -55,6 +80,8 @@ export function RunDetailView() {
   const cellQuery = new URLSearchParams();
   cellQuery.append("benchmark", run.benchmarkId);
   cellQuery.append("backend", run.backendId);
+  const costQuery = new URLSearchParams(cellQuery);
+  costQuery.append("model", run.modelId);
 
   return (
     <main id="main-content" className="page-shell detail-page">
@@ -97,6 +124,44 @@ export function RunDetailView() {
           )}
         </section>
 
+        <section className="detail-card cost-card" aria-labelledby="run-cost-heading">
+          <p className="eyebrow">Tokens and cost</p>
+          <h2 id="run-cost-heading">
+            {costError
+              ? "Cost data unavailable"
+              : costDataset === undefined
+                ? "Loading token and cost data…"
+                : costRun === null
+                  ? "No token or cost record"
+                  : costRun.estimatedCostUsd === null
+                    ? "Estimated API cost unavailable"
+                    : `${formatUsd(costRun.estimatedCostUsd)} estimated API cost`}
+          </h2>
+          <p>
+            {costError
+              ? costError.message
+              : costDataset === undefined
+                ? "Loading the frozen cost record for this run."
+                : costRun === null
+                  ? "No cost record was generated for this scored run."
+                  : costProfile
+                    ? `${costProfile.pricingProvider} · ${costProfile.pricingProviderTag} · pricing snapshot ${costProfile.pricingAsOf}.`
+                    : "Token counts are recorded, but no pricing profile is available."}
+          </p>
+          {costRun && (
+            <div className="measurement-list" aria-label="Token consumption">
+              <div><span>{hasSplitTokens ? "Priced token volume" : "Combined tokens"}</span><strong>{formatCount(pricedTokens)}</strong></div>
+              {hasSplitTokens && (
+                <>
+                  <div><span>{tokenConvention === "excludes-cached" ? "Uncached input tokens" : "Input tokens (cache included)"}</span><strong>{formatCount(costRun.inputTokens)}</strong></div>
+                  <div><span>Cached input tokens</span><strong>{formatCount(costRun.cachedInputTokens)}</strong></div>
+                  <div><span>Output tokens</span><strong>{formatCount(costRun.outputTokens)}</strong></div>
+                </>
+              )}
+            </div>
+          )}
+        </section>
+
         <section className="detail-card provenance-card">
           <p className="eyebrow">Primary evidence</p>
           <h2>Commit-pinned provenance</h2>
@@ -117,8 +182,9 @@ export function RunDetailView() {
           <p className="eyebrow">Related data</p>
           <h2>Related views</h2>
           <Link to={`/tiers?${tierQuery}`}>This model in Tiered Success <span>→</span></Link>
-          <Link to={`/scores?${tierQuery}`}>This model in Model scores <span>→</span></Link>
+          <Link to={`/scores?${tierQuery}`}>This model in Model Scores <span>→</span></Link>
           <Link to={`/performance?${performanceQuery}`}>Performance in this benchmark cell <span>→</span></Link>
+          <Link to={`/cost?${costQuery}`}>This model in Cost Efficiency <span>→</span></Link>
           <Link to={`/runs?${cellQuery}`}>All runs in this benchmark cell <span>→</span></Link>
         </aside>
       </div>

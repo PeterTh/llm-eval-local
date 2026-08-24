@@ -9,7 +9,9 @@ import { DatasetProvider } from "./data/context";
 const fixtures = vi.hoisted(() => ({
   dataset: null as null | { manifest: unknown; scoreCube: unknown },
   runs: null as null | unknown[],
+  costDataset: null as null | unknown,
   runError: null as Error | null,
+  costError: null as Error | null,
 }));
 
 vi.mock("./data/client", async () => {
@@ -25,6 +27,10 @@ vi.mock("./data/client", async () => {
       if (fixtures.runError) throw fixtures.runError;
       return fixtures.runs;
     }),
+    loadCostDataset: vi.fn(async () => {
+      if (fixtures.costError) throw fixtures.costError;
+      return fixtures.costDataset;
+    }),
     loadRunById: vi.fn(async (_manifest, id: string) => fixtures.runs?.find((run: any) => run.id === id) ?? null),
   };
 });
@@ -35,6 +41,7 @@ vi.mock("./components/VegaChart", () => ({
     const benchmarkComplexity = ariaLabel.startsWith("Benchmark complexity violin chart");
     const targetComplexity = ariaLabel.startsWith("Target complexity violin chart");
     const performance = ariaLabel.startsWith("Performance chart");
+    const cost = ariaLabel.startsWith("Cost efficiency chart");
     const label = scores
       ? "Synthetic score point"
       : benchmarkComplexity
@@ -43,6 +50,8 @@ vi.mock("./components/VegaChart", () => ({
           ? "Synthetic target violin"
           : performance
             ? "Synthetic performance point"
+          : cost
+            ? "Synthetic cost point"
           : "Synthetic chart segment";
     return (
       <button
@@ -56,6 +65,8 @@ vi.mock("./components/VegaChart", () => ({
               ? { categoryType: "backend", categoryId: "gpu+x" }
               : performance
                 ? { runId: "bench&one_model/a?x_gpu+x_r2" }
+                : cost
+                  ? { modelId: "model/a?x" }
                 : { modelId: "model/a?x", bandId: "invalid" },
         )}
       >
@@ -65,11 +76,13 @@ vi.mock("./components/VegaChart", () => ({
   },
 }));
 
-async function renderApp(initial = "/tiers", options: { runError?: Error } = {}) {
-  const { manifestFixture, scoreCubeFixture, runsFixture } = await import("./test/fixtures");
+async function renderApp(initial = "/tiers", options: { runError?: Error; costError?: Error } = {}) {
+  const { costDatasetFixture, manifestFixture, scoreCubeFixture, runsFixture } = await import("./test/fixtures");
   fixtures.dataset = { manifest: manifestFixture, scoreCube: scoreCubeFixture };
   fixtures.runs = runsFixture;
+  fixtures.costDataset = costDatasetFixture;
   fixtures.runError = options.runError ?? null;
+  fixtures.costError = options.costError ?? null;
   const rendered = render(<MemoryRouter initialEntries={[initial]}><DatasetProvider><App /></DatasetProvider></MemoryRouter>);
   await screen.findByRole("link", { name: "LLM Autoparallelization Benchmark home" });
   return rendered;
@@ -114,30 +127,30 @@ describe("explorer routing", () => {
 
     await userEvent.click(within(modelMenu).getByRole("button", { name: /^All$/ }));
     expect(modelSummary).toHaveTextContent("All models");
-    expect(screen.getByRole("link", { name: "Model scores" })).toHaveAttribute("href", "/scores?model-set=all");
+    expect(screen.getByRole("link", { name: "Model Scores" })).toHaveAttribute("href", "/scores?model-set=all");
 
     await userEvent.click(within(modelMenu).getByRole("button", { name: "Select all" }));
     expect(modelSummary).toHaveTextContent("2 models");
-    const explicitSelection = new URL(screen.getByRole("link", { name: "Model scores" }).getAttribute("href")!, "https://example.test");
+    const explicitSelection = new URL(screen.getByRole("link", { name: "Model Scores" }).getAttribute("href")!, "https://example.test");
     expect(explicitSelection.searchParams.getAll("model")).toEqual(["model/a?x", "unknown-model"]);
     expect(explicitSelection.searchParams.has("model-set")).toBe(false);
 
     await userEvent.click(within(modelMenu).getByRole("button", { name: "Default" }));
     expect(modelSummary).toHaveTextContent("Default");
-    expect(screen.getByRole("link", { name: "Model scores" })).toHaveAttribute("href", "/scores");
+    expect(screen.getByRole("link", { name: "Model Scores" })).toHaveAttribute("href", "/scores");
   });
 
   it("loads filtered model-score distributions and returns from a selected run with context", async () => {
     await renderApp("/scores?model=model%2Fa%3Fx&benchmark=bench%26one&backend=gpu%2Bx&sort=strongest");
-    expect(await screen.findByRole("heading", { name: "Model scores" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Model scores" })).toHaveClass("active");
+    expect(await screen.findByRole("heading", { name: "Model Scores" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Model Scores" })).toHaveClass("active");
     expect(screen.getByRole("combobox", { name: "Order" })).toHaveValue("strongest");
     await waitFor(() => expect(screen.getByLabelText("Current score selection summary")).toHaveTextContent(/1 model\s*2 runs\s*6\.00 mean score/));
     expect(screen.getByText("Synthetic score point")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Synthetic score point" }));
     expect(await screen.findByRole("heading", { name: "bench&one_model/a?x_gpu+x_r1" })).toBeInTheDocument();
-    const back = screen.getByRole("link", { name: /Back to model scores/ });
+    const back = screen.getByRole("link", { name: /Back to Model Scores/ });
     expect(back).toHaveAttribute("href", expect.stringContaining("/scores?model=model%2Fa%3Fx"));
     expect(back).toHaveAttribute("href", expect.stringContaining("benchmark=bench%26one"));
     expect(back).toHaveAttribute("href", expect.stringContaining("backend=gpu%2Bx"));
@@ -147,7 +160,7 @@ describe("explorer routing", () => {
   it("preserves wildcard model selection through score details and complexity drill-down", async () => {
     const scoreView = await renderApp("/scores?model-set=all");
     await userEvent.click(await screen.findByRole("button", { name: "Synthetic score point" }));
-    expect(await screen.findByRole("link", { name: /Back to model scores/ })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: /Back to Model Scores/ })).toHaveAttribute(
       "href", expect.stringContaining("model-set=all"),
     );
     const performanceLink = screen.getByRole("link", { name: /Performance in this benchmark cell/ });
@@ -159,13 +172,22 @@ describe("explorer routing", () => {
     await userEvent.click(screen.getByRole("button", { name: "Synthetic benchmark violin" }));
     expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("3 matching runs")).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: "Model scores" })).toHaveAttribute("href", expect.stringContaining("model-set=all"));
+    expect(screen.getByRole("link", { name: "Model Scores" })).toHaveAttribute("href", expect.stringContaining("model-set=all"));
   });
 
   it("adds a directly opened result model to the focused performance comparison", async () => {
     await renderApp("/run/bench%26one_model%2Fa%3Fx_gpu%2Bx_r1");
     const performanceLink = await screen.findByRole("link", { name: /Performance in this benchmark cell/ });
     expect(performanceLink).toHaveAttribute("href", expect.stringContaining("focus=model%2Fa%3Fx"));
+    expect(await screen.findByRole("heading", { name: /estimated API cost$/ })).toBeInTheDocument();
+    const tokenUsage = screen.getByLabelText("Token consumption");
+    expect(tokenUsage).toHaveTextContent(/Priced token volume\s*120/);
+    expect(tokenUsage).toHaveTextContent(/Input tokens \(cache included\)\s*100/);
+    expect(tokenUsage).toHaveTextContent(/Cached input tokens\s*80/);
+    expect(tokenUsage).toHaveTextContent(/Output tokens\s*20/);
+    expect(screen.getByRole("link", { name: /This model in Cost Efficiency/ })).toHaveAttribute(
+      "href", expect.stringContaining("/cost?benchmark=bench%26one&backend=gpu%2Bx&model=model%2Fa%3Fx"),
+    );
 
     await userEvent.click(performanceLink);
     expect(await screen.findByRole("heading", { name: "Performance" })).toBeInTheDocument();
@@ -202,6 +224,31 @@ describe("explorer routing", () => {
     expect(back).toHaveAttribute("href", expect.stringContaining("/performance?model=model%2Fa%3Fx"));
     expect(back).toHaveAttribute("href", expect.stringContaining("mode=relative"));
     expect(back).toHaveAttribute("href", expect.stringContaining("ranges=shown"));
+  });
+
+  it("loads filtered score and cost aggregates, restores scale, and drills into runs", async () => {
+    await renderApp("/cost?model=model%2Fa%3Fx&benchmark=bench%26one&backend=gpu%2Bx&scale=linear");
+    expect(await screen.findByRole("heading", { name: "Cost Efficiency" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cost Efficiency" })).toHaveClass("active");
+    expect(screen.getByRole("combobox", { name: "Cost scale" })).toHaveValue("linear");
+    await waitFor(() => expect(screen.getByLabelText("Current cost efficiency selection summary")).toHaveTextContent(/1 model\s*2 scores\s*2 costs/));
+    expect(screen.getByText("Synthetic cost point")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic cost point" }));
+    expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
+    expect(screen.getByText("Model A", { selector: ".filter-menu summary strong" })).toBeInTheDocument();
+    expect(screen.getByText("Bench & One", { selector: ".filter-menu summary strong" })).toBeInTheDocument();
+    expect(screen.getByText("GPU + X", { selector: ".filter-menu summary strong" })).toBeInTheDocument();
+  });
+
+  it("shows explicit empty and error states for cost observations", async () => {
+    const empty = await renderApp("/cost?benchmark=missing-cell");
+    expect(await screen.findByRole("heading", { name: "This filter combination has no costed runs." })).toBeInTheDocument();
+    empty.unmount();
+
+    await renderApp("/cost", { costError: new Error("synthetic cost asset failure") });
+    expect(await screen.findByRole("heading", { name: "The cost observations could not be loaded." })).toBeInTheDocument();
+    expect(screen.getByText("synthetic cost asset failure")).toBeInTheDocument();
   });
 
   it("shows explicit empty and error states for performance observations", async () => {
@@ -292,6 +339,8 @@ describe("explorer routing", () => {
     expect(view.getByRole("heading", { name: "Agent harnesses" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Five sequential stages" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Recorded local execution system" })).toBeInTheDocument();
+    expect(view.getByRole("heading", { name: "Frozen API pricing" })).toBeInTheDocument();
+    expect(view.getByText(/Shown API cost is based on API rates/)).toBeInTheDocument();
     expect(view.getByText(/five independent agent invocations were performed/)).toBeInTheDocument();
     expect(view.queryByRole("heading", { name: "Current dataset" })).not.toBeInTheDocument();
     expect(view.queryByText(/derived from the data rather than fixed by the website/)).not.toBeInTheDocument();
@@ -302,8 +351,20 @@ describe("explorer routing", () => {
       "https://github.com/example/experiment/blob/dddddddddddddddddddddddddddddddddddddddd/experiment.rb",
     );
     expect(view.getByRole("link", { name: /Threshold review/ })).toHaveAttribute("target", "_blank");
+    expect(view.getByRole("link", { name: /Cost estimation generator/ })).toHaveAttribute("target", "_blank");
+    expect(view.getByRole("link", { name: /Frozen pricing profiles/ })).toHaveAttribute(
+      "href",
+      "https://github.com/example/artifact/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/analysis/tables/4d_all_models_score_vs_cost.csv",
+    );
     const footer = within(container.querySelector(".site-footer")!);
     expect(footer.queryByText(/Client-only/)).not.toBeInTheDocument();
+    const snapshot = footer.getByRole("link", { name: /Snapshot aaaaaaaaa/ });
+    expect(snapshot).toHaveAttribute("href", "https://github.com/example/artifact/tree/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    expect(within(snapshot).getByText("2026-08-23 00:00:00 UTC", { selector: "time" })).toHaveAttribute(
+      "datetime",
+      "2026-08-23T00:00:00Z",
+    );
+    expect(within(container.querySelector(".primary-nav")!).queryByText(/Snapshot/)).not.toBeInTheDocument();
     expect(footer.getByRole("link", { name: "Distributed and Parallel Systems Research Group" })).toHaveAttribute("href", "https://dps.uibk.ac.at/");
     expect(footer.getByRole("link", { name: "University of Innsbruck" })).toHaveAttribute("href", "https://www.uibk.ac.at/");
   });
