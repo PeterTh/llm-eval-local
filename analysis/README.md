@@ -4,6 +4,9 @@ Analysis reads only the versioned files under `data/`. Reusable source belongs i
 `src/`, optional output-stripped notebooks in `notebooks/`, final machine-readable
 tables in `tables/`, and final figures in `figures/`.
 
+Every completed analysis should document the Git data release/tag it consumed and
+provide one command that rebuilds its tables and figures.
+
 ## Tiered LLM comparison
 
 `src/success_rate_tiers.py` reconstructs the tiered success-rate comparison from the
@@ -110,6 +113,22 @@ Focused follow-up notes:
 - `notes/2026-08-22-sol-xhigh-mpi-simd-classification.md` documents why the larger
   invalid segment for GPT-5.6 Sol xhigh is primarily an MPI/OpenMP-SIMD classification
   boundary rather than a general increase in later-stage validation failures.
+
+## Timing-correction impact
+
+The retained analysis joins the original static-audit score, corrected scoped-rerun
+measurements, final scores, issue categories, and original/corrected source links:
+
+```bash
+ruby analysis/src/timing_correction_analysis.rb
+```
+
+It produces a per-program detail table, grouped benchmark/backend/model summaries, an
+issue-category table, all audited MPI/hybrid score changes caused by re-thresholding,
+and `analysis/timing-correction-report.md`. Measurement-quality columns retain
+repetition spread and wall-to-reported-time ratios so short/setup-dominated cases stay
+visible. The generated report is descriptive: an invalid rank-local time is not treated
+as a calibratable estimate of the corrected global makespan.
 
 Do not commit notebook cell output, caches, serialized interpreter workspaces, or
 intermediate datasets. Prefer CSV for tables and PDF for vector figures; retain one

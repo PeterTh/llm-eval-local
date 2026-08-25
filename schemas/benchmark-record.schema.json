@@ -6,10 +6,11 @@
   "required": [
     "schema_version", "id", "benchmark", "model", "backend", "repetition", "batch",
     "source_path", "args", "timeout_seconds", "configuration_sha256", "wall_seconds",
-    "warmup_wall_seconds", "all_execution_wall_seconds", "executions", "success", "metrics"
+    "warmup_wall_seconds", "all_execution_wall_seconds", "executions", "success", "metrics",
+    "timing_fixed", "timing_correction"
   ],
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": { "const": 2 },
     "id": { "type": "string" },
     "benchmark": { "type": "string" },
     "model": { "type": "string" },
@@ -42,10 +43,52 @@
       }
     },
     "success": { "type": "boolean" },
-    "metrics": { "type": "array", "items": { "type": "object" } }
+    "metrics": { "type": "array", "items": { "type": "object" } },
+    "timing_fixed": { "type": "boolean" },
+    "timing_correction": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": [
+            "source_correction_amendment_sha256", "issue_categories", "changed_paths",
+            "original_source", "corrected_source", "build"
+          ],
+          "properties": {
+            "source_correction_amendment_sha256": { "$ref": "#/$defs/sha256" },
+            "issue_categories": { "type": "array", "items": { "type": "string" } },
+            "changed_paths": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "original_source": { "$ref": "#/$defs/source" },
+            "corrected_source": { "$ref": "#/$defs/source" },
+            "build": {
+              "type": "object",
+              "required": ["success", "error", "staged_source_content_sha256", "temporary_workspace"],
+              "properties": {
+                "success": { "type": "boolean" },
+                "error": { "type": ["string", "null"] },
+                "staged_source_content_sha256": { "$ref": "#/$defs/sha256" },
+                "temporary_workspace": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
   },
   "$defs": {
-    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "source": {
+      "type": "object",
+      "required": ["commit", "digest", "url"],
+      "properties": {
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "digest": { "$ref": "#/$defs/sha256" },
+        "url": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

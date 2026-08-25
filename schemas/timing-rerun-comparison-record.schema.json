@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/PeterTh/llm-eval-local/schemas/timing-rerun-comparison-record.schema.json",
+  "title": "Timing-correction rerun comparison record",
+  "type": "object",
+  "required": [
+    "schema_version", "id", "benchmark", "model", "backend", "repetition",
+    "timing_fixed", "source_correction_amendment_sha256", "original_source_url",
+    "corrected_source_url", "prior", "corrected", "success_changed", "median_time_ratio"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string" },
+    "benchmark": { "type": "string" },
+    "model": { "type": "string" },
+    "backend": { "enum": ["mpi", "hybrid"] },
+    "repetition": { "type": "integer", "minimum": 1 },
+    "timing_fixed": { "const": true },
+    "source_correction_amendment_sha256": { "$ref": "#/$defs/sha256" },
+    "original_source_url": { "type": "string", "format": "uri" },
+    "corrected_source_url": { "type": "string", "format": "uri" },
+    "prior": { "$ref": "#/$defs/measurement" },
+    "corrected": { "$ref": "#/$defs/measurement" },
+    "success_changed": { "type": "boolean" },
+    "median_time_ratio": { "type": ["number", "null"], "exclusiveMinimum": 0 }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "measurement": {
+      "type": "object",
+      "required": ["success", "metrics", "median_time_ms", "wall_seconds", "median_wall_seconds"],
+      "properties": {
+        "success": { "type": "boolean" },
+        "metrics": { "type": "array", "items": { "type": "object" } },
+        "median_time_ms": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "wall_seconds": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+        "median_wall_seconds": { "type": ["number", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

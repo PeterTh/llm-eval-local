@@ -176,6 +176,289 @@ module LocalEvaluation
     }
   end
 
+  class SourceCorrectionAmendment
+    FILENAME = "source_correction_amendment.yaml"
+    RECORDS_FILENAME = "source_correction_records.jsonl"
+    IDS_FILENAME = "source_correction_ids.txt"
+    EVIDENCE_FILENAME = "source_correction_evidence_manifest.yaml"
+    AUTHORIZED_OPERATIONS = %w[benchmark aggregate prepare-scoring score].freeze
+    DOWNSTREAM_OPERATIONS = %w[aggregate prepare-scoring score].freeze
+
+    attr_reader :path, :data, :digest, :records
+
+    def self.path_for(run_dir)
+      File.join(File.expand_path(run_dir), FILENAME)
+    end
+
+    def self.digest_for(run_dir)
+      path = path_for(run_dir)
+      File.file?(path) ? LocalEvaluation.sha256_file(path) : nil
+    end
+
+    def self.load(run_dir, manifest:)
+      path = path_for(run_dir)
+      File.file?(path) ? new(path, manifest: manifest) : nil
+    end
+
+    def self.create!(manifest:, correction_dir:, reason:, dry_run: false)
+      run_dir = File.dirname(manifest.path)
+      paths = artifact_paths(run_dir)
+      existing = paths.values.select { |path| File.exist?(path) || File.exist?("#{path}.sha256") }
+      unless existing.empty?
+        raise "Source correction amendment artifacts already exist and are immutable: #{existing.join(', ')}"
+      end
+
+      reason = reason.to_s.strip
+      raise "Source correction amendment reason must not be empty" if reason.empty?
+      correction_dir = File.realpath(correction_dir)
+      source_manifest_path = File.join(correction_dir, "manifest.yaml")
+      source_records_path = File.join(correction_dir, "corrections.jsonl")
+      source_ids_path = File.join(correction_dir, "correction-ids.txt")
+      [source_manifest_path, source_records_path, source_ids_path].each do |path|
+        raise "Correction artifact not found: #{path}" unless File.file?(path)
+      end
+      evidence = LocalEvaluation.load_yaml(source_manifest_path)
+      records = parse_jsonl(source_records_path)
+      ids = File.readlines(source_ids_path, chomp: true).reject(&:empty?)
+      validate_external_evidence!(evidence, records, ids, source_records_path, source_ids_path)
+
+      recorded = manifest.data.fetch("experiment_repository")
+      unless recorded["git"] && evidence.dig("original_source", "root") == recorded.fetch("path") &&
+             evidence.dig("original_source", "commit") == recorded.fetch("commit")
+        raise "Correction evidence does not start from the experiment revision pinned by the run manifest"
+      end
+      corrected = LocalEvaluation.git_snapshot(recorded.fetch("path"))
+      unless corrected["git"] && !corrected["dirty"] &&
+             corrected["commit"] == evidence.dig("corrected_source", "commit")
+        raise "Experiment repository is not clean at the corrected evidence commit"
+      end
+      validate_records!(records, ids, manifest, recorded.fetch("commit"), corrected.fetch("commit"))
+      changed_paths = git_changed_paths(recorded.fetch("path"), recorded.fetch("commit"), corrected.fetch("commit"))
+      expected_paths = records.flat_map { |record| record.fetch("changed_paths") }.uniq.sort
+      raise "Corrected Git commit path set differs from correction records" unless changed_paths == expected_paths
+
+      data = {
+        "schema_version" => SCHEMA_VERSION,
+        "created_at" => Time.now.iso8601,
+        "manifest_sha256" => LocalEvaluation.sha256_file(manifest.path),
+        "reason" => reason,
+        "authorized_operations" => AUTHORIZED_OPERATIONS,
+        "affected_run_ids" => ids,
+        "original_experiment_repository" => recorded,
+        "corrected_experiment_repository" => corrected,
+        "changed_paths_count" => changed_paths.size,
+        "changed_paths_sha256" => Digest::SHA256.hexdigest(changed_paths.join("\n") + "\n"),
+        "source_evidence_path" => correction_dir,
+        "source_evidence_manifest_sha256" => LocalEvaluation.sha256_file(source_manifest_path),
+        "records_file" => RECORDS_FILENAME,
+        "records_sha256" => LocalEvaluation.sha256_file(source_records_path),
+        "ids_file" => IDS_FILENAME,
+        "ids_sha256" => LocalEvaluation.sha256_file(source_ids_path),
+        "evidence_file" => EVIDENCE_FILENAME
+      }
+      return data if dry_run
+
+      write_immutable(paths.fetch(:records), File.binread(source_records_path))
+      write_immutable(paths.fetch(:ids), File.binread(source_ids_path))
+      write_immutable(paths.fetch(:evidence), File.binread(source_manifest_path))
+      LocalEvaluation.atomic_yaml_with_digest(paths.fetch(:amendment), data, immutable: true)
+      new(paths.fetch(:amendment), manifest: manifest)
+    end
+
+    def self.artifact_paths(run_dir)
+      run_dir = File.expand_path(run_dir)
+      {
+        amendment: File.join(run_dir, FILENAME),
+        records: File.join(run_dir, RECORDS_FILENAME),
+        ids: File.join(run_dir, IDS_FILENAME),
+        evidence: File.join(run_dir, EVIDENCE_FILENAME)
+      }
+    end
+    private_class_method :artifact_paths
+
+    def self.write_immutable(path, content)
+      digest = Digest::SHA256.hexdigest(content)
+      LocalEvaluation.atomic_write("#{path}.sha256", "#{digest}\n", mode: 0o444)
+      LocalEvaluation.fsync_directory(File.dirname(path))
+      LocalEvaluation.atomic_write(path, content, mode: 0o444)
+      LocalEvaluation.fsync_directory(File.dirname(path))
+    end
+    private_class_method :write_immutable
+
+    def self.parse_jsonl(path)
+      File.foreach(path, chomp: true).filter_map do |line|
+        JSON.parse(line) unless line.empty?
+      end
+    rescue JSON::ParserError => e
+      raise "Malformed correction JSONL #{path}: #{e.message}"
+    end
+    private_class_method :parse_jsonl
+
+    def self.validate_external_evidence!(evidence, records, ids, records_path, ids_path)
+      unless evidence.is_a?(Hash) && evidence["schema_version"] == SCHEMA_VERSION &&
+             evidence["record_count"] == records.size && evidence["all_final_verdicts"] == "accept"
+        raise "Correction evidence manifest is malformed or incomplete"
+      end
+      unless evidence.dig("artifacts", "corrections_jsonl_sha256") == LocalEvaluation.sha256_file(records_path) &&
+             evidence.dig("artifacts", "correction_ids_sha256") == LocalEvaluation.sha256_file(ids_path)
+        raise "Correction evidence artifact digest mismatch"
+      end
+      record_ids = records.map { |record| record.fetch("program_id") }
+      unless ids == ids.uniq.sort && ids == record_ids.sort && ids.size == records.size
+        raise "Correction ID list and records are inconsistent"
+      end
+      compile = evidence.fetch("compile_validation")
+      unless compile["records"] == records.size && compile["compiled"] == records.size &&
+             compile["compile_successes"] == records.size && compile["compile_failures"] == []
+        raise "Correction evidence does not record a successful static compilation of every correction"
+      end
+    end
+    private_class_method :validate_external_evidence!
+
+    def self.validate_records!(records, ids, manifest, original_commit, corrected_commit)
+      mapped = records.to_h { |record| [record.fetch("program_id"), record] }
+      raise "Correction records contain duplicate program IDs" unless mapped.size == records.size
+      ids.each do |id|
+        record = mapped.fetch(id)
+        info = manifest.runs[id]
+        raise "Correction record is absent from the run manifest: #{id}" unless info
+        expected_prefix = [info.fetch("batch"), id].join("/")
+        identity = %w[benchmark model par_type run].all? { |key| record[key] == info[key] }
+        unless identity && record["source_prefix"] == expected_prefix && record["source_batch"] == info["batch"]
+          raise "Correction record identity differs from the run manifest for #{id}"
+        end
+        unless record["timing_fixed"] == true && record["final_verdict"] == "accept" &&
+               record.dig("original_source", "commit") == original_commit &&
+               record.dig("corrected_source", "commit") == corrected_commit
+          raise "Correction record lacks accepted timing-only revision provenance for #{id}"
+        end
+        paths = record["changed_paths"]
+        unless paths.is_a?(Array) && !paths.empty? && paths == paths.uniq.sort &&
+               paths.all? { |path| path.start_with?("#{expected_prefix}/") }
+          raise "Correction record has an invalid changed-path set for #{id}"
+        end
+      end
+    end
+    private_class_method :validate_records!
+
+    def self.git_changed_paths(root, original, corrected)
+      stdout, stderr, status = Open3.capture3("git", "-C", root, "diff", "--name-only", original, corrected, "--")
+      raise "Could not inspect corrected Git path set: #{stderr.strip}" unless status.success?
+      stdout.lines(chomp: true).sort
+    end
+    private_class_method :git_changed_paths
+
+    def initialize(path, manifest:)
+      @path = File.expand_path(path)
+      verify_digest_pair!(@path, "Source correction amendment")
+      @digest = LocalEvaluation.sha256_file(@path)
+      @data = LocalEvaluation.load_yaml(@path)
+      unless @data.is_a?(Hash) && @data["schema_version"] == SCHEMA_VERSION &&
+             @data["manifest_sha256"] == LocalEvaluation.sha256_file(manifest.path)
+        raise "Source correction amendment is malformed or belongs to another manifest"
+      end
+      unless @data["authorized_operations"] == AUTHORIZED_OPERATIONS
+        raise "Source correction amendment has an invalid authorized-operation set"
+      end
+      paths = self.class.send(:artifact_paths, File.dirname(@path))
+      [paths.fetch(:records), paths.fetch(:ids), paths.fetch(:evidence)].each do |artifact|
+        verify_digest_pair!(artifact, "Source correction artifact")
+      end
+      unless @data["records_sha256"] == LocalEvaluation.sha256_file(paths.fetch(:records)) &&
+             @data["ids_sha256"] == LocalEvaluation.sha256_file(paths.fetch(:ids)) &&
+             @data["source_evidence_manifest_sha256"] == LocalEvaluation.sha256_file(paths.fetch(:evidence))
+        raise "Source correction amendment artifact binding is inconsistent"
+      end
+      @records = self.class.send(:parse_jsonl, paths.fetch(:records)).to_h do |record|
+        [record.fetch("program_id"), record]
+      end
+      ids = File.readlines(paths.fetch(:ids), chomp: true).reject(&:empty?)
+      original = @data.fetch("original_experiment_repository").fetch("commit")
+      corrected = @data.fetch("corrected_experiment_repository").fetch("commit")
+      self.class.send(:validate_records!, @records.values, ids, manifest, original, corrected)
+      unless ids == @data["affected_run_ids"] && ids == @records.keys.sort
+        raise "Source correction amendment affected-run set is inconsistent"
+      end
+    end
+
+    def affected_ids
+      @data.fetch("affected_run_ids")
+    end
+
+    def record_for(id)
+      @records[id]
+    end
+
+    def verify_record_source!(id)
+      record = @records.fetch(id)
+      repository = @data.fetch("corrected_experiment_repository")
+      root = repository.fetch("path")
+      commit = repository.fetch("commit")
+      prefix = record.fetch("source_prefix")
+      stdout, stderr, status = Open3.capture3("git", "-C", root, "rev-parse", "HEAD", "HEAD:#{prefix}")
+      raise InfrastructureError, "Could not verify corrected source for #{id}: #{stderr.strip}" unless status.success?
+      head, tree = stdout.lines(chomp: true)
+      unless head == commit && tree == record.dig("corrected_source", "tree_oid")
+        raise InfrastructureError, "Corrected source revision changed before benchmarking #{id}"
+      end
+      status_text, status_error, status = Open3.capture3(
+        "git", "-C", root, "status", "--porcelain=v1", "--untracked-files=all", "--", prefix
+      )
+      unless status.success? && status_text.empty?
+        detail = status.success? ? status_text.strip : status_error.strip
+        raise InfrastructureError, "Corrected source is dirty for #{id}: #{detail}"
+      end
+      true
+    end
+
+    def verify!(manifest:, operation:, exact_id:, filter:, selected_ids: nil)
+      recorded = @data.fetch("corrected_experiment_repository")
+      current = LocalEvaluation.git_snapshot(recorded.fetch("path"))
+      unless current["git"] && current["commit"] == recorded["commit"] && !current["dirty"]
+        raise InfrastructureError,
+              "Experiment repository differs from the immutable source correction amendment"
+      end
+      changed = self.class.send(
+        :git_changed_paths, recorded.fetch("path"),
+        @data.fetch("original_experiment_repository").fetch("commit"), recorded.fetch("commit")
+      )
+      expected_digest = Digest::SHA256.hexdigest(changed.join("\n") + "\n")
+      unless changed.size == @data["changed_paths_count"] && expected_digest == @data["changed_paths_sha256"]
+        raise InfrastructureError, "Corrected experiment commit path set differs from the immutable amendment"
+      end
+
+      return true if operation.nil?
+      operation = operation.to_s
+      unless AUTHORIZED_OPERATIONS.include?(operation)
+        raise InfrastructureError, "Source correction amendment does not authorize #{operation}"
+      end
+      selection = Array(selected_ids).map(&:to_s)
+      selection = [exact_id] if selection.empty? && exact_id
+      if operation == "benchmark"
+        unless filter.nil? && !selection.empty? && selection.uniq.size == selection.size &&
+               (selection - affected_ids).empty?
+          raise InfrastructureError,
+                "Corrected sources may benchmark only an explicit subset of timing-correction IDs"
+        end
+      elsif exact_id || filter || !selection.empty?
+        raise InfrastructureError,
+              "Corrected-source downstream #{operation} must rebuild the full corpus without selection"
+      end
+      true
+    end
+
+    private
+
+    def verify_digest_pair!(path, label)
+      sidecar = "#{path}.sha256"
+      raise "#{label} digest sidecar is missing: #{sidecar}" unless File.file?(sidecar)
+      expected = File.read(sidecar).strip
+      unless expected.match?(/\A[0-9a-f]{64}\z/) && expected == LocalEvaluation.sha256_file(path)
+        raise "#{label} digest mismatch: #{path}"
+      end
+    end
+  end
+
   class PipelineAmendment
     FILENAME = "pipeline_amendment.yaml"
     SEQUENCED_FILENAME_RE = /\Apipeline_amendment\.(?<sequence>\d+)\.yaml\z/
@@ -336,7 +619,7 @@ module LocalEvaluation
       end
     end
 
-    def verify!(manifest:, current_pipeline:, operation:, exact_id:, filter:)
+    def verify!(manifest:, current_pipeline:, operation:, exact_id:, filter:, selected_ids: nil)
       unless @data["amended_pipeline_source"] == current_pipeline
         raise InfrastructureError,
               "Local evaluation pipeline source differs from the immutable amendment " \
@@ -349,11 +632,14 @@ module LocalEvaluation
               "Pipeline amendment does not authorize #{operation.empty? ? 'this operation' : operation}"
       end
       if operation == "benchmark"
-        unless exact_id && filter.nil? && @data.fetch("affected_run_ids").include?(exact_id)
+        selection = Array(selected_ids).map(&:to_s)
+        selection = [exact_id] if selection.empty? && exact_id
+        unless filter.nil? && !selection.empty? && selection.uniq.size == selection.size &&
+               (selection - @data.fetch("affected_run_ids")).empty?
           raise InfrastructureError,
-                "Amended runs may benchmark only one explicitly affected --id"
+                "Amended runs may benchmark only an explicit subset of affected IDs"
         end
-      elsif exact_id || filter
+      elsif exact_id || filter || !Array(selected_ids).empty?
         raise InfrastructureError,
               "Amended downstream #{operation} must rebuild the full corpus without --id/--filter"
       end
@@ -490,8 +776,9 @@ module LocalEvaluation
       @data.fetch("benchmarks_root")
     end
 
-    def verify_input_revisions!(operation: nil, exact_id: nil, filter: nil)
-      report = verify_non_pipeline_input_revisions!
+    def verify_input_revisions!(operation: nil, exact_id: nil, filter: nil, selected_ids: nil)
+      report = verify_non_pipeline_input_revisions!(operation: operation, exact_id: exact_id,
+                                                    filter: filter, selected_ids: selected_ids)
       if (recorded_pipeline = @data["pipeline_source"])
         current_pipeline = LocalEvaluation.pipeline_source_snapshot(recorded_pipeline.fetch("root"))
         if current_pipeline["sha256"] == recorded_pipeline["sha256"]
@@ -505,7 +792,7 @@ module LocalEvaluation
           end
           amendment = amendments.last
           amendment.verify!(manifest: self, current_pipeline: current_pipeline, operation: operation,
-                            exact_id: exact_id, filter: filter)
+                            exact_id: exact_id, filter: filter, selected_ids: selected_ids)
           report["pipeline_source_sha256"] = current_pipeline["sha256"]
           report["pipeline_amendment_sha256"] = amendment.digest
           report["pipeline_amendment_chain_sha256"] = amendments.map(&:digest)
@@ -518,7 +805,7 @@ module LocalEvaluation
       report
     end
 
-    def verify_non_pipeline_input_revisions!
+    def verify_non_pipeline_input_revisions!(operation: nil, exact_id: nil, filter: nil, selected_ids: nil)
       report = {}
       {
         "experiments" => @data["experiment_repository"],
@@ -528,6 +815,17 @@ module LocalEvaluation
 
         current = LocalEvaluation.git_snapshot(recorded.fetch("path"))
         unless current["git"] && current["commit"] == recorded["commit"] && !current["dirty"]
+          if name == "experiments" && (correction = SourceCorrectionAmendment.load(File.dirname(@path), manifest: self))
+            correction.verify!(manifest: self, operation: operation, exact_id: exact_id,
+                               filter: filter, selected_ids: selected_ids)
+            report["source_correction_amendment_sha256"] = correction.digest
+            report["source_correction_affected_run_ids"] = correction.affected_ids
+            report[name] = {
+              "path" => current.fetch("path"), "commit" => current.fetch("commit"), "clean" => true,
+              "original_commit" => recorded.fetch("commit"), "timing_correction" => true
+            }
+            next
+          end
           raise InfrastructureError,
                 "#{name.capitalize} repository changed since manifest creation: #{recorded.fetch('path')}"
         end
@@ -564,12 +862,20 @@ module LocalEvaluation
       report
     end
 
-    def filtered_runs(exact_id: nil, filter: nil)
+    def filtered_runs(exact_id: nil, filter: nil, ids: nil)
+      ids = Array(ids).map(&:to_s)
+      selectors = [!exact_id.nil?, !filter.nil?, !ids.empty?].count(true)
+      raise "Use only one of exact ID, filter, or ID list" if selectors > 1
       selected = runs
       selected = selected.select { |id, _| id == exact_id } if exact_id
       selected = selected.select { |id, _| id.include?(filter) } if filter
+      selected = selected.select { |id, _| ids.include?(id) } unless ids.empty?
       raise "Run ID not present in manifest: #{exact_id}" if exact_id && selected.empty?
       raise "No run IDs contain filter: #{filter}" if filter && selected.empty?
+      unless ids.empty?
+        missing = ids - selected.keys
+        raise "Run IDs not present in manifest: #{missing.join(', ')}" unless missing.empty?
+      end
       selected.sort.to_h
     end
   end
@@ -1178,8 +1484,10 @@ module LocalEvaluation
     GENERATED_FILE_EXTENSIONS = %w[.o .obj .a .so .dylib .dll .exe].freeze
     module_function
 
-    def build(source_dir:, build_dir:, runner:, par_type: nil)
+    def build(source_dir:, build_dir:, runner:, par_type: nil, log_dir: nil)
       FileUtils.mkdir_p(build_dir)
+      log_dir ||= build_dir
+      FileUtils.mkdir_p(log_dir)
       configure = ["cmake", "-S", source_dir, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release",
                    "-DCMAKE_C_COMPILER=#{C_COMPILER}", "-DCMAKE_CXX_COMPILER=#{CXX_COMPILER}"]
       if %w[cuda hybrid].include?(par_type)
@@ -1190,12 +1498,12 @@ module LocalEvaluation
           "-DCUDAToolkit_ROOT=#{CUDA_ROOT}"
         ])
       end
-      result = runner.run(argv: configure, prefix: File.join(build_dir, "cmake"), timeout: 120,
+      result = runner.run(argv: configure, prefix: File.join(log_dir, "cmake"), timeout: 120,
                           limits: ExecutionLimits::BUILD)
       return [false, "Configure failed for #{source_dir}"] unless result.success
 
       result = runner.run(argv: ["cmake", "--build", build_dir, "--parallel", "8"],
-                          prefix: File.join(build_dir, "build"), timeout: 300,
+                          prefix: File.join(log_dir, "build"), timeout: 300,
                           limits: ExecutionLimits::BUILD)
       return [false, "Build failed for #{source_dir}"] unless result.success
 
@@ -1267,6 +1575,24 @@ module LocalEvaluation
       destination = File.join(archive_root, "#{suffix}-#{Process.pid}-#{SecureRandom.hex(3)}")
       File.rename(path, destination)
       destination
+    end
+
+    def remove_local_temporary_workspace!(root, required_prefix:)
+      root = File.realpath(root)
+      expected_parent = File.realpath("/tmp")
+      unless File.dirname(root) == expected_parent && File.basename(root).start_with?(required_prefix)
+        raise InfrastructureError, "Refusing to remove unrecognized temporary workspace: #{root}"
+      end
+      paths = []
+      Find.find(root) { |path| paths << path }
+      paths.each do |path|
+        next if File.symlink?(path)
+        mode = File.stat(path).mode & 0o7777
+        mode |= File.directory?(path) ? 0o700 : 0o600
+        File.chmod(mode, path)
+      end
+      FileUtils.remove_entry_secure(root)
+      true
     end
 
     def find_executable(build_dir, benchmark)

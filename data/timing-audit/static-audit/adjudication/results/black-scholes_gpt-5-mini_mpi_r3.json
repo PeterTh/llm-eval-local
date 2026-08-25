@@ -1,0 +1,35 @@
+{
+  "program_id": "black-scholes_gpt-5-mini_mpi_r3",
+  "verdict": "invalid",
+  "issue_categories": [
+    "missing_start_synchronization",
+    "rank_local_timing"
+  ],
+  "confidence": "high",
+  "timed_region": "Only rank 0 measures an interval: its timestamp is taken after returning from the initial MPI_Barrier, and its end timestamp is taken after Scatterv, local computation, Gatherv, and the final MPI_Barrier.",
+  "start_synchronization": "MPI_Barrier is called before the rank-0 start timestamp. Because barrier returns need not be simultaneous, another rank may return and begin its MPI_Scatterv participation before rank 0 records start_time. The timestamp therefore is not proven to precede all relevant work.",
+  "stop_synchronization": "Adequate for enclosure: every rank completes its blocking MPI_Gatherv before entering the final MPI_Barrier, and rank 0 records end_time only after returning from that barrier.",
+  "rank_aggregation": "None. Only rank 0 is timed; no per-rank elapsed times or MPI_MAX reduction are produced.",
+  "reported_value": "The canonical \"Computation time\" is rank 0's local end_time-start_time duration converted correctly from microseconds to milliseconds.",
+  "semantic_equivalence_basis": "The final boundary safely follows completion on every rank, but the initial boundary does not provably precede work on every rank. Consequently, rank 0's interval is neither a maximum of complete per-rank durations nor a proven global makespan.",
+  "evidence": [
+    {
+      "path": "black-scholes/black_scholes.cpp",
+      "lines": "227-234",
+      "finding": "The initial barrier occurs before the rank-0-only start timestamp; another rank can return from the barrier and enter Scatterv before that timestamp."
+    },
+    {
+      "path": "black-scholes/black_scholes.cpp",
+      "lines": "236-266",
+      "finding": "The distributed work consists of rank-local option pricing followed by a blocking Gatherv, all inside the claimed interval except for any participation begun before rank 0's timestamp."
+    },
+    {
+      "path": "black-scholes/black_scholes.cpp",
+      "lines": "268-275",
+      "finding": "A final barrier precedes rank 0's end timestamp, but the canonical label prints only rank 0's duration and there is no rank aggregation."
+    }
+  ],
+  "timing_only_fix_possible": true,
+  "minimal_fix": "On rank 0, record start_time before entering the initial MPI_Barrier (moving both its declaration and timestamp block before line 228). The existing final barrier and rank-0 stop then form a conservative global envelope; alternatively, time complete local regions on every rank and reduce elapsed times with MPI_MAX.",
+  "notes": "The millisecond conversion is correct. Including Scatterv, Gatherv, and synchronization makes the measurement conservative but is not itself a validity defect."
+}

@@ -1,0 +1,44 @@
+{
+  "program_id": "matmul_claude-haiku-4.5_hybrid_r4",
+  "verdict": "valid",
+  "issue_categories": [
+    "none"
+  ],
+  "confidence": "high",
+  "timed_region": "On rank 0, the interval begins immediately before matrixMultiply and ends after the blocking MPI_Gatherv completes. It includes the redundant B broadcast, local GPU/CPU multiplication, and final result gathering.",
+  "start_synchronization": "There is no explicit barrier, but matrixMultiply begins with an MPI_Bcast rooted at rank 0. Rank 0 starts its timer before entering that collective, and every rank must pass it before beginning its local multiplication, so rank 0's start precedes the relevant computation on every rank.",
+  "stop_synchronization": "Each CUDA rank synchronizes its device and performs the device-to-host copy before entering MPI_Gatherv. Rank 0 stops only after its blocking MPI_Gatherv has received every rank's computed rows, proving that all relevant rank computations have completed.",
+  "rank_aggregation": "There is no MPI_MAX reduction, but rank 0 measures a demonstrably equivalent global makespan: its start precedes all rank computations through the rooted broadcast, and its stop follows all rank computations through completion of the gather.",
+  "reported_value": "Rank 0 prints the elapsed root makespan, truncated to whole milliseconds, under the canonical label \"Computation time\". The unit and selected interval are consistent.",
+  "semantic_equivalence_basis": "The rooted broadcast gates all local multiplication after rank 0 has started timing, while the root-side completion of MPI_Gatherv requires every rank's result contribution after its local multiplication. Thus the root interval encloses completion of the intended computation across all ranks and cannot finish before the slowest rank's computation.",
+  "evidence": [
+    {
+      "path": "matmul/matmul.cpp",
+      "lines": "165-167",
+      "finding": "Every rank starts its local timer before calling matrixMultiply."
+    },
+    {
+      "path": "matmul/matmul.cpp",
+      "lines": "55-64",
+      "finding": "matrixMultiply performs a rank-0-rooted blocking MPI_Bcast before launching either the CUDA or OpenMP local computation."
+    },
+    {
+      "path": "matmul/matmul_cuda.cu",
+      "lines": "47-56",
+      "finding": "The CUDA path synchronizes the device, copies computed rows to host memory, and frees allocations before returning."
+    },
+    {
+      "path": "matmul/matmul.cpp",
+      "lines": "191-195",
+      "finding": "The root stop time is taken only after blocking MPI_Gatherv has collected all ranks' computed row chunks."
+    },
+    {
+      "path": "matmul/matmul.cpp",
+      "lines": "196-203",
+      "finding": "Rank 0 prints that root interval as whole milliseconds using the canonical \"Computation time\" label."
+    }
+  ],
+  "timing_only_fix_possible": false,
+  "minimal_fix": "",
+  "notes": "The timed interval includes a redundant B broadcast and final result collection, making it conservatively slower than a compute-only measurement; the contract explicitly permits such extra work."
+}

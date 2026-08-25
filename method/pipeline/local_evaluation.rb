@@ -4,7 +4,8 @@ require "optparse"
 require_relative "lib/local_evaluation"
 
 COMMANDS = %w[
-  init amend-pipeline preflight validate calibrate freeze-config benchmark aggregate prepare-scoring score status
+  init amend-source-correction amend-pipeline preflight validate calibrate freeze-config benchmark aggregate
+  prepare-scoring score status
 ].freeze
 
 command = ARGV.shift
@@ -31,7 +32,9 @@ parser = OptionParser.new do |opts|
   opts.on("--proposed=PATH", "Reviewed proposed benchmark configuration") { |value| options[:proposed] = File.expand_path(value) }
   opts.on("--thresholds=PATH", "Reviewed scoring threshold CSV") { |value| options[:thresholds] = File.expand_path(value) }
   opts.on("--reason=TEXT", "Scientific reason for a scoped pipeline amendment") { |value| options[:reason] = value }
+  opts.on("--corrections=PATH", "Final timing-correction evidence directory") { |value| options[:corrections] = File.expand_path(value) }
   opts.on("--id=RUN_ID", "Operate on one exact run ID") { |value| options[:exact_id] = value }
+  opts.on("--ids-file=PATH", "Operate on exact run IDs listed one per line") { |value| options[:ids_file] = File.expand_path(value) }
   opts.on("--filter=TEXT", "Operate on IDs containing TEXT") { |value| options[:filter] = value }
   opts.on("--dry-run", "Inspect selected work without running or writing phase outputs") { options[:dry_run] = true }
   opts.on("--retry-failed", "Explicitly rerun recorded failed validations or benchmarks") { options[:retry_failed] = true }
@@ -39,6 +42,16 @@ parser = OptionParser.new do |opts|
 end
 parser.parse!(ARGV)
 abort "Unexpected arguments: #{ARGV.join(" ")}" unless ARGV.empty?
+if options[:ids_file]
+  abort "--ids-file cannot be combined with --id or --filter" if options[:exact_id] || options[:filter]
+  unless %w[benchmark amend-pipeline].include?(command)
+    abort "--ids-file is supported only by benchmark and amend-pipeline"
+  end
+  abort "ID list not found: #{options[:ids_file]}" unless File.file?(options[:ids_file])
+  options[:selected_ids] = File.readlines(options[:ids_file], chomp: true).map(&:strip).reject(&:empty?)
+  abort "ID list is empty: #{options[:ids_file]}" if options[:selected_ids].empty?
+  abort "ID list contains duplicates: #{options[:ids_file]}" unless options[:selected_ids].uniq.size == options[:selected_ids].size
+end
 
 def require_option!(options, key)
   value = options[key]
@@ -62,7 +75,8 @@ end
 
 def verify_inputs!(run_dir, operation:, options:)
   LocalEvaluation::Manifest.new(run_dir).verify_input_revisions!(
-    operation: operation, exact_id: options[:exact_id], filter: options[:filter]
+    operation: operation, exact_id: options[:exact_id], filter: options[:filter],
+    selected_ids: options[:selected_ids]
   )
 end
 
@@ -83,14 +97,29 @@ begin
         puts "Initialized #{run_dir} with #{manifest.runs.size} runs across #{manifest.data.fetch("batches").size} batches"
       end
     end
+  when "amend-source-correction"
+    run_dir = require_option!(options, :run_dir)
+    correction_dir = require_option!(options, :corrections)
+    reason = require_option!(options, :reason)
+    with_lock(run_dir) do
+      manifest = LocalEvaluation::Manifest.new(run_dir)
+      amendment = LocalEvaluation::SourceCorrectionAmendment.create!(
+        manifest: manifest, correction_dir: correction_dir, reason: reason, dry_run: options[:dry_run]
+      )
+      if options[:dry_run]
+        puts YAML.dump(amendment)
+      else
+        puts "Wrote immutable source correction amendment #{amendment.path}"
+      end
+    end
   when "amend-pipeline"
     run_dir = require_option!(options, :run_dir)
-    exact_id = require_option!(options, :exact_id)
+    affected_ids = options[:selected_ids] || [require_option!(options, :exact_id)]
     reason = require_option!(options, :reason)
     with_lock(run_dir) do
       manifest = LocalEvaluation::Manifest.new(run_dir)
       amendment = LocalEvaluation::PipelineAmendment.create!(
-        manifest: manifest, affected_ids: [exact_id], reason: reason, dry_run: options[:dry_run]
+        manifest: manifest, affected_ids: affected_ids, reason: reason, dry_run: options[:dry_run]
       )
       if options[:dry_run]
         puts YAML.dump(amendment)
@@ -104,7 +133,8 @@ begin
       with_performance_lock do
         manifest = LocalEvaluation::Manifest.new(run_dir)
         revision_report = manifest.verify_input_revisions!(operation: command,
-                                                           exact_id: options[:exact_id], filter: options[:filter])
+                                                           exact_id: options[:exact_id], filter: options[:filter],
+                                                           selected_ids: options[:selected_ids])
         report = LocalEvaluation::Resources.new.verify_topology!.merge(
           "checked_at" => Time.now.iso8601,
           "manifest_sha256" => LocalEvaluation.sha256_file(manifest.path),
@@ -154,6 +184,7 @@ begin
         verify_inputs!(run_dir, operation: command, options: options)
         LocalEvaluation::BenchmarkPipeline.new(run_dir: run_dir, config_path: options[:config],
                                                exact_id: options[:exact_id], filter: options[:filter],
+                                               ids: options[:selected_ids],
                                                dry_run: options[:dry_run], retry_failed: options[:retry_failed]).run
       end
     end

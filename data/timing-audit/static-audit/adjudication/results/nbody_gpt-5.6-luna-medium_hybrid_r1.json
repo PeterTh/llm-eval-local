@@ -1,0 +1,29 @@
+{
+  "program_id": "nbody_gpt-5.6-luna-medium_hybrid_r1",
+  "verdict": "invalid",
+  "issue_categories": [
+    "wrong_mpi_datatype"
+  ],
+  "confidence": "high",
+  "timed_region": "Each rank times the complete simulation loop, including host-to-device copies, GPU force computation, device synchronization, device-to-host copies, MPI_Allgatherv, host integration, and cudaFree.",
+  "start_synchronization": "MPI_Barrier immediately precedes the local timer start.",
+  "stop_synchronization": "There is no stop barrier, but none is required because every rank stops only after its complete local work and the elapsed durations are intended to be reduced with MPI_MAX.",
+  "rank_aggregation": "The code attempts an MPI_MAX reduction, but passes a std::chrono::milliseconds::rep object as MPI_LONG_LONG without establishing that the C++ type is long long. On standard LP64 accelerator platforms this representation type is commonly long, making the MPI datatype incompatible.",
+  "reported_value": "Rank 0 prints maxMs under the canonical label \"Simulation time\" in milliseconds; however, maxMs is obtained through the datatype-mismatched reduction.",
+  "semantic_equivalence_basis": "Absent the datatype defect, MPI_MAX over the complete per-rank elapsed intervals would satisfy the timing contract. GPU work is completed by cudaDeviceSynchronize and blocking copies before each rank stops its timer.",
+  "evidence": [
+    {
+      "path": "nbody/nbody.cpp",
+      "lines": "167-184",
+      "finding": "A barrier precedes timing; each kernel is followed by cudaDeviceSynchronize, and the timer ends only after all simulation steps and cudaFree."
+    },
+    {
+      "path": "nbody/nbody.cpp",
+      "lines": "184-188",
+      "finding": "ms is inferred from std::chrono::milliseconds::count(), whose rep type is not established as long long, but MPI_Reduce treats its address as MPI_LONG_LONG and the resulting maxMs is printed as the benchmark time."
+    }
+  ],
+  "timing_only_fix_possible": true,
+  "minimal_fix": "Declare the reduced local value with the matching type, for example `long long ms = static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());`, then retain MPI_LONG_LONG and MPI_MAX.",
+  "notes": "Including cudaFree in the timed interval is conservative extra teardown and is not itself a validity defect. Millisecond truncation is ordinary display precision."
+}

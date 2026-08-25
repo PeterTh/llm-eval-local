@@ -1,0 +1,44 @@
+{
+  "program_id": "stencil3d_gpt-5.2_mpi_r4",
+  "verdict": "invalid",
+  "issue_categories": [
+    "reported_value_mismatch"
+  ],
+  "confidence": "high",
+  "timed_region": "Each rank times the complete iteration loop, including every blocking halo exchange, stencil update, boundary copy, and the final barrier wait, from immediately after the start barrier through immediately after the stop barrier.",
+  "start_synchronization": "MPI_Barrier(cart_comm) precedes the local t0 sample.",
+  "stop_synchronization": "Each halo exchange completes through MPI_Waitall, and MPI_Barrier(cart_comm) follows the iteration loop before the local t1 sample.",
+  "rank_aggregation": "Each rank computes local_sec, and MPI_Reduce combines these values with MPI_MAX to Cartesian rank 0.",
+  "reported_value": "The canonical label prints max_sec converted from seconds to integer milliseconds, but it is printed by world rank 0 rather than necessarily by Cartesian rank 0, the only rank receiving max_sec.",
+  "semantic_equivalence_basis": "MPI_MAX over the complete per-rank intervals would satisfy the contract. However, MPI_Cart_create permits rank reordering, so the source does not guarantee that world rank 0 is Cartesian rank 0. If they differ, world rank 0 prints its initialized max_sec value of 0.0 instead of the reduced maximum.",
+  "evidence": [
+    {
+      "path": "stencil3d/stencil3d.cpp",
+      "lines": "269-275",
+      "finding": "The Cartesian communicator is created with reorder=1, and cart_rank is obtained independently of world_rank."
+    },
+    {
+      "path": "stencil3d/stencil3d.cpp",
+      "lines": "376-399",
+      "finding": "Nonblocking halo communication is completed by MPI_Waitall before halo_exchange returns."
+    },
+    {
+      "path": "stencil3d/stencil3d.cpp",
+      "lines": "428-463",
+      "finding": "The timed interval begins after a Cartesian barrier, contains the full iteration loop, and ends after a second Cartesian barrier."
+    },
+    {
+      "path": "stencil3d/stencil3d.cpp",
+      "lines": "465-467",
+      "finding": "local_sec is correctly reduced with MPI_DOUBLE and MPI_MAX, but the reduction result is delivered only to Cartesian rank 0."
+    },
+    {
+      "path": "stencil3d/stencil3d.cpp",
+      "lines": "469-470",
+      "finding": "The canonical Computation time value is printed by world rank 0, which is not guaranteed to be the Cartesian reduction root."
+    }
+  ],
+  "timing_only_fix_possible": true,
+  "minimal_fix": "Print the timing block when cart_rank == 0 instead of world_rank == 0, or replace MPI_Reduce with MPI_Allreduce so world rank 0 receives max_sec.",
+  "notes": "The seconds-to-milliseconds conversion and integer display precision are otherwise acceptable. If the MPI implementation happens not to reorder ranks, the printed value is correct, but the source does not guarantee that condition."
+}

@@ -1,0 +1,39 @@
+{
+  "program_id": "unstructured_qwen3.7-plus_hybrid_r1",
+  "verdict": "valid",
+  "issue_categories": [
+    "none"
+  ],
+  "confidence": "high",
+  "timed_region": "Each rank measures the complete simulation loop from immediately before the loop through a post-loop MPI barrier. Initialization and final device-to-host result collection are outside the timed region.",
+  "start_synchronization": "MPI_Barrier(MPI_COMM_WORLD) precedes each rank's local start timestamp at unstructured/unstructured.cpp:298-299. Although barrier returns need not be simultaneous, correctness does not depend on simultaneous starts because complete local durations are aggregated with MPI_MAX.",
+  "stop_synchronization": "Every CUDA kernel is followed by cudaDeviceSynchronize at unstructured/unstructured.cpp:342-348. After the simulation loop, all ranks enter MPI_Barrier before recording their local end timestamps at lines 353-354, so accelerator work and rank-local computation are complete before timing stops.",
+  "rank_aggregation": "Each rank converts its elapsed interval to milliseconds, then MPI_Allreduce combines the long-long local durations using MPI_MAX at unstructured/unstructured.cpp:355 and 366-370.",
+  "reported_value": "Rank 0 prints the MPI_MAX result under the canonical label \"Computation time\" in milliseconds at unstructured/unstructured.cpp:372-373.",
+  "semantic_equivalence_basis": "Every rank times its complete local simulation, asynchronous GPU work is completed before the local stop, and the elapsed durations are reduced with MPI_MAX. Integer-millisecond truncation is monotonic and therefore preserves the maximum up to permitted display precision.",
+  "evidence": [
+    {
+      "path": "unstructured/unstructured.cpp",
+      "lines": "298-307",
+      "finding": "A communicator barrier precedes the local start timestamp, and the simulation loop begins afterward on every rank."
+    },
+    {
+      "path": "unstructured/unstructured.cpp",
+      "lines": "312-348",
+      "finding": "The timed computation includes blocking halo exchanges, CUDA kernel launches, and cudaDeviceSynchronize after each launch."
+    },
+    {
+      "path": "unstructured/unstructured.cpp",
+      "lines": "353-355",
+      "finding": "A post-computation communicator barrier occurs before the local end timestamp and elapsed-millisecond calculation."
+    },
+    {
+      "path": "unstructured/unstructured.cpp",
+      "lines": "366-373",
+      "finding": "The complete local elapsed durations are aggregated with MPI_Allreduce using MPI_LONG_LONG and MPI_MAX, and rank 0 prints that result as \"Computation time\"."
+    }
+  ],
+  "timing_only_fix_possible": false,
+  "minimal_fix": "",
+  "notes": "The timed interval includes synchronization overhead at the final barrier and excludes final result copies and collection; both choices are permitted by the timing contract."
+}

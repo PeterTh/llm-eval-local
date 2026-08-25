@@ -4,7 +4,9 @@ module LocalEvaluation
       benchmark model par_type run input_tokens output_tokens cached_tokens api_time total_time
       code_additions code_deletions non_whitelisted_dependencies validation_status validation_err_string
       benchmark_success benchmark_times benchmark_median_time source_batch source_path total_tokens
-      benchmark_wall_times benchmark_config_sha256
+      benchmark_wall_times benchmark_config_sha256 timing_fixed timing_fix_issue_categories
+      original_source_commit corrected_source_commit original_source_digest corrected_source_digest
+      original_source_url corrected_source_url source_correction_amendment_sha256
     ].freeze
 
     def self.prepare(run_dir:, exact_id: nil, filter: nil, dry_run: false)
@@ -162,6 +164,7 @@ module LocalEvaluation
       digest_paths = {
         "manifest_sha256" => manifest.path,
         "pipeline_amendment_sha256" => PipelineAmendment.path_for(run_dir),
+        "source_correction_amendment_sha256" => SourceCorrectionAmendment.path_for(run_dir),
         "validation_results_sha256" => File.join(run_dir, "validation", "all_validation_results.yaml"),
         "benchmark_full_results_sha256" => File.join(run_dir, "benchmark", BENCHMARK_FULL_RESULTS_FN),
         "benchmark_config_sha256" => File.join(run_dir, "benchmark_config.yaml"),
@@ -274,7 +277,12 @@ module LocalEvaluation
        result.validation_status, result.validation_err_string.to_s.gsub(/[\r\n]+/, " "),
        result.benchmark_success, result.benchmark_times&.join(";"), result.benchmark_median_time,
        result.source_batch, result.source_path, result.total_tokens,
-       result.benchmark_wall_times&.join(";"), result.benchmark_config_sha256]
+       result.benchmark_wall_times&.join(";"), result.benchmark_config_sha256,
+       result.timing_fixed, result.timing_fix_issue_categories&.join(";"),
+       result.original_source_commit, result.corrected_source_commit,
+       result.original_source_digest, result.corrected_source_digest,
+       result.original_source_url, result.corrected_source_url,
+       result.source_correction_amendment_sha256]
     end
     private_class_method :aggregate_row
   end
@@ -540,6 +548,7 @@ module LocalEvaluation
         "aggregate_results_sha256" => aggregate_path,
         "manifest_sha256" => @manifest.path,
         "pipeline_amendment_sha256" => PipelineAmendment.path_for(@run_dir),
+        "source_correction_amendment_sha256" => SourceCorrectionAmendment.path_for(@run_dir),
         "validation_results_sha256" => File.join(@run_dir, "validation", "all_validation_results.yaml"),
         "benchmark_full_results_sha256" => File.join(@run_dir, "benchmark", BENCHMARK_FULL_RESULTS_FN),
         "benchmark_config_sha256" => File.join(@run_dir, "benchmark_config.yaml")
@@ -548,6 +557,7 @@ module LocalEvaluation
         "aggregate_results_sha256" => "aggregate_results",
         "manifest_sha256" => "manifest",
         "pipeline_amendment_sha256" => "pipeline_amendment",
+        "source_correction_amendment_sha256" => "source_correction_amendment",
         "validation_results_sha256" => "validation",
         "benchmark_full_results_sha256" => "benchmark_full",
         "benchmark_config_sha256" => "benchmark_config"

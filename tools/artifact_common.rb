@@ -22,13 +22,9 @@ module LocalEvalArtifact
     validation_records: 4_620,
     fully_valid: 3_825,
     benchmark_records: 3_825,
-    benchmark_successes: 3_488,
-    benchmark_failures: 337,
     score_records: 4_620,
-    score_counts: {
-      0 => 140, 1 => 142, 2 => 67, 3 => 47, 4 => 399, 5 => 337,
-      6 => 731, 7 => 740, 8 => 983, 9 => 989, 10 => 45
-    }.freeze
+    timing_audit_records: 1_615,
+    timing_corrections: 587
   }.freeze
 
   BACKENDS = %w[omp cuda mpi hybrid].freeze

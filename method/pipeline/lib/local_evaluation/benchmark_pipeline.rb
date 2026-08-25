@@ -679,7 +679,7 @@ module LocalEvaluation
       puts "Wrote frozen benchmark configuration to #{output} (SHA-256 #{digest})"
     end
 
-    def initialize(run_dir:, config_path: nil, exact_id: nil, filter: nil, dry_run: false,
+    def initialize(run_dir:, config_path: nil, exact_id: nil, filter: nil, ids: nil, dry_run: false,
                    retry_failed: false, runner: ProcessRunner.new, resources: Resources.new)
       @run_dir = File.expand_path(run_dir)
       @manifest = Manifest.new(@run_dir)
@@ -689,7 +689,7 @@ module LocalEvaluation
       unless @config.data["manifest_sha256"] == LocalEvaluation.sha256_file(@manifest.path)
         raise "Benchmark configuration belongs to another manifest"
       end
-      @selected = @manifest.filtered_runs(exact_id: exact_id, filter: filter)
+      @selected = @manifest.filtered_runs(exact_id: exact_id, filter: filter, ids: ids)
       @dry_run = dry_run
       @retry_failed = retry_failed
       @runner = runner
@@ -698,6 +698,7 @@ module LocalEvaluation
       @results_path = File.join(@benchmark_dir, BENCHMARK_RESULTS_FN)
       @full_results_path = File.join(@benchmark_dir, BENCHMARK_FULL_RESULTS_FN)
       @pipeline_amendment = PipelineAmendment.load_chain(@run_dir, manifest: @manifest).last
+      @source_correction = SourceCorrectionAmendment.load(@run_dir, manifest: @manifest)
       @validation_results = load_validation_results
       validation_path = File.join(@run_dir, "validation", "all_validation_results.yaml")
       unless @config.data["validation_results_sha256"] == LocalEvaluation.sha256_file(validation_path)
@@ -716,10 +717,16 @@ module LocalEvaluation
         puts "Benchmark dry run: #{pending.size} pending fully-valid programs"
         pending.each do |id, info|
           cell = @config.cell(info["par_type"], info["benchmark"])
-          executable = BuildSupport.find_executable(File.join(@run_dir, "validation", id), info["benchmark"])
+          correction = @source_correction&.record_for(id)
+          executable = if correction
+            File.join("/tmp", "local-evaluation-timing-correction", id, LocalEvaluation.executable_name(info["benchmark"]))
+          else
+            BuildSupport.find_executable(File.join(@run_dir, "validation", id), info["benchmark"])
+          end
           env, command = @resources.command(par_type: info["par_type"], executable: executable,
                                             args: cell.fetch("args").map(&:to_s), mode: :benchmark)
-          puts "#{id}: timeout=#{cell['timeout_seconds']}s env=#{env.inspect} command=#{Shellwords.join(command)}"
+          source = correction ? "corrected-source local-/tmp-build" : "frozen-validation-build"
+          puts "#{id}: source=#{source} timeout=#{cell['timeout_seconds']}s env=#{env.inspect} command=#{Shellwords.join(command)}"
         end
         return
       end
@@ -813,6 +820,20 @@ module LocalEvaluation
          metadata["pipeline_amendment_sha256"] != @pipeline_amendment.digest
         return "metadata does not bind the scoped pipeline amendment"
       end
+      if (correction = @source_correction&.record_for(id))
+        expected = {
+          "timing_fixed" => true,
+          "source_correction_amendment_sha256" => @source_correction.digest,
+          "original_source_commit" => correction.dig("original_source", "commit"),
+          "corrected_source_commit" => correction.dig("corrected_source", "commit"),
+          "original_source_digest" => correction.dig("original_source", "digest"),
+          "corrected_source_digest" => correction.dig("corrected_source", "digest"),
+          "timing_fix_issue_categories" => correction.fetch("original_issue_categories"),
+          "timing_fix_changed_paths" => correction.fetch("changed_paths")
+        }
+        mismatch = expected.find { |key, value| metadata[key] != value }
+        return "metadata does not bind corrected timing source field #{mismatch[0]}" if mismatch
+      end
       return "metadata success disagrees with the canonical result" unless metadata["success"] == record[0]
       if valid_success && metadata["metrics"] != record[1]
         return "metadata metrics differ from the canonical result"
@@ -825,8 +846,16 @@ module LocalEvaluation
 
     def execution_metadata_problem(id, metadata, success:)
       executions = metadata["executions"]
+      if metadata["timing_fixed"] && metadata["build_success"] == false
+        return "a failed corrected-source build is marked successful" if success
+        return "a failed corrected-source build has executions" unless executions == []
+        return nil
+      end
       unless executions.is_a?(Array) && !executions.empty? && executions.all? { |entry| entry.is_a?(Hash) }
         return "execution metadata is missing or malformed"
+      end
+      if metadata["timing_fixed"] && metadata["build_success"] != true
+        return "corrected-source execution lacks a successful local build"
       end
       executions.each do |entry|
         return "execution success is not boolean" unless [true, false].include?(entry["success"])
@@ -914,8 +943,10 @@ module LocalEvaluation
       metadata["invocations"] ||= []
       metadata["invocations"] << { "started_at" => Time.now.iso8601, "selected" => @selected.size,
                                     "pending" => pending_count, "retry_failed" => @retry_failed,
-                                    "pipeline_amendment_sha256" => @pipeline_amendment&.digest }
+                                    "pipeline_amendment_sha256" => @pipeline_amendment&.digest,
+                                    "source_correction_amendment_sha256" => @source_correction&.digest }
       metadata["pipeline_amendment_sha256"] = @pipeline_amendment&.digest
+      metadata["source_correction_amendment_sha256"] = @source_correction&.digest
       LocalEvaluation.atomic_yaml(metadata_path, metadata)
     end
 
@@ -932,18 +963,71 @@ module LocalEvaluation
       cell = @config.cell(par_type, benchmark)
       args = cell.fetch("args").map(&:to_s)
       timeout = cell.fetch("timeout_seconds").to_i
-      executable = BuildSupport.find_executable(File.join(@run_dir, "validation", id), benchmark)
-      env, command = @resources.command(par_type: par_type, executable: executable, args: args, mode: :benchmark)
       output_dir = File.join(@benchmark_dir, id)
       BuildSupport.archive_existing(output_dir, File.join(@benchmark_dir, "attempts", id))
       FileUtils.mkdir_p(output_dir)
+      correction = @source_correction&.record_for(id)
+      return benchmark_corrected(id, info, args, timeout, output_dir, correction) if correction
+
+      executable = BuildSupport.find_executable(File.join(@run_dir, "validation", id), benchmark)
+      execute_benchmark(info, args, timeout, output_dir, executable)
+    end
+
+    def benchmark_corrected(id, info, args, timeout, output_dir, correction)
+      @source_correction.verify_record_source!(id)
+      workspace = Dir.mktmpdir("local-evaluation-timing-correction-", "/tmp")
+      begin
+        unless File.realpath(workspace).start_with?("/tmp/")
+          raise InfrastructureError, "Corrected-source build workspace is not on local /tmp"
+        end
+        stage_root = File.join(workspace, "source")
+        source_dir = BuildSupport.stage_source(
+          source_root: info.fetch("source_path"), benchmark: info.fetch("benchmark"), stage_root: stage_root
+        )
+        staging_metadata_path = File.join(workspace, "source_staging.yaml")
+        staging_metadata = LocalEvaluation.load_yaml(staging_metadata_path)
+        LocalEvaluation.atomic_yaml(File.join(output_dir, "source_staging.yaml"), staging_metadata)
+        build_dir = File.join(workspace, "build")
+        build_ok, build_error = BuildSupport.build(
+          source_dir: source_dir, build_dir: build_dir, runner: @runner,
+          par_type: info.fetch("par_type"), log_dir: File.join(output_dir, "build")
+        )
+        build_metadata = {
+          "build_success" => build_ok,
+          "build_error" => build_error,
+          "temporary_workspace" => "local /tmp; removed after attempt",
+          "staged_source_content_sha256" => staging_metadata.fetch("content_sha256")
+        }
+        unless build_ok
+          return finish_metadata(output_dir, info, args, timeout, [], false, [],
+                                 correction: correction, build_metadata: build_metadata)
+        end
+        executable = BuildSupport.find_executable(build_dir, info.fetch("benchmark"))
+        return execute_benchmark(info, args, timeout, output_dir, executable,
+                                 correction: correction, build_metadata: build_metadata)
+      ensure
+        if workspace && File.exist?(workspace)
+          BuildSupport.remove_local_temporary_workspace!(
+            workspace, required_prefix: "local-evaluation-timing-correction-"
+          )
+        end
+      end
+    end
+
+    def execute_benchmark(info, args, timeout, output_dir, executable, correction: nil, build_metadata: nil)
+      benchmark = info.fetch("benchmark")
+      env, command = @resources.command(par_type: info.fetch("par_type"), executable: executable,
+                                        args: args, mode: :benchmark)
       executions = []
 
       warmup = @runner.run(argv: command, env: env, prefix: File.join(output_dir, "benchmark_warmup"),
                            timeout: timeout, chdir: File.dirname(executable),
                            limits: ExecutionLimits::PERFORMANCE)
       executions << execution_metadata("warmup", warmup)
-      return finish_metadata(output_dir, info, args, timeout, executions, false, []) unless warmup.success
+      unless warmup.success
+        return finish_metadata(output_dir, info, args, timeout, executions, false, [],
+                               correction: correction, build_metadata: build_metadata)
+      end
 
       metrics = []
       BENCHMARK_COUNT.times do |index|
@@ -951,15 +1035,20 @@ module LocalEvaluation
         result = @runner.run(argv: command, env: env, prefix: prefix, timeout: timeout,
                              chdir: File.dirname(executable), limits: ExecutionLimits::PERFORMANCE)
         executions << execution_metadata(index, result)
-        return finish_metadata(output_dir, info, args, timeout, executions, false, metrics) unless result.success
+        unless result.success
+          return finish_metadata(output_dir, info, args, timeout, executions, false, metrics,
+                                 correction: correction, build_metadata: build_metadata)
+        end
         begin
           metrics << BenchmarkMetrics.parse(benchmark, File.read("#{prefix}_stdout.log"))
         rescue StandardError => e
           LocalEvaluation.atomic_write("#{prefix}_parse_error.log", "#{e.class}: #{e.message}\n")
-          return finish_metadata(output_dir, info, args, timeout, executions, false, metrics)
+          return finish_metadata(output_dir, info, args, timeout, executions, false, metrics,
+                                 correction: correction, build_metadata: build_metadata)
         end
       end
-      finish_metadata(output_dir, info, args, timeout, executions, true, metrics)
+      finish_metadata(output_dir, info, args, timeout, executions, true, metrics,
+                      correction: correction, build_metadata: build_metadata)
     end
 
     def execution_metadata(label, result)
@@ -968,12 +1057,13 @@ module LocalEvaluation
         "wall_seconds" => result.wall_seconds, "output_truncated" => result.output_truncated }
     end
 
-    def finish_metadata(output_dir, info, args, timeout, executions, success, metrics)
+    def finish_metadata(output_dir, info, args, timeout, executions, success, metrics,
+                        correction: nil, build_metadata: nil)
       warmup = executions.find { |entry| entry["repetition"] == "warmup" }
       measured_walls = executions.reject { |entry| entry["repetition"] == "warmup" }
                                  .map { |entry| entry["wall_seconds"] }
       all_walls = executions.map { |entry| entry["wall_seconds"] }
-      LocalEvaluation.atomic_yaml(File.join(output_dir, "benchmark_metadata.yaml"), {
+      metadata = {
         "run" => info,
         "args" => args,
         "timeout_seconds" => timeout,
@@ -987,7 +1077,21 @@ module LocalEvaluation
         "executions" => executions,
         "success" => success,
         "metrics" => metrics
-      })
+      }
+      if correction
+        metadata.merge!(
+          "timing_fixed" => true,
+          "source_correction_amendment_sha256" => @source_correction.digest,
+          "original_source_commit" => correction.dig("original_source", "commit"),
+          "corrected_source_commit" => correction.dig("corrected_source", "commit"),
+          "original_source_digest" => correction.dig("original_source", "digest"),
+          "corrected_source_digest" => correction.dig("corrected_source", "digest"),
+          "timing_fix_issue_categories" => correction.fetch("original_issue_categories"),
+          "timing_fix_changed_paths" => correction.fetch("changed_paths")
+        )
+        metadata.merge!(build_metadata || {})
+      end
+      LocalEvaluation.atomic_yaml(File.join(output_dir, "benchmark_metadata.yaml"), metadata)
       [success, success ? metrics : {}]
     end
   end

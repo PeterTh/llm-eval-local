@@ -34,6 +34,7 @@ module LocalEvaluation
       @run_dir = File.expand_path(run_dir)
       @manifest = Manifest.new(@run_dir)
       @selected = @manifest.filtered_runs(exact_id: exact_id, filter: filter)
+      @source_correction = SourceCorrectionAmendment.load(@run_dir, manifest: @manifest)
       @dry_run = dry_run
       warnings_path = File.join(@run_dir, "aggregate_parse_warnings.yaml")
       @warnings = File.file?(warnings_path) ? (LocalEvaluation.load_yaml(warnings_path) || {}) : {}
@@ -93,6 +94,7 @@ module LocalEvaluation
       {
         "manifest_sha256" => LocalEvaluation.sha256_file(@manifest.path),
         "pipeline_amendment_sha256" => PipelineAmendment.digest_for(@run_dir),
+        "source_correction_amendment_sha256" => SourceCorrectionAmendment.digest_for(@run_dir),
         "validation_results_sha256" => LocalEvaluation.sha256_file(validation_path),
         "benchmark_full_results_sha256" => optional_sha256(
           File.join(@run_dir, "benchmark", BENCHMARK_FULL_RESULTS_FN)
@@ -493,6 +495,18 @@ module LocalEvaluation
       metadata = LocalEvaluation.load_yaml(metadata_path)
       result.benchmark_wall_times = metadata["wall_seconds"]
       result.benchmark_config_sha256 = metadata["configuration_sha256"]
+      result.timing_fixed = metadata["timing_fixed"] == true
+      return unless result.timing_fixed
+
+      result.timing_fix_issue_categories = metadata["timing_fix_issue_categories"]
+      result.original_source_commit = metadata["original_source_commit"]
+      result.corrected_source_commit = metadata["corrected_source_commit"]
+      result.original_source_digest = metadata["original_source_digest"]
+      result.corrected_source_digest = metadata["corrected_source_digest"]
+      result.source_correction_amendment_sha256 = metadata["source_correction_amendment_sha256"]
+      correction = @source_correction&.record_for(id)
+      result.original_source_url = correction && correction["original_source_url"]
+      result.corrected_source_url = correction && correction["corrected_source_url"]
     end
 
     def warn_for(id, warning)
@@ -523,7 +537,9 @@ module LocalEvaluation
         benchmark model par_type run input_tokens output_tokens cached_tokens api_time total_time
         code_additions code_deletions non_whitelisted_dependencies validation_status validation_err_string
         benchmark_success benchmark_times benchmark_median_time source_batch source_path total_tokens
-        benchmark_wall_times benchmark_config_sha256
+        benchmark_wall_times benchmark_config_sha256 timing_fixed timing_fix_issue_categories
+        original_source_commit corrected_source_commit original_source_digest corrected_source_digest
+        original_source_url corrected_source_url source_correction_amendment_sha256
       ]
       rows = results.map do |_id, result|
         [result.benchmark, result.model, result.par_type, result.run, result.input_tokens,
@@ -532,7 +548,12 @@ module LocalEvaluation
          result.validation_status, result.validation_err_string.to_s.gsub(/[\r\n]+/, " "),
          result.benchmark_success, result.benchmark_times&.join(";"), result.benchmark_median_time,
          result.source_batch, result.source_path, result.total_tokens,
-         result.benchmark_wall_times&.join(";"), result.benchmark_config_sha256]
+         result.benchmark_wall_times&.join(";"), result.benchmark_config_sha256,
+         result.timing_fixed, result.timing_fix_issue_categories&.join(";"),
+         result.original_source_commit, result.corrected_source_commit,
+         result.original_source_digest, result.corrected_source_digest,
+         result.original_source_url, result.corrected_source_url,
+         result.source_correction_amendment_sha256]
       end
       csv = CSV.generate { |out| out << headers; rows.each { |row| out << row } }
       LocalEvaluation.atomic_write(path, csv)

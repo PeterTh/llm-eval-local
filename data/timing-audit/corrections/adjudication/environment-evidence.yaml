@@ -1,0 +1,21 @@
+---
+compiled_patch:
+  records: 587
+  compile_successes: 587
+  compile_failures: []
+  patch_sha256: af14e2b397af0a65713ff9f472c79524715f6b38cdba8dd50c04b1908a39b826
+pinned_openmpi_header:
+  path: "/usr/lib/x86_64-linux-gnu/openmpi/include/mpi.h"
+  sha256: de56cc3b1aaf16c465586b23ba9baa82165a5ce8fc85b0d6fe6b7e6a99070ba1
+  lines:
+    '1211': "#define MPI_LONG_LONG_INT OMPI_PREDEFINED_GLOBAL(MPI_Datatype, ompi_mpi_long_long_int)"
+    '1212': "#define MPI_LONG_LONG OMPI_PREDEFINED_GLOBAL(MPI_Datatype, ompi_mpi_long_long_int)"
+  finding: MPI_LONG_LONG and MPI_LONG_LONG_INT expand to the same ompi_mpi_long_long_int
+    datatype object.
+cuda_event_semantics:
+  finding: An event records a timestamp when it reaches the front of its stream; elapsed
+    time is between event timestamps. A finish event enqueued after host/MPI work
+    can therefore include the intervening wall-clock gap.
+  primary_sources:
+  - https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html
+  - https://docs.nvidia.com/cuda/pdf/CUDA_Runtime_API.pdf
