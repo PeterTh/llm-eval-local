@@ -46,7 +46,7 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   await expect(modelMenu.locator("summary strong")).toHaveText("Default");
   await expect(selectionSummary.getByText("14", { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText(/3[,.]080/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("6.44", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("6.45", { exact: true })).toBeVisible();
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
@@ -72,7 +72,7 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   await expect(modelMenu.locator("summary strong")).toHaveText("All models");
   await expect(selectionSummary.getByText("21", { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText(/4[,.]620/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("6.60", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("6.61", { exact: true })).toBeVisible();
   await expect(page.locator(".chart svg.marks")).toBeVisible();
   await expect(page.locator(".mark-rect path").first()).toBeVisible();
 
@@ -644,7 +644,7 @@ test("complexity recomputes benchmark and target distributions and opens their r
   await expect(page.getByRole("heading", { name: "Benchmark / Target complexity" })).toBeVisible();
   const selectionSummary = page.getByLabel("Current complexity selection summary");
   await expect(selectionSummary.getByText(/3[,.]080/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("6.44", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("6.45", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Export chart")).toHaveCount(2);
 
   const benchmarkCategories = page.locator('.benchmark-complexity svg [role="button"][aria-label^="Benchmark "]');
@@ -823,8 +823,8 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(snapshot).toHaveAttribute("href", /\/tree\/[0-9a-f]{40}$/);
   const snapshotCommit = (await snapshot.getAttribute("href"))!.split("/").at(-1)!;
   await expect(snapshot.locator("code")).toHaveText(snapshotCommit.slice(0, 9));
-  await expect(snapshot.locator("time")).toHaveText("2026-08-22 18:12:20 UTC+02:00");
-  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-08-22T18:12:20+02:00");
+  await expect(snapshot.locator("time")).toHaveText("2026-08-25 02:50:29 UTC+02:00");
+  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-08-25T02:50:29+02:00");
   await expect(page.locator(".primary-nav")).not.toContainText("Snapshot");
   await goto(page, "/methodology");
   await expect(page.getByRole("heading", { name: "Methodology" })).toBeVisible();

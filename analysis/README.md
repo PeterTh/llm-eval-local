@@ -7,6 +7,11 @@ tables in `tables/`, and final figures in `figures/`.
 Every completed analysis should document the Git data release/tag it consumed and
 provide one command that rebuilds its tables and figures.
 
+The checked-in outputs consume the timing-audited data release
+`local-eval-2026-08-25` at data commit `f83773e` and
+`data/scoring/scored_results.csv` (SHA-256
+`7e6012c97b84a3632797cad103093929851d1ff07349205dd7383097927207c9`).
+
 ## Tiered LLM comparison
 
 `src/success_rate_tiers.py` reconstructs the tiered success-rate comparison from the
@@ -22,10 +27,6 @@ Models are sorted by mean overall score from weakest to best. The horizontal lay
 intentional: it keeps all 21 model names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
-
-The checked-in outputs consume release `local-eval-2026-08-22` at commit `bfb6df4` and
-`data/scoring/scored_results.csv` (SHA-256
-`2f0a76118c836b326a99b877b86746a6bfeeb3986061e07f1d8bc1fdb451e76c`).
 
 Install the locked direct dependencies and rebuild with:
 
