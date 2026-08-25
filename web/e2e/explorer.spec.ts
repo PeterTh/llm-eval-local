@@ -636,6 +636,27 @@ test("run detail keeps all models and highlights its model in the performance ce
   expect(problems).toEqual([]);
 });
 
+test("timing-fixed runs expose corrected and original source revisions", async ({ page }) => {
+  const problems = watchPage(page);
+  const runId = "black-scholes_claude-haiku-4.5_mpi_r1";
+  const correctedCommit = "e897bbe48e877ecbd8873ee1c666b6f394c0344b";
+  const originalCommit = "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66";
+
+  await goto(page, `/runs?q=${runId}`);
+  await expect(page.getByRole("heading", { name: "1 matching runs" })).toBeVisible();
+  await expect(page.getByText("Timing fixed", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: `Open timing-corrected source for ${runId}` }))
+    .toHaveAttribute("href", new RegExp(`/tree/${correctedCommit}/`));
+  await page.getByRole("link", { name: runId, exact: true }).click();
+
+  await expect(page.getByRole("link", { name: /Timing-corrected source directory/ }))
+    .toHaveAttribute("href", new RegExp(`/tree/${correctedCommit}/`));
+  await expect(page.getByRole("link", { name: /Original generated source directory/ }))
+    .toHaveAttribute("href", new RegExp(`/tree/${originalCommit}/`));
+  await expect(page.getByText(/missing rank aggregation, rank local timing/)).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test("complexity recomputes benchmark and target distributions and opens their runs", async ({ page }, testInfo) => {
   const problems = watchPage(page);
   await goto(page, "/complexity");

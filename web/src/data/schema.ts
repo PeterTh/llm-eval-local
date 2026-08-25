@@ -174,6 +174,12 @@ export const scoreCubeSchema = z.array(z.object({
   count: z.number().int().positive(),
 }));
 
+const timingCorrectionSourceSchema = z.object({
+  commit: z.string().regex(/^[0-9a-f]{40}$/),
+  digest: z.string().regex(/^[0-9a-f]{64}$/),
+  url: z.string().url(),
+});
+
 export const runRecordSchema = z.object({
   id: z.string().min(1),
   modelId: z.string().min(1),
@@ -191,8 +197,21 @@ export const runRecordSchema = z.object({
   sourceBatch: z.string().min(1),
   sourcePath: z.string().min(1),
   sourceUrl: z.string().url(),
+  timingFixed: z.boolean(),
+  timingCorrection: z.object({
+    issueCategories: z.array(z.string().min(1)).min(1),
+    originalSource: timingCorrectionSourceSchema,
+    correctedSource: timingCorrectionSourceSchema,
+  }).nullable(),
   validationEvidenceUrl: z.string().url(),
   benchmarkEvidenceUrl: z.string().url().nullable(),
+}).superRefine((run, context) => {
+  if (run.timingFixed !== (run.timingCorrection !== null)) {
+    context.addIssue({ code: "custom", message: "timing correction flag/payload mismatch", path: ["timingCorrection"] });
+  }
+  if (run.timingCorrection !== null && run.sourceUrl !== run.timingCorrection.correctedSource.url) {
+    context.addIssue({ code: "custom", message: "effective source URL is not the corrected source", path: ["sourceUrl"] });
+  }
 });
 
 export const runShardSchema = z.array(runRecordSchema);

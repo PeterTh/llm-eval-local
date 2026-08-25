@@ -195,6 +195,18 @@ export interface ScoreCubeCell {
   count: number;
 }
 
+export interface TimingCorrectionSource {
+  commit: string;
+  digest: string;
+  url: string;
+}
+
+export interface TimingCorrectionProvenance {
+  issueCategories: string[];
+  originalSource: TimingCorrectionSource;
+  correctedSource: TimingCorrectionSource;
+}
+
 export interface RunRecord {
   id: string;
   modelId: string;
@@ -212,6 +224,8 @@ export interface RunRecord {
   sourceBatch: string;
   sourcePath: string;
   sourceUrl: string;
+  timingFixed: boolean;
+  timingCorrection: TimingCorrectionProvenance | null;
   validationEvidenceUrl: string;
   benchmarkEvidenceUrl: string | null;
 }

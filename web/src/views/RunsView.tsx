@@ -169,7 +169,10 @@ export function RunsView() {
                   const detailPath = `/run/${encodeURIComponent(run.id)}${queryString ? `?${queryString}` : ""}`;
                   return (
                     <tr key={run.id}>
-                      <th scope="row"><Link className="run-id-link" to={detailPath}>{run.id}</Link></th>
+                      <th scope="row">
+                        <Link className="run-id-link" to={detailPath}>{run.id}</Link>
+                        {run.timingFixed && <span className="timing-fixed-label">Timing fixed</span>}
+                      </th>
                       <td>{labels.models.get(run.modelId) ?? run.modelId}</td>
                       <td>{labels.benchmarks.get(run.benchmarkId) ?? run.benchmarkId}</td>
                       <td><span className="backend-tag">{labels.backends.get(run.backendId) ?? run.backendId}</span></td>
@@ -178,7 +181,7 @@ export function RunsView() {
                       <td><span className={`status-dot ${run.validationStatus === 5 ? "success" : "failure"}`} />{run.validationStatus === 5 ? "Passed" : `Stage ${run.validationStatus}`}</td>
                       <td>{outcomeLabel(run)}</td>
                       <td className="numeric">{formatMilliseconds(run.benchmarkMedianMs)}</td>
-                      <td><a className="source-arrow" href={run.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Open source for ${run.id}`}>↗</a></td>
+                      <td><a className="source-arrow" href={run.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Open ${run.timingFixed ? "timing-corrected " : ""}source for ${run.id}`}>↗</a></td>
                     </tr>
                   );
                 })}

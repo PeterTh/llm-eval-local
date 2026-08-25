@@ -10,7 +10,8 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
   const headers = [
     "id", "model", "benchmark", "backend", "repetition", "overall_score",
     "score_band", "validation_status", "benchmark_success", "benchmark_median_ms",
-    "source_url", "validation_evidence_url", "benchmark_evidence_url",
+    "timing_fixed", "timing_issue_categories", "source_url", "original_source_url",
+    "validation_evidence_url", "benchmark_evidence_url",
   ];
   const rows = runs.map((run) => [
     run.id,
@@ -23,7 +24,10 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
     run.validationStatus,
     run.benchmarkSuccess,
     run.benchmarkMedianMs,
+    run.timingFixed,
+    run.timingCorrection?.issueCategories.join(";") ?? "",
     run.sourceUrl,
+    run.timingCorrection?.originalSource.url ?? "",
     run.validationEvidenceUrl,
     run.benchmarkEvidenceUrl,
   ].map(csvCell).join(","));

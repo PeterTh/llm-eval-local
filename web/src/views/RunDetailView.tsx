@@ -14,6 +14,10 @@ function boolLabel(value: boolean | null): string {
   return "Not reached";
 }
 
+function timingIssueLabel(value: string): string {
+  return value.replaceAll("_", " ");
+}
+
 export function RunDetailView() {
   const { manifest, labels } = useDataset();
   const { id = "" } = useParams();
@@ -165,13 +169,21 @@ export function RunDetailView() {
         <section className="detail-card provenance-card">
           <p className="eyebrow">Primary evidence</p>
           <h2>Commit-pinned provenance</h2>
-          <p>These links resolve to the exact repositories and revisions used to build this explorer.</p>
+          <p>{run.timingFixed
+            ? "This benchmark used a timing-only source correction. Both the measured correction and the original generated program are retained below."
+            : "These links resolve to the exact repositories and revisions used to build this explorer."}</p>
           <div className="evidence-links">
-            <a href={run.sourceUrl} target="_blank" rel="noreferrer"><span>Generated source directory</span><strong>Open on GitHub ↗</strong></a>
+            <a href={run.sourceUrl} target="_blank" rel="noreferrer"><span>{run.timingFixed ? "Timing-corrected source directory" : "Generated source directory"}</span><strong>Open on GitHub ↗</strong></a>
+            {run.timingCorrection && <a href={run.timingCorrection.originalSource.url} target="_blank" rel="noreferrer"><span>Original generated source directory</span><strong>Open on GitHub ↗</strong></a>}
             <a href={run.validationEvidenceUrl} target="_blank" rel="noreferrer"><span>Validation JSONL evidence</span><strong>Open exact line ↗</strong></a>
             {run.benchmarkEvidenceUrl && <a href={run.benchmarkEvidenceUrl} target="_blank" rel="noreferrer"><span>Benchmark JSONL evidence</span><strong>Open exact line ↗</strong></a>}
           </div>
           <dl className="provenance-list">
+            {run.timingCorrection && <>
+              <div><dt>Timing status</dt><dd><strong>Timing fixed</strong> · {run.timingCorrection.issueCategories.map(timingIssueLabel).join(", ")}</dd></div>
+              <div><dt>Corrected commit</dt><dd><code>{run.timingCorrection.correctedSource.commit}</code></dd></div>
+              <div><dt>Original commit</dt><dd><code>{run.timingCorrection.originalSource.commit}</code></dd></div>
+            </>}
             <div><dt>Source batch</dt><dd>{run.sourceBatch}</dd></div>
             <div><dt>Source path</dt><dd><code>{run.sourcePath}</code></dd></div>
             <div><dt>Artifact commit</dt><dd><code>{manifest.artifactCommit}</code></dd></div>

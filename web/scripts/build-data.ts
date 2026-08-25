@@ -86,6 +86,20 @@ interface BenchmarkRecord {
   repetition: number;
   success: boolean;
   metrics: Array<Record<string, unknown>>;
+  timing_fixed: boolean;
+  timing_correction: {
+    issue_categories: string[];
+    original_source: {
+      commit: string;
+      digest: string;
+      url: string;
+    };
+    corrected_source: {
+      commit: string;
+      digest: string;
+      url: string;
+    };
+  } | null;
 }
 
 interface LocatedRecord<T> {
@@ -419,6 +433,33 @@ export async function buildData(): Promise<void> {
       : null;
     const sourcePath = validation.source.path;
     invariant(sourcePath, `source path is missing for ${id}`);
+    const timingFixed = locatedBenchmark?.record.timing_fixed ?? false;
+    const rawTimingCorrection = locatedBenchmark?.record.timing_correction ?? null;
+    invariant(typeof timingFixed === "boolean", `timing_fixed must be boolean for ${id}`);
+    invariant(timingFixed === (rawTimingCorrection !== null), `timing correction flag/payload mismatch for ${id}`);
+    const timingCorrection = rawTimingCorrection === null ? null : {
+      issueCategories: rawTimingCorrection.issue_categories,
+      originalSource: {
+        commit: rawTimingCorrection.original_source.commit,
+        digest: rawTimingCorrection.original_source.digest,
+        url: rawTimingCorrection.original_source.url,
+      },
+      correctedSource: {
+        commit: rawTimingCorrection.corrected_source.commit,
+        digest: rawTimingCorrection.corrected_source.digest,
+        url: rawTimingCorrection.corrected_source.url,
+      },
+    };
+    if (timingCorrection) {
+      invariant(timingCorrection.issueCategories.length > 0
+        && timingCorrection.issueCategories.every((category) => typeof category === "string" && category.length > 0),
+      `timing correction issue categories are invalid for ${id}`);
+      for (const [label, source] of Object.entries({ original: timingCorrection.originalSource, corrected: timingCorrection.correctedSource })) {
+        invariant(/^[0-9a-f]{40}$/.test(source.commit), `${label} timing source commit is invalid for ${id}`);
+        invariant(/^[0-9a-f]{64}$/.test(source.digest), `${label} timing source digest is invalid for ${id}`);
+        invariant(/^https:\/\/github\.com\//.test(source.url), `${label} timing source URL is invalid for ${id}`);
+      }
+    }
 
     return {
       id,
@@ -436,7 +477,10 @@ export async function buildData(): Promise<void> {
       benchmarkMeasurementsMs: metricTimes,
       sourceBatch: validation.source.batch,
       sourcePath,
-      sourceUrl: `${generatedSourceRepository}/tree/${generatedSourceCommit}/${encodeRepositoryPath(sourcePath)}`,
+      sourceUrl: timingCorrection?.correctedSource.url
+        ?? `${generatedSourceRepository}/tree/${generatedSourceCommit}/${encodeRepositoryPath(sourcePath)}`,
+      timingFixed,
+      timingCorrection,
       validationEvidenceUrl,
       benchmarkEvidenceUrl,
     };

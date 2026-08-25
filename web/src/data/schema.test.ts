@@ -14,6 +14,8 @@ describe("runtime dataset validation", () => {
   it("rejects malformed performance metrics and provenance", () => {
     expect(() => runShardSchema.parse([{ ...runsFixture[1], benchmarkMedianMs: -1 }])).toThrow();
     expect(() => runShardSchema.parse([{ ...runsFixture[1], sourceUrl: "relative/path" }])).toThrow();
+    expect(() => runShardSchema.parse([{ ...runsFixture[1], timingFixed: false }])).toThrow();
+    expect(() => runShardSchema.parse([{ ...runsFixture[1], sourceUrl: runsFixture[1]!.timingCorrection!.originalSource.url }])).toThrow();
     expect(() => datasetManifestSchema.parse({
       ...manifestFixture,
       models: [{ ...manifestFixture.models[0], invocation: { ...manifestFixture.models[0]!.invocation!, harnessId: "" } }],

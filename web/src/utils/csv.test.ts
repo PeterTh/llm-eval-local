@@ -7,9 +7,17 @@ import { costSummariesToCsv, runsToCsv } from "./csv";
 describe("runsToCsv", () => {
   it("includes provenance URLs and quotes special identifiers", () => {
     const csv = runsToCsv(runsFixture.slice(0, 1));
-    expect(csv).toContain("source_url,validation_evidence_url,benchmark_evidence_url");
+    expect(csv).toContain("timing_fixed,timing_issue_categories,source_url,original_source_url");
     expect(csv).toContain(runsFixture[0]!.sourceUrl);
     expect(csv).toContain("bench&one_model/a?x_gpu+x_r1");
+  });
+
+  it("exports timing-fix labels and both source revisions", () => {
+    const fixed = runsFixture[1]!;
+    const csv = runsToCsv([fixed]);
+    expect(csv).toContain("true,missing_rank_aggregation;rank_local_timing");
+    expect(csv).toContain(fixed.sourceUrl);
+    expect(csv).toContain(fixed.timingCorrection!.originalSource.url);
   });
 
   it("exports displayed cost aggregates with rates and pricing provenance", () => {

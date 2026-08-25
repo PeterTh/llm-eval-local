@@ -41,6 +41,10 @@ npm run test:e2e
 - one lazy cost dataset containing frozen pricing profiles and per-run token/cost records;
 - one lazily loaded run shard for each observed benchmark/backend cell.
 
+Run shards preserve the explicit timing-fix flag and issue categories. For corrected
+runs, the primary source URL resolves to the measured timing-corrected revision and
+the original generated revision remains available alongside it.
+
 Cost profiles are read from the canonical 4d analysis table. Explicit model/profile aliases and token-accounting conventions live in `config/cost.json`; missing profiles or token records remain unavailable rather than being represented as zero.
 
 Entity IDs are arbitrary strings. Existing presentation labels, backend order, and named model sets are optional overrides in `config/site.json`; an unseen ID is displayed verbatim. Exclusion-based model sets include newly observed models automatically.
