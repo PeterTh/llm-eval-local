@@ -471,24 +471,13 @@ class ArtifactExporter
 
   def benchmark_records_digest(records)
     normalized = records.sort_by { |record| record.fetch("id") }.map do |record|
-      value = JSON.parse(JSON.generate(record))
-      value["schema_version"] = 2
-      value["timing_fixed"] = false
-      value["timing_correction"] = nil
-      value
+      record.merge(
+        "schema_version" => 2,
+        "timing_fixed" => false,
+        "timing_correction" => nil
+      )
     end
-    Digest::SHA256.hexdigest(normalized.map { |record| JSON.generate(canonicalize(record)) << "\n" }.join)
-  end
-
-  def canonicalize(value)
-    case value
-    when Hash
-      value.keys.sort.to_h { |key| [key, canonicalize(value.fetch(key))] }
-    when Array
-      value.map { |element| canonicalize(element) }
-    else
-      value
-    end
+    Digest::SHA256.hexdigest(normalized.map { |record| LocalEvalArtifact.canonical_json_for_digest(record) << "\n" }.join)
   end
 
   def median(values)
@@ -850,6 +839,7 @@ class ArtifactExporter
       },
       "localized_rerun_guard" => {
         "unaffected_records" => @benchmark_records.size - @correction_records.size,
+        "digest_algorithm" => LocalEvalArtifact::CANONICAL_JSON_DIGEST_ALGORITHM,
         "baseline_sha256" => @unaffected_baseline_sha256,
         "final_sha256" => @unaffected_current_sha256,
         "unchanged" => @unaffected_baseline_sha256 == @unaffected_current_sha256

@@ -32,6 +32,7 @@ module LocalEvalArtifact
     basic_para validation_build validation_run internal_validation output_comparison
   ].freeze
   SHA256_RE = /\A[0-9a-f]{64}\z/
+  CANONICAL_JSON_DIGEST_ALGORITHM = "canonical-json-float64-hex-v1"
 
   module_function
 
@@ -93,6 +94,27 @@ module LocalEvalArtifact
         file.write(JSON.generate(record))
         file.write("\n")
       end
+    end
+  end
+
+  def canonical_json_for_digest(value)
+    JSON.generate(canonicalize_for_digest(value))
+  end
+
+  def canonicalize_for_digest(value)
+    case value
+    when Hash
+      value.keys.sort.to_h { |key| [key, canonicalize_for_digest(value.fetch(key))] }
+    when Array
+      value.map { |element| canonicalize_for_digest(element) }
+    when Float
+      raise "non-finite float in canonical JSON digest" unless value.finite?
+
+      # JSON float formatting varies between supported Ruby releases. Hash the
+      # stable IEEE-754 representation instead of the runtime's decimal spelling.
+      { "__float64_hex__" => [value].pack("G").unpack1("H*") }
+    else
+      value
     end
   end
 

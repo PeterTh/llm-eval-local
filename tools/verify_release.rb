@@ -488,6 +488,7 @@ class ReleaseVerifier
     equal!(comparisons.count { |record| record.dig("corrected", "success") }, counts.fetch("timing_correction_benchmark_successes"), "corrected benchmark successes")
     guard = @release_summary.fetch("localized_rerun_guard")
     raise "localized-rerun guard is not marked unchanged" unless guard.fetch("unchanged") == true
+    equal!(LocalEvalArtifact::CANONICAL_JSON_DIGEST_ALGORITHM, guard.fetch("digest_algorithm"), "unaffected digest algorithm")
     equal!(guard.fetch("baseline_sha256"), guard.fetch("final_sha256"), "unaffected before/after digest")
     unaffected = @benchmark_records.reject { |record| @corrections_by_id.key?(record.fetch("id")) }
     equal!(benchmark_records_digest(unaffected), guard.fetch("final_sha256"), "unaffected final record digest")
@@ -576,24 +577,13 @@ class ReleaseVerifier
 
   def benchmark_records_digest(records)
     normalized = records.sort_by { |record| record.fetch("id") }.map do |record|
-      value = JSON.parse(JSON.generate(record))
-      value["schema_version"] = 2
-      value["timing_fixed"] = false
-      value["timing_correction"] = nil
-      value
+      record.merge(
+        "schema_version" => 2,
+        "timing_fixed" => false,
+        "timing_correction" => nil
+      )
     end
-    Digest::SHA256.hexdigest(normalized.map { |record| JSON.generate(canonicalize(record)) << "\n" }.join)
-  end
-
-  def canonicalize(value)
-    case value
-    when Hash
-      value.keys.sort.to_h { |key| [key, canonicalize(value.fetch(key))] }
-    when Array
-      value.map { |element| canonicalize(element) }
-    else
-      value
-    end
+    Digest::SHA256.hexdigest(normalized.map { |record| LocalEvalArtifact.canonical_json_for_digest(record) << "\n" }.join)
   end
 
   def require_partition_match!(record, relative_root)
