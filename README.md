@@ -1,12 +1,18 @@
-# Local Validation and Benchmark Artifact
+# LLM Autoparallelization Benchmark Data Repository
 
-This repository contains the local re-validation, performance benchmarking, scoring,
-and analysis artifacts for:
+This repository contains extended validation, performance benchmarking, scoring,
+and analysis artifacts for LLM-based parallelization, using the methodology first 
+introduced in the paper [**Evaluating the Parallelization Capabilities of 
+State-of-the-art Agentic Large Language Models**](https://doi.org/10.1007/978-3-032-35248-4_2)
+presented at Euro-Par 2026.
 
-> **Evaluating the Parallelization Capabilities of State-of-the-art Agentic Large
-> Language Models**<br>
-> Peter Thoman and Philipp Gschwandtner, University of Innsbruck<br>
-> Accepted at Euro-Par 2026
+It serves as the basis for (and contains the source of) the website
+
+>  **https://peterth.github.io/llm-eval-local**
+
+which enables convenient visualization, filtering and browsing of this dataset.
+
+----
 
 The LLM-generated programs are intentionally not duplicated here. They are retained
 in [`llm-eval-generated`](https://github.com/PeterTh/llm-eval-generated) and are joined
@@ -68,9 +74,9 @@ This checks the release checksum manifest, source/configuration/amendment chains
 record schemas and counts, score distribution, evidence scope, forbidden artifact
 patterns, and repository size budgets.
 
-## Rebuild the curated dataset
+## Provenance of the curated dataset
 
-The exporter reads, but never modifies, the durable evaluation workspaces:
+The dataset was exported using the following command:
 
 ```bash
 ruby tools/export_run.rb \
@@ -89,6 +95,3 @@ ruby analysis/src/timing_correction_analysis.rb
 ruby tools/update_checksums.rb
 ruby tools/verify_release.rb
 ```
-
-Temporary assembly is performed under local `/tmp`; the persistent checkout and
-published results live under `/home` and in GitHub.
