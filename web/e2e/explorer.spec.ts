@@ -657,6 +657,46 @@ test("timing-fixed runs expose corrected and original source revisions", async (
   expect(problems).toEqual([]);
 });
 
+test("winning implementation analysis renders after run details at desktop and mobile widths", async ({ page }, testInfo) => {
+  const problems = watchPage(page);
+  const runId = "floydwarshall_gpt-5.6-sol-xhigh_mpi_r5";
+
+  await goto(page, `/run/${runId}`);
+  await expect(page.getByRole("heading", { name: runId, level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: runId })).toHaveCount(1);
+  const analysisCard = page.getByRole("region", { name: "Winning implementation analysis" });
+  await expect(analysisCard).toBeVisible();
+  await expect(analysisCard.getByRole("heading", { name: "Controlled evidence", level: 3 })).toBeVisible();
+  await expect(analysisCard.getByText(/dominant difference is a simpler phase-three local update loop/)).toBeVisible();
+  await expect(analysisCard.getByRole("table")).toBeVisible();
+  await expect(analysisCard.getByRole("row", { name: /Original 256-column subdivision/ })).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const details = document.querySelector<HTMLElement>(".detail-grid")!.getBoundingClientRect();
+    const card = document.querySelector<HTMLElement>(".implementation-analysis-card")!.getBoundingClientRect();
+    const table = document.querySelector<HTMLElement>(".implementation-analysis-table")!;
+    return {
+      detailsLeft: details.left,
+      detailsRight: details.right,
+      detailsBottom: details.bottom,
+      cardLeft: card.left,
+      cardRight: card.right,
+      cardTop: card.top,
+      tableClientWidth: table.clientWidth,
+      tableScrollWidth: table.scrollWidth,
+    };
+  });
+  expect(Math.abs(layout.cardLeft - layout.detailsLeft)).toBeLessThan(1);
+  expect(Math.abs(layout.cardRight - layout.detailsRight)).toBeLessThan(1);
+  expect(layout.cardTop).toBeGreaterThan(layout.detailsBottom);
+  if (testInfo.project.name === "mobile") {
+    expect(layout.tableScrollWidth).toBeGreaterThan(layout.tableClientWidth);
+  } else {
+    expect(layout.tableScrollWidth).toBeLessThanOrEqual(layout.tableClientWidth + 1);
+  }
+  expect(problems).toEqual([]);
+});
+
 test("complexity recomputes benchmark and target distributions and opens their runs", async ({ page }, testInfo) => {
   const problems = watchPage(page);
   await goto(page, "/complexity");

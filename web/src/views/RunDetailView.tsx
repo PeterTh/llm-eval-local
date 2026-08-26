@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
 import { Link, useLocation, useParams } from "react-router-dom";
+import remarkGfm from "remark-gfm";
 
 import { pricedTokenCountForRun } from "../analysis/cost";
 import { PageIntro } from "../components/PageIntro";
@@ -16,6 +18,20 @@ function boolLabel(value: boolean | null): string {
 
 function timingIssueLabel(value: string): string {
   return value.replaceAll("_", " ");
+}
+
+const implementationAnalysisComponents: Components = {
+  h1: ({ node: _node, ...props }) => <h3 {...props} />,
+  h2: ({ node: _node, ...props }) => <h3 {...props} />,
+  h3: ({ node: _node, ...props }) => <h4 {...props} />,
+  h4: ({ node: _node, ...props }) => <h5 {...props} />,
+  h5: ({ node: _node, ...props }) => <h6 {...props} />,
+  h6: ({ node: _node, ...props }) => <h6 {...props} />,
+  table: ({ node: _node, ...props }) => <div className="implementation-analysis-table"><table {...props} /></div>,
+};
+
+function implementationAnalysisBody(markdown: string): string {
+  return markdown.split(/\r?\n/).slice(1).join("\n").trimStart();
 }
 
 export function RunDetailView() {
@@ -86,6 +102,9 @@ export function RunDetailView() {
   cellQuery.append("backend", run.backendId);
   const costQuery = new URLSearchParams(cellQuery);
   costQuery.append("model", run.modelId);
+  const analysisMarkdown = run.implementationAnalysisMarkdown === null
+    ? null
+    : implementationAnalysisBody(run.implementationAnalysisMarkdown);
 
   return (
     <main id="main-content" className="page-shell detail-page">
@@ -200,6 +219,22 @@ export function RunDetailView() {
           <Link to={`/runs?${cellQuery}`}>All runs in this benchmark cell <span>→</span></Link>
         </aside>
       </div>
+
+      {analysisMarkdown !== null && (
+        <section className="detail-card implementation-analysis-card" aria-labelledby="implementation-analysis-heading">
+          <p className="eyebrow">Individual analysis</p>
+          <h2 id="implementation-analysis-heading">Winning implementation analysis</h2>
+          <div className="implementation-analysis-markdown">
+            <ReactMarkdown
+              components={implementationAnalysisComponents}
+              remarkPlugins={[remarkGfm]}
+              skipHtml
+            >
+              {analysisMarkdown}
+            </ReactMarkdown>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

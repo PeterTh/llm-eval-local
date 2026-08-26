@@ -194,6 +194,7 @@ export const runRecordSchema = z.object({
   benchmarkSuccess: z.boolean().nullable(),
   benchmarkMedianMs: z.number().positive().nullable(),
   benchmarkMeasurementsMs: z.array(z.number().positive()),
+  implementationAnalysisMarkdown: z.string().min(1).nullable(),
   sourceBatch: z.string().min(1),
   sourcePath: z.string().min(1),
   sourceUrl: z.string().url(),

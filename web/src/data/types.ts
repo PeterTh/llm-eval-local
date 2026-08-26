@@ -221,6 +221,7 @@ export interface RunRecord {
   benchmarkSuccess: boolean | null;
   benchmarkMedianMs: number | null;
   benchmarkMeasurementsMs: number[];
+  implementationAnalysisMarkdown: string | null;
   sourceBatch: string;
   sourcePath: string;
   sourceUrl: string;

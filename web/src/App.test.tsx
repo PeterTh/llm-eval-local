@@ -96,6 +96,7 @@ describe("explorer routing", () => {
     await waitFor(() => expect(screen.getByText("1 matching runs")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("link", { name: "bench&one_model/a?x_gpu+x_r1" }));
     expect(await screen.findByRole("heading", { name: "bench&one_model/a?x_gpu+x_r1" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Winning implementation analysis" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Generated source directory/ })).toHaveAttribute("target", "_blank");
     expect(screen.getByRole("link", { name: /Back to matching runs/ })).toHaveAttribute("href", expect.stringContaining("benchmark=bench%26one"));
     const performanceLink = screen.getByRole("link", { name: /Performance in this benchmark cell/ });
@@ -192,6 +193,20 @@ describe("explorer routing", () => {
     await userEvent.click(performanceLink);
     expect(await screen.findByRole("heading", { name: "Performance" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByLabelText("Current performance selection summary")).toHaveTextContent(/2 models/));
+  });
+
+  it("renders an analyzed run as a final Markdown card without repeating the run title", async () => {
+    const runId = "bench&one_model/a?x_gpu+x_r2";
+    const { container } = await renderApp(`/run/${encodeURIComponent(runId)}`);
+
+    expect(await screen.findByRole("heading", { name: runId, level: 1 })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: runId })).toHaveLength(1);
+    const analysisCard = screen.getByRole("region", { name: "Winning implementation analysis" });
+    expect(within(analysisCard).getByRole("heading", { name: "Scope", level: 3 })).toBeInTheDocument();
+    expect(within(analysisCard).getByText("winning implementation")).toHaveProperty("tagName", "STRONG");
+    expect(within(analysisCard).getByRole("table")).toBeInTheDocument();
+    expect(within(analysisCard).getByRole("list")).toHaveTextContent("No benchmark measurements changed.");
+    expect(analysisCard.previousElementSibling).toHaveClass("detail-grid");
   });
 
   it("shows explicit empty and error states for model-score observations", async () => {

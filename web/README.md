@@ -43,7 +43,9 @@ npm run test:e2e
 
 Run shards preserve the explicit timing-fix flag and issue categories. For corrected
 runs, the primary source URL resolves to the measured timing-corrected revision and
-the original generated revision remains available alongside it.
+the original generated revision remains available alongside it. Markdown files under
+`analysis/notes/individual/<run-id>.md` are validated against scored run IDs and
+embedded only in the matching run record for conditional rendering on its detail page.
 
 Cost profiles are read from the canonical 4d analysis table. Explicit model/profile aliases and token-accounting conventions live in `config/cost.json`; missing profiles or token records remain unavailable rather than being represented as zero.
 
