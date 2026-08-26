@@ -1,8 +1,8 @@
 # LLM Autoparallelization Benchmark Data Repository
 
 This repository contains extended validation, performance benchmarking, scoring,
-and analysis artifacts for LLM-based parallelization, using the methodology first 
-introduced in the paper [**Evaluating the Parallelization Capabilities of 
+and analysis artifacts for LLM-based parallelization, using the methodology first
+introduced in the paper [**Evaluating the Parallelization Capabilities of
 State-of-the-art Agentic Large Language Models**](https://doi.org/10.1007/978-3-032-35248-4_2)
 presented at Euro-Par 2026.
 
