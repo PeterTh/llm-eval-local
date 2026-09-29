@@ -12,6 +12,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: origin,
+    browserName: process.env.PLAYWRIGHT_BROWSER === "firefox" ? "firefox" : "chromium",
     colorScheme: "light",
     locale: "en-US",
     trace: "retain-on-failure",

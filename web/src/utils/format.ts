@@ -30,6 +30,10 @@ export function formatMilliseconds(value: number | null): string {
   return `${value.toLocaleString(undefined, millisecondFormatOptions)} ms`;
 }
 
+export function formatGenerationTime(seconds: number | null): string {
+  return seconds === null ? "—" : `${(seconds / 60).toLocaleString(undefined, { maximumFractionDigits: 2 })} min`;
+}
+
 export function formatScore(value: number | null): string {
   return value === null ? "—" : scoreFormatter.format(value);
 }

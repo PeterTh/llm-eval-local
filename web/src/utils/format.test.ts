@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatCount,
+  formatGenerationTime,
   formatMilliseconds,
   formatScore,
   formatSnapshotTimestamp,
@@ -11,6 +12,10 @@ import {
 } from "./format";
 
 describe("formatMilliseconds", () => {
+  it("formats generation seconds as locale-aware minutes", () => {
+    expect(formatGenerationTime(1777.158640909)).toBe(`${(1777.158640909 / 60).toLocaleString(undefined, { maximumFractionDigits: 2 })} min`);
+    expect(formatGenerationTime(null)).toBe("—");
+  });
   it("uses the runtime locale and common precision for complete millisecond values", () => {
     const value = 1_234_567.8912;
     const expectedNumber = value.toLocaleString(undefined, { maximumFractionDigits: 3 });

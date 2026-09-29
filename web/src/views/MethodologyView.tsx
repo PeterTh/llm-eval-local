@@ -48,7 +48,7 @@ export function MethodologyView() {
       <PageIntro
         eyebrow="Study design"
         title="Methodology"
-        description={<>Summary of the program generation, validation, performance measurement, scoring, and cost-estimation procedures represented by this dataset snapshot.</>}
+        description={<>Summary of the program generation, validation, performance measurement, scoring, cost estimation, and generation-time measurements represented by this dataset snapshot.</>}
         aside={(
           <div className="metric-strip" aria-label="Dataset design summary">
             <div><strong>{manifest.counts.runs.toLocaleString()}</strong><span>runs</span></div>
@@ -224,6 +224,23 @@ export function MethodologyView() {
             </p>
           </section>
 
+          <section className="methodology-section" aria-labelledby="method-time">
+            <p className="eyebrow">Time efficiency</p>
+            <h2 id="method-time">Agent generation time</h2>
+            <p>
+              Generation time is the total elapsed time for the agent invocation, including tool execution,
+              as recorded in seconds in the release’s <code>total_time</code> field.
+              It measures the time spent producing the program, separately from the later validation and
+              benchmark measurements used to evaluate the result.
+            </p>
+            <p>
+              These observations reflect the combined effects of the LLM, its agent harness, the provider’s
+              service, and tool use. All selected scored runs contribute to the score mean, including
+              unsuccessful results; available generation times are used to calculate arithmetic means and
+              distributions.
+            </p>
+          </section>
+
           <section className="methodology-section" aria-labelledby="method-cost">
             <p className="eyebrow">Cost estimation</p>
             <h2 id="method-cost">Frozen API pricing</h2>
@@ -257,6 +274,7 @@ export function MethodologyView() {
               <a href={`${artifactRoot}/release`} target="_blank" rel="noreferrer"><span>Combined release and campaign catalog</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/release/local_scoring_threshold_review.yaml`} target="_blank" rel="noreferrer"><span>Threshold review</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/release/scoring_metadata.yaml`} target="_blank" rel="noreferrer"><span>Scoring metadata</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/release/scored_results.csv`} target="_blank" rel="noreferrer"><span>Scores and generation times</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/analysis/src/all_models_score_vs_cost.py`} target="_blank" rel="noreferrer"><span>Cost estimation generator</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/${manifest.cost.sourcePath}`} target="_blank" rel="noreferrer"><span>Frozen pricing profiles</span><strong>GitHub ↗</strong></a>
               <a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer"><span>Generated programs</span><strong>GitHub ↗</strong></a>

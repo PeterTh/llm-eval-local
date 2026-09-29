@@ -11,6 +11,7 @@ const navigation = [
   { to: "/complexity", label: "Complexity", enabled: true, className: "nav-complexity" },
   { to: "/performance", label: "Performance", enabled: true, className: "nav-performance" },
   { to: "/cost", label: "Cost Efficiency", enabled: true, className: "nav-cost" },
+  { to: "/time", label: "Time Efficiency", enabled: true, className: "nav-time" },
   { to: "/runs", label: "Runs", enabled: true, className: "nav-runs" },
 ] as const;
 
@@ -72,7 +73,7 @@ export function SiteHeader() {
                 carried out by the <a href="https://dps.uibk.ac.at/" target="_blank" rel="noreferrer">Distributed
                 and Parallel Systems Research Group</a> at the <a href="https://www.uibk.ac.at/" target="_blank" rel="noreferrer">University of Innsbruck</a>.
               </p>
-              <p><Link to={{ pathname: "/methodology", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Methodology</Link> summarizes the experimental design, validation pipeline, performance measurements, scoring, and cost estimation.</p>
+              <p><Link to={{ pathname: "/methodology", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Methodology</Link> summarizes the experimental design, validation pipeline, performance measurements, scoring, cost estimation, and generation time.</p>
               <p><Link to={{ pathname: "/cite", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Citation information</Link> lists the authors and copyable BibTeX.</p>
               <dl className="provenance-list compact">
                 <div><dt>Artifact</dt><dd><a href={snapshotUrl} target="_blank" rel="noreferrer">{shortHash(manifest.artifactCommit)}</a></dd></div>

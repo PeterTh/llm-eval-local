@@ -5,6 +5,7 @@ import {
   runIndexSchema,
   runShardSchema,
   scoreCubeSchema,
+  timeDatasetSchema,
 } from "./schema";
 import type {
   CellDescriptor,
@@ -13,11 +14,13 @@ import type {
   RunIndexEntry,
   RunRecord,
   ScoreCubeCell,
+  TimeDataset,
 } from "./types";
 
 const shardCache = new Map<string, Promise<RunRecord[]>>();
 let runIndexPromise: Promise<Record<string, RunIndexEntry>> | null = null;
 let costDatasetPromise: Promise<CostDataset> | null = null;
+const timeDatasetCache = new Map<string, Promise<TimeDataset>>();
 
 function assetUrl(path: string): string {
   const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
@@ -95,8 +98,28 @@ export function loadCostDataset(manifest: DatasetManifest): Promise<CostDataset>
   return costDatasetPromise;
 }
 
+export async function loadTimeDataset(manifest: DatasetManifest): Promise<TimeDataset> {
+  const path = manifest.time.datasetPath;
+  let request = timeDatasetCache.get(path);
+  if (!request) {
+    request = fetchJson(path).then((value) => timeDatasetSchema.parse(value));
+    timeDatasetCache.set(path, request);
+  }
+  try {
+    const dataset = await request;
+    if (dataset.sourceDigest !== manifest.scoringDigest) {
+      throw new Error("Time dataset source digest disagrees with its manifest");
+    }
+    return dataset;
+  } catch (error) {
+    timeDatasetCache.delete(path);
+    throw error;
+  }
+}
+
 export function clearDataCacheForTests(): void {
   shardCache.clear();
   runIndexPromise = null;
   costDatasetPromise = null;
+  timeDatasetCache.clear();
 }

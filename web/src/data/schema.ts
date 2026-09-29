@@ -106,7 +106,7 @@ const costDatasetDescriptorSchema = z.object({
 });
 
 export const datasetManifestSchema = z.object({
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   title: z.string().min(1),
   subtitle: z.string().min(1),
   artifactRepository: z.string().url(),
@@ -134,6 +134,7 @@ export const datasetManifestSchema = z.object({
   backends: z.array(entitySchema),
   methodology: methodologySchema,
   cost: costDatasetDescriptorSchema,
+  time: z.object({ datasetPath: z.string().min(1) }),
   cells: z.array(cellSchema),
   scoreCubePath: z.string().min(1),
   runIndexPath: z.string().min(1),
@@ -191,6 +192,7 @@ export const runRecordSchema = z.object({
   backendId: z.string().min(1),
   repetition: z.number().int().positive(),
   overallScore: z.number().int(),
+  generationTimeSeconds: z.number().positive().nullable(),
   scoreBandId: z.string().min(1),
   validationStatus: z.number().int().nonnegative(),
   validationMessage: z.string(),
@@ -220,6 +222,28 @@ export const runRecordSchema = z.object({
 });
 
 export const runShardSchema = z.array(runRecordSchema);
+
+export const timeDatasetSchema = z.object({
+  schemaVersion: z.literal(1),
+  sourceDigest: z.string().regex(/^[0-9a-f]{64}$/),
+  runs: z.array(z.object({
+    id: z.string().min(1),
+    modelId: z.string().min(1),
+    benchmarkId: z.string().min(1),
+    backendId: z.string().min(1),
+    repetition: z.number().int().positive(),
+    overallScore: z.number().int(),
+    generationTimeSeconds: z.number().positive().nullable(),
+  })),
+}).superRefine((dataset, context) => {
+  const ids = new Set<string>();
+  dataset.runs.forEach((run, index) => {
+    if (ids.has(run.id)) {
+      context.addIssue({ code: "custom", message: `duplicate time run: ${run.id}`, path: ["runs", index, "id"] });
+    }
+    ids.add(run.id);
+  });
+});
 
 export const runIndexSchema = z.record(z.string(), z.object({
   benchmarkId: z.string().min(1),

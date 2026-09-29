@@ -11,8 +11,10 @@ const fixtures = vi.hoisted(() => ({
   dataset: null as null | { manifest: unknown; scoreCube: unknown },
   runs: null as null | unknown[],
   costDataset: null as null | unknown,
+  timeDataset: null as null | unknown,
   runError: null as Error | null,
   costError: null as Error | null,
+  timeError: null as Error | null,
 }));
 
 vi.mock("./data/client", async () => {
@@ -32,6 +34,10 @@ vi.mock("./data/client", async () => {
       if (fixtures.costError) throw fixtures.costError;
       return fixtures.costDataset;
     }),
+    loadTimeDataset: vi.fn(async () => {
+      if (fixtures.timeError) throw fixtures.timeError;
+      return fixtures.timeDataset;
+    }),
     loadRunById: vi.fn(async (_manifest, id: string) => fixtures.runs?.find((run: any) => run.id === id) ?? null),
   };
 });
@@ -43,7 +49,9 @@ vi.mock("./components/VegaChart", () => ({
     const targetComplexity = ariaLabel.startsWith("Target complexity violin chart");
     const performance = ariaLabel.startsWith("Performance chart");
     const cost = ariaLabel.startsWith("Cost efficiency chart");
-    const label = scores
+    const time = ariaLabel.startsWith("Time efficiency chart");
+    const timeDistribution = ariaLabel.startsWith("Time distribution chart");
+    const label = time ? "Synthetic time point" : timeDistribution ? "Synthetic time outlier" : scores
       ? "Synthetic score point"
       : benchmarkComplexity
         ? "Synthetic benchmark violin"
@@ -58,7 +66,7 @@ vi.mock("./components/VegaChart", () => ({
       <button
         type="button"
         onClick={() => onDatumClick?.(
-          scores
+          time ? { modelId: "model/a?x" } : timeDistribution ? { runId: "bench&one_model/a?x_gpu+x_r1" } : scores
             ? { runId: "bench&one_model/a?x_gpu+x_r1" }
             : benchmarkComplexity
               ? { categoryType: "benchmark", categoryId: "bench&one" }
@@ -77,19 +85,67 @@ vi.mock("./components/VegaChart", () => ({
   },
 }));
 
-async function renderApp(initial = "/tiers", options: { runError?: Error; costError?: Error } = {}) {
-  const { costDatasetFixture, manifestFixture, scoreCubeFixture, runsFixture } = await import("./test/fixtures");
+async function renderApp(initial = "/tiers", options: { runError?: Error; costError?: Error; timeError?: Error; timeDataset?: unknown } = {}) {
+  const { costDatasetFixture, timeDatasetFixture, manifestFixture, scoreCubeFixture, runsFixture } = await import("./test/fixtures");
   fixtures.dataset = { manifest: manifestFixture, scoreCube: scoreCubeFixture };
   fixtures.runs = runsFixture;
   fixtures.costDataset = costDatasetFixture;
+  fixtures.timeDataset = options.timeDataset ?? timeDatasetFixture;
   fixtures.runError = options.runError ?? null;
   fixtures.costError = options.costError ?? null;
+  fixtures.timeError = options.timeError ?? null;
   const rendered = render(<MemoryRouter initialEntries={[initial]}><DatasetProvider><App /></DatasetProvider></MemoryRouter>);
   await screen.findByRole("link", { name: "LLM Autoparallelization Benchmark home" });
   return rendered;
 }
 
 describe("explorer routing", () => {
+  it("shares filters with Time Efficiency and keeps scale defaults scoped to each page", async () => {
+    await renderApp("/cost?model=model%2Fa%3Fx&benchmark=bench%26one&backend=gpu%2Bx&scale=linear");
+    await userEvent.click(screen.getByRole("link", { name: "Time Efficiency" }));
+    expect(await screen.findByRole("heading", { name: "Time Efficiency" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText("Current time efficiency selection summary")).toHaveTextContent(/1 model\s*2 scores\s*2 times/));
+    expect(screen.getByRole("combobox", { name: "Time scale" })).toHaveValue("linear");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Time scale" }), "log");
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic time outlier" }));
+    expect(await screen.findByRole("heading", { name: "1 min generation time" })).toBeInTheDocument();
+    const back = screen.getByRole("link", { name: /Back to Time Efficiency/ });
+    expect(back).toHaveAttribute("href", "/time?model=model%2Fa%3Fx&benchmark=bench%26one&backend=gpu%2Bx&scale=log");
+    await userEvent.click(back);
+    expect(await screen.findByRole("combobox", { name: "Time scale" })).toHaveValue("log");
+    await userEvent.click(await screen.findByRole("button", { name: "Synthetic time point" }));
+    expect(await screen.findByRole("heading", { name: "Runs" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("link", { name: "Time Efficiency" }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Time scale" }), "log");
+    await userEvent.click(screen.getByRole("button", { name: /Reset/ }));
+    expect(screen.getByRole("combobox", { name: "Time scale" })).toHaveValue("linear");
+    await userEvent.click(screen.getByRole("link", { name: "Cost Efficiency" }));
+    expect(screen.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
+  });
+
+  it("distinguishes empty selections from unavailable timings and recovers after a load failure", async () => {
+    const failed = await renderApp("/time", { timeError: new Error("Temporary failure") });
+    expect(await screen.findByText("The time observations could not be loaded.")).toBeInTheDocument();
+    fixtures.timeError = null;
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("button", { name: "Synthetic time point" })).toBeInTheDocument();
+    failed.unmount();
+    const empty = await renderApp("/time?benchmark=missing-cell");
+    expect(await screen.findByText("This filter combination has no scored runs.")).toBeInTheDocument();
+    empty.unmount();
+    const { timeDatasetFixture } = await import("./test/fixtures");
+    await renderApp("/time", { timeDataset: { ...timeDatasetFixture, runs: timeDatasetFixture.runs.map((run) => ({ ...run, generationTimeSeconds: null })) } });
+    expect(await screen.findByText("Generation times are unavailable for this selection.")).toBeInTheDocument();
+    expect(screen.getByText(/scored runs have no generation time/)).toBeInTheDocument();
+    expect(screen.getByText("Accessible time efficiency table")).toBeInTheDocument();
+  });
+
+  it("announces loading while time data is pending", async () => {
+    await renderApp("/time", { timeDataset: new Promise(() => {}) });
+    expect(screen.getByText("Loading time records…")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Export aggregates/ })).toBeDisabled();
+  });
+
   it("drills from a tier segment to filtered runs and preserves context in detail", async () => {
     await renderApp("/tiers?benchmark=bench%26one&backend=gpu%2Bx");
     await userEvent.click(screen.getByRole("button", { name: "Synthetic chart segment" }));

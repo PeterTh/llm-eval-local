@@ -150,7 +150,7 @@ export interface CostDataset {
 }
 
 export interface DatasetManifest {
-  schemaVersion: 2;
+  schemaVersion: 3;
   title: string;
   subtitle: string;
   artifactRepository: string;
@@ -178,6 +178,7 @@ export interface DatasetManifest {
   backends: EntityMetadata[];
   methodology: MethodologyMetadata;
   cost: CostDatasetDescriptor;
+  time: { datasetPath: string };
   cells: CellDescriptor[];
   scoreCubePath: string;
   runIndexPath: string;
@@ -215,6 +216,7 @@ export interface RunRecord {
   backendId: string;
   repetition: number;
   overallScore: number;
+  generationTimeSeconds: number | null;
   scoreBandId: string;
   validationStatus: number;
   validationMessage: string;
@@ -230,6 +232,15 @@ export interface RunRecord {
   timingCorrection: TimingCorrectionProvenance | null;
   validationEvidenceUrl: string;
   benchmarkEvidenceUrl: string | null;
+}
+
+export type TimeRunRecord = Pick<RunRecord,
+  "id" | "modelId" | "benchmarkId" | "backendId" | "repetition" | "overallScore" | "generationTimeSeconds">;
+
+export interface TimeDataset {
+  schemaVersion: 1;
+  sourceDigest: string;
+  runs: TimeRunRecord[];
 }
 
 export type SortOrder = "weakest" | "strongest" | "alphabetical";

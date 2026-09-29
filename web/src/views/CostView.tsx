@@ -114,7 +114,8 @@ export function CostView() {
     description: `Mean overall score versus estimated API cost for ${chartPoints.length} models.`,
     width: 600,
     height: chartHeight,
-    autosize: { type: "fit", contains: "padding", resize: true },
+    // VegaChart refits on container resize; refitting on hover can oscillate with label placement.
+    autosize: { type: "fit", contains: "padding" },
     padding: { left: 8, right: 8, top: 12, bottom: 6 },
     data: [{ name: "cost_values", values: chartPoints }],
     scales: [
@@ -199,8 +200,8 @@ export function CostView() {
         transform: [{
           type: "label",
           // Denser model sets need additional collision-free positions, especially on mobile.
-          anchor: [7, 15, 25].flatMap(() => LABEL_ANCHORS),
-          offset: [7, 15, 25].flatMap((distance) => LABEL_ANCHORS.map(() => distance)),
+          anchor: [9, 18, 30].flatMap(() => LABEL_ANCHORS),
+          offset: [9, 18, 30].flatMap((distance) => LABEL_ANCHORS.map(() => distance)),
           padding: isNarrow ? 32 : 4,
           size: { signal: "[width, height]" },
         }],

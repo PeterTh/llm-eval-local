@@ -1,5 +1,6 @@
 import type { RunRecord } from "../data/types";
 import type { CostModelSummary } from "../analysis/cost";
+import type { TimeModelSummary } from "../analysis/time";
 
 function csvCell(value: unknown): string {
   const text = value === null || value === undefined ? "" : String(value);
@@ -87,4 +88,22 @@ export function downloadText(filename: string, content: string, type: string): v
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+export function timeSummariesToCsv(summaries: readonly TimeModelSummary[]): string {
+  const headers = [
+    "model", "model_label", "mean_score", "score_run_count", "time_run_count", "unavailable_time_run_count",
+    "mean_generation_seconds", "median_generation_seconds", "q1_generation_seconds", "q3_generation_seconds",
+    "lower_whisker_generation_seconds", "upper_whisker_generation_seconds", "minimum_generation_seconds",
+    "maximum_generation_seconds", "outlier_count",
+  ];
+  const rows = summaries.map((summary) => {
+    const stats = summary.distribution;
+    return [
+      summary.modelId, summary.modelLabel, summary.meanScore, summary.scoreRunCount, summary.timeRunCount,
+      summary.unavailableTimeRunCount, summary.meanGenerationTimeSeconds, stats?.median, stats?.firstQuartile,
+      stats?.thirdQuartile, stats?.lowerWhisker, stats?.upperWhisker, stats?.minimum, stats?.maximum, stats?.outlierCount,
+    ].map(csvCell).join(",");
+  });
+  return `${headers.join(",")}\n${rows.join("\n")}\n`;
 }

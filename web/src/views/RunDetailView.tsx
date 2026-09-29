@@ -8,7 +8,7 @@ import { PageIntro } from "../components/PageIntro";
 import { loadCostDataset, loadRunById } from "../data/client";
 import { useDataset } from "../data/context";
 import type { CostDataset, RunRecord } from "../data/types";
-import { formatCount, formatMilliseconds, formatUsd } from "../utils/format";
+import { formatCount, formatGenerationTime, formatMilliseconds, formatUsd } from "../utils/format";
 
 function boolLabel(value: boolean | null): string {
   if (value === true) return "Passed";
@@ -69,10 +69,10 @@ export function RunDetailView() {
   const origin = returnParams.get("from");
   returnParams.delete("from");
   const returnQuery = returnParams.toString();
-  const originPath = origin === "scores" ? "/scores" : origin === "performance" ? "/performance" : "/runs";
-  const originLabel = origin === "scores" ? "Model Scores" : origin === "performance" ? "performance" : "runs";
+  const originPath = origin === "time" ? "/time" : origin === "scores" ? "/scores" : origin === "performance" ? "/performance" : "/runs";
+  const originLabel = origin === "time" ? "Time Efficiency" : origin === "scores" ? "Model Scores" : origin === "performance" ? "performance" : "runs";
   const backPath = `${originPath}${returnQuery ? `?${returnQuery}` : ""}`;
-  const backLabel = origin === "scores" ? "Back to Model Scores" : origin === "performance" ? "Back to performance" : "Back to matching runs";
+  const backLabel = origin === "time" ? "Back to Time Efficiency" : origin === "scores" ? "Back to Model Scores" : origin === "performance" ? "Back to performance" : "Back to matching runs";
   if (error) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Data error</p><h1>The result could not be loaded.</h1><p>{error.message}</p><Link to={backPath}>Return to {originLabel}</Link></div></main>;
   if (run === undefined) return <main id="main-content" className="page-shell"><div className="detail-loading">Loading run evidence…</div></main>;
   if (run === null) return <main id="main-content" className="page-shell"><div className="empty-state"><p className="eyebrow">Unknown result</p><h1>No run has this identifier.</h1><Link to={backPath}>Return to {originLabel}</Link></div></main>;
@@ -147,6 +147,12 @@ export function RunDetailView() {
           )}
         </section>
 
+        <section className="detail-card generation-card" aria-labelledby="run-time-heading">
+          <p className="eyebrow">Program generation</p>
+          <h2 id="run-time-heading">{run.generationTimeSeconds === null ? "Generation time unavailable" : `${formatGenerationTime(run.generationTimeSeconds)} generation time`}</h2>
+          <p>Agent generation time includes tool execution and excludes documented retry waits. Benchmark execution time is reported separately above.</p>
+        </section>
+
         <section className="detail-card cost-card" aria-labelledby="run-cost-heading">
           <p className="eyebrow">Tokens and cost</p>
           <h2 id="run-cost-heading">
@@ -216,6 +222,7 @@ export function RunDetailView() {
           <Link to={`/scores?${tierQuery}`}>This model in Model Scores <span>→</span></Link>
           <Link to={`/performance?${performanceQuery}`}>Performance in this benchmark cell <span>→</span></Link>
           <Link to={`/cost?${costQuery}`}>This model in Cost Efficiency <span>→</span></Link>
+          <Link to={`/time?${costQuery}`}>This model in Time Efficiency <span>→</span></Link>
           <Link to={`/runs?${cellQuery}`}>All runs in this benchmark cell <span>→</span></Link>
         </aside>
       </div>

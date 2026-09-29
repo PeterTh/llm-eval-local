@@ -1,7 +1,8 @@
-import type { CostDataset, DatasetManifest, RunRecord, ScoreCubeCell } from "../data/types";
+import type { CostDataset, DatasetManifest, RunRecord, ScoreCubeCell, TimeDataset } from "../data/types";
 
 export const manifestFixture: DatasetManifest = {
-  schemaVersion: 2,
+  schemaVersion: 3,
+  time: { datasetPath: "data/time.test.json" },
   title: "Test evaluation",
   subtitle: "Synthetic fixture",
   artifactRepository: "https://github.com/example/artifact",
@@ -83,7 +84,7 @@ export const scoreCubeFixture: ScoreCubeCell[] = [
 export const runsFixture: RunRecord[] = [
   {
     id: "bench&one_model/a?x_gpu+x_r1", modelId: "model/a?x", benchmarkId: "bench&one", backendId: "gpu+x",
-    repetition: 1, overallScore: 4, scoreBandId: "invalid", validationStatus: 2, validationMessage: "compile failed",
+    repetition: 1, overallScore: 4, generationTimeSeconds: 60, scoreBandId: "invalid", validationStatus: 2, validationMessage: "compile failed",
     validationStages: { build: false, run: null }, benchmarkSuccess: null, benchmarkMedianMs: null, benchmarkMeasurementsMs: [],
     implementationAnalysisMarkdown: null,
     sourceBatch: "batch", sourcePath: "batch/result one", sourceUrl: "https://github.com/example/generated/tree/cccc/result%20one",
@@ -92,7 +93,7 @@ export const runsFixture: RunRecord[] = [
   },
   {
     id: "bench&one_model/a?x_gpu+x_r2", modelId: "model/a?x", benchmarkId: "bench&one", backendId: "gpu+x",
-    repetition: 2, overallScore: 8, scoreBandId: "good-top", validationStatus: 5, validationMessage: "",
+    repetition: 2, overallScore: 8, generationTimeSeconds: 180, scoreBandId: "good-top", validationStatus: 5, validationMessage: "",
     validationStages: { build: true, run: true }, benchmarkSuccess: true, benchmarkMedianMs: 10, benchmarkMeasurementsMs: [9, 10, 10, 11, 10],
     implementationAnalysisMarkdown: [
       "# `bench&one_model/a?x_gpu+x_r2`",
@@ -135,7 +136,7 @@ export const runsFixture: RunRecord[] = [
   },
   {
     id: "bench&one_unknown-model_gpu+x_r1", modelId: "unknown-model", benchmarkId: "bench&one", backendId: "gpu+x",
-    repetition: 1, overallScore: 10, scoreBandId: "good-top", validationStatus: 5, validationMessage: "",
+    repetition: 1, overallScore: 10, generationTimeSeconds: 300, scoreBandId: "good-top", validationStatus: 5, validationMessage: "",
     validationStages: { build: true, run: true }, benchmarkSuccess: false, benchmarkMedianMs: null, benchmarkMeasurementsMs: [],
     implementationAnalysisMarkdown: null,
     sourceBatch: "batch", sourcePath: "batch/result three", sourceUrl: "https://github.com/example/generated/tree/cccc/result%20three",
@@ -189,4 +190,12 @@ export const costDatasetFixture: CostDataset = {
       outputTokens: 10, totalTokens: 90, estimatedCostUsd: 0.000084,
     },
   ],
+};
+
+export const timeDatasetFixture: TimeDataset = {
+  schemaVersion: 1,
+  sourceDigest: manifestFixture.scoringDigest,
+  runs: runsFixture.map(({ id, modelId, benchmarkId, backendId, repetition, overallScore, generationTimeSeconds }) => ({
+    id, modelId, benchmarkId, backendId, repetition, overallScore, generationTimeSeconds,
+  })),
 };

@@ -10,7 +10,7 @@ function selectedValues(params: URLSearchParams, key: string, allowed: Set<strin
   return [...new Set(params.getAll(key).filter((value) => allowed.has(value)))];
 }
 
-export function useFilterState(manifest: DatasetManifest) {
+export function useFilterState(manifest: DatasetManifest, { defaultScale = "log" }: { defaultScale?: FilterState["scale"] } = {}) {
   const [params, setParams] = useSearchParams();
   const defaultModelSet = useMemo(() => getDefaultModelSet(manifest), [manifest]);
   const state = useMemo<FilterState>(() => {
@@ -35,10 +35,10 @@ export function useFilterState(manifest: DatasetManifest) {
       scoreBands: selectedValues(params, "band", new Set(manifest.scoreScale.bands.map((band) => band.id))),
       outcome: outcome === "successful" || outcome === "failed" || outcome === "unavailable" ? outcome : "all",
       sort: sortValue && sortOrders.has(sortValue) ? sortValue : "weakest",
-      scale: scale === "linear" ? "linear" : "log",
+      scale: scale === "linear" || scale === "log" ? scale : defaultScale,
       performanceMode: performanceMode === "relative" ? "relative" : "absolute",
     };
-  }, [defaultModelSet, manifest, params]);
+  }, [defaultModelSet, defaultScale, manifest, params]);
 
   const replaceValues = useCallback((key: string, values: readonly string[]) => {
     setParams((current) => {

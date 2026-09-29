@@ -11,6 +11,7 @@ import { RunDetailView } from "./views/RunDetailView";
 import { RunsView } from "./views/RunsView";
 import { ScoresView } from "./views/ScoresView";
 import { TiersView } from "./views/TiersView";
+import { TimeView } from "./views/TimeView";
 
 export function App() {
   return (
@@ -25,6 +26,7 @@ export function App() {
         <Route path="/complexity" element={<ComplexityView />} />
         <Route path="/performance" element={<PerformanceView />} />
         <Route path="/cost" element={<CostView />} />
+        <Route path="/time" element={<TimeView />} />
         <Route path="/methodology" element={<MethodologyView />} />
         <Route path="/cite" element={<CiteView />} />
         <Route path="*" element={<Navigate to="/tiers" replace />} />

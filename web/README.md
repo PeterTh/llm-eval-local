@@ -29,7 +29,7 @@ npm run build
 npm run test:e2e
 ```
 
-`npm run check` runs the generator, strict type checking, unit/component tests, and a two-pass deterministic-output check. `npm run test:e2e` builds the production bundle, starts a local static server, and tests desktop and narrow-mobile layouts with Playwright-managed Chromium.
+`npm run check` runs the generator, strict type checking, unit/component tests, and a two-pass deterministic-output check. `npm run test:e2e` builds the production bundle, starts a local static server, and tests desktop and narrow-mobile layouts with Playwright-managed Chromium. Install Playwright Firefox with `npx playwright install firefox` and set `PLAYWRIGHT_BROWSER=firefox` to run the same suite in Firefox. Hover-stability tests cover both efficiency scatter plots, including real window resizing and both axis scales.
 
 ## Generated data
 
@@ -39,6 +39,7 @@ npm run test:e2e
 - one compact score-count cube loaded by analytical overview pages;
 - one run index used for direct result URLs;
 - one lazy cost dataset containing frozen pricing profiles and per-run token/cost records;
+- one lazy timing dataset containing scores and agent generation durations, checked against the scoring digest;
 - one lazily loaded run shard for each observed benchmark/backend cell.
 
 Run shards preserve the explicit timing-fix flag and issue categories. For corrected
@@ -48,6 +49,8 @@ the original generated revision remains available alongside it. Markdown files u
 embedded only in the matching run record for conditional rendering on its detail page.
 
 Cost profiles are read from the canonical 4d analysis table. Explicit model/profile aliases and token-accounting conventions live in `config/cost.json`; missing profiles or token records remain unavailable rather than being represented as zero.
+
+Generation durations come from `total_time` in `release/scored_results.csv`, in seconds, with documented retry backoff already removed. The manifest uses schema version 3. Run shards carry the same nullable `generationTimeSeconds` field as the timing dataset. Missing durations remain null; supplied durations must be finite and positive. Time Efficiency includes unsuccessful results, calculates statistics before axis transforms, and displays minutes while exporting seconds. Its scatter plot and Tukey distributions share filters and a scale control, with separate complete time domains. The time view defaults to linear; Cost Efficiency and Performance retain logarithmic defaults.
 
 Entity IDs are arbitrary strings. Existing presentation labels, backend order, and named model sets are optional overrides in `config/site.json`; an unseen ID is displayed verbatim. Exclusion-based model sets include newly observed models automatically.
 
@@ -63,4 +66,4 @@ Every coherent build proposed as final for a development step is held for visual
 
 ## Implemented analysis views
 
-The explorer currently includes Tiered Success, Model Scores, Benchmark / Target Complexity, Performance, Cost Efficiency, the full Runs table, individual result provenance/detail, methodology, and citation information.
+The explorer currently includes Tiered Success, Model Scores, Benchmark / Target Complexity, Performance, Cost Efficiency, Time Efficiency, the full Runs table, individual result provenance/detail, methodology, and citation information.
