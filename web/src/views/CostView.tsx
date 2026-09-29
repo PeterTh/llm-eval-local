@@ -24,6 +24,7 @@ const EMPTY_ANALYSIS: CostAnalysis = {
 
 const LIGHT_POINT_COLORS = ["#004aad", "#3c6fa8", "#655f9b", "#28786d", "#8a5b42", "#6f6d31", "#526f91"];
 const DARK_POINT_COLORS = ["#8fb8f5", "#74a7dc", "#aaa0e1", "#69b9ab", "#d5a080", "#b8b36a", "#91afd0"];
+const LABEL_ANCHORS = ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"];
 
 function compactChartLabel(label: string): string {
   if (label.length <= 19) return label;
@@ -101,7 +102,7 @@ export function CostView() {
     pricingQuantizationLabel: model.pricingQuantization ?? "Unavailable",
     pricingDateLabel: model.pricingAsOf ?? "Unavailable",
     pricingMatchLabel: model.pricingMatchNote ?? "Unavailable",
-  })), [analysis.plottedModels, pointColors]);
+  })), [analysis.plottedModels, pointColors, isNarrow]);
   const chartHeight = isNarrow
     ? Math.max(480, chartPoints.length * 42)
     : Math.max(400, chartPoints.length * 38);
@@ -197,8 +198,9 @@ export function CostView() {
         },
         transform: [{
           type: "label",
-          anchor: ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"],
-          offset: [7],
+          // Denser model sets need additional collision-free positions, especially on mobile.
+          anchor: [7, 15, 25].flatMap(() => LABEL_ANCHORS),
+          offset: [7, 15, 25].flatMap((distance) => LABEL_ANCHORS.map(() => distance)),
           padding: isNarrow ? 32 : 4,
           size: { signal: "[width, height]" },
         }],
@@ -270,7 +272,7 @@ export function CostView() {
         <header className="panel-heading">
           <div>
             <h2>Mean score vs. estimated API cost</h2>
-            <p>Costs use the pricing snapshot dated {manifest.cost.pricingAsOf}; missing token records are excluded from cost means.</p>
+            <p>Costs use independently dated, frozen pricing profiles (latest addition: {manifest.cost.pricingAsOf}); each model shows its own snapshot date. Missing token records are excluded from cost means.</p>
           </div>
           <button className="secondary-button" type="button" disabled={exporting || loading || analysis.models.length === 0} onClick={exportRecords}>
             {exporting ? "Preparing…" : "Export aggregates · CSV"}

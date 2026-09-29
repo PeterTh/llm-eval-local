@@ -77,7 +77,7 @@ export function SiteHeader() {
               <dl className="provenance-list compact">
                 <div><dt>Artifact</dt><dd><a href={snapshotUrl} target="_blank" rel="noreferrer">{shortHash(manifest.artifactCommit)}</a></dd></div>
                 <div><dt>Scoring digest</dt><dd><code>{shortHash(manifest.scoringDigest)}</code></dd></div>
-                <div><dt>Generated source</dt><dd><a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer">{shortHash(manifest.generatedSourceCommit)}</a></dd></div>
+                <div><dt>Latest source snapshot</dt><dd><a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer">{shortHash(manifest.generatedSourceCommit)}</a></dd></div>
                 <div><dt>Site build</dt><dd><code>{__SITE_BUILD_COMMIT__.slice(0, 9)}</code></dd></div>
               </dl>
             </div>

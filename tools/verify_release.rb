@@ -4,6 +4,8 @@
 require "optparse"
 
 require_relative "artifact_common"
+require_relative "current_release"
+require_relative "batch_checksums"
 
 class ReleaseVerifier
   MIB = 1024 * 1024
@@ -35,6 +37,7 @@ class ReleaseVerifier
   def run
     check("repository structure") { verify_structure }
     check("global checksums") { verify_global_checksums }
+    check("batch checksums") { BatchChecksums.run(@root, check: true) }
     check("budgets and artifact policy") { verify_budgets_and_policy }
     check("schemas") { verify_schema_documents }
     check("provenance and digest chains") { verify_provenance }
@@ -45,6 +48,7 @@ class ReleaseVerifier
     check("scores") { verify_scores }
     check("evidence scope") { verify_evidence_scope }
     check("incident evidence") { verify_incident }
+    check("combined release and batch evidence") { CurrentRelease.new(@root).run(check: true, require_reviews: true) }
 
     unless @errors.empty?
       warn "Artifact verification failed (#{@errors.size} checks):"
@@ -57,9 +61,9 @@ class ReleaseVerifier
     puts "Artifact verification passed"
     puts "  files: #{files.size}"
     puts "  logical bytes: #{bytes}"
-    puts "  validation: #{@validation_records.size} records, #{@fully_valid_ids.size} fully valid"
-    puts "  benchmark: #{@benchmark_records.size} records, #{@benchmark_success_ids.size} successful"
-    puts "  scores: #{@score_rows} records"
+    puts "  historical validation: #{@validation_records.size} records, #{@fully_valid_ids.size} fully valid"
+    puts "  historical benchmark: #{@benchmark_records.size} records, #{@benchmark_success_ids.size} successful"
+    puts "  historical scores: #{@score_rows} records (combined counts above)"
   end
 
   private

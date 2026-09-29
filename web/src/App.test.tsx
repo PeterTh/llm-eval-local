@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
 import { DatasetProvider } from "./data/context";
+import { manifestFixture } from "./test/fixtures";
 
 const fixtures = vi.hoisted(() => ({
   dataset: null as null | { manifest: unknown; scoreCube: unknown },
@@ -205,6 +206,9 @@ describe("explorer routing", () => {
     expect(within(analysisCard).getByRole("heading", { name: "Scope", level: 3 })).toBeInTheDocument();
     expect(within(analysisCard).getByText("winning implementation")).toHaveProperty("tagName", "STRONG");
     expect(within(analysisCard).getByRole("table")).toBeInTheDocument();
+    expect(within(analysisCard).getByRole("link", { name: "Retained evidence" })).toHaveAttribute(
+      "href", `${manifestFixture.artifactRepository}/blob/${manifestFixture.artifactCommit}/analysis/notes/probe.json`,
+    );
     expect(within(analysisCard).getByRole("list")).toHaveTextContent("No benchmark measurements changed.");
     expect(analysisCard.previousElementSibling).toHaveClass("detail-grid");
   });

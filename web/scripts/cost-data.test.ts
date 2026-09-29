@@ -48,6 +48,11 @@ function splitProfile(): CostPricingProfile {
 }
 
 describe("cost data generation", () => {
+  it("keeps historical prices dated independently when a later batch is added", () => {
+    const parsed = parseCostPricingProfiles([pricingRow(), pricingRow({ model: "model-b", pricing_as_of: "2026-09-29" })]);
+    expect(parsed.pricingAsOf).toBe("2026-09-29");
+    expect(parsed.profiles.map((profile) => profile.pricingAsOf)).toEqual(["2026-08-22", "2026-09-29"]);
+  });
   it("prices inclusive and exclusive cache accounting and the combined-token proxy", () => {
     const profile = splitProfile();
     const tokens = { inputTokens: 100, cachedInputTokens: 80, outputTokens: 20, totalTokens: 120 };

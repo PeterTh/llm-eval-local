@@ -1,0 +1,25 @@
+This correction campaign targets the recorded local evaluation platform:
+Linux x86_64 LP64, NVIDIA CUDA 12.6.77, GCC/libstdc++ 13, C++17, sm_86.
+The generated-source base revision is db27e2872a28b900024d318f6a3004a3a7fddfa7.
+
+The main investigator already established with a successful compile-only probe
+that the exact expression
+std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+has C++ type long on this target, and sizeof(long) is 8. MPI_LONG is therefore
+the matching datatype for that specific count expression on this platform.
+This is not a blanket claim that arbitrary integer types or MPI datatypes match.
+Probe SHA-256: d05f7d124d72c2b9481f14ad4f4f543d81f478204463f37efb4cef691d4c948a.
+Full source and command are retained in the original audit's platform-context.txt.
+
+Recorded validation uses 4 ranks for MPI and hybrid. Full benchmark profiles use
+128 MPI ranks or 4 hybrid ranks. No new performance problem sizes are frozen yet.
+For hybrid, each MPI rank starts through local_gpu_rank_wrapper.rb, which replaces
+CUDA_VISIBLE_DEVICES=0,1,2,3 with a single list entry selected by the local rank.
+Every generated rank consequently sees exactly one CUDA device. Both validation
+and benchmark commands use this wrapper. Its SHA-256 is
+4e39e95f72150ff76fc6c30b549a887ddf5b64084b900c70743db95a1d6268cf.
+
+These independently verified facts may be used in type and dataflow reasoning.
+They do not replace inspection of the corrected computation, collective calls,
+device-completion boundaries, canonical timing output, or original-to-corrected
+edit scope. Workers must not invoke tools, compile, or execute anything.

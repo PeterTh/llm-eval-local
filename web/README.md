@@ -33,7 +33,7 @@ npm run test:e2e
 
 ## Generated data
 
-`scripts/build-data.ts` reads the canonical parent artifact without modifying it. It validates score bounds, duplicate and missing joins, success/metric consistency, reviewed thresholds, provenance, and the five canonical millisecond measurements for successful benchmarks. It emits content-hashed files under `public/data/` plus a generated manifest pointer under `src/generated/`:
+`scripts/build-data.ts` reads the joined `release/` view without modifying it. The campaign catalog joins historical `data/` and supplementary `batches/` records; corrected validation overlays and per-campaign source revisions remain explicit. The generator validates score bounds, duplicate and missing joins, success/metric consistency, reviewed thresholds, provenance, and the five canonical millisecond measurements for successful benchmarks. It emits content-hashed files under `public/data/` plus a generated manifest pointer under `src/generated/`:
 
 - one manifest containing dataset identity, score bands, entities, cells, thresholds, and asset locations;
 - one compact score-count cube loaded by analytical overview pages;
@@ -57,7 +57,7 @@ The site uses Pages-safe hash routes. Model, benchmark, backend, tier, outcome, 
 
 ## Deployment
 
-Pull requests build and test without publishing. Updates to `web/` or `data/` on `main` run the same validation and upload `web/dist` through GitHub's artifact-based Pages workflow. The repository's Pages source must be set once to **GitHub Actions**.
+Pull requests build and test without publishing. Updates to website, campaign, release, individual-analysis, or analysis-table inputs on `main` run artifact verification and website tests before uploading `web/dist` through GitHub's artifact-based Pages workflow. The repository's Pages source must be set once to **GitHub Actions**.
 
 Every coherent build proposed as final for a development step is held for visual review before that step is accepted. Do not publish or treat a review build as accepted merely because automation passes.
 

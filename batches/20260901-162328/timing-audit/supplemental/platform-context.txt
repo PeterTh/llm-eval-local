@@ -1,0 +1,29 @@
+Evaluate timing for the recorded target profile, not arbitrary machine configurations.
+The target is Linux x86_64 LP64, CUDA 12.6.77, GCC/libstdc++ 13, C++17, sm_86.
+Hybrid validation and future full hybrid benchmarking both use exactly 4 MPI ranks
+on the same node and exactly one visible CUDA device per rank. The environment
+initially lists CUDA_VISIBLE_DEVICES=0,1,2,3, but every rank starts the same wrapper
+before executing the generated program. The wrapper selects one list entry by
+OMPI_COMM_WORLD_LOCAL_RANK and replaces CUDA_VISIBLE_DEVICES with only that entry.
+Consequently cudaGetDeviceCount in each generated rank sees exactly one device.
+
+Evidence verified statically by the main investigator (no program execution):
+- evaluation_manifest.yaml pipeline_source.files.local_gpu_rank_wrapper.rb SHA-256:
+  4e39e95f72150ff76fc6c30b549a887ddf5b64084b900c70743db95a1d6268cf
+- local_gpu_rank_wrapper.rb lines 3-10:
+  devices = ENV.fetch("CUDA_VISIBLE_DEVICES", "0,1,2,3").split(",").reject(&:empty?)
+  local_rank = Integer(ENV.fetch("OMPI_COMM_WORLD_LOCAL_RANK", "0"), 10)
+  [checks that the selected list entry exists]
+  ENV["CUDA_VISIBLE_DEVICES"] = devices.fetch(local_rank)
+  exec(*ARGV)
+- lib/local_evaluation/support.rb lines 1452-1455 and 1470-1473:
+  both validation and benchmark hybrid launch commands use mpirun --np 4,
+  followed by the Ruby interpreter, this wrapper, and the generated executable.
+- The retained validation_out_command.log for this program confirms that launch
+  command and wrapper were used in the completed validation.
+
+This is a target-profile fact, not a program verdict. Trace the actual generated
+code and all timer boundaries normally. Cite generated source lines for findings
+and identify the supplied wrapper evidence in notes when relevant. Counterexamples
+requiring a different device visibility or rank count do not establish a defect
+for this profile. No new benchmark problem sizes have yet been frozen.

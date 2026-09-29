@@ -1,0 +1,41 @@
+The target is the recorded local evaluation platform, not an arbitrary portable
+C++ implementation: Linux x86_64 LP64, NVIDIA CUDA 12.6.77, and GCC/libstdc++ 13.
+The actual generated CUDA build uses /usr/local/cuda/bin/nvcc, C++17, and sm_86.
+Its CMakeCUDACompiler.cmake records /usr/include/c++/13 as an implicit include path;
+/usr/bin/g++ resolves to /usr/bin/x86_64-linux-gnu-g++-13.
+
+The recorded evaluation profiles use 4 ranks for MPI and hybrid validation,
+128 ranks for full MPI benchmarking, and 4 ranks for full hybrid benchmarking.
+This campaign has not frozen new performance problem sizes or performed full
+benchmarking. Do not assume a validation input size proves a size-dependent timing
+argument for the eventual benchmark. If a global-makespan proof requires an input
+size/partition condition not established by the supplied source and these profiles,
+retain that condition explicitly instead of silently assuming it. Conversely, a
+counterexample requiring a different rank count alone is not evidence of a defect
+in the recorded profile.
+
+A compile-only probe on 2026-09-28 established that the exact expression
+std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+has C++ type long, and sizeof(long) is 8, for this target toolchain. This was checked
+by the main investigator; static-review workers did not compile or execute code.
+No binary was linked or executed. Do not treat this as a claim about other ABIs or
+as a blanket claim that distinct MPI datatypes are interchangeable.
+
+Probe source (SHA-256 d05f7d124d72c2b9481f14ad4f4f543d81f478204463f37efb4cef691d4c948a):
+
+#include <chrono>
+#include <type_traits>
+
+using clock_type = std::chrono::high_resolution_clock;
+using elapsed_type = decltype(std::chrono::duration_cast<std::chrono::milliseconds>(
+    clock_type::time_point{} - clock_type::time_point{}).count());
+static_assert(std::is_same<elapsed_type, long>::value,
+              "The generated MPI_LONG duration buffer must have C++ type long");
+static_assert(sizeof(long) == 8, "The evaluated ABI is LP64");
+
+Command (exit 0; empty stdout and stderr):
+/usr/local/cuda/bin/nvcc -std=c++17 -arch=sm_86 -O3 --use_fast_math -Xcompiler=-O3,-march=native,-Wall,-Wextra,-fopenmp -c /tmp/claude5-validation-20260928-JNX71l/timing_abi_probe.cu -o /tmp/claude5-validation-20260928-JNX71l/timing_abi_probe.o
+
+When this fact is relevant, cite the generated source's timer/reduction lines for
+the code finding and identify this supplied compile-only platform proof in notes.
+It supplies only a target-type fact, not any prior program verdict.

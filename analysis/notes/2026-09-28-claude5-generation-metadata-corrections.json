@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-09-28",
+  "scope": "Generation metadata only; no generated programs or benchmark execution measurements changed.",
+  "status": "Applied by the local aggregation parser and verified on all source records. This batch has not yet been imported into the validated/scored release.",
+  "source_root": "/home/petert/llm_para_experiments/20260901-162328",
+  "method": {
+    "token_usage": "Use the final result's cumulative modelUsage, summing across models. Input includes inputTokens + cacheReadInputTokens + cacheCreationInputTokens; cached_tokens is the cache-read subset. Fall back to usage when cumulative counters are unavailable.",
+    "generation_time": "For successful completed sessions, subtract the sum of distinct same-session system/api_retry.retry_delay_ms values from total_time and api_time. Retain original values and applied retry counts/backoff in separate fields.",
+    "retry_latency_limit": "Only recorded retry waits are subtracted. Time spent in failed API requests is not inferred from gaps between events.",
+    "evidence": "Original output.txt, usage.txt and timing.txt are unchanged. Correction rows record SHA-256 digests of the original transcript and timing file.",
+    "compared_fields": [
+      "input_tokens",
+      "output_tokens",
+      "cached_tokens",
+      "api_time",
+      "total_time"
+    ],
+    "unchanged_metrics_digest": "SHA-256 of lexicographically sorted unchanged run IDs, each followed by NUL, compact JSON of the five before metrics in compared_fields order (numeric values as floats), and newline."
+  },
+  "verification": {
+    "tests": "92 runs, 648 assertions, zero failures/errors, three environment-dependent skips",
+    "implementation_files": [
+      {
+        "path": "general_evaluation.rb",
+        "sha256": "bbf95763971820b4de3c48ba065341179ede2c4aee5fb3942f65d74fc8c14a44"
+      },
+      {
+        "path": "lib/local_evaluation/aggregate_pipeline.rb",
+        "sha256": "10b91d1af9188f6f497ffac5c1d38007f379e20d9534022b994a0f197831400a"
+      },
+      {
+        "path": "lib/local_evaluation/scoring_pipeline.rb",
+        "sha256": "f08840892bb2be823f09dea9ccfee5c17ee58bace8b991cdd93b822dfa12afe3"
+      }
+    ],
+    "token_corrections": 5,
+    "retry_corrections": 4,
+    "total_subtracted_seconds": 274.359
+  },
+  "batch": "20260901-162328",
+  "run_count": 660,
+  "changed_count": 6,
+  "unchanged_count": 654,
+  "unchanged_metrics_sha256": "c2eb47eabaf5b60f2157264b430ed64f9d3aba785e12da3f62d2bc0b42d2f471",
+  "warnings": {},
+  "corrections": [
+    {
+      "id": "matmul_claude-fable-5-cc-medium_hybrid_r1",
+      "before": {
+        "input_tokens": 272302,
+        "output_tokens": 12080,
+        "cached_tokens": 249079,
+        "api_time": 191.499,
+        "total_time": 246.35
+      },
+      "after": {
+        "input_tokens": 299432,
+        "output_tokens": 12941,
+        "cached_tokens": 275751,
+        "api_time": 191.499,
+        "total_time": 246.35
+      },
+      "raw_api_time": 191.499,
+      "raw_total_time": 246.35,
+      "agent_retry_count": 0,
+      "agent_retry_backoff_seconds": 0,
+      "total_tokens": 312373,
+      "output_sha256": "9e71a78064743c5839588c5cfc03fd1df90443685734f61f7a81f90fa15e501f",
+      "timing_sha256": "8797da20ccd57c56b5f66a33458e06c3781e16edd8b14e0faa7f876bd72a1325"
+    },
+    {
+      "id": "matmul_claude-opus-5-cc-medium_omp_r2",
+      "before": {
+        "input_tokens": 10863807,
+        "output_tokens": 119512,
+        "cached_tokens": 10687161,
+        "api_time": 1954.147,
+        "total_time": 3409.44
+      },
+      "after": {
+        "input_tokens": 10983796,
+        "output_tokens": 120237,
+        "cached_tokens": 10804446,
+        "api_time": 1810.168,
+        "total_time": 3265.461
+      },
+      "raw_api_time": 1954.147,
+      "raw_total_time": 3409.44,
+      "agent_retry_count": 9,
+      "agent_retry_backoff_seconds": 143.979,
+      "total_tokens": 11104033,
+      "output_sha256": "6c664fc9b3a694b7f15ebb5abd60efdf403e479c063ca7d81093ca7afdac8b5c",
+      "timing_sha256": "e946184a974efa509d4556f10182d613e6c00a6363673d5ff3899fb579467754"
+    },
+    {
+      "id": "nbody_claude-opus-5-cc-medium_omp_r2",
+      "before": {
+        "input_tokens": 2854596,
+        "output_tokens": 46617,
+        "cached_tokens": 2772565,
+        "api_time": 753.006,
+        "total_time": 908.97
+      },
+      "after": {
+        "input_tokens": 2865311,
+        "output_tokens": 46725,
+        "cached_tokens": 2777924,
+        "api_time": 752.457,
+        "total_time": 908.421
+      },
+      "raw_api_time": 753.006,
+      "raw_total_time": 908.97,
+      "agent_retry_count": 1,
+      "agent_retry_backoff_seconds": 0.549,
+      "total_tokens": 2912036,
+      "output_sha256": "f0c3157df05b98c6ad96ba45fa974d09304b769225575181dec8b89188f44bed",
+      "timing_sha256": "bf74602379b524ad62cebf05e6b6e61f5014caee72bbeea5e35eba22aaec4889"
+    },
+    {
+      "id": "qtclustering_claude-sonnet-5-cc-medium_hybrid_r2",
+      "before": {
+        "input_tokens": 101864,
+        "output_tokens": 38,
+        "cached_tokens": 100914,
+        "api_time": 509.252,
+        "total_time": 1292.17
+      },
+      "after": {
+        "input_tokens": 3294446,
+        "output_tokens": 49159,
+        "cached_tokens": 3204435,
+        "api_time": 509.252,
+        "total_time": 1292.17
+      },
+      "raw_api_time": 509.252,
+      "raw_total_time": 1292.17,
+      "agent_retry_count": 0,
+      "agent_retry_backoff_seconds": 0,
+      "total_tokens": 3343605,
+      "output_sha256": "b222f26da54b0fd4c1cf27b5975d21d6a22533c898e4e3d2ded9c94bf4534415",
+      "timing_sha256": "e665789b1334d9aceaac0d4f07534afaefcc639a8716d9ea7d3663b192650f13"
+    },
+    {
+      "id": "roomsim_claude-opus-5-cc-medium_cuda_r3",
+      "before": {
+        "input_tokens": 20058091,
+        "output_tokens": 205068,
+        "cached_tokens": 19773829,
+        "api_time": 2619.311,
+        "total_time": 4015.73
+      },
+      "after": {
+        "input_tokens": 20058091,
+        "output_tokens": 205068,
+        "cached_tokens": 19773829,
+        "api_time": 2559.311,
+        "total_time": 3955.73
+      },
+      "raw_api_time": 2619.311,
+      "raw_total_time": 4015.73,
+      "agent_retry_count": 1,
+      "agent_retry_backoff_seconds": 60,
+      "total_tokens": 20263159,
+      "output_sha256": "b0378da630e828dd193a69450e0efa37f7875977fd65c018e0bd03a9fec9bf02",
+      "timing_sha256": "ab2d3edda4c691eaadc8b44c157164b1bff23b4f4b081f9bf826ae4af4f6e9ba"
+    },
+    {
+      "id": "unstructured_claude-opus-5-cc-medium_mpi_r1",
+      "before": {
+        "input_tokens": 1052711,
+        "output_tokens": 29492,
+        "cached_tokens": 1009543,
+        "api_time": 476.126,
+        "total_time": 1007.03
+      },
+      "after": {
+        "input_tokens": 1063428,
+        "output_tokens": 29664,
+        "cached_tokens": 1014902,
+        "api_time": 406.295,
+        "total_time": 937.199
+      },
+      "raw_api_time": 476.126,
+      "raw_total_time": 1007.03,
+      "agent_retry_count": 7,
+      "agent_retry_backoff_seconds": 69.831,
+      "total_tokens": 1093092,
+      "output_sha256": "e4d1a06c132f5e324722bf8c709fb07b1115bf5e41df5c7c3d78501158fe89f4",
+      "timing_sha256": "4ccf3787829d45c4903a484d10f3234738189fde59a983f881b6d6740d9741d1"
+    }
+  ]
+}

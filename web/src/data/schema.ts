@@ -33,6 +33,10 @@ const harnessSchema = z.object({
   label: z.string().min(1),
   commandTemplate: z.string().min(1),
   parameters: z.array(z.string().min(1)),
+  configurationSource: z.object({
+    url: z.string().url(),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  }).optional(),
 });
 
 const methodologySchema = z.object({
@@ -274,10 +278,13 @@ export const costDatasetSchema = z.object({
       context.addIssue({ code: "custom", message: `duplicate cost profile: ${profile.id}`, path: ["profiles", index, "id"] });
     }
     profiles.add(profile.id);
-    if (profile.pricingAsOf !== dataset.pricingAsOf) {
+    if (profile.pricingAsOf > dataset.pricingAsOf) {
       context.addIssue({ code: "custom", message: `inconsistent pricing date: ${profile.id}`, path: ["profiles", index, "pricingAsOf"] });
     }
   });
+  if ([...dataset.profiles.map((profile) => profile.pricingAsOf)].sort().at(-1) !== dataset.pricingAsOf) {
+    context.addIssue({ code: "custom", message: "dataset pricing date must be the latest profile date", path: ["pricingAsOf"] });
+  }
   Object.entries(dataset.aliases).forEach(([modelId, profileId]) => {
     if (!profiles.has(profileId)) {
       context.addIssue({ code: "custom", message: `unknown aliased cost profile: ${profileId}`, path: ["aliases", modelId] });

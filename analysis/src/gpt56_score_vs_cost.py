@@ -18,7 +18,7 @@ import pandas as pd
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INPUT = REPOSITORY_ROOT / "data" / "scoring" / "scored_results.csv"
+DEFAULT_INPUT = REPOSITORY_ROOT / "release" / "scored_results.csv"
 DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "4c_gpt56_score_vs_cost.pdf"
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "4c_gpt56_score_vs_cost.csv"
 
@@ -89,6 +89,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--figure", type=Path, default=DEFAULT_FIGURE)
     parser.add_argument("--table", type=Path, default=DEFAULT_TABLE)
+    parser.add_argument("--font", type=Path, help="Register an explicit TTF/OTF without installing it")
     return parser.parse_args()
 
 
@@ -294,6 +295,8 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
 
 def main() -> None:
     args = parse_args()
+    if args.font:
+        font_manager.fontManager.addfont(args.font)
     frame = load_and_validate(args.input)
     summary = aggregate(frame)
     write_table(summary, args.table)

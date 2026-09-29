@@ -50,6 +50,11 @@ published program sources, benchmark sources, pipeline source, and documented sy
 
 `main` contains one current canonical snapshot. Annotated Git tags identify immutable
 releases; tags do not require dated copies of the complete tree.
+Additional independent campaigns are retained once under `batches/`. `release/`
+is the current joined/scored view; historical `data/` records remain immutable.
+Small campaign method deltas refer to already retained files instead of duplicating
+another full pipeline snapshot. Nested campaign checksums and the root checksum
+manifest are regenerated together by `tools/update_checksums.rb`.
 
 A localized correction changes only its affected record partition and evidence plus
 the regenerated aggregate/scoring files. It must include amendment provenance, direct

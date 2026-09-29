@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import { Link, useLocation, useParams } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 
@@ -229,6 +229,11 @@ export function RunDetailView() {
               components={implementationAnalysisComponents}
               remarkPlugins={[remarkGfm]}
               skipHtml
+              urlTransform={(url) => {
+                const safeUrl = defaultUrlTransform(url);
+                const noteUrl = `${manifest.artifactRepository}/blob/${manifest.artifactCommit}/analysis/notes/individual/${encodeURIComponent(run.id)}.md`;
+                return safeUrl ? new URL(safeUrl, noteUrl).href : "";
+              }}
             >
               {analysisMarkdown}
             </ReactMarkdown>

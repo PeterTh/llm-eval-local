@@ -4,6 +4,14 @@ import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture } fr
 import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema } from "./schema";
 
 describe("runtime dataset validation", () => {
+  it("preserves per-profile dates and requires the dataset date to be their maximum", () => {
+    const dataset = structuredClone(costDatasetFixture);
+    dataset.pricingAsOf = "2026-09-29";
+    dataset.profiles.push({ ...dataset.profiles[0]!, id: "new-profile", pricingAsOf: "2026-09-29" });
+    expect(() => costDatasetSchema.parse(dataset)).not.toThrow();
+    expect(() => costDatasetSchema.parse({ ...dataset, pricingAsOf: "2026-08-22" })).toThrow();
+    expect(() => costDatasetSchema.parse({ ...dataset, pricingAsOf: "2026-09-30" })).toThrow();
+  });
   it("accepts the stable public interfaces", () => {
     expect(datasetManifestSchema.parse(manifestFixture)).toEqual(manifestFixture);
     expect(scoreCubeSchema.parse(scoreCubeFixture)).toEqual(scoreCubeFixture);

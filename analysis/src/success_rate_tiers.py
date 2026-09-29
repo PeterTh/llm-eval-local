@@ -18,11 +18,14 @@ import pandas as pd
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INPUT = REPOSITORY_ROOT / "data" / "scoring" / "scored_results.csv"
+DEFAULT_INPUT = REPOSITORY_ROOT / "release" / "scored_results.csv"
 DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "8_success_rate_tiers.pdf"
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "8_success_rate_tiers.csv"
 
 MODEL_LABELS = {
+    "claude-fable-5-cc-medium": "Fable 5 Medium",
+    "claude-opus-5-cc-medium": "Opus 5 Medium",
+    "claude-sonnet-5-cc-medium": "Sonnet 5 Medium",
     "claude-haiku-4.5": "Haiku 4.5",
     "claude-sonnet-4.5": "Sonnet 4.5",
     "claude-opus-4.6": "Opus 4.6",
@@ -61,6 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--figure", type=Path, default=DEFAULT_FIGURE)
     parser.add_argument("--table", type=Path, default=DEFAULT_TABLE)
+    parser.add_argument("--font", type=Path, help="Register an explicit TTF/OTF without installing it")
     return parser.parse_args()
 
 
@@ -239,6 +243,8 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
 
 def main() -> None:
     args = parse_args()
+    if args.font:
+        font_manager.fontManager.addfont(args.font)
     frame = load_and_validate(args.input)
     summary = aggregate(frame)
     write_table(summary, args.table)

@@ -1,16 +1,17 @@
 # Analysis
 
-Analysis reads only the versioned files under `data/`. Reusable source belongs in
+Analysis reads only versioned campaign records under `data/` and `batches/`, joined
+and scored under `release/`. Reusable source belongs in
 `src/`, optional output-stripped notebooks in `notebooks/`, final machine-readable
 tables in `tables/`, and final figures in `figures/`.
 
 Every completed analysis should document the Git data release/tag it consumed and
 provide one command that rebuilds its tables and figures.
 
-The checked-in outputs consume the timing-audited data release
-`local-eval-2026-08-25` at data commit `f83773e` and
-`data/scoring/scored_results.csv` (SHA-256
-`7e6012c97b84a3632797cad103093929851d1ff07349205dd7383097927207c9`).
+The current score/cost and tier outputs consume `release/scored_results.csv`.
+`release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
+`release/catalog.json` identifies the two campaigns and generated-source commits.
+Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
 
@@ -24,7 +25,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 21 model names and tier percentages legible at the paper's
+intentional: it keeps all 24 model names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -71,6 +72,10 @@ python analysis/src/gpt56_score_vs_cost.py
 
 Roboto Condensed must be installed. The script fails instead of silently substituting
 a different font so the paper styling remains reproducible.
+Alternatively pass `--font /path/to/RobotoCondensed.ttf` to any of the three figure
+scripts. The release uses the web lockfile's `@fontsource-variable/roboto-condensed`
+Latin normal WOFF2, decompressed with `fonttools ttLib.woff2 decompress INPUT -o OUTPUT`.
+Keep temporary fonts, Python caches and build workspaces outside the repository.
 
 Canonical outputs:
 
@@ -95,7 +100,10 @@ input, cached input, and output tokens before averaging. GPT-5.6 retains only a
 combined token count, so those three xhigh points use the same fixed 50% input / 50%
 output proxy as the focused GPT-5.6 figure. The backing CSV records both methods,
 all rates, selected providers and routing tags, model matches, source URLs, and the
-2026-08-22 pricing date. Long-context surcharges, storage, tools, future provider
+per-model pricing date: 2026-08-22 for existing profiles, 2026-09-29 for the three
+Claude 5 additions. Existing rates are not retrospectively refreshed. See
+[the Claude pricing note](notes/2026-09-29-claude5-pricing.md).
+Long-context surcharges, storage, tools, future provider
 routing changes, and batch discounts are not modeled.
 
 Rebuild with:
@@ -117,7 +125,13 @@ Focused follow-up notes:
 
 ## Timing-correction impact
 
-The retained analysis joins the original static-audit score, corrected scoped-rerun
+This historical analysis remains scoped to the original 4,620-program campaign and
+its 587 corrections; it consumes `data/`, not the jointly rescored `release/` view.
+The additional 174 corrections were made before benchmarking, so no comparable
+uncorrected performance measurements exist for those runs. The current combined
+dataset carries the timing-fix flag for all 761 corrected programs.
+
+The retained historical analysis joins the original static-audit score, corrected scoped-rerun
 measurements, final scores, issue categories, and original/corrected source links:
 
 ```bash

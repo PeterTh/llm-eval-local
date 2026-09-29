@@ -106,6 +106,12 @@ export function MethodologyView() {
                       ? <code>{harness.parameters.join(" ")}</code>
                       : <p>No additional harness parameters were passed.</p>}
                   </details>
+                  {harness.configurationSource && (
+                    <p>
+                      <a href={harness.configurationSource.url} target="_blank" rel="noreferrer">{harness.label} harness source</a>
+                      {" · SHA-256 "}<code className="inline-digest">{harness.configurationSource.sha256}</code>
+                    </p>
+                  )}
                 </article>
               ))}
               {modelsWithoutHarness.length > 0 && (
@@ -115,8 +121,10 @@ export function MethodologyView() {
               )}
             </div>
             <p>
-              The frozen invocation configuration is available in the pinned experiment script. Its recorded SHA-256
+              The original campaign's invocation configuration is available in the pinned experiment script. Its recorded SHA-256
               digest is <code className="inline-digest">{experiment.sha256}</code>.
+              {" "}The later Claude 5 batch used Claude Code with the parameters listed above; its original
+              per-run transcripts and invocation metadata are retained alongside the generated source.
             </p>
           </section>
 
@@ -210,6 +218,9 @@ export function MethodologyView() {
             <p>
               Performance thresholds were derived from natural breaks in log median time, subject to a per-cell
               measurement-noise floor, then reviewed and frozen before scoring.
+              {" "}The current release applies the same procedure jointly to the original campaign and the
+              later Claude 5 batch. Historical timings are unchanged; scores can change when the full-cell
+              distribution or fastest result changes.
             </p>
           </section>
 
@@ -218,12 +229,13 @@ export function MethodologyView() {
             <h2 id="method-cost">Frozen API pricing</h2>
             <p>
               Shown API cost is based on API rates for the given token volume rather than observed billing. Where input, cache-read, and output counts are recorded,
-              each token class is priced separately. Copilot reports cached tokens as part of its input count, while
+              each token class is priced separately. Copilot and the normalized Claude Code metadata include
+              cache-read tokens in their input count, while
               Pi reports uncached input and cache reads separately; the calculation follows the recorded convention.
               GPT-5.6 provides only a combined token count, so its estimate uses a fixed 50/50 input/output price mix.
             </p>
             <p>
-              Rates are frozen to the endpoint snapshot dated {manifest.cost.pricingAsOf}. Each profile uses the lowest
+              Rates are frozen per model, with snapshot dates shown in the cost details (latest addition: {manifest.cost.pricingAsOf}). Historical rates are not refreshed when a model is added. Each profile uses the lowest
               estimated cost among the available live, non-batch OpenRouter endpoints for that model's observed token mix;
               Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired
               models use the last known live rate as a fallback.
@@ -242,8 +254,9 @@ export function MethodologyView() {
               <a href={experimentUrl} target="_blank" rel="noreferrer"><span>Experiment harness configuration</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/data/provenance/system.md`} target="_blank" rel="noreferrer"><span>Execution-system record</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/data/calibration/benchmark_config.yaml`} target="_blank" rel="noreferrer"><span>Benchmark configuration</span><strong>GitHub ↗</strong></a>
-              <a href={`${artifactBlob}/data/scoring/local_scoring_threshold_review.yaml`} target="_blank" rel="noreferrer"><span>Threshold review</span><strong>GitHub ↗</strong></a>
-              <a href={`${artifactBlob}/data/scoring/scoring_metadata.yaml`} target="_blank" rel="noreferrer"><span>Scoring metadata</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactRoot}/release`} target="_blank" rel="noreferrer"><span>Combined release and campaign catalog</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/release/local_scoring_threshold_review.yaml`} target="_blank" rel="noreferrer"><span>Threshold review</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/release/scoring_metadata.yaml`} target="_blank" rel="noreferrer"><span>Scoring metadata</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/analysis/src/all_models_score_vs_cost.py`} target="_blank" rel="noreferrer"><span>Cost estimation generator</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/${manifest.cost.sourcePath}`} target="_blank" rel="noreferrer"><span>Frozen pricing profiles</span><strong>GitHub ↗</strong></a>
               <a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer"><span>Generated programs</span><strong>GitHub ↗</strong></a>

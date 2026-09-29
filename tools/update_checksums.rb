@@ -4,6 +4,7 @@
 require "optparse"
 
 require_relative "artifact_common"
+require_relative "batch_checksums"
 
 options = { root: File.expand_path("..", __dir__) }
 OptionParser.new do |parser|
@@ -15,6 +16,7 @@ root = File.expand_path(options.fetch(:root))
 raise "not a Git working tree: #{root}" unless File.directory?(File.join(root, ".git"))
 
 checksum_path = File.join(root, "checksums.sha256")
+BatchChecksums.run(root)
 files = LocalEvalArtifact.regular_files(root).reject { |file| file == checksum_path }
 lines = files.map do |file|
   "#{LocalEvalArtifact.sha256(file)}  #{LocalEvalArtifact.relative_path(root, file)}\n"

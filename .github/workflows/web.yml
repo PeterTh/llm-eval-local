@@ -6,11 +6,19 @@ on:
     paths:
       - "web/**"
       - "data/**"
+      - "release/**"
+      - "batches/**"
+      - "analysis/notes/individual/**"
+      - "analysis/tables/**"
       - ".github/workflows/web.yml"
   pull_request:
     paths:
       - "web/**"
       - "data/**"
+      - "release/**"
+      - "batches/**"
+      - "analysis/notes/individual/**"
+      - "analysis/tables/**"
       - ".github/workflows/web.yml"
   workflow_dispatch:
 
@@ -31,11 +39,18 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Set up Node.js
+        # Full artifact verification also gates publication, not just the UI build.
         uses: actions/setup-node@v6
         with:
           node-version-file: web/.nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Verify scientific release
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+      - name: Check scientific release
+        run: ruby tools/verify_release.rb
       - name: Install dependencies
         run: npm ci
         working-directory: web

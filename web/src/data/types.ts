@@ -31,6 +31,7 @@ export interface HarnessMetadata {
   label: string;
   commandTemplate: string;
   parameters: string[];
+  configurationSource?: { url: string; sha256: string };
 }
 
 export interface ExecutionSystemMetadata {

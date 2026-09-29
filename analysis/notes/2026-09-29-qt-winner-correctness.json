@@ -1,0 +1,815 @@
+{
+  "schema_version": 2,
+  "purpose": "correctness-only; probe timings are not benchmark data",
+  "method": "Unchanged sequential reference at N=1200; cross-implementation agreement of four independently generated winners at every inherited benchmark N. Agreement is supporting evidence, not a proof or a replacement reference.",
+  "preliminary_attempts": [
+    {
+      "id": "qtclustering_claude-opus-5-cc-medium_mpi_r5",
+      "n": 4000,
+      "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+      "executable_sha256": "f40b65dda4b4dbd7cda4cc46d382f5c87aa62ceed89934d268a7edcc6ccf1370",
+      "runs": {
+        "reference": {
+          "success": false,
+          "timed_out": true,
+          "argv": [
+            "numactl",
+            "--physcpubind=0",
+            "--membind=0",
+            "/tmp/claude-release-check-S7edQm/qt-probes/qt-reference",
+            "-n",
+            "4000",
+            "-v",
+            "-r"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1"
+          },
+          "stdout": "",
+          "stderr": "Command timed out after 240 seconds.\n",
+          "result_block": null
+        },
+        "candidate": {
+          "success": true,
+          "timed_out": false,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_mpi_r5",
+            "-n",
+            "4000",
+            "-v",
+            "-r"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1"
+          },
+          "stdout": "QT Clustering Benchmark\nNumber of points: 4000\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 11 ms\nClusters found: 156\nPoints clustered: 4000 / 4000 (100.0%)\nAverage cluster size: 25.64\nMaximum cluster size: 187\nPerformance: 14181.8 clusters/s, 363636.4 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=187, seed=952, diameter=1.9939\n  Cluster 1: size=157, seed=642, diameter=1.9928\n  Cluster 2: size=149, seed=3430, diameter=1.9791\n  Cluster 3: size=109, seed=386, diameter=1.9945\n  Cluster 4: size=105, seed=1605, diameter=1.9770\n  Cluster 5: size=101, seed=838, diameter=1.9984\n  Cluster 6: size=89, seed=370, diameter=1.9934\n  Cluster 7: size=84, seed=926, diameter=1.9997\n  Cluster 8: size=82, seed=648, diameter=1.9985\n  Cluster 9: size=81, seed=447, diameter=1.9747\nTotal points: 4000, Clustered: 4000, Unclustered: 0\nValidation: PASSED\n",
+          "stderr": "",
+          "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ==="
+        }
+      },
+      "exact_result_block_match": false
+    }
+  ],
+  "comparisons": [
+    {
+      "n": 1200,
+      "oracle": "sequential reference",
+      "runs": [
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_reference",
+          "n": 1200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "d4af2cda0c065cf550d1123ed8bc47fe022822b70ed39d7a1c4780d30acacf39",
+          "runs": {
+            "reference": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0",
+                "--membind=0",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qt-reference",
+                "-n",
+                "1200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 1200\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 17212 ms\nClusters found: 113\nPoints clustered: 1200 / 1200 (100.0%)\nAverage cluster size: 10.62\nMaximum cluster size: 115\nPerformance: 6.6 clusters/s, 69.7 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=115, seed=474, diameter=1.9741\n  Cluster 1: size=43, seed=377, diameter=1.9975\n  Cluster 2: size=42, seed=17, diameter=1.9400\n  Cluster 3: size=40, seed=98, diameter=1.9558\n  Cluster 4: size=36, seed=121, diameter=1.9996\n  Cluster 5: size=30, seed=25, diameter=1.9838\n  Cluster 6: size=29, seed=28, diameter=1.9728\n  Cluster 7: size=28, seed=101, diameter=1.9964\n  Cluster 8: size=27, seed=219, diameter=1.9719\n  Cluster 9: size=25, seed=11, diameter=1.9432\nTotal points: 1200, Clustered: 1200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_mpi_r5",
+          "n": 1200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "f40b65dda4b4dbd7cda4cc46d382f5c87aa62ceed89934d268a7edcc6ccf1370",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "128",
+                "--map-by",
+                "ppr:64:socket:PE=1",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_mpi_r5",
+                "-n",
+                "1200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 1200\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 4 ms\nClusters found: 113\nPoints clustered: 1200 / 1200 (100.0%)\nAverage cluster size: 10.62\nMaximum cluster size: 115\nPerformance: 28250.0 clusters/s, 300000.0 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=115, seed=474, diameter=1.9741\n  Cluster 1: size=43, seed=377, diameter=1.9975\n  Cluster 2: size=42, seed=17, diameter=1.9400\n  Cluster 3: size=40, seed=98, diameter=1.9558\n  Cluster 4: size=36, seed=121, diameter=1.9996\n  Cluster 5: size=30, seed=25, diameter=1.9838\n  Cluster 6: size=29, seed=28, diameter=1.9728\n  Cluster 7: size=28, seed=101, diameter=1.9964\n  Cluster 8: size=27, seed=219, diameter=1.9719\n  Cluster 9: size=25, seed=11, diameter=1.9432\nTotal points: 1200, Clustered: 1200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+          "n": 1200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a9d94fc5ce9ec38732f1912fd6e6a3fe2230fe0b64f8974c043bbb5ca83b33b9",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "4",
+                "--map-by",
+                "ppr:2:socket:PE=32",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/usr/bin/ruby3.2",
+                "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+                "-n",
+                "1200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "32",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "close",
+                "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 1200\nDistance threshold: 2.00\nValidation: enabled\nMPI ranks: 4, OpenMP threads/rank: 32, GPUs/node: 1\nClustering time: 5 ms\nClusters found: 113\nPoints clustered: 1200 / 1200 (100.0%)\nAverage cluster size: 10.62\nMaximum cluster size: 115\nPerformance: 22600.0 clusters/s, 240000.0 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=115, seed=474, diameter=1.9741\n  Cluster 1: size=43, seed=377, diameter=1.9975\n  Cluster 2: size=42, seed=17, diameter=1.9400\n  Cluster 3: size=40, seed=98, diameter=1.9558\n  Cluster 4: size=36, seed=121, diameter=1.9996\n  Cluster 5: size=30, seed=25, diameter=1.9838\n  Cluster 6: size=29, seed=28, diameter=1.9728\n  Cluster 7: size=28, seed=101, diameter=1.9964\n  Cluster 8: size=27, seed=219, diameter=1.9719\n  Cluster 9: size=25, seed=11, diameter=1.9432\nTotal points: 1200, Clustered: 1200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_omp_r2",
+          "n": 1200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "71523768e8b73060e4b0074be6cd71896ac710e2cb5baee413ecbe575387aa76",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-127",
+                "--interleave=0,1",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_omp_r2",
+                "-n",
+                "1200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "128",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "spread",
+                "CUDA_VISIBLE_DEVICES": ""
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 1200\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 4 ms\nClusters found: 113\nPoints clustered: 1200 / 1200 (100.0%)\nAverage cluster size: 10.62\nMaximum cluster size: 115\nPerformance: 28250.0 clusters/s, 300000.0 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=115, seed=474, diameter=1.9741\n  Cluster 1: size=43, seed=377, diameter=1.9975\n  Cluster 2: size=42, seed=17, diameter=1.9400\n  Cluster 3: size=40, seed=98, diameter=1.9558\n  Cluster 4: size=36, seed=121, diameter=1.9996\n  Cluster 5: size=30, seed=25, diameter=1.9838\n  Cluster 6: size=29, seed=28, diameter=1.9728\n  Cluster 7: size=28, seed=101, diameter=1.9964\n  Cluster 8: size=27, seed=219, diameter=1.9719\n  Cluster 9: size=25, seed=11, diameter=1.9432\nTotal points: 1200, Clustered: 1200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_cuda_r5",
+          "n": 1200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a31263286eae5f84d39618329d0f9d33246a116ea4fda3693568efcc596cc4ec",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-63",
+                "--membind=0",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_cuda_r5",
+                "-n",
+                "1200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 1200\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 3 ms\nClusters found: 113\nPoints clustered: 1200 / 1200 (100.0%)\nAverage cluster size: 10.62\nMaximum cluster size: 115\nPerformance: 37666.7 clusters/s, 400000.0 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=115, seed=474, diameter=1.9741\n  Cluster 1: size=43, seed=377, diameter=1.9975\n  Cluster 2: size=42, seed=17, diameter=1.9400\n  Cluster 3: size=40, seed=98, diameter=1.9558\n  Cluster 4: size=36, seed=121, diameter=1.9996\n  Cluster 5: size=30, seed=25, diameter=1.9838\n  Cluster 6: size=29, seed=28, diameter=1.9728\n  Cluster 7: size=28, seed=101, diameter=1.9964\n  Cluster 8: size=27, seed=219, diameter=1.9719\n  Cluster 9: size=25, seed=11, diameter=1.9432\nTotal points: 1200, Clustered: 1200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 1200\nSum: 3.05220000000000000e+04\nMin: 0.00000000000000000e+00\nMax: 1.12000000000000000e+02\nSample[0]: 5.60000000000000000e+01\nSample[300]: 0.00000000000000000e+00\nSample[600]: 1.90000000000000000e+01\nSample[900]: 7.00000000000000000e+00\nSample[1199]: 8.90000000000000000e+01\nHash: d65be010b7c196f2\n=== END RESULTS ==="
+            }
+          }
+        }
+      ],
+      "all_completed": true,
+      "exact_result_block_match": true
+    },
+    {
+      "n": 4000,
+      "oracle": "cross-implementation agreement",
+      "runs": [
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_mpi_r5",
+          "n": 4000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "f40b65dda4b4dbd7cda4cc46d382f5c87aa62ceed89934d268a7edcc6ccf1370",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "128",
+                "--map-by",
+                "ppr:64:socket:PE=1",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_mpi_r5",
+                "-n",
+                "4000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 4000\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 11 ms\nClusters found: 156\nPoints clustered: 4000 / 4000 (100.0%)\nAverage cluster size: 25.64\nMaximum cluster size: 187\nPerformance: 14181.8 clusters/s, 363636.4 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=187, seed=952, diameter=1.9939\n  Cluster 1: size=157, seed=642, diameter=1.9928\n  Cluster 2: size=149, seed=3430, diameter=1.9791\n  Cluster 3: size=109, seed=386, diameter=1.9945\n  Cluster 4: size=105, seed=1605, diameter=1.9770\n  Cluster 5: size=101, seed=838, diameter=1.9984\n  Cluster 6: size=89, seed=370, diameter=1.9934\n  Cluster 7: size=84, seed=926, diameter=1.9997\n  Cluster 8: size=82, seed=648, diameter=1.9985\n  Cluster 9: size=81, seed=447, diameter=1.9747\nTotal points: 4000, Clustered: 4000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+          "n": 4000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a9d94fc5ce9ec38732f1912fd6e6a3fe2230fe0b64f8974c043bbb5ca83b33b9",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "4",
+                "--map-by",
+                "ppr:2:socket:PE=32",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/usr/bin/ruby3.2",
+                "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+                "-n",
+                "4000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "32",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "close",
+                "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 4000\nDistance threshold: 2.00\nValidation: enabled\nMPI ranks: 4, OpenMP threads/rank: 32, GPUs/node: 1\nClustering time: 12 ms\nClusters found: 156\nPoints clustered: 4000 / 4000 (100.0%)\nAverage cluster size: 25.64\nMaximum cluster size: 187\nPerformance: 13000.0 clusters/s, 333333.3 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=187, seed=952, diameter=1.9939\n  Cluster 1: size=157, seed=642, diameter=1.9928\n  Cluster 2: size=149, seed=3430, diameter=1.9791\n  Cluster 3: size=109, seed=386, diameter=1.9945\n  Cluster 4: size=105, seed=1605, diameter=1.9770\n  Cluster 5: size=101, seed=838, diameter=1.9984\n  Cluster 6: size=89, seed=370, diameter=1.9934\n  Cluster 7: size=84, seed=926, diameter=1.9997\n  Cluster 8: size=82, seed=648, diameter=1.9985\n  Cluster 9: size=81, seed=447, diameter=1.9747\nTotal points: 4000, Clustered: 4000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_omp_r2",
+          "n": 4000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "71523768e8b73060e4b0074be6cd71896ac710e2cb5baee413ecbe575387aa76",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-127",
+                "--interleave=0,1",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_omp_r2",
+                "-n",
+                "4000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "128",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "spread",
+                "CUDA_VISIBLE_DEVICES": ""
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 4000\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 13 ms\nClusters found: 156\nPoints clustered: 4000 / 4000 (100.0%)\nAverage cluster size: 25.64\nMaximum cluster size: 187\nPerformance: 12000.0 clusters/s, 307692.3 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=187, seed=952, diameter=1.9939\n  Cluster 1: size=157, seed=642, diameter=1.9928\n  Cluster 2: size=149, seed=3430, diameter=1.9791\n  Cluster 3: size=109, seed=386, diameter=1.9945\n  Cluster 4: size=105, seed=1605, diameter=1.9770\n  Cluster 5: size=101, seed=838, diameter=1.9984\n  Cluster 6: size=89, seed=370, diameter=1.9934\n  Cluster 7: size=84, seed=926, diameter=1.9997\n  Cluster 8: size=82, seed=648, diameter=1.9985\n  Cluster 9: size=81, seed=447, diameter=1.9747\nTotal points: 4000, Clustered: 4000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_cuda_r5",
+          "n": 4000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a31263286eae5f84d39618329d0f9d33246a116ea4fda3693568efcc596cc4ec",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-63",
+                "--membind=0",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_cuda_r5",
+                "-n",
+                "4000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 4000\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 14 ms\nClusters found: 156\nPoints clustered: 4000 / 4000 (100.0%)\nAverage cluster size: 25.64\nMaximum cluster size: 187\nPerformance: 11142.9 clusters/s, 285714.3 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=187, seed=952, diameter=1.9939\n  Cluster 1: size=157, seed=642, diameter=1.9928\n  Cluster 2: size=149, seed=3430, diameter=1.9791\n  Cluster 3: size=109, seed=386, diameter=1.9945\n  Cluster 4: size=105, seed=1605, diameter=1.9770\n  Cluster 5: size=101, seed=838, diameter=1.9984\n  Cluster 6: size=89, seed=370, diameter=1.9934\n  Cluster 7: size=84, seed=926, diameter=1.9997\n  Cluster 8: size=82, seed=648, diameter=1.9985\n  Cluster 9: size=81, seed=447, diameter=1.9747\nTotal points: 4000, Clustered: 4000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 4000\nSum: 1.35668000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.55000000000000000e+02\nSample[0]: 1.40000000000000000e+01\nSample[1000]: 6.90000000000000000e+01\nSample[2000]: 6.10000000000000000e+01\nSample[3000]: 9.10000000000000000e+01\nSample[3999]: 1.10000000000000000e+01\nHash: d1197960760d2b8c\n=== END RESULTS ==="
+            }
+          }
+        }
+      ],
+      "all_completed": true,
+      "exact_result_block_match": true
+    },
+    {
+      "n": 5000,
+      "oracle": "cross-implementation agreement",
+      "runs": [
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_mpi_r5",
+          "n": 5000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "f40b65dda4b4dbd7cda4cc46d382f5c87aa62ceed89934d268a7edcc6ccf1370",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "128",
+                "--map-by",
+                "ppr:64:socket:PE=1",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_mpi_r5",
+                "-n",
+                "5000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 5000\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 14 ms\nClusters found: 157\nPoints clustered: 5000 / 5000 (100.0%)\nAverage cluster size: 31.85\nMaximum cluster size: 188\nPerformance: 11214.3 clusters/s, 357142.9 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=188, seed=2392, diameter=1.9994\n  Cluster 1: size=172, seed=357, diameter=1.9889\n  Cluster 2: size=171, seed=1234, diameter=1.9999\n  Cluster 3: size=166, seed=1229, diameter=1.9980\n  Cluster 4: size=164, seed=61, diameter=1.9926\n  Cluster 5: size=161, seed=908, diameter=1.9916\n  Cluster 6: size=143, seed=999, diameter=1.9626\n  Cluster 7: size=122, seed=150, diameter=1.9911\n  Cluster 8: size=107, seed=66, diameter=1.9963\n  Cluster 9: size=104, seed=546, diameter=1.9636\nTotal points: 5000, Clustered: 5000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+          "n": 5000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a9d94fc5ce9ec38732f1912fd6e6a3fe2230fe0b64f8974c043bbb5ca83b33b9",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "4",
+                "--map-by",
+                "ppr:2:socket:PE=32",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/usr/bin/ruby3.2",
+                "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+                "-n",
+                "5000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "32",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "close",
+                "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 5000\nDistance threshold: 2.00\nValidation: enabled\nMPI ranks: 4, OpenMP threads/rank: 32, GPUs/node: 1\nClustering time: 15 ms\nClusters found: 157\nPoints clustered: 5000 / 5000 (100.0%)\nAverage cluster size: 31.85\nMaximum cluster size: 188\nPerformance: 10466.7 clusters/s, 333333.3 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=188, seed=2392, diameter=1.9994\n  Cluster 1: size=172, seed=357, diameter=1.9889\n  Cluster 2: size=171, seed=1234, diameter=1.9999\n  Cluster 3: size=166, seed=1229, diameter=1.9980\n  Cluster 4: size=164, seed=61, diameter=1.9926\n  Cluster 5: size=161, seed=908, diameter=1.9916\n  Cluster 6: size=143, seed=999, diameter=1.9626\n  Cluster 7: size=122, seed=150, diameter=1.9911\n  Cluster 8: size=107, seed=66, diameter=1.9963\n  Cluster 9: size=104, seed=546, diameter=1.9636\nTotal points: 5000, Clustered: 5000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_omp_r2",
+          "n": 5000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "71523768e8b73060e4b0074be6cd71896ac710e2cb5baee413ecbe575387aa76",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-127",
+                "--interleave=0,1",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_omp_r2",
+                "-n",
+                "5000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "128",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "spread",
+                "CUDA_VISIBLE_DEVICES": ""
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 5000\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 15 ms\nClusters found: 157\nPoints clustered: 5000 / 5000 (100.0%)\nAverage cluster size: 31.85\nMaximum cluster size: 188\nPerformance: 10466.7 clusters/s, 333333.3 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=188, seed=2392, diameter=1.9994\n  Cluster 1: size=172, seed=357, diameter=1.9889\n  Cluster 2: size=171, seed=1234, diameter=1.9999\n  Cluster 3: size=166, seed=1229, diameter=1.9980\n  Cluster 4: size=164, seed=61, diameter=1.9926\n  Cluster 5: size=161, seed=908, diameter=1.9916\n  Cluster 6: size=143, seed=999, diameter=1.9626\n  Cluster 7: size=122, seed=150, diameter=1.9911\n  Cluster 8: size=107, seed=66, diameter=1.9963\n  Cluster 9: size=104, seed=546, diameter=1.9636\nTotal points: 5000, Clustered: 5000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_cuda_r5",
+          "n": 5000,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a31263286eae5f84d39618329d0f9d33246a116ea4fda3693568efcc596cc4ec",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-63",
+                "--membind=0",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_cuda_r5",
+                "-n",
+                "5000",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 5000\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 20 ms\nClusters found: 157\nPoints clustered: 5000 / 5000 (100.0%)\nAverage cluster size: 31.85\nMaximum cluster size: 188\nPerformance: 7850.0 clusters/s, 250000.0 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=188, seed=2392, diameter=1.9994\n  Cluster 1: size=172, seed=357, diameter=1.9889\n  Cluster 2: size=171, seed=1234, diameter=1.9999\n  Cluster 3: size=166, seed=1229, diameter=1.9980\n  Cluster 4: size=164, seed=61, diameter=1.9926\n  Cluster 5: size=161, seed=908, diameter=1.9916\n  Cluster 6: size=143, seed=999, diameter=1.9626\n  Cluster 7: size=122, seed=150, diameter=1.9911\n  Cluster 8: size=107, seed=66, diameter=1.9963\n  Cluster 9: size=104, seed=546, diameter=1.9636\nTotal points: 5000, Clustered: 5000, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 5000\nSum: 1.75520000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.56000000000000000e+02\nSample[0]: 5.90000000000000000e+01\nSample[1250]: 1.02000000000000000e+02\nSample[2500]: 5.20000000000000000e+01\nSample[3750]: 4.80000000000000000e+01\nSample[4999]: 3.20000000000000000e+01\nHash: 280c0abf693fc665\n=== END RESULTS ==="
+            }
+          }
+        }
+      ],
+      "all_completed": true,
+      "exact_result_block_match": true
+    },
+    {
+      "n": 6200,
+      "oracle": "cross-implementation agreement",
+      "runs": [
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_mpi_r5",
+          "n": 6200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "f40b65dda4b4dbd7cda4cc46d382f5c87aa62ceed89934d268a7edcc6ccf1370",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "128",
+                "--map-by",
+                "ppr:64:socket:PE=1",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_mpi_r5",
+                "-n",
+                "6200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 6200\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 19 ms\nClusters found: 163\nPoints clustered: 6200 / 6200 (100.0%)\nAverage cluster size: 38.04\nMaximum cluster size: 361\nPerformance: 8578.9 clusters/s, 326315.8 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=361, seed=31, diameter=1.9695\n  Cluster 1: size=254, seed=165, diameter=1.9999\n  Cluster 2: size=205, seed=4419, diameter=1.9985\n  Cluster 3: size=185, seed=629, diameter=1.9943\n  Cluster 4: size=169, seed=3352, diameter=1.9046\n  Cluster 5: size=147, seed=0, diameter=1.9954\n  Cluster 6: size=128, seed=63, diameter=1.9837\n  Cluster 7: size=128, seed=1338, diameter=1.9951\n  Cluster 8: size=119, seed=1574, diameter=1.9861\n  Cluster 9: size=117, seed=2546, diameter=1.9700\nTotal points: 6200, Clustered: 6200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+          "n": 6200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a9d94fc5ce9ec38732f1912fd6e6a3fe2230fe0b64f8974c043bbb5ca83b33b9",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "4",
+                "--map-by",
+                "ppr:2:socket:PE=32",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/usr/bin/ruby3.2",
+                "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+                "-n",
+                "6200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "32",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "close",
+                "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 6200\nDistance threshold: 2.00\nValidation: enabled\nMPI ranks: 4, OpenMP threads/rank: 32, GPUs/node: 1\nClustering time: 20 ms\nClusters found: 163\nPoints clustered: 6200 / 6200 (100.0%)\nAverage cluster size: 38.04\nMaximum cluster size: 361\nPerformance: 8150.0 clusters/s, 310000.0 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=361, seed=31, diameter=1.9695\n  Cluster 1: size=254, seed=165, diameter=1.9999\n  Cluster 2: size=205, seed=4419, diameter=1.9985\n  Cluster 3: size=185, seed=629, diameter=1.9943\n  Cluster 4: size=169, seed=3352, diameter=1.9046\n  Cluster 5: size=147, seed=0, diameter=1.9954\n  Cluster 6: size=128, seed=63, diameter=1.9837\n  Cluster 7: size=128, seed=1338, diameter=1.9951\n  Cluster 8: size=119, seed=1574, diameter=1.9861\n  Cluster 9: size=117, seed=2546, diameter=1.9700\nTotal points: 6200, Clustered: 6200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_omp_r2",
+          "n": 6200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "71523768e8b73060e4b0074be6cd71896ac710e2cb5baee413ecbe575387aa76",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-127",
+                "--interleave=0,1",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_omp_r2",
+                "-n",
+                "6200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "128",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "spread",
+                "CUDA_VISIBLE_DEVICES": ""
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 6200\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 21 ms\nClusters found: 163\nPoints clustered: 6200 / 6200 (100.0%)\nAverage cluster size: 38.04\nMaximum cluster size: 361\nPerformance: 7761.9 clusters/s, 295238.1 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=361, seed=31, diameter=1.9695\n  Cluster 1: size=254, seed=165, diameter=1.9999\n  Cluster 2: size=205, seed=4419, diameter=1.9985\n  Cluster 3: size=185, seed=629, diameter=1.9943\n  Cluster 4: size=169, seed=3352, diameter=1.9046\n  Cluster 5: size=147, seed=0, diameter=1.9954\n  Cluster 6: size=128, seed=63, diameter=1.9837\n  Cluster 7: size=128, seed=1338, diameter=1.9951\n  Cluster 8: size=119, seed=1574, diameter=1.9861\n  Cluster 9: size=117, seed=2546, diameter=1.9700\nTotal points: 6200, Clustered: 6200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_cuda_r5",
+          "n": 6200,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a31263286eae5f84d39618329d0f9d33246a116ea4fda3693568efcc596cc4ec",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-63",
+                "--membind=0",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_cuda_r5",
+                "-n",
+                "6200",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 6200\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 39 ms\nClusters found: 163\nPoints clustered: 6200 / 6200 (100.0%)\nAverage cluster size: 38.04\nMaximum cluster size: 361\nPerformance: 4179.5 clusters/s, 158974.4 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=361, seed=31, diameter=1.9695\n  Cluster 1: size=254, seed=165, diameter=1.9999\n  Cluster 2: size=205, seed=4419, diameter=1.9985\n  Cluster 3: size=185, seed=629, diameter=1.9943\n  Cluster 4: size=169, seed=3352, diameter=1.9046\n  Cluster 5: size=147, seed=0, diameter=1.9954\n  Cluster 6: size=128, seed=63, diameter=1.9837\n  Cluster 7: size=128, seed=1338, diameter=1.9951\n  Cluster 8: size=119, seed=1574, diameter=1.9861\n  Cluster 9: size=117, seed=2546, diameter=1.9700\nTotal points: 6200, Clustered: 6200, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 6200\nSum: 2.18476000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.62000000000000000e+02\nSample[0]: 5.00000000000000000e+00\nSample[1550]: 7.40000000000000000e+01\nSample[3100]: 6.30000000000000000e+01\nSample[4650]: 3.90000000000000000e+01\nSample[6199]: 1.30000000000000000e+01\nHash: 4b307c730b8c6b18\n=== END RESULTS ==="
+            }
+          }
+        }
+      ],
+      "all_completed": true,
+      "exact_result_block_match": true
+    },
+    {
+      "n": 7800,
+      "oracle": "cross-implementation agreement",
+      "runs": [
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_mpi_r5",
+          "n": 7800,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "f40b65dda4b4dbd7cda4cc46d382f5c87aa62ceed89934d268a7edcc6ccf1370",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "128",
+                "--map-by",
+                "ppr:64:socket:PE=1",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_mpi_r5",
+                "-n",
+                "7800",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 7800\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 28 ms\nClusters found: 180\nPoints clustered: 7800 / 7800 (100.0%)\nAverage cluster size: 43.33\nMaximum cluster size: 253\nPerformance: 6428.6 clusters/s, 278571.4 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=253, seed=75, diameter=1.9852\n  Cluster 1: size=235, seed=124, diameter=1.9983\n  Cluster 2: size=166, seed=5795, diameter=1.9884\n  Cluster 3: size=161, seed=1335, diameter=1.9995\n  Cluster 4: size=153, seed=642, diameter=1.9819\n  Cluster 5: size=135, seed=657, diameter=1.9875\n  Cluster 6: size=133, seed=684, diameter=1.9913\n  Cluster 7: size=127, seed=210, diameter=1.9859\n  Cluster 8: size=126, seed=1502, diameter=1.9935\n  Cluster 9: size=115, seed=4374, diameter=1.9983\nTotal points: 7800, Clustered: 7800, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+          "n": 7800,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a9d94fc5ce9ec38732f1912fd6e6a3fe2230fe0b64f8974c043bbb5ca83b33b9",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "mpirun",
+                "--np",
+                "4",
+                "--map-by",
+                "ppr:2:socket:PE=32",
+                "--bind-to",
+                "core",
+                "--rank-by",
+                "slot",
+                "/usr/bin/ruby3.2",
+                "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_hybrid_r1",
+                "-n",
+                "7800",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "32",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "close",
+                "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 7800\nDistance threshold: 2.00\nValidation: enabled\nMPI ranks: 4, OpenMP threads/rank: 32, GPUs/node: 1\nClustering time: 31 ms\nClusters found: 180\nPoints clustered: 7800 / 7800 (100.0%)\nAverage cluster size: 43.33\nMaximum cluster size: 253\nPerformance: 5806.5 clusters/s, 251612.9 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=253, seed=75, diameter=1.9852\n  Cluster 1: size=235, seed=124, diameter=1.9983\n  Cluster 2: size=166, seed=5795, diameter=1.9884\n  Cluster 3: size=161, seed=1335, diameter=1.9995\n  Cluster 4: size=153, seed=642, diameter=1.9819\n  Cluster 5: size=135, seed=657, diameter=1.9875\n  Cluster 6: size=133, seed=684, diameter=1.9913\n  Cluster 7: size=127, seed=210, diameter=1.9859\n  Cluster 8: size=126, seed=1502, diameter=1.9935\n  Cluster 9: size=115, seed=4374, diameter=1.9983\nTotal points: 7800, Clustered: 7800, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_omp_r2",
+          "n": 7800,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "71523768e8b73060e4b0074be6cd71896ac710e2cb5baee413ecbe575387aa76",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-127",
+                "--interleave=0,1",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_omp_r2",
+                "-n",
+                "7800",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "OMP_NUM_THREADS": "128",
+                "OMP_DYNAMIC": "FALSE",
+                "OMP_PLACES": "cores",
+                "OMP_PROC_BIND": "spread",
+                "CUDA_VISIBLE_DEVICES": ""
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 7800\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 27 ms\nClusters found: 180\nPoints clustered: 7800 / 7800 (100.0%)\nAverage cluster size: 43.33\nMaximum cluster size: 253\nPerformance: 6666.7 clusters/s, 288888.9 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=253, seed=75, diameter=1.9852\n  Cluster 1: size=235, seed=124, diameter=1.9983\n  Cluster 2: size=166, seed=5795, diameter=1.9884\n  Cluster 3: size=161, seed=1335, diameter=1.9995\n  Cluster 4: size=153, seed=642, diameter=1.9819\n  Cluster 5: size=135, seed=657, diameter=1.9875\n  Cluster 6: size=133, seed=684, diameter=1.9913\n  Cluster 7: size=127, seed=210, diameter=1.9859\n  Cluster 8: size=126, seed=1502, diameter=1.9935\n  Cluster 9: size=115, seed=4374, diameter=1.9983\nTotal points: 7800, Clustered: 7800, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ==="
+            }
+          }
+        },
+        {
+          "id": "qtclustering_claude-opus-5-cc-medium_cuda_r5",
+          "n": 7800,
+          "reference_source_sha256": "6d211f78d9faea93abb3f8f2f7887ab8ce44a5f99aa7012113e8f8c99b270a6b",
+          "executable_sha256": "a31263286eae5f84d39618329d0f9d33246a116ea4fda3693568efcc596cc4ec",
+          "runs": {
+            "candidate": {
+              "success": true,
+              "timed_out": false,
+              "argv": [
+                "numactl",
+                "--physcpubind=0-63",
+                "--membind=0",
+                "/tmp/claude-release-check-S7edQm/qt-probes/qtclustering_claude-opus-5-cc-medium_cuda_r5",
+                "-n",
+                "7800",
+                "-v",
+                "-r"
+              ],
+              "environment": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "OMP_NUM_THREADS": "1"
+              },
+              "stdout": "QT Clustering Benchmark\nNumber of points: 7800\nDistance threshold: 2.00\nValidation: enabled\nClustering time: 43 ms\nClusters found: 180\nPoints clustered: 7800 / 7800 (100.0%)\nAverage cluster size: 43.33\nMaximum cluster size: 253\nPerformance: 4186.0 clusters/s, 181395.3 points/s\n=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ===\nValidating clusters:\n  Cluster 0: size=253, seed=75, diameter=1.9852\n  Cluster 1: size=235, seed=124, diameter=1.9983\n  Cluster 2: size=166, seed=5795, diameter=1.9884\n  Cluster 3: size=161, seed=1335, diameter=1.9995\n  Cluster 4: size=153, seed=642, diameter=1.9819\n  Cluster 5: size=135, seed=657, diameter=1.9875\n  Cluster 6: size=133, seed=684, diameter=1.9913\n  Cluster 7: size=127, seed=210, diameter=1.9859\n  Cluster 8: size=126, seed=1502, diameter=1.9935\n  Cluster 9: size=115, seed=4374, diameter=1.9983\nTotal points: 7800, Clustered: 7800, Unclustered: 0\nValidation: PASSED\n",
+              "stderr": "",
+              "result_block": "=== RESULTS ===\nName: ClusterMembership\nElements: 7800\nSum: 3.52617000000000000e+05\nMin: 0.00000000000000000e+00\nMax: 1.79000000000000000e+02\nSample[0]: 3.50000000000000000e+01\nSample[1950]: 7.00000000000000000e+00\nSample[3900]: 1.20000000000000000e+01\nSample[5850]: 9.20000000000000000e+01\nSample[7799]: 2.10000000000000000e+01\nHash: eded44fd6cbcbcd3\n=== END RESULTS ==="
+            }
+          }
+        }
+      ],
+      "all_completed": true,
+      "exact_result_block_match": true
+    }
+  ]
+}

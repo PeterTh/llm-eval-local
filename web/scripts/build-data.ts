@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile, readdir, rm, mkdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, rm, mkdir, writeFile, stat } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -74,6 +74,7 @@ interface ValidationRecord {
   source: {
     batch: string;
     path: string;
+    commit?: string;
   };
   stages: Record<string, boolean | null>;
 }
@@ -295,7 +296,8 @@ async function filesUnder(root: string, suffix: string): Promise<string[]> {
 
 async function readJsonlRecords<T>(root: string): Promise<Map<string, LocatedRecord<T>>> {
   const records = new Map<string, LocatedRecord<T>>();
-  for (const path of await filesUnder(root, ".jsonl")) {
+  const paths = (await stat(root)).isFile() ? [root] : await filesUnder(root, ".jsonl");
+  for (const path of paths) {
     const lines = (await readFile(path, "utf8")).split(/\r?\n/);
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
@@ -353,7 +355,8 @@ export async function buildData(): Promise<void> {
   invariant(/^[0-9a-f]{64}$/.test(methodologyConfig.experimentScript.sha256), "experiment script digest is malformed");
   invariant(methodologyConfig.experimentScript.repository.startsWith("https://github.com/"), "experiment repository must be on GitHub");
 
-  const scoredRows = parseCsv(await readFile(resolve(repositoryRoot, "data", "scoring", "scored_results.csv"), "utf8"), {
+  const scoredContent = await readFile(resolve(repositoryRoot, "release", "scored_results.csv"), "utf8");
+  const scoredRows = parseCsv(scoredContent, {
     columns: true,
     skip_empty_lines: true,
   }) as CsvRow[];
@@ -365,16 +368,47 @@ export async function buildData(): Promise<void> {
     skip_empty_lines: true,
   }) as CsvRow[];
   const parsedCostProfiles = parseCostPricingProfiles(costSourceRows);
-  const thresholdRows = parseCsv(await readFile(resolve(repositoryRoot, "data", "scoring", "local_scoring_thresholds.csv"), "utf8"), {
+  const thresholdRows = parseCsv(await readFile(resolve(repositoryRoot, "release", "local_scoring_thresholds.csv"), "utf8"), {
     columns: true,
     skip_empty_lines: true,
   }) as CsvRow[];
-  const scoringMetadata = parseYaml(await readFile(resolve(repositoryRoot, "data", "scoring", "scoring_metadata.yaml"), "utf8")) as Record<string, unknown>;
+  const scoringMetadata = parseYaml(await readFile(resolve(repositoryRoot, "release", "scoring_metadata.yaml"), "utf8")) as Record<string, unknown>;
+  invariant(digest(scoredContent) === scoringMetadata.scored_csv_sha256, "current scored CSV digest mismatch");
   const repositoryMetadata = parseYaml(await readFile(resolve(repositoryRoot, "data", "provenance", "repositories.yaml"), "utf8")) as Record<string, any>;
   const evaluationManifest = parseYaml(await readFile(resolve(repositoryRoot, "data", "provenance", "evaluation_manifest.yaml"), "utf8")) as Record<string, unknown>;
 
-  const validationRecords = await readJsonlRecords<ValidationRecord>(resolve(repositoryRoot, "data", "validation", "records"));
-  const benchmarkRecords = await readJsonlRecords<BenchmarkRecord>(resolve(repositoryRoot, "data", "benchmark", "records"));
+  const catalog = JSON.parse(await readFile(resolve(repositoryRoot, "release", "catalog.json"), "utf8")) as {
+    campaigns: Array<{ validation_records: string; corrected_validation_records?: string; validation_format: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
+  };
+  const validationRecords = new Map<string, LocatedRecord<ValidationRecord>>();
+  const benchmarkRecords = new Map<string, LocatedRecord<BenchmarkRecord>>();
+  for (const campaign of catalog.campaigns) {
+    const recordRoot = (pattern: string) => resolve(repositoryRoot, pattern.replace(/\/\*\/\*\.jsonl$/, ""));
+    const original = await readJsonlRecords<Record<string, any>>(recordRoot(campaign.validation_records));
+    if (campaign.corrected_validation_records) {
+      const corrected = await readJsonlRecords<Record<string, any>>(recordRoot(campaign.corrected_validation_records));
+      for (const [id, located] of corrected) {
+        invariant(original.has(id), `corrected validation outside its campaign: ${id}`);
+        original.set(id, located);
+      }
+    }
+    for (const [id, located] of original) {
+      invariant(!validationRecords.has(id), `duplicate cross-campaign validation ID: ${id}`);
+      const raw = located.record;
+      const record: ValidationRecord = campaign.validation_format === "canonical"
+        ? { ...(raw as unknown as ValidationRecord), source: { ...raw.source, commit: campaign.source_commit } }
+        : {
+          id, benchmark: raw.metadata.benchmark, model: raw.metadata.model,
+          backend: raw.metadata.par_type, repetition: raw.metadata.run, stages: raw.metadata.stages,
+          source: { batch: raw.source_batch, path: `${raw.source_batch}/${id}`, commit: raw.source_commit },
+        };
+      validationRecords.set(id, { ...located, record });
+    }
+    for (const [id, located] of await readJsonlRecords<BenchmarkRecord>(recordRoot(campaign.benchmark_records))) {
+      invariant(!benchmarkRecords.has(id), `duplicate cross-campaign benchmark ID: ${id}`);
+      benchmarkRecords.set(id, located);
+    }
+  }
   const implementationAnalyses = await readImplementationAnalyses(implementationAnalysisRoot);
 
   invariant(scoredRows.length > 0, "scored dataset is empty");
@@ -389,7 +423,8 @@ export async function buildData(): Promise<void> {
   invariant(typeof generatedPrograms.commit === "string", "generated-program commit is missing");
 
   const generatedSourceRepository = generatedPrograms.repository.replace(/\.git$/, "");
-  const generatedSourceCommit = generatedPrograms.commit;
+  // This repository-level link is the latest snapshot; measured per-run revisions are joined above.
+  const generatedSourceCommit = catalog.campaigns.at(-1)!.corrected_source_commit;
   const scoringDigest = scoringMetadata.scored_csv_sha256;
   const dataGeneratedAt = scoringMetadata.generated_at;
   invariant(typeof scoringDigest === "string", "scored CSV digest is missing");
@@ -500,7 +535,7 @@ export async function buildData(): Promise<void> {
       sourceBatch: validation.source.batch,
       sourcePath,
       sourceUrl: timingCorrection?.correctedSource.url
-        ?? `${generatedSourceRepository}/tree/${generatedSourceCommit}/${encodeRepositoryPath(sourcePath)}`,
+        ?? `${generatedSourceRepository}/tree/${validation.source.commit ?? generatedSourceCommit}/${encodeRepositoryPath(sourcePath)}`,
       timingFixed,
       timingCorrection,
       validationEvidenceUrl,

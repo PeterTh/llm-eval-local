@@ -104,6 +104,7 @@ export const runsFixture: RunRecord[] = [
       "## Scope",
       "",
       "The **winning implementation** reduces synchronization.",
+      "[Retained evidence](../probe.json)",
       "",
       "## Controlled evidence",
       "",

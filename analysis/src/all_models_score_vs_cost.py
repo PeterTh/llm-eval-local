@@ -18,7 +18,7 @@ import pandas as pd
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INPUT = REPOSITORY_ROOT / "data" / "scoring" / "scored_results.csv"
+DEFAULT_INPUT = REPOSITORY_ROOT / "release" / "scored_results.csv"
 DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "4d_all_models_score_vs_cost.pdf"
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "4d_all_models_score_vs_cost.csv"
 
@@ -38,6 +38,30 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "claude-fable-5-cc-medium": {
+        "label": "Fable 5 Medium", "color": "#903820", "marker": "D",
+        "pricing_as_of": "2026-09-29", "pricing_model_id": "anthropic/claude-fable-5",
+        "input_price": 10.0, "cached_input_price": 1.0, "output_price": 50.0,
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-5-fable-20260609/endpoints",
+        "pricing_source_url": "https://openrouter.ai/anthropic/claude-fable-5",
+    },
+    "claude-opus-5-cc-medium": {
+        "label": "Opus 5 Medium", "color": "#bd5630", "marker": "^",
+        "pricing_as_of": "2026-09-29", "pricing_model_id": "anthropic/claude-opus-5",
+        "input_price": 5.0, "cached_input_price": 0.5, "output_price": 25.0,
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-opus-5/endpoints",
+        "pricing_source_url": "https://openrouter.ai/anthropic/claude-opus-5",
+    },
+    "claude-sonnet-5-cc-medium": {
+        "label": "Sonnet 5 Medium", "color": "#db9966", "marker": "s",
+        "pricing_as_of": "2026-09-29", "pricing_model_id": "anthropic/claude-sonnet-5",
+        "input_price": 2.0, "cached_input_price": 0.2, "output_price": 10.0,
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-sonnet-5/endpoints",
+        "pricing_source_url": "https://openrouter.ai/anthropic/claude-sonnet-5",
+    },
     "claude-haiku-4.5": {
         "label": "Haiku 4.5",
         "color": "#a8c8e8",
@@ -258,6 +282,9 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "claude-fable-5-cc-medium": (-7, -8),
+    "claude-opus-5-cc-medium": (-7, 9),
+    "claude-sonnet-5-cc-medium": (7, -9),
     "deepseek-v4-flash": (7, 4),
     "gpt-5-mini": (7, 0),
     "gpt-5.6-luna-xhigh": (7, 0),
@@ -280,6 +307,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--figure", type=Path, default=DEFAULT_FIGURE)
     parser.add_argument("--table", type=Path, default=DEFAULT_TABLE)
+    parser.add_argument("--font", type=Path, help="Register an explicit TTF/OTF without installing it")
     return parser.parse_args()
 
 
@@ -412,7 +440,7 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
                 "output_price_usd_per_million": config["output_price"],
                 "effective_price_usd_per_million": effective_price,
                 "estimated_cost_usd_per_run": estimated_cost,
-                "pricing_as_of": PRICING_AS_OF,
+                "pricing_as_of": config.get("pricing_as_of", PRICING_AS_OF),
                 "pricing_model_id": config["pricing_model_id"],
                 "pricing_provider": config["pricing_provider"],
                 "pricing_provider_tag": config["pricing_provider_tag"],
@@ -510,9 +538,9 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
         )
 
     axis.set_xscale("log")
-    axis.set_xlim(0.012, 1.55)
-    axis.set_ylim(3.1, 8.6)
-    axis.xaxis.set_major_locator(FixedLocator([0.02, 0.05, 0.1, 0.2, 0.5, 1.0]))
+    axis.set_xlim(0.012, max(1.55, summary.estimated_cost_usd_per_run.max() * 1.8))
+    axis.set_ylim(3.1, max(8.6, summary.mean_overall_score.max() + 0.5))
+    axis.xaxis.set_major_locator(FixedLocator([0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]))
     axis.xaxis.set_major_formatter(FuncFormatter(_format_cost))
     axis.set_yticks(np.arange(3.5, 8.6, 0.5))
     axis.set_xlabel("Estimated API Cost per Run (USD, log scale)")
@@ -541,6 +569,8 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
 
 def main() -> None:
     args = parse_args()
+    if args.font:
+        font_manager.fontManager.addfont(args.font)
     frame = load_and_validate(args.input)
     summary = aggregate(frame)
     write_table(summary, args.table)

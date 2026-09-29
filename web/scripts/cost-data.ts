@@ -121,11 +121,12 @@ export function parseCostPricingProfiles(rows: readonly CsvRow[]): ParsedCostPro
       costMethod: required(row.cost_method, `${id}.cost_method`),
     };
   });
-  const pricingDates = new Set(profiles.map((profile) => profile.pricingAsOf));
-  invariant(pricingDates.size === 1, `cost pricing table contains inconsistent dates: ${[...pricingDates].join(", ")}`);
+  // Each frozen profile keeps its own observation date. The dataset date is the
+  // latest addition, not a claim that all historic prices were refreshed.
+  const pricingDates = profiles.map((profile) => profile.pricingAsOf).sort();
   return {
     profiles,
-    pricingAsOf: profiles[0]!.pricingAsOf,
+    pricingAsOf: pricingDates[pricingDates.length - 1]!,
     selectionPolicy: mostFrequent(profiles.map((profile) => profile.pricingSelectionPolicy)),
   };
 }
