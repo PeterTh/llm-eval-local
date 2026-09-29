@@ -931,6 +931,15 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(page.getByText(/Shown API cost is based on API rates/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Cost estimation generator" })).toHaveAttribute("href", /all_models_score_vs_cost\.py$/);
   await expect(page.getByRole("link", { name: "Frozen pricing profiles" })).toHaveAttribute("href", /4d_all_models_score_vs_cost\.csv$/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    await page.evaluate(() => window.innerWidth),
+  );
+  const claudeHarness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Claude Code", exact: true }) });
+  await claudeHarness.getByText("Exact harness parameters", { exact: true }).click();
+  await expect(claudeHarness.locator(".harness-parameters code")).toContainText("--no-session-persistence");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    await page.evaluate(() => window.innerWidth),
+  );
   await goto(page, "/cite");
   await expect(page.getByRole("heading", { name: "Citation" })).toBeAttached();
   await expect(page.getByRole("heading", { name: "Cite this work" })).toHaveCount(0);
