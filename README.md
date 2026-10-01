@@ -28,6 +28,7 @@ SHA-256 digest.
 - static MPI/hybrid timing audits covering 1,939 programs, 761 accepted timing-only
   corrections, and compact before/after measurements where both were collected;
 - aggregate datasets, scoring inputs, audit records, and final scores;
+- compact, provenance-bound Codex usage records for 1,980 GPT-5.6 and 660 GPT-6 runs;
 - the exact final local-evaluation pipeline source snapshot; and
 - reproducible analysis source and final publication tables/figures as they are added.
 
@@ -56,6 +57,11 @@ campaigns. It joins the original records below with the Claude 5 batch; no histo
 measurements are replaced. The website and current score/cost figures use this view.
 All 44 current cell winners have individual analyses; the 44 previous analyses are
 also retained (68 notes in total).
+
+Recovered GPT-5.6 token counts are applied as a metadata-only release overlay;
+raw campaign records, measurements, and scores are unchanged. The GPT-6 generation
+campaign is complete, but its performance results are not yet part of this release.
+See [token recovery and cost accounting](analysis/README.md#gpt-56-scorecost-comparison).
 
 The historical release was produced from local run `20260819-003427`. It contains
 4,620 completed validation records, 3,825 fully valid programs, 3,825 attempted

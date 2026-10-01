@@ -23,6 +23,9 @@ published program sources, benchmark sources, pipeline source, and documented sy
   links; source files themselves remain in the generated-program repository.
 - Compact evidence for the one observed nondeterministic Cahn-Hilliard validation.
 - The final pipeline source snapshot named by the last amendment.
+- Compact exact reported Codex usage with session/run identity, cumulative counters,
+  original terminal counter, and transcript/session hashes; recovery code is retained
+  separately from the immutable measurement pipeline snapshot.
 - Analysis code, environment locks, final tables, and one canonical representation of
   each final figure.
 

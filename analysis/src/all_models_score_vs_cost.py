@@ -24,7 +24,6 @@ DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "4d_all_models_score_v
 
 PRICING_AS_OF = "2026-08-22"
 OPENROUTER_CATALOG_URL = "https://openrouter.ai/api/v1/models"
-ASSUMED_GPT56_OUTPUT_SHARE = 0.5
 FIXED_PDF_TIMESTAMP = datetime(2026, 8, 22, tzinfo=timezone.utc)
 PRICING_SELECTION_POLICY = (
     "lowest estimated cost among live non-batch OpenRouter endpoints for the "
@@ -352,24 +351,23 @@ def load_and_validate(path: Path) -> pd.DataFrame:
         detail = ", ".join(f"{model}={count}" for model, count in counts.items())
         raise ValueError(f"models do not have a balanced score count: {detail}")
 
-    non_gpt56 = selected[~selected["model"].isin(GPT56_MODELS)]
     split_columns = ["input_tokens", "output_tokens", "cached_tokens"]
-    numeric_splits = non_gpt56[split_columns].apply(pd.to_numeric, errors="coerce")
+    numeric_splits = selected[split_columns].apply(pd.to_numeric, errors="coerce")
     complete_splits = numeric_splits.notna().all(axis=1)
-    if not complete_splits.groupby(non_gpt56["model"]).any().all():
-        raise ValueError("each non-GPT-5.6 model needs at least one complete token split")
+    if not complete_splits.groupby(selected["model"]).any().all():
+        raise ValueError("each model needs at least one complete token split")
     complete = numeric_splits[complete_splits]
-    if (complete < 0).any().any():
-        raise ValueError("token counts must be non-negative")
+    if not np.isfinite(complete).all().all() or (complete < 0).any().any():
+        raise ValueError("token counts must be finite and non-negative")
     if (complete["cached_tokens"] > complete["input_tokens"]).any():
         raise ValueError("cached_tokens must be a subset of input_tokens")
 
+    selected[split_columns] = numeric_splits
     gpt56 = selected[selected["model"].isin(GPT56_MODELS)]
-    if gpt56[split_columns].notna().any().any():
-        raise ValueError(
-            "GPT-5.6 token splits are now present; replace the fixed-mix proxy "
-            "with exact per-run pricing before regenerating this figure"
-        )
+    if gpt56[split_columns].isna().any().any():
+        raise ValueError("GPT-5.6 requires recovered complete token breakdowns")
+    if not (gpt56["total_tokens"] == gpt56["input_tokens"] + gpt56["output_tokens"]).all():
+        raise ValueError("GPT-5.6 inclusive token totals disagree")
     if gpt56["total_tokens"].isna().any() or not (gpt56["total_tokens"] > 0).all():
         raise ValueError("GPT-5.6 total-token values must be complete and positive")
     return selected
@@ -382,45 +380,29 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
         score_run_count = len(group)
         mean_score = group["overall_score"].mean()
 
-        if model in GPT56_MODELS:
-            cost_run_count = len(group)
-            mean_total_tokens = group["total_tokens"].mean()
-            effective_price = (
-                (1.0 - ASSUMED_GPT56_OUTPUT_SHARE) * config["input_price"]
-                + ASSUMED_GPT56_OUTPUT_SHARE * config["output_price"]
-            )
-            estimated_cost = mean_total_tokens * effective_price / 1_000_000
-            mean_input_tokens = np.nan
-            mean_cached_tokens = np.nan
-            mean_output_tokens = np.nan
-            cost_method = (
-                "50% input + 50% output price applied to mean reported tokens; "
-                "cached input excluded"
-            )
-        else:
-            cost_rows = group.dropna(
-                subset=["input_tokens", "output_tokens", "cached_tokens"]
-            ).copy()
-            for column in ["input_tokens", "output_tokens", "cached_tokens"]:
-                cost_rows[column] = pd.to_numeric(cost_rows[column], errors="raise")
-            cost_run_count = len(cost_rows)
-            per_run_cost = (
-                (cost_rows["input_tokens"] - cost_rows["cached_tokens"])
-                * config["input_price"]
-                + cost_rows["cached_tokens"] * config["cached_input_price"]
-                + cost_rows["output_tokens"] * config["output_price"]
-            ) / 1_000_000
-            estimated_cost = per_run_cost.mean()
-            mean_total_tokens = (
-                cost_rows["input_tokens"] + cost_rows["output_tokens"]
-            ).mean()
-            mean_input_tokens = cost_rows["input_tokens"].mean()
-            mean_cached_tokens = cost_rows["cached_tokens"].mean()
-            mean_output_tokens = cost_rows["output_tokens"].mean()
-            effective_price = np.nan
-            cost_method = (
-                "uncached input, cached input, and output tokens priced separately"
-            )
+        cost_rows = group.dropna(
+            subset=["input_tokens", "output_tokens", "cached_tokens"]
+        ).copy()
+        for column in ["input_tokens", "output_tokens", "cached_tokens"]:
+            cost_rows[column] = pd.to_numeric(cost_rows[column], errors="raise")
+        cost_run_count = len(cost_rows)
+        per_run_cost = (
+            (cost_rows["input_tokens"] - cost_rows["cached_tokens"])
+            * config["input_price"]
+            + cost_rows["cached_tokens"] * config["cached_input_price"]
+            + cost_rows["output_tokens"] * config["output_price"]
+        ) / 1_000_000
+        estimated_cost = per_run_cost.mean()
+        mean_total_tokens = (
+            cost_rows["input_tokens"] + cost_rows["output_tokens"]
+        ).mean()
+        mean_input_tokens = cost_rows["input_tokens"].mean()
+        mean_cached_tokens = cost_rows["cached_tokens"].mean()
+        mean_output_tokens = cost_rows["output_tokens"].mean()
+        effective_price = np.nan
+        cost_method = (
+            "uncached input, cached input, and output tokens priced separately"
+        )
 
         rows.append(
             {

@@ -50,12 +50,37 @@ lines connect low, medium, and xhigh reasoning effort for the same variant. The 
 axis is logarithmic because the current Luna and Sol prices differ by more than an
 order of magnitude.
 
-The retained GPT-5.6 runs contain Codex's combined non-cached-input-plus-output token
-count, but not the billing split or cached-input count. The plotted cost is therefore
-a consistent comparison estimate rather than reconstructed billing: mean reported
-tokens multiplied by a fixed 50% input / 50% output price mix. Cached input is
-excluded. The backing CSV records the assumption, prices, pricing date, and official
-source URL for every point.
+Exact reported GPT-5.6 token breakdowns were recovered from retained Codex sessions
+on 2026-10-01. The release overlay retains session and transcript hashes and the
+original terminal counter, which excluded cached input. Costs now price uncached
+input, cached input, and output separately, replacing the earlier 50/50 proxy.
+Cached input is a subset of input and reasoning is a subset of output; neither is
+added twice. This remains an API-rate comparison, not a ChatGPT subscription bill.
+The backing CSV records counts, frozen prices, pricing date, and source URLs.
+
+The evidence lives in `metadata/codex-usage/<source-batch>.jsonl`. All 1,980
+GPT-5.6 and 660 GPT-6 records matched a unique session, completed task, transcript
+hash, and consistent final cumulative counters. Only the historical GPT-5.6
+overlay is applied to this release; the GPT-6 campaign still needs validation,
+timing review, and benchmarking. No generated programs or transcripts were edited.
+The compact evidence totals 2,283,539 bytes; complete session logs are not duplicated.
+
+Recover a completed batch from the original locally retained sessions with:
+
+```bash
+ruby method/codex-usage/recover_codex_usage.rb \
+  --batch=/path/to/generated/20260929-135931 --expected=660 \
+  --sessions=/home/llmtest/.codex/sessions --session-user=llmtest \
+  --output=/path/to/new/20260929-135931.jsonl
+ruby tools/current_release.rb
+```
+
+The recovery tool only reads sessions and exports whitelisted counters/provenance;
+it makes no model calls and refuses to overwrite different evidence. Omit
+`--session-user` when the invoking account can read the session files directly.
+Future evaluation aggregation accepts this file with `--codex-usage=PATH`.
+Codex's [machine-readable usage documentation](https://learn.chatgpt.com/docs/non-interactive-mode#make-output-machine-readable)
+also describes the input, cached-input, output, and reasoning categories.
 
 Prices versioned for 2026-08-22 are $4/$20 per million input/output tokens for Sol,
 $2/$12 for Terra, and $0.20/$1.20 for Luna:
@@ -95,10 +120,9 @@ last OpenRouter input/output price is paired with a current public cached-input
 price. The evaluated Qwen 3.6 27B U-DQ4 model is matched to the cheapest endpoint for
 the underlying Qwen 3.6 27B model, currently an FP8 endpoint.
 
-Where the retained data has token categories, cost is computed per run from uncached
-input, cached input, and output tokens before averaging. GPT-5.6 retains only a
-combined token count, so those three xhigh points use the same fixed 50% input / 50%
-output proxy as the focused GPT-5.6 figure. The backing CSV records both methods,
+Cost is computed per run from uncached input, cached input, and output tokens before
+averaging, including the recovered GPT-5.6 breakdowns. The recovery does not refresh
+prices or reselect historical endpoints. The backing CSV records the method,
 all rates, selected providers and routing tags, model matches, source URLs, and the
 per-model pricing date: 2026-08-22 for existing profiles, 2026-09-29 for the three
 Claude 5 additions. Existing rates are not retrospectively refreshed. See

@@ -23,7 +23,6 @@ DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "4c_gpt56_score_vs_c
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "4c_gpt56_score_vs_cost.csv"
 
 PRICING_AS_OF = "2026-08-22"
-ASSUMED_OUTPUT_SHARE = 0.5
 FIXED_PDF_TIMESTAMP = datetime(2026, 8, 22, tzinfo=timezone.utc)
 
 # Standard API prices in USD per million tokens. These values intentionally remain
@@ -95,7 +94,7 @@ def parse_args() -> argparse.Namespace:
 
 def load_and_validate(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path)
-    required = {"model", "overall_score", "total_tokens"}
+    required = {"model", "overall_score", "total_tokens", "input_tokens", "output_tokens", "cached_tokens"}
     missing = required - set(frame.columns)
     if missing:
         raise ValueError(f"missing required columns: {', '.join(sorted(missing))}")
@@ -124,12 +123,15 @@ def load_and_validate(path: Path) -> pd.DataFrame:
         detail = ", ".join(f"{model}={count}" for model, count in counts.items())
         raise ValueError(f"models do not have a balanced observation count: {detail}")
 
-    split_columns = {"input_tokens", "output_tokens", "cached_tokens"}
-    if split_columns <= set(gpt56.columns) and gpt56[list(split_columns)].notna().any().any():
-        raise ValueError(
-            "GPT-5.6 token splits are now present; replace the fixed-mix proxy with "
-            "exact per-run pricing before regenerating this figure"
-        )
+    split_columns = ["input_tokens", "output_tokens", "cached_tokens"]
+    splits = gpt56[split_columns].apply(pd.to_numeric, errors="raise")
+    if splits.isna().any().any() or not np.isfinite(splits).all().all() or (splits < 0).any().any():
+        raise ValueError("complete non-negative GPT-5.6 token breakdowns are required")
+    if (splits["cached_tokens"] > splits["input_tokens"]).any():
+        raise ValueError("cached tokens must be a subset of input")
+    if not (gpt56["total_tokens"] == splits["input_tokens"] + splits["output_tokens"]).all():
+        raise ValueError("inclusive token totals disagree with input plus output")
+    gpt56[split_columns] = splits
     return gpt56
 
 
@@ -141,10 +143,9 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
             raise ValueError(f"cannot parse GPT-5.6 model identifier: {model}")
         config = VARIANTS[variant]
         mean_tokens = group["total_tokens"].mean()
-        effective_price = (
-            (1.0 - ASSUMED_OUTPUT_SHARE) * config["input_price"]
-            + ASSUMED_OUTPUT_SHARE * config["output_price"]
-        )
+        costs = ((group["input_tokens"] - group["cached_tokens"]) * config["input_price"]
+                 + group["cached_tokens"] * config["cached_input_price"]
+                 + group["output_tokens"] * config["output_price"]) / 1_000_000
         rows.append(
             {
                 "model": model,
@@ -154,17 +155,17 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
                 "effort_label": EFFORT_LABELS[effort],
                 "run_count": len(group),
                 "mean_overall_score": group["overall_score"].mean(),
-                "mean_reported_tokens": mean_tokens,
-                "assumed_input_share": 1.0 - ASSUMED_OUTPUT_SHARE,
-                "assumed_output_share": ASSUMED_OUTPUT_SHARE,
+                "mean_total_tokens": mean_tokens,
+                "mean_input_tokens": group["input_tokens"].mean(),
+                "mean_cached_input_tokens": group["cached_tokens"].mean(),
+                "mean_output_tokens": group["output_tokens"].mean(),
                 "input_price_usd_per_million": config["input_price"],
                 "cached_input_price_usd_per_million": config["cached_input_price"],
                 "output_price_usd_per_million": config["output_price"],
-                "effective_price_usd_per_million": effective_price,
-                "estimated_cost_usd_per_run": mean_tokens * effective_price / 1_000_000,
+                "estimated_cost_usd_per_run": costs.mean(),
                 "pricing_as_of": PRICING_AS_OF,
                 "pricing_source_url": config["pricing_url"],
-                "cost_method": "50% input + 50% output price applied to mean reported tokens; cached input excluded",
+                "cost_method": "recovered exact reported usage; uncached input, cached input, and output priced separately",
             }
         )
     summary = pd.DataFrame(rows)
@@ -263,7 +264,8 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             )
 
     axis.set_xscale("log")
-    axis.set_xlim(0.016, 1.7)
+    axis.set_xlim(summary["estimated_cost_usd_per_run"].min() * 0.7,
+                  summary["estimated_cost_usd_per_run"].max() * 1.5)
     axis.set_ylim(5.5, 8.55)
     axis.xaxis.set_major_locator(FixedLocator([0.02, 0.05, 0.1, 0.2, 0.5, 1.0]))
     axis.xaxis.set_major_formatter(FuncFormatter(_format_cost))

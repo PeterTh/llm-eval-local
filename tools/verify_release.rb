@@ -46,6 +46,7 @@ class ReleaseVerifier
     check("canonical benchmark maps") { verify_canonical_benchmark_maps }
     check("timing audit and corrections") { verify_timing_audit_and_corrections }
     check("scores") { verify_scores }
+    check("recovered Codex usage") { verify_codex_usage }
     check("evidence scope") { verify_evidence_scope }
     check("incident evidence") { verify_incident }
     check("combined release and batch evidence") { CurrentRelease.new(@root).run(check: true, require_reviews: true) }
@@ -97,6 +98,29 @@ class ReleaseVerifier
       schemas/benchmark-record.schema.json
       schemas/timing-rerun-comparison-record.schema.json
     ].each { |relative| require_file(relative) }
+  end
+
+  def verify_codex_usage
+    recovery = JSON.parse(File.read(file("metadata/codex-usage/recovery.json")))
+    equal!(1, recovery.fetch("schema_version"), "Codex recovery schema")
+    records = []
+    bytes = 0
+    recovery.fetch("batches").each do |batch|
+      relative = "metadata/codex-usage/#{batch.fetch('file')}"
+      ensure_safe_relative!(relative)
+      target = require_file(relative)
+      equal!(batch.fetch("sha256"), LocalEvalArtifact.sha256(target), "Codex usage digest #{relative}")
+      entries = CodexUsage.load_records(target).values
+      equal!(batch.fetch("records"), entries.size, "Codex usage count #{relative}")
+      equal!([batch.fetch("batch")], entries.map { |r| r.fetch("batch") }.uniq, "Codex usage batch #{relative}")
+      equal!([batch.fetch("cli_version")], entries.map { |r| r.fetch("cli_version") }.uniq, "Codex CLI #{relative}")
+      records.concat(entries)
+      bytes += File.size(target)
+    end
+    equal!(recovery.fetch("records"), records.size, "Codex total records")
+    equal!(recovery.fetch("evidence_bytes"), bytes, "Codex evidence bytes")
+    equal!(records.size, records.map { |r| r.fetch("session_id") }.uniq.size, "Codex unique sessions")
+    equal!(records.size, records.map { |r| [r.fetch("batch"), r.fetch("run_id")] }.uniq.size, "Codex unique runs")
   end
 
   def verify_global_checksums

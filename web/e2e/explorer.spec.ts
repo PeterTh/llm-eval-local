@@ -872,15 +872,18 @@ test("runs combine outcome filters, paginate, and retain context through detail"
   expect(problems).toEqual([]);
 });
 
-test("run detail distinguishes combined and separately cached token records", async ({ page }) => {
+test("run detail distinguishes recovered inclusive and separately cached token records", async ({ page }) => {
   const problems = watchPage(page);
 
   await goto(page, "/runs?model=gpt-5.6-sol-medium");
   await expect(page.getByRole("heading", { name: "220 matching runs" })).toBeVisible();
   await page.locator(".run-id-link").first().click();
-  const combinedTokens = page.getByLabel("Token consumption");
-  await expect(combinedTokens).toContainText("Combined tokens");
-  await expect(combinedTokens).not.toContainText("Cached input tokens");
+  const recoveredTokens = page.getByLabel("Token consumption");
+  await expect(recoveredTokens).toContainText("Priced token volume371,295");
+  await expect(recoveredTokens).toContainText("Input tokens (cache included)364,672");
+  await expect(recoveredTokens).toContainText("Cached input tokens318,464");
+  await expect(recoveredTokens).toContainText("Output tokens6,623");
+  await expect(recoveredTokens).not.toContainText("Combined tokens");
   await expect(page.getByRole("heading", { name: /estimated API cost$/ })).toBeVisible();
 
   await goto(page, "/runs?model=qwen-3.6-27B-udq4-pi-t");
@@ -906,8 +909,8 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(snapshot).toHaveAttribute("href", /\/tree\/[0-9a-f]{40}$/);
   const snapshotCommit = (await snapshot.getAttribute("href"))!.split("/").at(-1)!;
   await expect(snapshot.locator("code")).toHaveText(snapshotCommit.slice(0, 9));
-  await expect(snapshot.locator("time")).toHaveText("2026-09-29 12:18:37 UTC+02:00");
-  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-09-29T12:18:37+02:00");
+  await expect(snapshot.locator("time")).toHaveText("2026-10-01 06:03:47 UTC");
+  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-10-01T06:03:47Z");
   await expect(page.locator(".primary-nav")).not.toContainText("Snapshot");
   await goto(page, "/methodology");
   await expect(page.getByRole("heading", { name: "Methodology" })).toBeVisible();

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require "minitest/autorun"
+require "tmpdir"
 require_relative "current_release"
 
 class CurrentReleaseTest < Minitest::Test
@@ -55,5 +56,29 @@ class CurrentReleaseTest < Minitest::Test
     release = CurrentRelease.new(ROOT)
     assert_raises(RuntimeError) { release.path("../outside") }
     assert_raises(RuntimeError) { release.path("/tmp/outside") }
+  end
+
+  def test_usage_overlay_changes_only_token_metadata_and_requires_coverage
+    record = JSON.parse(File.open(File.join(ROOT, "metadata/codex-usage/20260805-120633.jsonl"), &:readline))
+    bench, model, backend, repetition = record.fetch("run_id").split("_")
+    original = {"benchmark" => bench, "model" => model, "par_type" => backend,
+                "run" => repetition.delete_prefix("r"), "source_batch" => record.fetch("batch"),
+                "total_tokens" => record.fetch("legacy_reported_tokens").to_s,
+                "benchmark_times" => "1;2;3;4;5", "overall_score" => "9"}
+    Dir.mktmpdir("usage-overlay-") do |directory|
+      File.write(File.join(directory, "usage.jsonl"), JSON.generate(record) + "\n")
+      release = CurrentRelease.allocate
+      release.instance_variable_set(:@root, directory)
+      release.instance_variable_set(:@catalog, {"codex_usage_overlays" => [
+        {"path" => "usage.jsonl", "batch" => record.fetch("batch"), "expected_runs" => 1}]})
+      row = original.dup
+      release.apply_codex_usage!([row], [], {})
+      assert_equal record.fetch("usage").fetch("total_tokens").to_s, row["total_tokens"]
+      assert_equal original["total_tokens"], row["legacy_reported_tokens"]
+      assert_equal original["benchmark_times"], row["benchmark_times"]
+      assert_equal original["overall_score"], row["overall_score"]
+      assert_raises(RuntimeError) { release.apply_codex_usage!([], [], {}) }
+      assert_raises(RuntimeError) { release.apply_codex_usage!([original.merge("total_tokens" => "1")], [], {}) }
+    end
   end
 end

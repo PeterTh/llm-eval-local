@@ -3,6 +3,7 @@
 require_relative "artifact_common"
 require_relative "batch_verification"
 require_relative "../method/timing-audit/scoring_threshold_review"
+require_relative "../method/codex-usage/codex_usage"
 
 # The release is a view over immutable campaigns, not a second copy of their logs.
 class CurrentRelease
@@ -111,6 +112,7 @@ class CurrentRelease
       end
       native
     end
+    apply_codex_usage!(rows, headers, inputs)
     ids = rows.map { |row| self.class.id(row) }
     raise "overlapping campaign IDs" unless ids.uniq.size == ids.size
     rows.sort_by! { |row| self.class.id(row) }
@@ -186,7 +188,7 @@ class CurrentRelease
       # Redundant checksum manifests are checked separately; all their actual inputs are pinned here.
       Dir.glob(path("batches/#{campaign.fetch('id')}/**/*")).sort.select { |p| File.file?(p) && File.basename(p) != "checksums.sha256" }.each { |p| inputs[relative_path(@root, p)] = sha256(p) }
     end
-    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb method/timing-audit/scoring_threshold_review.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
+    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb method/timing-audit/scoring_threshold_review.rb method/codex-usage/codex_usage.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
     metadata = {
       "schema_version" => 1, "generated_at" => @catalog.fetch("generated_at"), "counts" => actual,
       "scored_csv_sha256" => Digest::SHA256.hexdigest(scored), "thresholds_sha256" => Digest::SHA256.hexdigest(thresholds),
@@ -201,6 +203,41 @@ class CurrentRelease
       "release/historical_score_changes.csv" => changes,
       "release/winners.json" => JSON.pretty_generate(winners) + "\n"
     }
+  end
+
+  # Correct usage metadata only; the archived campaign CSVs and all measurements
+  # remain immutable. Every overlay must cover its entire named source batch.
+  def apply_codex_usage!(rows, headers, inputs)
+    @catalog.fetch("codex_usage_overlays", []).each do |overlay|
+      relative = overlay.fetch("path")
+      inputs[relative] = sha256(path(relative))
+      records = CodexUsage.load_records(path(relative))
+      batch = overlay.fetch("batch")
+      selected = rows.select { |row| row.fetch("source_batch") == batch }
+      unless records.size == overlay.fetch("expected_runs") && records.keys.sort == selected.map { |row| self.class.id(row) }.sort
+        raise "Codex usage overlay coverage differs for #{batch}"
+      end
+      selected.each do |row|
+        id = self.class.id(row)
+        record = records.fetch(id)
+        raise "Codex usage batch differs for #{id}" unless record.fetch("batch") == batch
+        unless %w[input_tokens output_tokens cached_tokens].all? { |field| row[field].to_s.empty? } &&
+               Float(row.fetch("total_tokens")) == record.fetch("legacy_reported_tokens")
+          raise "Codex usage legacy evidence differs for #{id}"
+        end
+        usage = record.fetch("usage")
+        fields = {
+          "input_tokens" => usage.fetch("input_tokens"), "cached_tokens" => usage.fetch("cached_input_tokens"),
+          "output_tokens" => usage.fetch("output_tokens"), "total_tokens" => usage.fetch("total_tokens"),
+          "reasoning_output_tokens" => usage["reasoning_output_tokens"],
+          "cache_write_input_tokens" => usage["cache_write_input_tokens"],
+          "legacy_reported_tokens" => record.fetch("legacy_reported_tokens"),
+          "token_usage_source" => record.fetch("source"), "token_usage_session_id" => record.fetch("session_id")
+        }
+        fields.each { |field, value| row[field] = value&.to_s }
+        headers.replace(headers | fields.keys)
+      end
+    end
   end
 
   def run(check: false, require_reviews: false)

@@ -1,9 +1,17 @@
-# Combined release: 2026-09-29
+# Combined release: 2026-10-01
 
 This is a reproducible view over two retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
 `batches/20260901-162328/`.
+
+The 2026-10-01 update changes token metadata and cost estimates only. The catalog's
+`codex_usage_overlays` joins exact reported counters for all 1,980 GPT-5.6 runs from
+`metadata/codex-usage/20260805-120633.jsonl`, preserving the original terminal
+counter and session provenance. All measurements, scores, thresholds, and winners
+are unchanged from the 2026-09-29 release. The completed GPT-6 generation campaign
+has retained usage evidence but is not yet validated or benchmarked and is not
+included in this performance view.
 
 The Claude generation harness and campaign tooling are published at
 [`fa046134`](https://github.com/PeterTh/llm-eval-experiment/tree/fa046134cf22a2cb3b8398567f2cf4115bceb021).

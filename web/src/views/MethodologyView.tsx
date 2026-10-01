@@ -249,13 +249,16 @@ export function MethodologyView() {
               each token class is priced separately. Copilot and the normalized Claude Code metadata include
               cache-read tokens in their input count, while
               Pi reports uncached input and cache reads separately; the calculation follows the recorded convention.
-              GPT-5.6 provides only a combined token count, so its estimate uses a fixed 50/50 input/output price mix.
+              GPT-5.6 token breakdowns were recovered from retained Codex session records and are now priced
+              by token class, replacing the earlier 50/50 estimate. Cached input is included in input;
+              reasoning tokens are included in output and are not charged twice.
             </p>
             <p>
               Rates are frozen per model, with snapshot dates shown in the cost details (latest addition: {manifest.cost.pricingAsOf}). Historical rates are not refreshed when a model is added. Each profile uses the lowest
               estimated cost among the available live, non-batch OpenRouter endpoints for that model's observed token mix;
               Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired
               models use the last known live rate as a fallback.
+              Recovering historical token counts does not refresh rates or reselect endpoints.
               Active filters change the run averages but not these rates. Long-context surcharges,
               storage, tools, batch discounts, and later pricing or routing changes are not modeled.
             </p>
