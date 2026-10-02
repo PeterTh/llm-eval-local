@@ -22,11 +22,11 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 5,280 validation outcomes, including exact validation execution output;
-- all 4,467 benchmark attempts (4,115 successful), measured values and wall times;
+- all 5,940 initial validation outcomes and scoped revalidations, including exact execution output;
+- all 5,076 current benchmark outcomes (4,703 successful), measured values and wall times;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
-- static MPI/hybrid timing audits covering 1,939 programs, 761 accepted timing-only
-  corrections, and compact before/after measurements where both were collected;
+- static MPI/hybrid timing audits covering 2,234 programs, an all-backend QT audit
+  of 425 validated programs, 830 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
 - compact, provenance-bound Codex usage records for 1,980 GPT-5.6 and 660 GPT-6 runs;
 - the exact final local-evaluation pipeline source snapshot; and
@@ -51,47 +51,33 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 5,280 scored
-programs across 24 models, using the same scoring procedure applied jointly to both
-campaigns. It joins the original records below with the Claude 5 batch; no historical
-measurements are replaced. The website and current score/cost figures use this view.
-All 44 current cell winners have individual analyses; the 44 previous analyses are
-also retained (68 notes in total).
+The current combined release is under [`release/`](release/README.md): 5,940 scored
+programs across 27 models, using the same scoring procedure applied jointly to three
+campaigns. It includes Claude 5 and GPT-6, with timing-corrected measurements and
+per-run source history. All 44 current cell winners have individual
+analyses; superseded reviews are retained too (73 notes in total).
 
-Recovered GPT-5.6 token counts are applied as a metadata-only release overlay;
-raw campaign records, measurements, and scores are unchanged. The GPT-6 generation
-campaign is complete, but its performance results are not yet part of this release.
+GPT-5.6 and GPT-6 cost estimates use exact reported token counts from retained
+Codex session records.
 See [token recovery and cost accounting](analysis/README.md#gpt-56-scorecost-comparison).
 
-The historical release was produced from local run `20260819-003427`. It contains
-4,620 completed validation records, 3,825 fully valid programs, 3,825 attempted
-benchmarks, and 4,620 scored records. Current success/failure and score counts are in
-[`data/release_summary.yaml`](data/release_summary.yaml), which is generated and
-cross-checked from the curated records.
+The original 4,620-program campaign is archived under `data/`, with its validation,
+benchmarking and timing-audit counts in
+[`data/release_summary.yaml`](data/release_summary.yaml). The combined release's
+counts and provenance are in [`release/catalog.json`](release/catalog.json).
 
-The timing audit selected all 1,615 successful MPI/hybrid measurements. Static review
-classified 1,028 as valid and 587 as needing a timing-only correction. Only those 587
-programs were changed and benchmarked again; the guard recorded in the release summary
-proves that the other 3,238 benchmark records are unchanged. The prior complete release
-is retained by the `local-eval-2026-08-22` tag.
+## Campaigns
 
-## Supplementary batches
+| Campaign | Programs | Fully validated | Successful benchmarks |
+| --- | ---: | ---: | ---: |
+| [Original model set](data/release_summary.yaml) | 4,620 | 3,825 | 3,488 |
+| [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 642 | 627 |
+| [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 609 | 588 |
 
-[Batch 20260901-162328](batches/20260901-162328/README.md) contains validation-first
-evidence for Fable 5, Opus 5 and Sonnet 5: 642/660 validation passes and a static
-audit of 324 passing MPI/hybrid programs (148 valid, 174 timing-correction
-candidates, two size-dependent cases). See the
-[audit report](batches/20260901-162328/timing-audit/primary/final/report.md).
-All 174 candidates now have accepted timing-only corrections and passed scoped
-revalidation, with numerical result blocks identical to their original runs. See
-the [correction report and both source revisions](batches/20260901-162328/timing-corrections/final/report.md).
-The two size-dependent cases remain unchanged; both conditions hold at the inherited
-hybrid benchmark size. [Benchmarking is complete](batches/20260901-162328/benchmark/README.md):
-627/642 successful, using the historical sizes, iterations, timeouts and resource
-profiles, with one warm-up and five measurements. The 15 failures comprise 14
-timeouts and one MPI gather crash. The batch is included in the combined release,
-website data generation, and analysis tables. Both original and timing-corrected
-source revisions are linked per run. Historical raw data remains unchanged.
+All campaigns use the same reviewed benchmark sizes, iterations, timeouts and
+resource profiles, with one warm-up and five measurements. Campaign records and
+the [shared timing-correction evidence](corrections/20261001-gpt6-qt/README.md)
+retain validation decisions, timing audits, scoped reruns and source revisions.
 
 ## Verify
 

@@ -2,6 +2,7 @@
 
 require_relative "artifact_common"
 require_relative "batch_verification"
+require_relative "shared_corrections"
 require_relative "../method/timing-audit/scoring_threshold_review"
 require_relative "../method/codex-usage/codex_usage"
 
@@ -12,6 +13,7 @@ class CurrentRelease
   def initialize(root)
     @root = File.expand_path(root)
     @catalog = JSON.parse(File.read(path("release/catalog.json")))
+    @shared = SharedCorrections.new(@root, @catalog.fetch("correction_campaign")) if @catalog["correction_campaign"]
   end
 
   def path(relative)
@@ -57,6 +59,7 @@ class CurrentRelease
   end
 
   def build
+    @shared&.verify!(@catalog, method(:load_records))
     inputs = {}
     headers = []
     campaigns = @catalog.fetch("campaigns")
@@ -64,6 +67,7 @@ class CurrentRelease
     rows = campaigns.flat_map do |campaign|
       relative = campaign.fetch("aggregate_csv")
       inputs[relative] = sha256(path(relative))
+      inputs[campaign.fetch("exact_codex_usage")] = sha256(path(campaign.fetch("exact_codex_usage"))) if campaign["exact_codex_usage"]
       table = CSV.read(path(relative), headers: true)
       headers |= table.headers
       validations = load_records(campaign.fetch("validation_records"))
@@ -76,10 +80,11 @@ class CurrentRelease
       end
       records = load_records(campaign.fetch("benchmark_records"))
       verify_batch(campaign, original_validations, corrections, records) if campaign.fetch("validation_format") == "batch"
+      native = table.map(&:to_h)
+      @shared&.apply!(validations, records, native)
       raise "overlapping campaign benchmark IDs" unless (benchmarks.keys & records.keys).empty?
       benchmarks.merge!(records)
       raise "aggregate/validation IDs differ" unless table.map { |r| self.class.id(r) }.sort == validations.keys.sort
-      native = table.map(&:to_h)
       config = LocalEvalArtifact.load_yaml(path(campaign.fetch("benchmark_config")))
       config_digest = sha256(path(campaign.fetch("benchmark_config")))
       native.each do |row|
@@ -91,11 +96,13 @@ class CurrentRelease
         record = records[id]
         raise "benchmark eligibility mismatch #{id}" unless (passed == 5) == !record.nil?
         if record
+          current_config = @shared&.benchmarks&.key?(id) ? @shared.historical_config : config
+          current_digest = @shared&.benchmarks&.key?(id) ? @shared.historical_config_digest : config_digest
           raise "benchmark success mismatch #{id}" unless record.fetch("success").to_s == row["benchmark_success"]
           raise "timing-fix mismatch #{id}" unless record.fetch("timing_fixed").to_s == row["timing_fixed"]
           raise "configuration mismatch #{id}" unless record.fetch("configuration_sha256") == row["benchmark_config_sha256"]
-          raise "configuration digest mismatch #{id}" unless record.fetch("configuration_sha256") == config_digest
-          cell = config.fetch("cells").fetch(row.fetch("par_type")).fetch(row.fetch("benchmark"))
+          raise "configuration digest mismatch #{id}" unless record.fetch("configuration_sha256") == current_digest
+          cell = current_config.fetch("cells").fetch(row.fetch("par_type")).fetch(row.fetch("benchmark"))
           raise "measurement arguments differ #{id}" unless record.fetch("args") == cell.fetch("args")
           raise "measurement timeout differs #{id}" unless record.fetch("timeout_seconds") == cell.fetch("timeout_seconds")
           if record.fetch("success")
@@ -163,7 +170,8 @@ class CurrentRelease
         id = self.class.id(row)
         old = old_by_id[id]
         next unless old && Integer(old["overall_score"]) != row["overall_score"]
-        csv << [id, old["overall_score"], row["overall_score"], "joint distribution rescore; measurements unchanged"]
+        reason = @shared&.benchmarks&.key?(id) ? "scoped QT timing-boundary correction and joint distribution rescore" : "joint distribution rescore; measurements unchanged"
+        csv << [id, old["overall_score"], row["overall_score"], reason]
       end
     end
     old_groups = groups(old_rows)
@@ -184,15 +192,18 @@ class CurrentRelease
         Dir.glob(path(campaign.fetch(field))).sort.each { |p| inputs[relative_path(@root, p)] = sha256(p) }
       end
     end
-    campaigns.select { |c| c.fetch("validation_format") == "batch" }.each do |campaign|
+    campaigns.select { |c| %w[batch shared].include?(c.fetch("validation_format")) }.each do |campaign|
       # Redundant checksum manifests are checked separately; all their actual inputs are pinned here.
       Dir.glob(path("batches/#{campaign.fetch('id')}/**/*")).sort.select { |p| File.file?(p) && File.basename(p) != "checksums.sha256" }.each { |p| inputs[relative_path(@root, p)] = sha256(p) }
     end
-    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb method/timing-audit/scoring_threshold_review.rb method/codex-usage/codex_usage.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
+    if @shared
+      Dir.glob(path("#{@shared.base}/**/*")).sort.select { |p| File.file?(p) && File.basename(p) != "checksums.sha256" }.each { |p| inputs[relative_path(@root, p)] = sha256(p) }
+    end
+    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb tools/shared_corrections.rb method/timing-audit/scoring_threshold_review.rb method/codex-usage/codex_usage.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
     metadata = {
       "schema_version" => 1, "generated_at" => @catalog.fetch("generated_at"), "counts" => actual,
       "scored_csv_sha256" => Digest::SHA256.hexdigest(scored), "thresholds_sha256" => Digest::SHA256.hexdigest(thresholds),
-      "inputs" => inputs.sort.to_h, "measurement_reruns" => 0,
+      "inputs" => inputs.sort.to_h, "measurement_reruns" => @shared ? @shared.benchmarks.size : 0,
       "method" => "Unchanged historic log-natural-break review and 0-10 scoring, applied jointly to all campaigns."
     }
     {

@@ -1,0 +1,28 @@
+chdir: /home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/cholesky_gpt-6-luna-medium_omp_r4
+containment_unit: local-evaluation-1246636-0478ab895ea2.scope
+io_write_device: /dev/nvme2n1p1
+network_policy: deny external; allow localhost
+limits:
+  file_size_max_bytes=1073741824
+  io_write_bandwidth_bytes_per_second=16777216
+  memory_max_bytes=274877906944
+  output_limit_bytes=8388608
+  tasks_max=512
+environment:
+  CC=/usr/bin/gcc-13
+  CUDA_VISIBLE_DEVICES=
+  CXX=/usr/bin/g++-13
+  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1004/bus
+  HOME=/home/petert
+  LANG=en_US.UTF-8
+  LOGNAME=petert
+  OMP_DYNAMIC=FALSE
+  OMP_NUM_THREADS=128
+  OMP_PLACES=cores
+  OMP_PROC_BIND=spread
+  PATH=/home/petert/.local/bin:/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin
+  TMPDIR=/tmp
+  USER=petert
+  XDG_RUNTIME_DIR=/run/user/1004
+command: numactl --physcpubind\=0-127 --interleave\=0,1 /home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/cholesky_gpt-6-luna-medium_omp_r4/cholesky -n 4992
+effective_command: systemd-run --user --scope --quiet --collect --unit\=local-evaluation-1246636-0478ab895ea2 --property\=MemoryMax\=274877906944 --property\=MemorySwapMax\=0 --property\=TasksMax\=512 --property\=OOMPolicy\=kill --property\=IPAddressDeny\=any --property\=IPAddressAllow\=localhost --property\=RuntimeMaxSec\=44s --property\=IOWriteBandwidthMax\=/dev/nvme2n1p1\ 16777216 -- numactl --physcpubind\=0-127 --interleave\=0,1 /home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/cholesky_gpt-6-luna-medium_omp_r4/cholesky -n 4992

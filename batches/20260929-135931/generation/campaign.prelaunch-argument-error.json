@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "campaign_id": "20260929-135931",
+  "prepared_at": "2026-09-29T14:04:14+02:00",
+  "host": "gpuc3",
+  "phase": "generation",
+  "systemd_unit": "llm-gpt6-generation-20260929-135931.service",
+  "launch_command": [
+    "/usr/bin/ruby",
+    "-e",
+    "$stdout.sync=true; $stderr.sync=true; load ARGV.shift",
+    "/tmp/gpt6-generation-controller.LBEV73/method/experiment.rb",
+    "--production",
+    "--run",
+    "--continue=20260929-135931"
+  ],
+  "working_directory": "/home/petert/llm_eval/experiment",
+  "source_repository": "https://github.com/PeterTh/llm-eval-experiment",
+  "source_commit": "d6a10e9e275cdfaaf4368812ac0fef0aa64483f4",
+  "source_worktree_diff": "diff --git a/experiment.rb b/experiment.rb\nindex 9865705..0d37c01 100644\n--- a/experiment.rb\n+++ b/experiment.rb\n@@ -55,6 +55,7 @@ MODELS = {\"claude-sonnet-4.5\":1,\n           \"claude-fable-5-cc-medium\":0,\n           \"claude-opus-5-cc-medium\":0,\n           \"claude-sonnet-5-cc-medium\":0,\n+          \"qwen-3.8-27B-udq6\":0,\n         }\n \n MODEL_MAPPING = {\n@@ -76,6 +77,7 @@ MODEL_MAPPING = {\n     \"claude-fable-5-cc-medium\" => \"claude-fable-5\",\n     \"claude-opus-5-cc-medium\" => \"claude-opus-5\",\n     \"claude-sonnet-5-cc-medium\" => \"claude-sonnet-5\",\n+    \"qwen-3.8-27B-udq6\" => \"unsloth/Qwen3.8-27B-GGUF:Qwen3.8-27B-UD-Q6_K\",\n }\n \n REASONING_MAPPING = {\n@@ -224,6 +226,7 @@ else\n     #                  \"gpt-5.6-terra-xhigh\", \"gpt-5.6-terra-medium\", \"gpt-5.6-terra-low\",\n     #                  \"gpt-5.6-sol-xhigh\", \"gpt-5.6-sol-medium\", \"gpt-5.6-sol-low\"]\n     MODELS_TO_EVAL = [\"gpt-6-sol-medium\", \"gpt-6-luna-medium\", \"gpt-6-astra-medium\"]\n+    #MODELS_TO_EVAL = [\"qwen-3.8-27B-udq6\"]\n     PAR_TYPES_TO_EVAL = PARALLELIZATION_TYPES\n     NUM_RUNS = 5\n end",
+  "source_note": "The launch snapshot preserves the three existing, inactive Qwen 3.8 worktree lines. Only GPT-6 models below are selected.",
+  "files": {
+    "experiment.rb": "7a7c792631b9f59bd153263561fcacaf7da1fea332527c542ea6c300ab5b8969",
+    "general.rb": "6194674a6be370b06a31a6d848f3bf598669ef41bcbd5a9611fc7110aa292963",
+    "eval_user_support.rb": "8eaf5a7bc292907feffcd5b8b0fd157c7e6e9b3c45837c8cc3ca1cd35b14493c"
+  },
+  "sequential_source_repository": "https://github.com/PeterTh/llm-eval-benchmarks",
+  "sequential_source_commit": "2bc11aeac658a87b5cae25d03e0669f65d32922e",
+  "harness": "codex",
+  "codex_version": "codex-cli 0.159.0",
+  "codex_binary": "/home/llmtest/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex",
+  "codex_binary_sha256": "d2752c52353401f7f6efbfcea68796f4f7a3d3e4769f5d1da53fa49d4856b72f",
+  "harness_parameters": [
+    "--dangerously-bypass-approvals-and-sandbox",
+    "--disable",
+    "apps",
+    "--disable",
+    "auth_elicitation",
+    "--disable",
+    "browser_use",
+    "--disable",
+    "browser_use_external",
+    "--disable",
+    "browser_use_full_cdp_access",
+    "--disable",
+    "computer_use",
+    "--disable",
+    "in_app_browser",
+    "--disable",
+    "in_app_updates",
+    "--disable",
+    "image_generation",
+    "--disable",
+    "memories",
+    "--disable",
+    "mentions_v2",
+    "--disable",
+    "multi_agent",
+    "--disable",
+    "multi_agent_v2",
+    "--disable",
+    "plugin_sharing",
+    "--disable",
+    "plugins",
+    "--disable",
+    "remote_plugin",
+    "--disable",
+    "skill_mcp_dependency_install",
+    "--disable",
+    "tool_call_mcp_elicitation",
+    "--disable",
+    "tool_suggest",
+    "--disable",
+    "workspace_dependencies"
+  ],
+  "model_metadata": [
+    {
+      "slug": "gpt-6-astra",
+      "display_name": "GPT-6-Astra",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth for everyday tasks"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        },
+        {
+          "effort": "max",
+          "description": "Maximum reasoning depth for the hardest problems"
+        },
+        {
+          "effort": "ultra",
+          "description": "Maximum reasoning with automatic task delegation"
+        }
+      ],
+      "default_reasoning_level": "medium",
+      "visibility": "list",
+      "supported_in_api": true,
+      "context_window": 272000
+    },
+    {
+      "slug": "gpt-6-sol",
+      "display_name": "GPT-6-Sol",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth for everyday tasks"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        },
+        {
+          "effort": "max",
+          "description": "Maximum reasoning depth for the hardest problems"
+        },
+        {
+          "effort": "ultra",
+          "description": "Maximum reasoning with automatic task delegation"
+        }
+      ],
+      "default_reasoning_level": "medium",
+      "visibility": "list",
+      "supported_in_api": true,
+      "context_window": 272000
+    },
+    {
+      "slug": "gpt-6-luna",
+      "display_name": "GPT-6-Luna",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth for everyday tasks"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        },
+        {
+          "effort": "max",
+          "description": "Maximum reasoning depth for the hardest problems"
+        }
+      ],
+      "default_reasoning_level": "medium",
+      "visibility": "list",
+      "supported_in_api": true,
+      "context_window": 272000
+    }
+  ],
+  "models": {
+    "gpt-6-sol-medium": {
+      "model": "gpt-6-sol",
+      "reasoning_effort": "medium"
+    },
+    "gpt-6-luna-medium": {
+      "model": "gpt-6-luna",
+      "reasoning_effort": "medium"
+    },
+    "gpt-6-astra-medium": {
+      "model": "gpt-6-astra",
+      "reasoning_effort": "medium"
+    }
+  },
+  "benchmarks": [
+    "black-scholes",
+    "cahn-hilliard",
+    "cholesky",
+    "floydwarshall",
+    "matmul",
+    "nbody",
+    "qtclustering",
+    "roomsim",
+    "spmv",
+    "stencil3d",
+    "unstructured"
+  ],
+  "backends": [
+    "omp",
+    "cuda",
+    "mpi",
+    "hybrid"
+  ],
+  "repetitions": 5,
+  "expected_runs": 660,
+  "per_run_timeout_seconds": 14400,
+  "workspace": "/home/llmtest/evals/20260929-135931",
+  "persistent_results": "/home/petert/llm_para_experiments/20260929-135931",
+  "controller": "/tmp/gpt6-generation-controller.LBEV73",
+  "launch_log": "/home/petert/llm_para_campaigns/20260929-135931-gpt6-medium/generation.log",
+  "prior_results_access": "Generated-program repository mode is 0770; llmtest cannot traverse it. Owner and group access preserved.",
+  "retention": "Generation transcripts, code and metadata are retained under home. Temporary generation workspace and controller are on local, non-NFS disks.",
+  "lifecycle": "This starts generation only. Validation, timing review/corrections, and benchmarking use the established subsequent pipeline."
+}

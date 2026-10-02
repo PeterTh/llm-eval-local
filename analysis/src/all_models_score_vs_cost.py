@@ -37,6 +37,39 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "gpt-6-sol-medium": {
+        "label": "GPT-6 Sol Medium", "color": "#216c47", "marker": "o",
+        "pricing_as_of": "2026-10-02", "pricing_model_id": "openai/gpt-6-sol",
+        "input_price": 1.0, "cached_input_price": 0.1, "output_price": 5.0,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model pricing",
+        "pricing_selection_policy": "lowest published non-batch OpenAI processing tier (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6-sol",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6-sol",
+    },
+    "gpt-6-luna-medium": {
+        "label": "GPT-6 Luna Medium", "color": "#73a942", "marker": "s",
+        "pricing_as_of": "2026-10-02", "pricing_model_id": "openai/gpt-6-luna",
+        "input_price": 0.05, "cached_input_price": 0.005, "output_price": 0.25,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model pricing",
+        "pricing_selection_policy": "lowest published non-batch OpenAI processing tier (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+    },
+    "gpt-6-astra-medium": {
+        "label": "GPT-6 Astra Medium", "color": "#123d6a", "marker": "D",
+        "pricing_as_of": "2026-10-02", "pricing_model_id": "openai/gpt-6-astra",
+        "input_price": 5.0, "cached_input_price": 0.5, "output_price": 25.0,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model pricing",
+        "pricing_selection_policy": "lowest published non-batch OpenAI processing tier (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+    },
     "claude-fable-5-cc-medium": {
         "label": "Fable 5 Medium", "color": "#903820", "marker": "D",
         "pricing_as_of": "2026-09-29", "pricing_model_id": "anthropic/claude-fable-5",
@@ -281,22 +314,25 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "gpt-6-sol-medium": (-7, 9),
+    "gpt-6-luna-medium": (7, -6),
+    "gpt-6-astra-medium": (-7, 12),
     "claude-fable-5-cc-medium": (-7, -8),
     "claude-opus-5-cc-medium": (-7, 9),
     "claude-sonnet-5-cc-medium": (7, -9),
-    "deepseek-v4-flash": (7, 4),
+    "deepseek-v4-flash": (-7, 4),
     "gpt-5-mini": (7, 0),
-    "gpt-5.6-luna-xhigh": (7, 0),
-    "qwen3.7-plus": (7, 0),
+    "gpt-5.6-luna-xhigh": (-7, -3),
+    "qwen3.7-plus": (-7, 0),
     "claude-haiku-4.5": (-7, 0),
     "gpt-4.1": (7, 0),
-    "qwen-3.6-27B-udq4": (-7, 7),
-    "gpt-5.2-codex": (-7, -4),
-    "gpt-5.2": (-7, 0),
-    "gpt-5.6-terra-xhigh": (-7, 1),
+    "qwen-3.6-27B-udq4": (-7, 2),
+    "gpt-5.2-codex": (-7, -7),
+    "gpt-5.2": (-7, -4),
+    "gpt-5.6-terra-xhigh": (-7, -9),
     "claude-sonnet-4.5": (7, 8),
     "gemini-3-pro-preview": (7, -7),
-    "gpt-5.6-sol-xhigh": (7, 2),
+    "gpt-5.6-sol-xhigh": (7, -3),
     "claude-opus-4.6": (-7, 0),
 }
 
@@ -363,7 +399,7 @@ def load_and_validate(path: Path) -> pd.DataFrame:
         raise ValueError("cached_tokens must be a subset of input_tokens")
 
     selected[split_columns] = numeric_splits
-    gpt56 = selected[selected["model"].isin(GPT56_MODELS)]
+    gpt56 = selected[selected["model"].isin(GPT56_MODELS) | selected["model"].str.startswith("gpt-6-")]
     if gpt56[split_columns].isna().any().any():
         raise ValueError("GPT-5.6 requires recovered complete token breakdowns")
     if not (gpt56["total_tokens"] == gpt56["input_tokens"] + gpt56["output_tokens"]).all():
@@ -434,7 +470,7 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
                 "pricing_selection_policy": config.get(
                     "pricing_selection_policy", PRICING_SELECTION_POLICY
                 ),
-                "pricing_catalog_url": OPENROUTER_CATALOG_URL,
+                "pricing_catalog_url": config.get("pricing_catalog_url", OPENROUTER_CATALOG_URL),
                 "pricing_endpoint_url": config["pricing_endpoint_url"],
                 "pricing_source_url": config["pricing_source_url"],
                 "secondary_pricing_source_url": config.get(
@@ -484,6 +520,8 @@ def configure_plot_style() -> None:
 
 
 def _format_cost(value: float, _position: float) -> str:
+    if value < 0.01:
+        return f"${value:.3f}"
     if value < 0.1:
         return f"${value:.2f}"
     if value < 1:
@@ -520,9 +558,9 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
         )
 
     axis.set_xscale("log")
-    axis.set_xlim(0.012, max(1.55, summary.estimated_cost_usd_per_run.max() * 1.8))
+    axis.set_xlim(min(0.012, summary.estimated_cost_usd_per_run.min() * 0.75), max(1.55, summary.estimated_cost_usd_per_run.max() * 1.8))
     axis.set_ylim(3.1, max(8.6, summary.mean_overall_score.max() + 0.5))
-    axis.xaxis.set_major_locator(FixedLocator([0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]))
+    axis.xaxis.set_major_locator(FixedLocator([0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]))
     axis.xaxis.set_major_formatter(FuncFormatter(_format_cost))
     axis.set_yticks(np.arange(3.5, 8.6, 0.5))
     axis.set_xlabel("Estimated API Cost per Run (USD, log scale)")

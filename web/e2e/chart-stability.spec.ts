@@ -10,7 +10,7 @@ for (const route of ["cost", "time"]) {
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(basePath + "#/" + route + "?model-set=all&scale=" + scale);
       const points = page.locator("." + route + "_points path");
-      await expect(points).toHaveCount(24);
+      await expect(points).toHaveCount(27);
       await page.evaluate(async () => { await document.fonts.ready; });
       const chart = page.locator("." + route + "-analysis .chart");
       const snapshot = () => chart.evaluate((element) => {

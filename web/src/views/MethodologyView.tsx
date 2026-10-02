@@ -121,10 +121,8 @@ export function MethodologyView() {
               )}
             </div>
             <p>
-              The original campaign's invocation configuration is available in the pinned experiment script. Its recorded SHA-256
-              digest is <code className="inline-digest">{experiment.sha256}</code>.
-              {" "}The later Claude 5 batch used Claude Code with the parameters listed above; its original
-              per-run transcripts and invocation metadata are retained alongside the generated source.
+              Campaign-specific harness configurations are linked above. Per-run transcripts and invocation
+              metadata are retained alongside the generated source.
             </p>
           </section>
 
@@ -218,9 +216,7 @@ export function MethodologyView() {
             <p>
               Performance thresholds were derived from natural breaks in log median time, subject to a per-cell
               measurement-noise floor, then reviewed and frozen before scoring.
-              {" "}The current release applies the same procedure jointly to the original campaign and the
-              later Claude 5 batch. Historical timings are unchanged; scores can change when the full-cell
-              distribution or fastest result changes.
+              {" "}Thresholds and fastest results are determined jointly across all campaigns in the dataset.
             </p>
           </section>
 
@@ -249,18 +245,18 @@ export function MethodologyView() {
               each token class is priced separately. Copilot and the normalized Claude Code metadata include
               cache-read tokens in their input count, while
               Pi reports uncached input and cache reads separately; the calculation follows the recorded convention.
-              GPT-5.6 token breakdowns were recovered from retained Codex session records and are now priced
-              by token class, replacing the earlier 50/50 estimate. Cached input is included in input;
+              GPT-5.6 and GPT-6 token counts come from retained Codex session records.
+              Cached input is included in input;
               reasoning tokens are included in output and are not charged twice.
             </p>
             <p>
-              Rates are frozen per model, with snapshot dates shown in the cost details (latest addition: {manifest.cost.pricingAsOf}). Historical rates are not refreshed when a model is added. Each profile uses the lowest
+              Rates are frozen per model, with snapshot dates shown in the cost details. OpenRouter profiles use the lowest
               estimated cost among the available live, non-batch OpenRouter endpoints for that model's observed token mix;
               Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired
               models use the last known live rate as a fallback.
-              Recovering historical token counts does not refresh rates or reselect endpoints.
+              {" "}The GPT-6 profiles use the lowest published non-batch OpenAI tier, Flex, with official model documentation as their source.
               Active filters change the run averages but not these rates. Long-context surcharges,
-              storage, tools, batch discounts, and later pricing or routing changes are not modeled.
+              separate cache-write premiums, storage, tools, batch discounts, and later pricing or routing changes are not modeled.
             </p>
           </section>
         </div>

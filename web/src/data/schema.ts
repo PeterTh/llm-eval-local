@@ -209,8 +209,11 @@ export const runRecordSchema = z.object({
     issueCategories: z.array(z.string().min(1)).min(1),
     originalSource: timingCorrectionSourceSchema,
     correctedSource: timingCorrectionSourceSchema,
+    intermediateSources: z.array(timingCorrectionSourceSchema).optional(),
   }).nullable(),
   validationEvidenceUrl: z.string().url(),
+  originalValidationEvidenceUrl: z.string().url().nullable().optional(),
+  validationDisposition: z.object({ classification: z.string().min(1), reason: z.string().min(1) }).nullable().optional(),
   benchmarkEvidenceUrl: z.string().url().nullable(),
 }).superRefine((run, context) => {
   if (run.timingFixed !== (run.timingCorrection !== null)) {
@@ -218,6 +221,9 @@ export const runRecordSchema = z.object({
   }
   if (run.timingCorrection !== null && run.sourceUrl !== run.timingCorrection.correctedSource.url) {
     context.addIssue({ code: "custom", message: "effective source URL is not the corrected source", path: ["sourceUrl"] });
+  }
+  if (run.validationDisposition && (run.validationStatus >= 5 || run.benchmarkSuccess !== null || !run.timingFixed)) {
+    context.addIssue({ code: "custom", message: "failed revalidation is not an eligible benchmark", path: ["validationDisposition"] });
   }
 });
 

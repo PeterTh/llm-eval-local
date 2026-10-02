@@ -1,0 +1,114 @@
+{
+  "program_id": "nbody_gpt-6-luna-medium_hybrid_r5",
+  "batch": "20260929-135931",
+  "scope": "Static adjudication only; read-only source, git, artifact metadata and log inspection, plus official NVIDIA documentation. Only this report was written.",
+  "no_programs_executed": true,
+  "no_compilation_validation_benchmark_or_model_workers": true,
+  "source_changed": false,
+  "conclusion": "A pre-existing unsafe numerical algorithm is established statically: the CUDA kernel has unsynchronized in-place reads/writes of positions across threads and blocks. Evidence strongly favors (b) over a timing edit that changes the algorithm, but causality for this specific failed runtime remains unproven. The new MPI_Reduce executes after all numerical work and collects only elapsed-time scalars; there is no direct body-data mutation path in the edit. No evidence of input, reference, source-staging, compiler or resource-profile mismatch was found. Do not turn a race repair into a timing-only correction.",
+  "confidence": {
+    "timing_edit_is_source_level_timing_only": "high",
+    "pre_existing_unsynchronized_cuda_conflict": "high",
+    "race_caused_this_specific_failed_run": "medium; plausible leading hypothesis, not dynamically demonstrated",
+    "infrastructure_mismatch_absent_from_inspected_records": "high; records cannot exclude unrecorded transient conditions"
+  },
+  "values": {
+    "reference_sum": "4.59387023942810657e+00",
+    "original_actual_sum": "4.59387023942810657e+00",
+    "corrected_actual_sum": "2.05034412841304459e+00",
+    "original_and_reference_hash": "1eed6713692b7ce8",
+    "corrected_actual_hash": "52e6dac6c44884a4"
+  },
+  "scientific_validity": {
+    "unsafe_algorithm_proven_statically": true,
+    "specific_runtime_failure_causality_proven": false,
+    "repeat_success_can_establish_correctness": false,
+    "assessment": "Successful repeats cannot remove the unsynchronized cross-block dependency or establish numerical equivalence for this implementation. Exclusion from valid numerical/performance comparisons is justified on static evidence alone. A fixed diagnostic sample is optional evidence about the observed regression, not a retry-until-pass acceptance procedure. Algorithmic repair is outside the authorized timing-only task."
+  },
+  "findings": [
+    {
+      "finding": "The only scoped source edit replaces rank-0 local-time printing with long per-rank durations and MPI_MAX reduction. It is after the simulation loop, each step's cudaDeviceSynchronize, host copy, MPI_Allgatherv, and final MPI_Barrier. The reduction buffers are local_ms/max_ms, not bodies/deviceBodies. It reports maximum complete per-rank duration in integer milliseconds; CUDA and MPI numerical-work synchronization are unchanged.",
+      "evidence": [
+        {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/original/20260929-135931/nbody_gpt-6-luna-medium_hybrid_r5/nbody/nbody.cpp", "lines": "101-113"},
+        {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/corrected/20260929-135931/nbody_gpt-6-luna-medium_hybrid_r5/nbody/nbody.cpp", "lines": "101-115"}
+      ],
+      "check": "git diff 32f1becd283322d1edff43dd47a3b3bc8e2cdad6..3a47d7cba6624f4bdfe004fba3383b5e3c62e93f scoped to the entire program directory shows one file, three inserted lines and one deleted line."
+    },
+    {
+      "finding": "Both versions have the same in-place CUDA kernel: every thread reads bodies[j].pos in the force loop, then writes its updated position to bodies[i]. There are no atomics, synchronization or separate old-position buffer inside the kernel. Another thread's force reads conflict with this write. Copying only self does not freeze other bodies. At recorded n=1024 and ranks=4, count=256 per rank and the launch uses two blocks of 128, so conflicts extend across blocks within each rank's own GPU array. The later cudaDeviceSynchronize waits for completion but does not impose a reads-before-writes phase inside the kernel.",
+      "evidence": [
+        {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/original/20260929-135931/nbody_gpt-6-luna-medium_hybrid_r5/nbody/nbody.cpp", "lines": "21-40"},
+        {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/corrected/20260929-135931/nbody_gpt-6-luna-medium_hybrid_r5/nbody/nbody.cpp", "lines": "21-40, 95-108"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/nbody_gpt-6-luna-medium_hybrid_r5/validation_out_command.log", "lines": "26"}
+      ],
+      "primary_documentation": "https://docs.nvidia.com/cuda/archive/12.6.0/cuda-c-programming-guide/index.html#memory-fence-functions",
+      "documentation_support": "CUDA 12.6 guide section 7.5 states that unsynchronized conflicting accesses/data races have undefined behavior. This supports the static defect classification, not attribution of a particular observed result."
+    },
+    {
+      "finding": "The sequential reference has a force phase that updates only velocities; positions are integrated afterward. Thus every force calculation uses the same pre-step positions. The generated fused in-place kernel lacks that phase separation and can consume already-integrated peer positions. The original successful run does not establish race freedom or repeatability.",
+      "evidence": [
+        {"path": "/home/petert/llm_eval/benchmarks/nbody/nbody.cpp", "lines": "34-65, 165-168"}
+      ]
+    },
+    {
+      "finding": "The mismatch is real body-state output, not the new time text: reference is 4.59387023942810657e+00 and corrected actual is 2.05034412841304459e+00. Both original/reference result blocks have the same recorded sum, samples and hash; corrected samples and hash also differ. Both internal validations pass because they check finite/extreme values, not equality to the reference.",
+      "evidence": [
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/reference/nbody/validation_out_stdout.log", "lines": "6-21"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/nbody_gpt-6-luna-medium_hybrid_r5/validation_out_stdout.log", "lines": "6-21"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/nbody_gpt-6-luna-medium_hybrid_r5/validation_out_stdout.log", "lines": "6-21"},
+        {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/corrected/20260929-135931/nbody_gpt-6-luna-medium_hybrid_r5/nbody/nbody.cpp", "lines": "67-75"}
+      ]
+    },
+    {
+      "finding": "The comparator extracts only RESULTS sections, ignores hash inequality as a mandatory condition, compares nbody numeric fields at absolute tolerance 1e-5, and formats the message reference first, actual second. The timing line cannot itself create this reported Sum mismatch.",
+      "evidence": [
+        {"path": "/tmp/gpt6-evaluation-20261001.rhp9wY/experiment/validation_helper.rb", "lines": "62-83, 98-103, 113-132"},
+        {"path": "/tmp/gpt6-evaluation-20261001.rhp9wY/experiment/lib/local_evaluation/validation_pipeline.rb", "lines": "229-233"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/nbody_gpt-6-luna-medium_hybrid_r5/validation_result.txt", "lines": "1-6"}
+      ]
+    },
+    {
+      "finding": "Both commands use 4 ranks, identical mapping/binding, the same GPU-rank wrapper, OMP settings, visible GPU list, and -v -r -n 1024 -s 10. Initialization uses the same fixed rand_r seed 42. Compiler paths/options and machine/GPU/resource profiles match. PATH is shorter in the corrected command, a real recorded environment difference, but compiler paths and wrapper/Ruby are explicit and no numerical consequence is evidenced. Transient GPU scheduling/load is not recorded sufficiently to attribute causality.",
+      "evidence": [
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/nbody_gpt-6-luna-medium_hybrid_r5/validation_out_command.log", "lines": "5-27"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/nbody_gpt-6-luna-medium_hybrid_r5/validation_out_command.log", "lines": "5-27"},
+        {"path": "/tmp/gpt6-evaluation-20261001.rhp9wY/experiment/local_gpu_rank_wrapper.rb", "lines": "3-10"},
+        {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/corrected/20260929-135931/nbody_gpt-6-luna-medium_hybrid_r5/nbody/nbody.cpp", "lines": "46-51, 95"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/evaluation_manifest.yaml", "lines": "45-55, 99-109"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/evaluation_manifest.yaml", "lines": "45-55, 99-109"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/nbody_gpt-6-luna-medium_hybrid_r5/CMakeFiles/nbody.dir/flags.make", "lines": "4-9"}
+      ],
+      "check": "Read-only diff of the original/corrected generated CUDA flags.make files is empty; CMake command flags match apart from paths and containment-unit identifiers."
+    },
+    {
+      "finding": "Staged sources match their intended clean source snapshots, and both reference outputs are byte-identical. Both reference metadata files name clean benchmark commit 2bc11aeac658a87b5cae25d03e0669f65d32922e and the same source-revision digest and arguments. There is no inspected evidence of wrong-source staging or changed reference/input selection.",
+      "evidence": [
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/nbody_gpt-6-luna-medium_hybrid_r5/source_staging.yaml", "lines": "2-8"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/nbody_gpt-6-luna-medium_hybrid_r5/source_staging.yaml", "lines": "2-8"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/reference/nbody/reference_metadata.yaml", "lines": "2-17"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/reference/nbody/reference_metadata.yaml", "lines": "2-17"}
+      ],
+      "check": "Read-only directory diffs found no differences in the four staged code files. Original source and original staged nbody.cpp SHA-256: 380457e05d2813179fba9bc8d67b8587e7e456c6528cb75c215f5ca1096213f2. Corrected source and corrected staged nbody.cpp SHA-256: 2a3f97e7750def7b9c8ad2d4b9b9d52c60c2a541f96aff64e49d69658211da6b. Both reference stdout files and the clean/current reference nbody sources compare equal."
+    },
+    {
+      "finding": "Only support.rb has a different recorded pipeline-file hash; validation_pipeline.rb, validation_helper.rb, GPU wrapper and seed/config hashes are unchanged. The immutable amendment describes provenance/selection support only. This change is not evidence that the pipeline caused the numerical failure.",
+      "evidence": [
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/evaluation_manifest.yaml", "lines": "30-44"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/evaluation_manifest.yaml", "lines": "30-44"},
+        {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/pipeline_amendment.yaml", "lines": "7-12"}
+      ]
+    }
+  ],
+  "alternatives": [
+    {"category": "a", "assessment": "Not supported as a direct source-level numerical change. Only elapsed-time variables/reporting are changed after completed computation. Rebuilding could change artifacts/layout; that has not been investigated and is not proof of a timing-algorithm defect."},
+    {"category": "b", "assessment": "Leading explanation: an unchanged unsynchronized CUDA read/write conflict. Different kernel scheduling could expose it; no claim that the late reduction causally rescheduled earlier completed kernels."},
+    {"category": "c", "assessment": "No supporting evidence in inspected source/provenance/reference/input/build/resource records. PATH differs; unrecorded transient conditions or build/artifact differences cannot be excluded."},
+    {"category": "d", "assessment": "The exact observed-run trigger remains unresolved without authorized controlled observations. Static evidence suffices to identify the pre-existing numerical hazard, not to prove runtime causation."}
+  ],
+  "suggested_next_steps": [
+    "Keep execution stopped pending user direction. Offer a choice: exclude this implementation from valid numerical/performance comparisons on the static race evidence, or authorize the small fixed diagnostic sample below to characterize the observed regression. Do not change the kernel or alter timing aggregation to hide the failure; retain the numerical-failure flag separately from the timing-only review verdict.",
+    "Smallest useful execution diagnostic, only if authorized: alternate three original and three corrected validation executions using the already-built immutable binaries, the exact same environment, rank/GPU mapping and -v -r -n 1024 -s 10. Save new evidence in a separate diagnostic directory; preserve original validation files. Capture each binary hash, command/environment, RESULTS block, sample values, hash and final energy.",
+    "Variation or failure in repeats of the unchanged original would directly establish pre-existing non-repeatability and support (b). Variation within either fixed binary also supports the race hypothesis. Stable original/corrected separation would not prove direct numerical effects from MPI_Reduce; then inspect existing artifacts' embedded CUDA kernel/disassembly and rank/device mappings read-only. A few stable/pass repeats cannot rule out an intermittent race or make the algorithm scientifically valid. Do not retry until a passing sample is found or use such a sample to override exclusion.",
+    "If a numerical repair is later desired, request a separately authorized correctness task. A frozen input-position phase or separate output buffer would address the identified dependency but is not a timing-only amendment and can change the original program's numerical behavior. No such repair was made or executed here."
+  ]
+}

@@ -70,8 +70,15 @@ whole.
 
 - curated `data/`: at most 60 MiB;
 - `analysis/`: at most 20 MiB;
-- complete tracked tree: at most 100 MiB;
+- complete scientific artifact tree (excluding the website): at most 150 MiB;
 - individual file: at most 10 MiB.
 
 Git LFS is not used. Any exception requires an explicit policy change and must explain
 why the additional artifact is scientifically necessary.
+
+The tree cap was increased from 100 to 150 MiB with user approval on 2026-10-02
+for the additional GPT-6 campaign, all-backend QT timing audit, shared corrections,
+and scoped rerun evidence. Per-file, historical `data/`, and analysis caps are
+unchanged. This does not authorize binaries, duplicate program sources or raw
+agent streams. Historical QT replacements are a scoped overlay under `corrections/`;
+their prior observations remain in the immutable source campaigns.

@@ -12,7 +12,7 @@ class ReleaseVerifier
   MAX_FILE_BYTES = 10 * MIB
   MAX_DATA_BYTES = 60 * MIB
   MAX_ANALYSIS_BYTES = 20 * MIB
-  MAX_TREE_BYTES = 100 * MIB
+  MAX_TREE_BYTES = 150 * MIB
 
   DISALLOWED_EXTENSIONS = %w[
     .a .bin .c .cc .cpp .cu .cubin .d .dll .dylib .exe .fatbin .h .hpp .ii .o .obj

@@ -1,0 +1,24 @@
+{
+  "program_id": "qtclustering_qwen-3.6-27B-udq4-pi-t_mpi_r4",
+  "status": "proposed",
+  "summary": "Move the existing start barrier and timer before distance-matrix preprocessing.",
+  "expected_timing_semantics": "Each rank measures distance-matrix preprocessing and broadcast through completion of qtClustering. The existing MPI_DOUBLE/MPI_MAX reduction reports the maximum complete rank duration as Clustering time in milliseconds.",
+  "edits": [
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "old_text": "    // Pre-compute distance matrix on rank 0, then broadcast to all ranks",
+      "new_text": "    // Synchronize all ranks before timing\n    MPI_Barrier(MPI_COMM_WORLD);\n    double cluster_start = MPI_Wtime();\n    \n    // Pre-compute distance matrix on rank 0, then broadcast to all ranks",
+      "rationale": "Start timing immediately after the input-point broadcast, before required distance computation and distribution."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "old_text": "    // Synchronize all ranks before timing\n    MPI_Barrier(MPI_COMM_WORLD);\n    \n    // Perform QT clustering (parallel across ranks)\n    double cluster_start = MPI_Wtime();",
+      "new_text": "    // Perform QT clustering (parallel across ranks)",
+      "rationale": "Remove the original start instrumentation while retaining the existing completion timer, maximum reduction, and reporting."
+    }
+  ],
+  "non_timing_changes": [
+
+  ],
+  "notes": "Static proposal based solely on the supplied dossier; no tools or execution used."
+}

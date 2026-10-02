@@ -19,7 +19,7 @@ fallback. Dynamically assigned CPU and GPU chunks still produce every option pri
 This is a substantial improvement over the 21.655 ms
 [Opus 4.6 result](black-scholes_claude-opus-4.6_hybrid_r5.md), but it is no longer
 the fastest retained implementation. The
-[new Sol 6 review](../pending-gpt6/black-scholes_gpt-6-sol-medium_hybrid_r5.md)
+[new Sol 6 review](black-scholes_gpt-6-sol-medium_hybrid_r5.md)
 explains a more direct seven-base-price scaling path and, importantly, a different
 output boundary. Opus brings GPU results back to the host inside its timed chunk
 processing; Sol's benchmark leaves them on the devices. The roughly tenfold gap

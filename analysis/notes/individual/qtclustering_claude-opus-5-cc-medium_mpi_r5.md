@@ -16,7 +16,7 @@ selection and membership broadcast coordinate each global choice.
 
 ## Close-group comparison
 
-The [Astra winner](../pending-gpt6/qtclustering_gpt-6-astra-medium_mpi_r5.md) uses
+The [Astra winner](qtclustering_gpt-6-astra-medium_mpi_r5.md) uses
 the same broad idea but precomputes sparse threshold neighborhoods. This Opus
 implementation scans the full point set when rebuilding the initial neighborhood.
 That is a plausible source of the group difference; its 10–13 ms range also

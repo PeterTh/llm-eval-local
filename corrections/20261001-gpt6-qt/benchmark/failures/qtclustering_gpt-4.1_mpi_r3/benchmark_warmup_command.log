@@ -1,0 +1,25 @@
+chdir: /tmp/local-evaluation-timing-correction-20261002-1894880-5inof3/build
+containment_unit: local-evaluation-1894880-95a0d85cdc6f.scope
+io_write_device: /dev/nvme2n1p1
+network_policy: deny external; allow localhost
+limits:
+  file_size_max_bytes=1073741824
+  io_write_bandwidth_bytes_per_second=16777216
+  memory_max_bytes=274877906944
+  output_limit_bytes=8388608
+  tasks_max=512
+environment:
+  CC=/usr/bin/gcc-13
+  CUDA_VISIBLE_DEVICES=
+  CXX=/usr/bin/g++-13
+  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1004/bus
+  HOME=/home/petert
+  LANG=en_US.UTF-8
+  LOGNAME=petert
+  OMP_NUM_THREADS=1
+  PATH=/home/petert/.local/bin:/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin
+  TMPDIR=/tmp
+  USER=petert
+  XDG_RUNTIME_DIR=/run/user/1004
+command: mpirun --np 128 --map-by ppr:64:socket:PE\=1 --bind-to core --rank-by slot /tmp/local-evaluation-timing-correction-20261002-1894880-5inof3/build/qtclustering -n 4000
+effective_command: systemd-run --user --scope --quiet --collect --unit\=local-evaluation-1894880-95a0d85cdc6f --property\=MemoryMax\=274877906944 --property\=MemorySwapMax\=0 --property\=TasksMax\=512 --property\=OOMPolicy\=kill --property\=IPAddressDeny\=any --property\=IPAddressAllow\=localhost --property\=RuntimeMaxSec\=120s --property\=IOWriteBandwidthMax\=/dev/nvme2n1p1\ 16777216 -- mpirun --np 128 --map-by ppr:64:socket:PE\=1 --bind-to core --rank-by slot /tmp/local-evaluation-timing-correction-20261002-1894880-5inof3/build/qtclustering -n 4000

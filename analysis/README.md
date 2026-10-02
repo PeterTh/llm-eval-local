@@ -12,7 +12,7 @@ provide one command that rebuilds its tables and figures.
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
-`release/catalog.json` identifies the two campaigns and generated-source commits.
+`release/catalog.json` identifies three campaigns, the scoped QT overlay and generated-source commits.
 Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
@@ -27,7 +27,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 24 model names and tier percentages legible at the paper's
+intentional: it keeps all 27 model names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -52,20 +52,17 @@ lines connect low, medium, and xhigh reasoning effort for the same variant. The 
 axis is logarithmic because the current Luna and Sol prices differ by more than an
 order of magnitude.
 
-Exact reported GPT-5.6 token breakdowns were recovered from retained Codex sessions
-on 2026-10-01. The release overlay retains session and transcript hashes and the
-original terminal counter, which excluded cached input. Costs now price uncached
-input, cached input, and output separately, replacing the earlier 50/50 proxy.
+GPT-5.6 token counts come from retained Codex session records, with session and
+transcript hashes binding each observation to its program-generation run.
+Costs price uncached input, cached input, and output separately.
 Cached input is a subset of input and reasoning is a subset of output; neither is
 added twice. This remains an API-rate comparison, not a ChatGPT subscription bill.
 The backing CSV records counts, frozen prices, pricing date, and source URLs.
 
 The evidence lives in `metadata/codex-usage/<source-batch>.jsonl`. All 1,980
 GPT-5.6 and 660 GPT-6 records matched a unique session, completed task, transcript
-hash, and consistent final cumulative counters. Only the historical GPT-5.6
-overlay is applied to this release; GPT-6 validation, timing review and benchmarking
-are complete, with release integration still pending. No generated programs or
-transcripts were edited by the usage recovery.
+hash, and consistent final cumulative counters. The release uses these counters
+for both model families.
 The compact evidence totals 2,283,539 bytes; complete session logs are not duplicated.
 
 Recover a completed batch from the original locally retained sessions with:
@@ -114,8 +111,8 @@ Canonical outputs:
 
 `src/all_models_score_vs_cost.py` extends the score-versus-cost view to every
 evaluated model except the Qwen Pi-T experiment. To keep the figure readable, only
-the xhigh result is retained for each GPT-5.6 variant. Prices are a dated snapshot of
-OpenRouter's public, non-batch endpoints. For each model, the selected endpoint is
+the xhigh result is retained for each GPT-5.6 variant. OpenRouter pricing profiles
+use dated snapshots of public, non-batch endpoints. The selected endpoint is
 the one that minimizes estimated cost for that model's observed token mix; Flex is
 eligible, and cached tokens use the normal input rate if an endpoint lists no cache
 discount. Gemini 3 Pro Preview is retired and absent from the live catalog, so its
@@ -124,12 +121,13 @@ price. The evaluated Qwen 3.6 27B U-DQ4 model is matched to the cheapest endpoin
 the underlying Qwen 3.6 27B model, currently an FP8 endpoint.
 
 Cost is computed per run from uncached input, cached input, and output tokens before
-averaging, including the recovered GPT-5.6 breakdowns. The recovery does not refresh
-prices or reselect historical endpoints. The backing CSV records the method,
+averaging. The backing CSV records the method,
 all rates, selected providers and routing tags, model matches, source URLs, and the
 per-model pricing date: 2026-08-22 for existing profiles, 2026-09-29 for the three
-Claude 5 additions. Existing rates are not retrospectively refreshed. See
-[the Claude pricing note](notes/2026-09-29-claude5-pricing.md).
+Claude 5 additions, and 2026-10-02 for GPT-6. The GPT-6 profiles use officially
+published non-batch OpenAI Flex prices. Rates are frozen per model.
+See [Claude pricing](notes/2026-09-29-claude5-pricing.md) and
+[GPT-6 pricing and limitations](notes/2026-10-02-gpt6-pricing.md).
 Long-context surcharges, storage, tools, future provider
 routing changes, and batch discounts are not modeled.
 
@@ -156,7 +154,10 @@ This historical analysis remains scoped to the original 4,620-program campaign a
 its 587 corrections; it consumes `data/`, not the jointly rescored `release/` view.
 The additional 174 corrections were made before benchmarking, so no comparable
 uncorrected performance measurements exist for those runs. The current combined
-dataset carries the timing-fix flag for all 761 corrected programs.
+dataset carries the timing-fix flag for 830 distinct corrected programs, including
+two failed revalidations. The 81 newer corrections include 12 previously retimed
+historical QT programs. Their 32 scoped historical reruns are retained separately
+under `corrections/20261001-gpt6-qt/`, not folded into this older 587-case analysis.
 
 The retained historical analysis joins the original static-audit score, corrected scoped-rerun
 measurements, final scores, issue categories, and original/corrected source links:
@@ -179,11 +180,9 @@ canonical format unless the publication toolchain requires another.
 ## Individual implementation reviews
 
 Published run reviews live in `notes/individual/` and are embedded by the website.
-The five new GPT-6 winner reviews are staged in `notes/pending-gpt6/`: those IDs are
-not yet in the scored release, and the website correctly rejects reviews for
-unreleased IDs. Move the notes into `individual/` and update relative links and
-snapshot note paths when integrating GPT-6; do not make the website accept orphaned
-reviews. The 2026-10-02 work adds five notes and rewrites all 24 Claude-5 notes.
+The five new GPT-6 winner reviews are integrated in `notes/individual/`; the website
+continues to reject reviews for unreleased IDs. The 2026-10-02 work adds five notes
+and rewrites all 24 Claude-5 notes, giving 73 retained reviews in total.
 One older SpMV scope sentence is also corrected: `-s 40` means one nonzero per
 40 matrix entries, not 40 nonzeros per row.
 
@@ -194,9 +193,9 @@ generated-source revisions. This is the rebased equivalent of the reviewed
 are byte-identical between those commits. It combines the published campaigns with the completed
 `20261001-gpt6-validation` measurements and the limited historical QT rerun
 `20261001-gpt6-qt-corrected`. Native rerun records replace the same IDs rather than
-being counted twice. This provisional comparison is not a new scored release:
-validation classifications, generated sources, canonical timings and scores are
-unchanged. The source pins identify comparison inputs, not 99 independent full
+being counted twice. This frozen review comparison predates integration; its
+measurements are unchanged in the integrated release. The source pins identify
+comparison inputs, not 99 independent full
 correctness audits.
 
 Reviews use a short Scope, then Finding, Close-group comparison, Correctness and

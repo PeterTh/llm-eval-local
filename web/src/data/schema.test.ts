@@ -4,6 +4,20 @@ import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture } fr
 import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema } from "./schema";
 
 describe("runtime dataset validation", () => {
+  it("retains the complete correction history and explicit failed revalidation", () => {
+    const run = structuredClone(runsFixture[1]!);
+    run.timingCorrection!.intermediateSources = [run.timingCorrection!.originalSource];
+    run.originalValidationEvidenceUrl = run.validationEvidenceUrl;
+    expect(runShardSchema.parse([run])[0]).toEqual(run);
+    run.validationDisposition = { classification: "pre_existing_correctness_failure", reason: "Independent review confirms a pre-existing race." };
+    expect(() => runShardSchema.parse([run])).toThrow();
+    run.validationStatus = 4;
+    run.overallScore = 4;
+    run.benchmarkSuccess = null;
+    run.benchmarkMedianMs = null;
+    run.benchmarkMeasurementsMs = [];
+    expect(runShardSchema.parse([run])[0]).toEqual(run);
+  });
   it("preserves per-profile dates and requires the dataset date to be their maximum", () => {
     const dataset = structuredClone(costDatasetFixture);
     dataset.pricingAsOf = "2026-09-29";

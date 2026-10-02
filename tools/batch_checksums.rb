@@ -4,7 +4,7 @@ require_relative "artifact_common"
 module BatchChecksums
   def self.run(root, check: false)
     # Children first: each parent includes its child manifests but not itself.
-    Dir.glob(File.join(root, "batches", "**", "checksums.sha256"))
+    Dir.glob(File.join(root, "{batches,corrections}", "**", "checksums.sha256"))
        .sort_by { |file| [-file.count("/"), file] }.each do |manifest|
       directory = File.dirname(manifest)
       content = LocalEvalArtifact.regular_files(directory).reject { |file| file == manifest }.map do |file|

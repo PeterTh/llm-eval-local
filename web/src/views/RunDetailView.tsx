@@ -195,12 +195,19 @@ export function RunDetailView() {
           <p className="eyebrow">Primary evidence</p>
           <h2>Commit-pinned provenance</h2>
           <p>{run.timingFixed
-            ? "This benchmark used a timing-only source correction. Both the measured correction and the original generated program are retained below."
+            ? (run.benchmarkSuccess === null
+              ? "This program received a timing-only correction, but failed revalidation and was not benchmarked. Both source versions and validation observations are retained below."
+              : "This benchmark used a timing-only source correction. Both the measured correction and the original generated program are retained below.")
             : "These links resolve to the exact repositories and revisions used to build this explorer."}</p>
+          {run.validationDisposition && <p>{run.validationDisposition.reason}</p>}
           <div className="evidence-links">
             <a href={run.sourceUrl} target="_blank" rel="noreferrer"><span>{run.timingFixed ? "Timing-corrected source directory" : "Generated source directory"}</span><strong>Open on GitHub ↗</strong></a>
             {run.timingCorrection && <a href={run.timingCorrection.originalSource.url} target="_blank" rel="noreferrer"><span>Original generated source directory</span><strong>Open on GitHub ↗</strong></a>}
+            {run.timingCorrection?.intermediateSources?.map((source, index) => (
+              <a key={source.commit} href={source.url} target="_blank" rel="noreferrer"><span>Intermediate timing-corrected source {index + 1}</span><strong>Open on GitHub ↗</strong></a>
+            ))}
             <a href={run.validationEvidenceUrl} target="_blank" rel="noreferrer"><span>Validation JSONL evidence</span><strong>Open exact line ↗</strong></a>
+            {run.originalValidationEvidenceUrl && <a href={run.originalValidationEvidenceUrl} target="_blank" rel="noreferrer"><span>Earlier validation JSONL evidence</span><strong>Open exact line ↗</strong></a>}
             {run.benchmarkEvidenceUrl && <a href={run.benchmarkEvidenceUrl} target="_blank" rel="noreferrer"><span>Benchmark JSONL evidence</span><strong>Open exact line ↗</strong></a>}
           </div>
           <dl className="provenance-list">

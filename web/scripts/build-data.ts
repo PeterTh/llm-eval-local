@@ -111,6 +111,19 @@ interface LocatedRecord<T> {
   line: number;
 }
 
+interface SourceHistory extends NonNullable<BenchmarkRecord["timing_correction"]> {
+  id: string;
+  intermediate_sources: Array<{ commit: string; digest: string; url: string }>;
+}
+
+function normalizeValidation(raw: Record<string, any>, sourceCommit: string): ValidationRecord {
+  return raw.metadata ? {
+    id: raw.id, benchmark: raw.metadata.benchmark, model: raw.metadata.model,
+    backend: raw.metadata.par_type, repetition: raw.metadata.run, stages: raw.metadata.stages,
+    source: { batch: raw.source_batch, path: `${raw.source_batch}/${raw.id}`, commit: raw.source_commit },
+  } : { ...(raw as unknown as ValidationRecord), source: { ...raw.source, commit: sourceCommit } };
+}
+
 type CsvRow = Record<string, string>;
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -381,6 +394,7 @@ export async function buildData(): Promise<void> {
 
   const catalog = JSON.parse(await readFile(resolve(repositoryRoot, "release", "catalog.json"), "utf8")) as {
     campaigns: Array<{ validation_records: string; corrected_validation_records?: string; validation_format: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
+    correction_campaign?: { root: string; validation_records: string; benchmark_records: string; source_history: string };
   };
   const validationRecords = new Map<string, LocatedRecord<ValidationRecord>>();
   const benchmarkRecords = new Map<string, LocatedRecord<BenchmarkRecord>>();
@@ -397,18 +411,34 @@ export async function buildData(): Promise<void> {
     for (const [id, located] of original) {
       invariant(!validationRecords.has(id), `duplicate cross-campaign validation ID: ${id}`);
       const raw = located.record;
-      const record: ValidationRecord = campaign.validation_format === "canonical"
-        ? { ...(raw as unknown as ValidationRecord), source: { ...raw.source, commit: campaign.source_commit } }
-        : {
-          id, benchmark: raw.metadata.benchmark, model: raw.metadata.model,
-          backend: raw.metadata.par_type, repetition: raw.metadata.run, stages: raw.metadata.stages,
-          source: { batch: raw.source_batch, path: `${raw.source_batch}/${id}`, commit: raw.source_commit },
-        };
+      const record = normalizeValidation(raw, campaign.source_commit);
       validationRecords.set(id, { ...located, record });
     }
     for (const [id, located] of await readJsonlRecords<BenchmarkRecord>(recordRoot(campaign.benchmark_records))) {
       invariant(!benchmarkRecords.has(id), `duplicate cross-campaign benchmark ID: ${id}`);
       benchmarkRecords.set(id, located);
+    }
+  }
+  const originalValidationRecords = new Map(validationRecords);
+  let sourceHistories = new Map<string, LocatedRecord<SourceHistory>>();
+  const failureDispositions = new Map<string, { classification: string; reason: string }>();
+  if (catalog.correction_campaign) {
+    const overlay = catalog.correction_campaign;
+    const recordRoot = (pattern: string) => resolve(repositoryRoot, pattern.replace(/\/\*\/\*\.jsonl$/, ""));
+    for (const [id, located] of await readJsonlRecords<Record<string, any>>(recordRoot(overlay.validation_records))) {
+      invariant(validationRecords.has(id), `shared corrected validation outside release: ${id}`);
+      validationRecords.set(id, { ...located, record: normalizeValidation(located.record, located.record.source_commit) });
+    }
+    for (const [id, located] of await readJsonlRecords<BenchmarkRecord>(recordRoot(overlay.benchmark_records))) {
+      invariant(benchmarkRecords.has(id), `historical benchmark overlay outside release: ${id}`);
+      benchmarkRecords.set(id, located);
+    }
+    sourceHistories = await readJsonlRecords<SourceHistory>(resolve(repositoryRoot, overlay.source_history));
+    const dispositions = JSON.parse(await readFile(resolve(repositoryRoot, overlay.root, "final/validation-failures.json"), "utf8"));
+    for (const decision of dispositions.records) {
+      invariant(decision.decision === "fail_validation" && !benchmarkRecords.has(decision.program_id),
+        `failed revalidation was restored to benchmarking: ${decision.program_id}`);
+      failureDispositions.set(decision.program_id, { classification: decision.classification, reason: decision.reason });
     }
   }
   const implementationAnalyses = await readImplementationAnalyses(implementationAnalysisRoot);
@@ -419,6 +449,14 @@ export async function buildData(): Promise<void> {
   const artifactCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
   const artifactRemote = execFileSync("git", ["remote", "get-url", "origin"], { cwd: repositoryRoot, encoding: "utf8" });
   const artifactRepository = githubRepositoryUrl(artifactRemote);
+  for (const harness of methodologyConfig.harnesses) {
+    const source = harness.configurationSource;
+    if (source?.artifactPath) {
+      invariant(digest(await readFile(resolve(repositoryRoot, source.artifactPath), "utf8")) === source.sha256,
+        `harness snapshot digest differs: ${harness.id}`);
+      source.url = `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(source.artifactPath)}`;
+    }
+  }
   const generatedPrograms = repositoryMetadata.generated_programs as Record<string, unknown> | undefined;
   invariant(generatedPrograms, "generated-program repository provenance is missing");
   invariant(typeof generatedPrograms.repository === "string", "generated-program repository URL is missing");
@@ -458,6 +496,9 @@ export async function buildData(): Promise<void> {
       `${id}.overall_score is outside the configured score scale`);
     const repetition = parseRequiredInteger(row.run, `${id}.run`);
     const validationStatus = parseRequiredInteger(row.validation_status, `${id}.validation_status`);
+    const stages = ["basic_para", "validation_build", "validation_run", "internal_validation", "output_comparison"];
+    const firstFailure = stages.findIndex((stage) => validation.stages[stage] !== true);
+    invariant(validationStatus === (firstFailure < 0 ? stages.length : firstFailure), `effective validation mismatch: ${id}`);
     const benchmarkSuccess = parseOptionalBoolean(row.benchmark_success, `${id}.benchmark_success`);
     const benchmarkMedianMs = parseOptionalNumber(row.benchmark_median_time, `${id}.benchmark_median_time`);
     const locatedBenchmark = benchmarkRecords.get(id);
@@ -491,8 +532,10 @@ export async function buildData(): Promise<void> {
       : null;
     const sourcePath = validation.source.path;
     invariant(sourcePath, `source path is missing for ${id}`);
-    const timingFixed = locatedBenchmark?.record.timing_fixed ?? false;
-    const rawTimingCorrection = locatedBenchmark?.record.timing_correction ?? null;
+    const history = sourceHistories.get(id)?.record;
+    const timingFixed = history !== undefined || (locatedBenchmark?.record.timing_fixed ?? false);
+    const rawTimingCorrection = history ?? locatedBenchmark?.record.timing_correction ?? null;
+    invariant(timingFixed === (row.timing_fixed === "true"), `CSV timing-fix mismatch: ${id}`);
     invariant(typeof timingFixed === "boolean", `timing_fixed must be boolean for ${id}`);
     invariant(timingFixed === (rawTimingCorrection !== null), `timing correction flag/payload mismatch for ${id}`);
     const timingCorrection = rawTimingCorrection === null ? null : {
@@ -507,12 +550,14 @@ export async function buildData(): Promise<void> {
         digest: rawTimingCorrection.corrected_source.digest,
         url: rawTimingCorrection.corrected_source.url,
       },
+      intermediateSources: history?.intermediate_sources ?? [],
     };
     if (timingCorrection) {
       invariant(timingCorrection.issueCategories.length > 0
         && timingCorrection.issueCategories.every((category) => typeof category === "string" && category.length > 0),
       `timing correction issue categories are invalid for ${id}`);
-      for (const [label, source] of Object.entries({ original: timingCorrection.originalSource, corrected: timingCorrection.correctedSource })) {
+      for (const [label, source] of Object.entries({ original: timingCorrection.originalSource, corrected: timingCorrection.correctedSource,
+        ...Object.fromEntries(timingCorrection.intermediateSources.map((source, index) => [`intermediate-${index}`, source])) })) {
         invariant(/^[0-9a-f]{40}$/.test(source.commit), `${label} timing source commit is invalid for ${id}`);
         invariant(/^[0-9a-f]{64}$/.test(source.digest), `${label} timing source digest is invalid for ${id}`);
         invariant(/^https:\/\/github\.com\//.test(source.url), `${label} timing source URL is invalid for ${id}`);
@@ -542,6 +587,10 @@ export async function buildData(): Promise<void> {
       timingFixed,
       timingCorrection,
       validationEvidenceUrl,
+      originalValidationEvidenceUrl: sourceHistories.has(id)
+        ? `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(originalValidationRecords.get(id)!.relativePath)}#L${originalValidationRecords.get(id)!.line}`
+        : null,
+      validationDisposition: failureDispositions.get(id) ?? null,
       benchmarkEvidenceUrl,
     };
   });

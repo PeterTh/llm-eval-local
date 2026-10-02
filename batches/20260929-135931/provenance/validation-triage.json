@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-01T09:53:00Z",
+  "batch": "20260929-135931",
+  "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+  "pipeline_commit": "7cb7c8e26c6199aae9e2044852faa42c373dcad4",
+  "validation_results_sha256": "0a623f996f199d4d70fd43b4f9045e1ad825e7a8c44158f6d3edfb2307e99bcc",
+  "completed": 660,
+  "passed": 611,
+  "failed": 49,
+  "passing_mpi_hybrid": 295,
+  "by_model": {
+    "gpt-6-astra-medium": {"completed": 220, "passed": 219},
+    "gpt-6-luna-medium": {"completed": 220, "passed": 173},
+    "gpt-6-sol-medium": {"completed": 220, "passed": 219}
+  },
+  "first_failed_stage": {
+    "basic_para": 1,
+    "validation_build": 16,
+    "validation_run": 8,
+    "internal_validation": 6,
+    "output_comparison": 18
+  },
+  "decision": "Retain all original outcomes. No identified infrastructure failure warrants a retry. No generated algorithm, build configuration, or validation criterion was changed.",
+  "observations": [
+    {
+      "scope": "13 configure failures",
+      "finding": "Generated CMakeLists.txt files mix keyword and plain target_link_libraries signatures; this includes the single Sol failure, unstructured_gpt-6-sol-medium_omp_r2. Files are present in the original source commit; no omitted dependency was identified."
+    },
+    {
+      "scope": "3 compilation/link failures",
+      "finding": "Luna cahn-hilliard hybrid r4 has malformed MPI_Sendrecv arguments; r5 passes an nvcc -Xcompiler option to the host linker; stencil3d hybrid r4 compiles CUDA kernel syntax as ordinary C++."
+    },
+    {
+      "scope": "cahn-hilliard_gpt-6-luna-medium_mpi_r3",
+      "finding": "The 30-second timeout is consistent with the source halo-exchange code conditionally skipping whole MPI_Sendrecv calls at edge ranks, leaving unmatched communication."
+    },
+    {
+      "scope": "cholesky_gpt-6-luna-medium_mpi_r2",
+      "finding": "The program reports invalid options with valid validation arguments. Its source passes a bool buffer to MPI_Allreduce with MPI_INT; this is outside timing-only correction scope."
+    },
+    {
+      "scope": "qtclustering_gpt-6-luna-medium_hybrid_r1 and r3",
+      "finding": "Both hit the unchanged 30-second timeout. Source inspection shows repeated device allocation, full copies, kernel launch and freeing in the innermost candidate search. No launcher/GPU infrastructure error is recorded; the timeout remains a failed outcome without claiming a measured root cause."
+    },
+    {
+      "scope": "spmv_gpt-6-luna-medium_hybrid_r2",
+      "finding": "Segmentation fault. The generated initialization parallelizes shared mutable nnzAssigned/fillRemaining and column writes without synchronization; this can corrupt CSR storage."
+    },
+    {
+      "scope": "spmv_gpt-6-luna-medium_mpi_r4",
+      "finding": "Segmentation faults on non-root ranks. The CSR-offset rebasing loop overwrites localRowsDelim[0] before using it to rebase later offsets, leaving non-root offsets inconsistent with local storage."
+    },
+    {
+      "scope": "spmv_gpt-6-luna-medium_hybrid_r4",
+      "finding": "Root prints Validation: PASSED but non-root ranks exit 1. The source tests rank == 0 && allValid for the success branch, routing every non-root rank to failure. Keep the failed process outcome; this is not a timing issue."
+    },
+    {
+      "scope": "unstructured_gpt-6-luna-medium_hybrid_r3",
+      "finding": "Open MPI reports MPI_ERR_BUFFER in MPI_Sendrecv. The source supplies null edge-rank buffers with positive counts in its halo-exchange calls. The recorded runtime rejection is retained."
+    },
+    {
+      "scope": "nbody_gpt-6-astra-medium_mpi_r5",
+      "finding": "The unchanged textual backend detector sees both MPI and the source's real #pragma omp simd. The existing backend-classification policy is retained; no exception is introduced for this campaign."
+    },
+    {
+      "scope": "24 internal-validation or output-comparison failures",
+      "finding": "Retain the numeric/result-shape failures using the unchanged reference outputs and comparison rules, even where a generated program's own validator reports success."
+    }
+  ],
+  "evidence": "The immutable validation manifest, per-program validation metadata, source revision, and retained configure/build/execution logs remain the primary evidence. This triage is supplementary and does not replace or amend any outcome.",
+  "retries": [],
+  "infrastructure_incidents": []
+}

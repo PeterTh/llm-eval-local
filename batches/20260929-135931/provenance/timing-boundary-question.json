@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "awaiting_user_measurement_boundary_decision",
+  "batch": "20260929-135931",
+  "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+  "completed_work": {
+    "validation_total": 660,
+    "validation_passed": 611,
+    "primary_timing_reviews": 295,
+    "independent_reviews": 57,
+    "adjudications": 42,
+    "current_valid_decisions": 246,
+    "current_invalid_decisions": 49,
+    "ambiguous_decisions": 0,
+    "timing_corrections_applied": 0,
+    "benchmarks_started": false
+  },
+  "issue": "Inconsistent treatment of equivalent QT-clustering distance-matrix precomputation outside the timer. Applying the new suggested boundary to only one GPT-6 program would treat it differently from another GPT-6 program and an already corrected/measured Claude program.",
+  "cases": [
+    {
+      "program_id": "qtclustering_gpt-6-luna-medium_hybrid_r2",
+      "source_path": "20260929-135931/qtclustering_gpt-6-luna-medium_hybrid_r2/qtclustering/qtclustering.cpp",
+      "precomputation_lines": "38-69",
+      "boundary_lines": "374-391",
+      "observation": "Builds the pairwise Euclidean-distance matrix on the GPU and copies it to the host before cluster_start. The timed clustering uses the precomputed matrix.",
+      "audit": "/home/petert/llm_timing_audit/20261001-gpt6-adjudication/results/qtclustering_gpt-6-luna-medium_hybrid_r2.json",
+      "audit_treatment": "Sol adjudication adds incomplete_timed_region and proposes moving the timer before makeDistanceMatrix, as well as fixing rank aggregation."
+    },
+    {
+      "program_id": "qtclustering_gpt-6-luna-medium_hybrid_r4",
+      "source_path": "20260929-135931/qtclustering_gpt-6-luna-medium_hybrid_r4/qtclustering/qtclustering.cpp",
+      "precomputation_lines": "28-61",
+      "boundary_lines": "399-416",
+      "observation": "Also builds a GPU pairwise Euclidean-distance matrix and copies it to the host before cluster_start. The timed clustering consumes that matrix.",
+      "audit": "/home/petert/llm_timing_audit/20261001-gpt6-priority/results/qtclustering_gpt-6-luna-medium_hybrid_r4.json",
+      "audit_treatment": "Both Luna reviews flag rank-local timing but propose only maximum-rank aggregation, leaving distance precomputation excluded."
+    },
+    {
+      "program_id": "qtclustering_claude-sonnet-5-cc-medium_hybrid_r2",
+      "source_path": "20260901-162328/qtclustering_claude-sonnet-5-cc-medium_hybrid_r2/qtclustering/qtclustering.cpp",
+      "corrected_commit": "4500d708ad5c7b5d1594f93704011d6dfbca09a1",
+      "boundary_lines": "368-393",
+      "observation": "Computes and synchronizes a pairwise distance matrix on the GPU before cluster_start. The historical timing correction added MPI_MAX without moving this boundary, and the corrected benchmark has a recorded successful outcome.",
+      "audit": "/home/petert/llm_timing_audit/20260928-claude5/final/decisions.jsonl",
+      "proposal": "/home/petert/llm_timing_fixes/20260928-claude5-proposals1/proposals/qtclustering_claude-sonnet-5-cc-medium_hybrid_r2.json",
+      "audit_treatment": "The retained decision explicitly calls pre-timer distance-matrix initialization permissible compute setup."
+    }
+  ],
+  "policy_choices": [
+    "Retain the historical clustering-only measurement boundary consistently for this integration; correct global timing and explicitly record the excluded preprocessing. Preserve the differing reviewer findings and document the policy clarification.",
+    "Include distance preprocessing consistently; first identify and review all affected QT-clustering implementations, including prior batches, then make timing-only corrections and scoped reruns. No full-corpus rerun is justified."
+  ],
+  "hold": "Do not launch correction proposals, apply source changes, or start benchmarking until the measurement-boundary policy is resolved. All generation, validation, and audit work remains retained; no active campaign service requires monitoring."
+}

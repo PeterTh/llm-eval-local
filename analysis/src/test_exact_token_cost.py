@@ -27,6 +27,26 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertEqual(100, row.mean_input_tokens)
         self.assertEqual(80, row.mean_cached_input_tokens)
 
+    def test_gpt6_flex_profiles_price_all_three_token_classes(self):
+        rates = {"sol": (1.0, 0.1, 5.0), "luna": (0.05, 0.005, 0.25),
+                 "astra": (5.0, 0.5, 25.0)}
+        for variant, (uncached, cached, output) in rates.items():
+            with self.subTest(variant=variant):
+                model = f"gpt-6-{variant}-medium"
+                frame = self.frame.assign(model=model)
+                row = combined.aggregate(frame).iloc[0]
+                self.assertAlmostEqual((20 * uncached + 80 * cached + 10 * output) / 1_000_000,
+                                       row.estimated_cost_usd_per_run)
+                self.assertEqual("2026-10-02", row.pricing_as_of)
+                self.assertEqual(110, row.mean_total_tokens)
+                self.assertEqual(f"https://developers.openai.com/api/docs/models/gpt-6-{variant}",
+                                 row.pricing_source_url)
+
+    def test_subcent_cost_ticks_remain_distinct(self):
+        self.assertEqual("$0.002", combined._format_cost(0.002, 0))
+        self.assertEqual("$0.005", combined._format_cost(0.005, 1))
+        self.assertEqual("$0.01", combined._format_cost(0.01, 2))
+
 
 if __name__ == "__main__":
     unittest.main()

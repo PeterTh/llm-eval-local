@@ -78,7 +78,7 @@ puts "Diagnostic: 15 successful executions; patches, sample vectors and medians 
 diagnostic.fetch("variants").each do |name, variant|
   puts "  #{name}: #{variant.fetch('median_ms')} ms"
 end
-puts "Pending GPT-6 winners (ms):"
+puts "Reviewed GPT-6 winners (ms):"
 reviews.select { |id, _| id.include?("_gpt-6-") }.sort.each do |id, review|
   puts "  #{id}: #{review.fetch('median_ms')} (next: #{review.fetch('top').fetch(1).fetch('median_ms')})"
 end

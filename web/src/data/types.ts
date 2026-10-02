@@ -31,7 +31,7 @@ export interface HarnessMetadata {
   label: string;
   commandTemplate: string;
   parameters: string[];
-  configurationSource?: { url: string; sha256: string };
+  configurationSource?: { url: string; sha256: string; artifactPath?: string };
 }
 
 export interface ExecutionSystemMetadata {
@@ -207,6 +207,7 @@ export interface TimingCorrectionProvenance {
   issueCategories: string[];
   originalSource: TimingCorrectionSource;
   correctedSource: TimingCorrectionSource;
+  intermediateSources?: TimingCorrectionSource[];
 }
 
 export interface RunRecord {
@@ -231,6 +232,8 @@ export interface RunRecord {
   timingFixed: boolean;
   timingCorrection: TimingCorrectionProvenance | null;
   validationEvidenceUrl: string;
+  originalValidationEvidenceUrl?: string | null;
+  validationDisposition?: { classification: string; reason: string } | null;
   benchmarkEvidenceUrl: string | null;
 }
 

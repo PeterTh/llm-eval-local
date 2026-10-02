@@ -36,7 +36,7 @@ class CurrentReleaseTest < Minitest::Test
       record = records.values.find { |r| r.fetch("timing_fixed") }
       record.fetch("timing_correction").fetch("corrected_source")["commit"] = "0" * 40
     end
-    assert_match(/correction source differs/, assert_raises(RuntimeError) { release.build }.message)
+    assert_match(/correction source differs|unrelated historical records changed/, assert_raises(RuntimeError) { release.build }.message)
   end
 
   def test_rejects_modified_measured_vector
@@ -44,18 +44,57 @@ class CurrentReleaseTest < Minitest::Test
       record = records.values.find { |r| r.fetch("success") }
       record.fetch("metrics").first["time"] *= 2
     end
-    assert_match(/measurement vector mismatch/, assert_raises(RuntimeError) { release.build }.message)
+    assert_match(/measurement vector mismatch|unrelated historical records changed/, assert_raises(RuntimeError) { release.build }.message)
   end
 
   def test_rejects_modified_benchmark_configuration
     release = TamperedRelease.new(ROOT) { |records| records.values.first["configuration_sha256"] = "0" * 64 }
-    assert_match(/configuration mismatch/, assert_raises(RuntimeError) { release.build }.message)
+    assert_match(/configuration mismatch|unrelated historical records changed/, assert_raises(RuntimeError) { release.build }.message)
   end
 
   def test_rejects_paths_outside_release
     release = CurrentRelease.new(ROOT)
     assert_raises(RuntimeError) { release.path("../outside") }
     assert_raises(RuntimeError) { release.path("/tmp/outside") }
+  end
+
+  def test_effective_failures_keep_timing_flags_and_have_no_benchmarks
+    release = CurrentRelease.new(ROOT)
+    rows = CSV.parse(release.build.fetch("release/scored_results.csv"), headers: true).to_h { |r| [CurrentRelease.id(r), r] }
+    %w[nbody_gpt-6-luna-medium_hybrid_r5 roomsim_gpt-6-luna-medium_hybrid_r3].each do |id|
+      assert_equal "4", rows.fetch(id).fetch("validation_status")
+      assert_equal "true", rows.fetch(id).fetch("timing_fixed")
+      assert_nil rows.fetch(id).fetch("benchmark_success")
+      assert_includes rows.fetch(id).fetch("validation_err_string"), "FAILED"
+    end
+  end
+
+  def test_rejects_restoring_failed_revalidation_to_pass
+    release = CurrentRelease.new(ROOT)
+    shared = release.instance_variable_get(:@shared)
+    shared.validations.fetch("nbody_gpt-6-luna-medium_hybrid_r5").fetch("metadata").fetch("stages")["output_comparison"] = true
+    assert_match(/unresolved corrected validation failure/, assert_raises(RuntimeError) { release.build }.message)
+  end
+
+  def test_rejects_unscoped_historical_replacement
+    release = CurrentRelease.new(ROOT)
+    shared = release.instance_variable_get(:@shared)
+    shared.benchmarks["unrelated"] = shared.benchmarks.values.first
+    assert_match(/historical replacement scope differs/, assert_raises(RuntimeError) { release.build }.message)
+  end
+
+  def test_rejects_modified_historical_corrected_measurement
+    release = CurrentRelease.new(ROOT)
+    shared = release.instance_variable_get(:@shared)
+    shared.benchmarks.values.find { |r| r.fetch("success") }.fetch("metrics").first["time"] *= 2
+    assert_match(/native benchmark metadata differs/, assert_raises(RuntimeError) { release.build }.message)
+  end
+
+  def test_rejects_lost_intermediate_source_history
+    release = CurrentRelease.new(ROOT)
+    shared = release.instance_variable_get(:@shared)
+    shared.histories.values.find { |r| !r.fetch("intermediate_sources").empty? }.fetch("intermediate_sources").clear
+    assert_match(/intermediate timing correction lost/, assert_raises(RuntimeError) { release.build }.message)
   end
 
   def test_usage_overlay_changes_only_token_metadata_and_requires_coverage

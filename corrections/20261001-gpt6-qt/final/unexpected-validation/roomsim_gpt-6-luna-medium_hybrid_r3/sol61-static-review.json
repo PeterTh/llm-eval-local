@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "program_id": "roomsim_gpt-6-luna-medium_hybrid_r3",
+  "source_batch": "20260929-135931",
+  "review_mode": "Sol-6.1 requested; static source, git, provenance, and retained-log adjudication only",
+  "verdict": {
+    "primary_classification": "b: pre-existing output-ownership defect",
+    "secondary_mechanism": "c: unchanged first-RESULTS-section comparator exposes interleaved multi-rank stdout",
+    "confidence": "high",
+    "timing_fix_bug": false,
+    "proven_numerical_incorrectness": false,
+    "summary": "The corrected log fails on 15 versus 11 parsed object lines before any numerical comparison. All emitted Distances statistics, samples, and hashes agree exactly with the original and reference. The original source already lets all four ranks print non-atomic RESULTS and surrounding diagnostics. The accepted timing collective changes scheduling opportunity after completed computation, not the algorithm or result ownership.",
+    "scientific_interpretation": "Benign with respect to the observed numerical benchmark summaries, but a real output-contract validation failure under the unchanged validator. This error is not evidence of scientifically incorrect distances or the unrelated N-body race. Do not silently turn the recorded failure into a pass.",
+    "refs": ["comparator:64-95", "old_stdout:144-156", "old_stdout:192-226", "new_stdout:174-210", "source_original:950-983", "source_corrected:928-985"]
+  },
+  "observations": {
+    "stages": {
+      "original": "build, run, internal validation, and external comparison passed",
+      "corrected": "build, run, and internal validation passed; external comparison failed",
+      "refs": ["old_result:1-7", "new_result:1-6", "old_metadata:8-14", "new_metadata:8-14"]
+    },
+    "exact_first_object_extraction": {
+      "reference": {"start_marker_line": 48, "object_lines": [49, 59], "end_marker_line": 60, "parsed_line_count": 11},
+      "original": {"start_marker_line": 144, "object_lines": [145, 155], "end_marker_line": 156, "parsed_line_count": 11},
+      "corrected": {"start_marker_line": 174, "object_lines": [175, 189], "next_start_marker_line": 191, "parsed_line_count": 15},
+      "explanation": "get_output first splits on every RESULTS start and takes element 1, then splits that already-truncated substring on END RESULTS. The corrected first fragment has no end marker. Lines 181-184 and 186-189 are peer performance diagnostics; line 185 is an internal blank counted by split/newline. Samples 80/160/240/319 and the RESULTS Hash are absent from this fragment. It still has one Name, so object counts match, then line-count rejection at comparator line 95 precedes all numeric/hash checks.",
+      "refs": ["comparator:64-103", "new_stdout:174-191", "old_stdout:144-156", "new_reference_stdout:48-60"]
+    },
+    "all_result_markers": {
+      "original_starts": [144, 192, 207, 252],
+      "original_ends": [156, 212, 226, 264],
+      "corrected_starts": [174, 191, 198, 232],
+      "corrected_ends": [210, 226, 237, 261],
+      "meaning": "Both logs have four emitted sections. Some starts nest before an end and fragments cross nominal section boundaries. The original's first section happens to be intact; its later sections already interleave.",
+      "refs": ["old_stdout:144-264", "new_stdout:174-261"]
+    },
+    "non_cherry_picked_field_inventory": {
+      "method": "Read-only anchored-line inventory of BOTH retained stdout logs, not execution of the validator or programs.",
+      "reproduction_command_template": "rg '^(=== RESULTS ===|=== END RESULTS ===|Name:|Elements:|Sum:|Min:|Max:|Sample\\[|Hash:)' LOG_PATH | sort | uniq -c",
+      "reproduction_recipe": "Substitute each path in evidence.old_stdout.path and evidence.new_stdout.path for LOG_PATH. The output has 13 distinct lines, each with count 4: both markers and every field listed below. On evidence.new_reference_stdout.path every such line instead has count 1. This is a static log inventory, not a replacement-validator execution.",
+      "copies_per_expected_field_per_log": 4,
+      "start_and_end_marker_counts_per_log": [4, 4],
+      "all_copies_match_reference_exactly": true,
+      "fields": {
+        "Name": "Distances",
+        "Elements": "320",
+        "Sum": "5.69950000000000000e+03",
+        "Min": "0.00000000000000000e+00",
+        "Max": "2.50000000000000000e+01",
+        "Sample[0]": "0.00000000000000000e+00",
+        "Sample[80]": "1.15000000000000000e+01",
+        "Sample[160]": "2.50000000000000000e+01",
+        "Sample[240]": "2.25000000000000000e+01",
+        "Sample[319]": "2.15000000000000000e+01",
+        "Hash": "9cfafa9d21f6bbb9"
+      },
+      "additional_evidence": "Corrected lines 198-210 are byte-identical to original lines 144-156 and reference lines 48-60, as checked by read-only text diff. All four performance Result hash lines also report EC89EFB2218EDF00. This intact section is illustrative, not the sole basis for equivalence.",
+      "refs": ["old_stdout:144-264", "new_stdout:172-261", "new_reference_stdout:46-60"]
+    },
+    "non_result_differences": {
+      "stdout_total_lines_original_corrected": [272, 269],
+      "canonical_timing_line_counts_original_corrected": [4, 1],
+      "canonical_timing_ms_original": [2368, 2368, 2369, 2369],
+      "canonical_timing_ms_corrected": 2374,
+      "derived_ms_per_triangle_original": [7.4, 7.4031],
+      "derived_ms_per_triangle_corrected": 7.4188,
+      "reference_change": "Only precomputation/total/derived timing differs between the two preserved reference logs: 1460 to 1462 ms, 1492 to 1494 ms, and 4.6625 to 4.6688 ms. Their RESULTS sections are identical.",
+      "refs": ["old_stdout:130-264", "new_stdout:127-261", "old_reference_stdout:18-60", "new_reference_stdout:18-60"]
+    }
+  },
+  "source_assessment": [
+    {
+      "status": "proven",
+      "finding": "The sole program source diff replaces unconditional canonical total-time printf with MPI_Allreduce of the local long total using MPI_LONG/MPI_MAX, followed by rank-0 printf. No algorithm, input, result vector, output helper, validation code, or result-output rank guard changed.",
+      "refs": ["source_original:939-941", "source_corrected:939-944", "registry:70", "proposal:4-11", "review:8-15"]
+    },
+    {
+      "status": "proven",
+      "finding": "runSimulation synchronizes CUDA and gathers the full timestep onto every rank; computeDistances finishes its OpenMP loop before returning. Only then does main sum phase durations and perform the added collective. The new collective buffer is totalTime, which is used only for timing and its derived metric, with no data flow into state.distances or hashing.",
+      "refs": ["source_corrected:676-690", "source_corrected:696-723", "source_corrected:905-977"]
+    },
+    {
+      "status": "proven",
+      "finding": "All ranks receive the same -o option, and printResults is not rank-guarded in either revision. All ranks also print performance and internal-validation messages. print_results uses separate printf calls for marker, name, fields, samples, hash, and end marker, with no inter-rank serialization. Four ranks can interleave both RESULTS fields and surrounding diagnostics. Restricting only print_results would not by itself prevent other ranks' diagnostics contaminating a root block.",
+      "refs": ["old_command:19-27", "new_command:19-28", "source_original:950-983", "source_corrected:953-985", "results_helper:25-66"]
+    },
+    {
+      "status": "inference_not_proven_runtime_causality",
+      "finding": "The added collective requires every rank to complete distance computation before continuing and may increase overlap of their subsequent printing. This is a plausible exposure mechanism, not proof that this edit alone caused the exact retained interleaving; scheduling and stdout forwarding are untagged/nondeterministic. The underlying output defect and the exact reason the comparator rejects THIS log are directly proven.",
+      "refs": ["source_corrected:931-978", "old_stdout:192-226", "new_stdout:174-261"]
+    }
+  ],
+  "infrastructure_assessment": {
+    "staging_matches_pinned_source": true,
+    "basis": "Read-only recursive diffs of staged roomsim/common against their pinned original/corrected trees were empty; main-source SHA-256 values also match exactly. Staged reference roomsim/common matches benchmark source. Registry proposal/review SHA-256 values match the files.",
+    "reference_mismatch_found": false,
+    "reference_basis": "Both reference metadata files pin clean benchmark commit 2bc11aeac658a87b5cae25d03e0669f65d32922e and the same -v -o -n 256 -t 100 arguments; every reference result field is unchanged.",
+    "command_difference": "Both generated runs use the same four-rank mpirun options, pinned GPU wrapper, eight OpenMP threads, visible GPU list, and validation arguments. Corrected command logging has a shorter PATH and explicit TMPDIR; this is not identical environment evidence, but there is no indication of a staging/reference error, and these differences are unnecessary to explain the structural failure.",
+    "pinned_pipeline_commit": "1f33ffd247fcea81e29e46e688747e669e035b49",
+    "pinned_pipeline_worktree_clean": true,
+    "refs": ["old_staging:2-8", "new_staging:2-8", "old_reference_metadata:3-17", "new_reference_metadata:3-17", "old_command:12-27", "new_command:12-28", "pipeline:204-237"]
+  },
+  "limits_and_next_step": {
+    "strict_unchanged_validator_policy": "Retain this as an output-contract validation failure, not proven numerical incorrectness; preserve evidence and do not benchmark this program as validated without a user decision.",
+    "principled_read_only_alternative": "A source-aware, consistently adopted summary-output adjudication can require exactly four copies of EVERY expected field and start/end marker for this single-object four-rank run, reject unexpected/missing/conflicting result fields, and compare ALL field copies with the reference. The retained logs satisfy the multiplicity and exact-agreement requirements. This does not cherry-pick a favorable block and establishes equivalence of all emitted benchmark-summary data, at least as informative as this comparator's first-block-only numerical check.",
+    "ambiguity": "Unique rank identities and per-rank block boundaries cannot be reconstructed from the untagged stream. Ordinary 'every contiguous block must be complete' parsing would still reject the nested/incomplete fragments. The alternate method is an explicit source-aware field-multiset policy, not a claim that all textual blocks are well-formed.",
+    "numerical_limit": "The log never contains all 320 raw distance values. Equal statistics, samples, and all four whole-array FNV-1a hashes strongly support numerical agreement but do not mathematically prove collision-free elementwise equality or universal algorithm correctness.",
+    "user_decision_needed": "Ask whether to retain the strict formatting failure or authorize a narrowly defined, consistently applied retained-log parser/adjudication policy, with no source repair or new execution. Any output-only source repair or broader parser-policy change requires explicit user direction. Consider similarly affected retained logs rather than special-case r3; the same line-count error message alone does not establish the same cause or eligibility for this method. No other program was investigated here. Do not infer authorization from the separate N-body decision.",
+    "timing_only_revision": null,
+    "timing_revision_reason": "No timing-fix defect found; changing RESULTS ownership or comparator behavior is outside the accepted timing-only scope.",
+    "execution_diagnostics": "None performed or recommended as retry-until-pass. Any execution diagnostic requires explicit user authorization.",
+    "astra_escalation": "Not needed for this statically decisive formatting diagnosis. The remaining issue is policy/authorization, not a difficult unresolved source-causality question.",
+    "refs": ["comparator:64-142", "results_helper:47-66", "hash_helper:5-21", "old_stdout:144-264", "new_stdout:174-261"]
+  },
+  "evidence": {
+    "source_original": {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/original/20260929-135931/roomsim_gpt-6-luna-medium_hybrid_r3/roomsim/roomsim.cpp", "commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6", "git_blob": "b35730e5adce9f3b8de01b13abaad4255e9d2e2f", "sha256": "e603ab0267806ada9c8620b1c1e338e0f685ff7e16e15fe5655abe3dad190d31"},
+    "source_corrected": {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/corrected/20260929-135931/roomsim_gpt-6-luna-medium_hybrid_r3/roomsim/roomsim.cpp", "commit": "3a47d7cba6624f4bdfe004fba3383b5e3c62e93f", "git_blob": "d07f782c64e5a26c4af884226e3bc8e113a746fa", "sha256": "3dbf7230921081bd90fc41030e6a61572ec4a2a2ac3cf8bb445be79155a48132"},
+    "old_stdout": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_out_stdout.log", "sha256": "1dab3db0d9bab384f8d5bd64c576251bf935a89b175904d825911eb74f2fb8b3"},
+    "new_stdout": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_out_stdout.log", "sha256": "c5da9c3993c9af90ef6cd7391f5892a2713067f63641c0567167aa5d7d556cd7"},
+    "old_reference_stdout": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/reference/roomsim/validation_out_stdout.log", "sha256": "b888bc5c194ddad5eccc39bc992835b0b434f750080b7e5f38b19419e83c4149"},
+    "new_reference_stdout": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/reference/roomsim/validation_out_stdout.log", "sha256": "7b916bcd56d020d62acfca06b84b15374a4f6cde0e05ec179d5f914e862fcff9"},
+    "comparator": {"path": "/tmp/gpt6-evaluation-20261001.rhp9wY/experiment/validation_helper.rb", "sha256": "5ceb747b5896b08bce26d815373d4d0a32d46a688ed72a9b13c4fd0d19d8e14c"},
+    "pipeline": {"path": "/tmp/gpt6-evaluation-20261001.rhp9wY/experiment/lib/local_evaluation/validation_pipeline.rb", "sha256": "5a714911d4e1e3b587aa025987549b1e912dd960a58b2365ca5a6db72da07d98"},
+    "results_helper": {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/corrected/20260929-135931/roomsim_gpt-6-luna-medium_hybrid_r3/common/results_output.hpp"},
+    "hash_helper": {"path": "/tmp/gpt6-qt-timingfix-20261001-20261001-2-4agc69/corrected/20260929-135931/roomsim_gpt-6-luna-medium_hybrid_r3/common/hash.hpp"},
+    "old_result": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_result.txt"},
+    "new_result": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_result.txt"},
+    "old_metadata": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_metadata.yaml"},
+    "new_metadata": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_metadata.yaml"},
+    "old_staging": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/roomsim_gpt-6-luna-medium_hybrid_r3/source_staging.yaml"},
+    "new_staging": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/roomsim_gpt-6-luna-medium_hybrid_r3/source_staging.yaml"},
+    "old_command": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_out_command.log"},
+    "new_command": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/roomsim_gpt-6-luna-medium_hybrid_r3/validation_out_command.log"},
+    "old_reference_metadata": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation/validation/reference/roomsim/reference_metadata.yaml"},
+    "new_reference_metadata": {"path": "/home/petert/llm_para_local_evaluation/20261001-gpt6-qt-corrected/validation/reference/roomsim/reference_metadata.yaml"},
+    "proposal": {"path": "/home/petert/llm_timing_fixes/20261001-gpt6-qt-proposals/proposals/roomsim_gpt-6-luna-medium_hybrid_r3.json", "sha256": "0649a6c4ad1a6c7d51b448389463282b89b9b8014e5a71bc5f5ce2d15e4d9efa"},
+    "review": {"path": "/home/petert/llm_timing_fixes/20261001-gpt6-qt-review/results/roomsim_gpt-6-luna-medium_hybrid_r3.json", "sha256": "10a4ca9d3eb1e0f041b99f991e237c6592c6faa43e3bd0d948b3fc11750d14f0"},
+    "registry": {"path": "/home/petert/llm_timing_fixes/20261001-gpt6-qt-final/corrections.jsonl"}
+  },
+  "actions": "No compilation, program execution, validation/benchmark run, source/evidence edits, model workers, parser fixes, or output fixes performed. Only this final JSON report was written."
+}

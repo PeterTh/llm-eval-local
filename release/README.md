@@ -1,17 +1,23 @@
-# Combined release: 2026-10-01
+# Combined release: 2026-10-02
 
-This is a reproducible view over two retained campaigns, not a second raw-data archive.
+This is a reproducible view over three retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
-`batches/20260901-162328/`.
+`batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`.
 
-The 2026-10-01 update changes token metadata and cost estimates only. The catalog's
+The catalog's
 `codex_usage_overlays` joins exact reported counters for all 1,980 GPT-5.6 runs from
 `metadata/codex-usage/20260805-120633.jsonl`, preserving the original terminal
-counter and session provenance. All measurements, scores, thresholds, and winners
-are unchanged from the 2026-09-29 release. The completed GPT-6 generation campaign
-has retained usage evidence but is not yet validated or benchmarked and is not
-included in this performance view.
+counter and session provenance. GPT-6's native aggregate uses the same exact usage
+evidence directly; all 660 rows are verified against their recovered counters.
+
+This release includes GPT-6 validation, timing review and benchmarks.
+The shared correction campaign at `corrections/20261001-gpt6-qt/` applies 81
+revalidations and exactly 32 historical QT benchmark replacements. Initial GPT-6
+validation observed 611 passes; two confirmed pre-existing defects failed corrected
+revalidation and remain invalid, giving 609 eligible programs. Both observations
+remain accessible. All 4,435 unrelated historical benchmark records are guarded
+unchanged. No new measurement executions were performed during integration.
 
 The Claude generation harness and campaign tooling are published at
 [`fa046134`](https://github.com/PeterTh/llm-eval-experiment/tree/fa046134cf22a2cb3b8398567f2cf4115bceb021).
@@ -19,17 +25,17 @@ This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 5,280 programs, 24 model/effort combinations, 220 programs each.
-- 4,467 fully validated programs and benchmark attempts; 4,115 successful measurements.
-- 761 timing-only corrected programs, with original and corrected Git source links.
-- 44 benchmark/backend cells; 24 new minimum-median winners (23 Opus 5, one Fable 5).
+- 5,940 programs, 27 model/effort combinations, 220 programs each.
+- 5,076 effectively validated programs and benchmark attempts; 4,703 successful measurements.
+- 830 timing-fixed programs (including two failed revalidations), with source history.
+- 44 benchmark/backend cells; five newly reviewed GPT-6 winners, 73 retained reviews total.
 
 `scored_results.csv` is the current analysis and website input. The unchanged historic
 log-natural-break threshold procedure is applied to the joint successful-measurement
-distribution. `historical_score_changes.csv` records the 640 older scores changed solely
-by those thresholds/new fastest results; their measured values are unchanged.
+distribution. `historical_score_changes.csv` records older score changes and distinguishes
+joint-threshold changes from affected QT timing-boundary replacements.
 The builder also reproduces all 4,620 old scores with the old thresholds as a regression
-check. No performance measurements were rerun for this integration.
+check. Previous QT observations stay immutable in `data/` and the Claude batch.
 
 `winners.json` retains all current/previous winner IDs, five measurements, medians,
 ratios, arguments and timing-fix flags. All current winners have individual notes under

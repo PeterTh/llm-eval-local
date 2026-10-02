@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-01T13:30:01Z",
+  "original_source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+  "corrected_source_commit": "3a47d7cba6624f4bdfe004fba3383b5e3c62e93f",
+  "corrected_validation_manifest_sha256": "cfc3dd04f824c822071380f83a9b59de2c4a935b5c3466d85fa04e28777bb71e",
+  "policy": "Preserve original passes and failed corrected validations as separate observations. Explicitly resolved correctness or output-contract failures remain invalid and are excluded from benchmarks. No retry-until-pass, algorithmic/output repair, parser relaxation, or change to the 17 other candidate outcomes.",
+  "records": [
+    {
+      "program_id": "nbody_gpt-6-luna-medium_hybrid_r5",
+      "decision": "fail_validation",
+      "classification": "pre_existing_correctness_failure",
+      "failed_stage": "output_comparison",
+      "reason": "Sol-6.1 established an unchanged in-place CUDA position read/write race across threads and blocks. The timing reduction follows all numerical work. The particular runtime trigger is unproven, but the pre-existing correctness defect is sufficient for invalidity.",
+      "authorization": {
+        "source": "user",
+        "statement": "As it is a pre-existing race it should be counted as failing validation.",
+        "recorded_at": "2026-10-01T13:30:01Z"
+      },
+      "static_review": {
+        "model": "gpt-6.1-sol",
+        "reasoning_effort": "xhigh",
+        "path": "/home/petert/llm_timing_fixes/20261001-gpt6-qt-final/unexpected-validation/nbody_gpt-6-luna-medium_hybrid_r5/sol61-static-review.json",
+        "sha256": "3aa6197bbef380aed41838b2b8a54b5bcedfd1bc04141d65abb19edea8b28f76"
+      },
+      "validation_evidence": {
+        "metadata_sha256": "55463059dc2195d87e187ff02a363c2aa8675500a9e397c095dfbdc60b625823",
+        "stdout_sha256": "c5c7f41060cf541efc4b05968a285b2bdb74f9501e420f44b7d40a35c7fe6a7f",
+        "reference_sum": "4.59387023942810657e+00",
+        "actual_sum": "2.05034412841304459e+00"
+      },
+      "original_validation": {
+        "run_dir": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation",
+        "passed": true,
+        "stdout_sha256": "515128c0bf93e3f523e9837b64babb4ee33c6bb69d717bf162d61d139e56862b",
+        "preserved": true
+      }
+    },
+    {
+      "program_id": "roomsim_gpt-6-luna-medium_hybrid_r3",
+      "decision": "fail_validation",
+      "classification": "pre_existing_output_contract_failure",
+      "failed_stage": "output_comparison",
+      "reason": "Uncoordinated multi-rank MPI output violates the unchanged result-output contract. All four copies of reported fields/hashes agree with the reference; no numerical incorrectness or timing-fix bug is established. Retain the validation failure under the user-confirmed strict policy.",
+      "authorization": {
+        "source": "user",
+        "statement": "Yes.",
+        "question": "Shall I retain this failure, leave the other 17 unchanged, and resume the remaining nine validations?",
+        "recorded_at": "2026-10-01T14:03:39Z"
+      },
+      "static_review": {
+        "model": "gpt-6.1-sol",
+        "reasoning_effort": "xhigh",
+        "path": "/home/petert/llm_timing_fixes/20261001-gpt6-qt-final/unexpected-validation/roomsim_gpt-6-luna-medium_hybrid_r3/sol61-static-review.json",
+        "sha256": "0f01f17d0642dc985360fe7479f7ca1fc573729b6365d5c1cda22fb9f0426968"
+      },
+      "validation_evidence": {
+        "metadata_sha256": "06d287ad8e24152c715350dde8012198e58db6422c63c3d3a07f78bacf9ee301",
+        "stdout_sha256": "c5da9c3993c9af90ef6cd7391f5892a2713067f63641c0567167aa5d7d556cd7",
+        "comparison_error": "Number of lines for object Distances does not match between validation and reference output.",
+        "all_reported_fields_and_hashes_match_reference": true
+      },
+      "original_validation": {
+        "run_dir": "/home/petert/llm_para_local_evaluation/20261001-gpt6-validation",
+        "passed": true,
+        "stdout_sha256": "1dab3db0d9bab384f8d5bd64c576251bf935a89b175904d825911eb74f2fb8b3",
+        "preserved": true
+      },
+      "parser_changed": false,
+      "source_output_repaired": false,
+      "other_candidate_outcomes_changed": false
+    }
+  ],
+  "updated_at": "2026-10-01T14:03:39Z"
+}
