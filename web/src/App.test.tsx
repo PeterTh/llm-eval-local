@@ -85,11 +85,11 @@ vi.mock("./components/VegaChart", () => ({
   },
 }));
 
-async function renderApp(initial = "/tiers", options: { runError?: Error; costError?: Error; timeError?: Error; timeDataset?: unknown } = {}) {
+async function renderApp(initial = "/tiers", options: { runError?: Error; costError?: Error; timeError?: Error; costDataset?: unknown; timeDataset?: unknown } = {}) {
   const { costDatasetFixture, timeDatasetFixture, manifestFixture, scoreCubeFixture, runsFixture } = await import("./test/fixtures");
   fixtures.dataset = { manifest: manifestFixture, scoreCube: scoreCubeFixture };
   fixtures.runs = runsFixture;
-  fixtures.costDataset = costDatasetFixture;
+  fixtures.costDataset = options.costDataset ?? costDatasetFixture;
   fixtures.timeDataset = options.timeDataset ?? timeDatasetFixture;
   fixtures.runError = options.runError ?? null;
   fixtures.costError = options.costError ?? null;
@@ -100,6 +100,31 @@ async function renderApp(initial = "/tiers", options: { runError?: Error; costEr
 }
 
 describe("explorer routing", () => {
+  it.each(["cost", "time"] as const)("reports %s Pareto membership in the accessible table", async (kind) => {
+    const { costDatasetFixture, timeDatasetFixture } = await import("./test/fixtures");
+    const { container } = await renderApp(`/${kind}?model-set=all`, {
+      costDataset: { ...costDatasetFixture, runs: costDatasetFixture.runs.map((run) => ({ ...run, estimatedCostUsd: run.modelId === "unknown-model" ? 30 : 60 })) },
+      timeDataset: { ...timeDatasetFixture, runs: timeDatasetFixture.runs.map((run) => ({ ...run, generationTimeSeconds: run.modelId === "unknown-model" ? 30 : 60 })) },
+    });
+    expect(await screen.findByText("Pareto front · current selection")).toBeInTheDocument();
+    await userEvent.click(screen.getByText(`Accessible ${kind} efficiency table`));
+    const table = within(container.querySelector(`.${kind}-data table`)!);
+    const column = table.getAllByRole("columnheader").findIndex((header) => header.textContent === "Pareto front");
+    expect(within(table.getByRole("row", { name: /^Model A / })).getAllByRole("cell")[column - 1]).toHaveTextContent(/^No$/);
+    expect(within(table.getByRole("row", { name: /^unknown-model / })).getAllByRole("cell")[column - 1]).toHaveTextContent(/^Yes$/);
+  });
+
+  it.each(["cost", "time"] as const)("does not classify unavailable %s models as dominated", async (kind) => {
+    const { costDatasetFixture, timeDatasetFixture } = await import("./test/fixtures");
+    await renderApp(`/${kind}?model-set=all`, {
+      costDataset: { ...costDatasetFixture, runs: costDatasetFixture.runs.map((run) => ({ ...run, estimatedCostUsd: null })) },
+      timeDataset: { ...timeDatasetFixture, runs: timeDatasetFixture.runs.map((run) => ({ ...run, generationTimeSeconds: null })) },
+    });
+    await userEvent.click(await screen.findByText(`Accessible ${kind} efficiency table`));
+    expect(screen.getAllByRole("cell", { name: "Not evaluated" })).toHaveLength(2);
+    expect(screen.queryByText("Pareto front · current selection")).not.toBeInTheDocument();
+  });
+
   it("shares filters with Time Efficiency and keeps scale defaults scoped to each page", async () => {
     await renderApp("/cost?model=model%2Fa%3Fx&benchmark=bench%26one&backend=gpu%2Bx&scale=linear");
     await userEvent.click(screen.getByRole("link", { name: "Time Efficiency" }));

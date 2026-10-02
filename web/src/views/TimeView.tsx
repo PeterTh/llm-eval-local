@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { analyzeTime } from "../analysis/time";
 import { FilterBar } from "../components/FilterBar";
+import { ParetoLegend } from "../components/ParetoLegend";
 import { TimeDistributionChart, TimeScatterChart } from "../components/TimeCharts";
 import { loadTimeDataset } from "../data/client";
 import { useDataset } from "../data/context";
@@ -41,6 +42,8 @@ export function TimeView() {
   }, [manifest, retry]);
 
   const analysis = useMemo(() => analyzeTime(dataset ?? { schemaVersion: 1, sourceDigest: manifest.scoringDigest, runs: [] }, manifest, state), [dataset, manifest, state]);
+  const paretoModels = new Set(analysis.paretoModelIds);
+  const plottedModels = new Set(analysis.plottedModels.map((model) => model.modelId));
   const openModel = useCallback((datum: Record<string, unknown>) => {
     if (typeof datum.modelId === "string") navigate(runsPath(datum.modelId, state));
   }, [navigate, state]);
@@ -100,7 +103,10 @@ export function TimeView() {
             <button className="secondary-button" type="button" onClick={() => setRetry((value) => value + 1)}>Try again</button>
           </div>
         ) : analysis.plottedModels.length > 0 ? (
-          <TimeScatterChart analysis={analysis} manifest={manifest} scale={state.scale} onDatumClick={openModel} />
+          <>
+            <TimeScatterChart analysis={analysis} manifest={manifest} scale={state.scale} onDatumClick={openModel} />
+            <ParetoLegend metric="mean generation time" />
+          </>
         ) : (
           <div className="empty-state">
             <p className="eyebrow">{analysis.scoreRunCount === 0 ? "No scored runs" : "No time observations"}</p>
@@ -129,7 +135,7 @@ export function TimeView() {
           <div className="table-scroll"><table>
             <caption>Per-model generation-time aggregates for the active selection; durations in minutes</caption>
             <thead><tr>
-              <th scope="col">Model</th><th scope="col">Mean score</th><th scope="col">Scored n</th><th scope="col">Timed n</th><th scope="col">Missing n</th>
+              <th scope="col">Model</th><th scope="col">Mean score</th><th scope="col">Pareto front</th><th scope="col">Scored n</th><th scope="col">Timed n</th><th scope="col">Missing n</th>
               <th scope="col">Mean</th><th scope="col">Median</th><th scope="col">Q1</th><th scope="col">Q3</th>
               <th scope="col">Lower whisker</th><th scope="col">Upper whisker</th><th scope="col">Minimum</th><th scope="col">Maximum</th><th scope="col">Outliers</th><th scope="col">Records</th>
             </tr></thead>
@@ -137,6 +143,7 @@ export function TimeView() {
               const stats = model.distribution;
               return <tr key={model.modelId}>
                 <th scope="row">{model.modelLabel}</th><td className="numeric">{formatScore(model.meanScore)}</td>
+                <td>{!plottedModels.has(model.modelId) ? "Not evaluated" : paretoModels.has(model.modelId) ? "Yes" : "No"}</td>
                 <td className="numeric">{formatCount(model.scoreRunCount)}</td><td className="numeric">{formatCount(model.timeRunCount)}</td><td className="numeric">{formatCount(model.unavailableTimeRunCount)}</td>
                 {[model.meanGenerationTimeSeconds, stats?.median, stats?.firstQuartile, stats?.thirdQuartile, stats?.lowerWhisker, stats?.upperWhisker, stats?.minimum, stats?.maximum].map((seconds, index) => <td className="numeric" key={index}>{formatGenerationTime(seconds ?? null)}</td>)}
                 <td className="numeric">{formatCount(stats?.outlierCount ?? null)}</td><td><Link to={runsPath(model.modelId, state)}>Open runs</Link></td>

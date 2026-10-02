@@ -442,14 +442,14 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   const tooltip = page.locator("#vg-tooltip-element");
   await expect(tooltip).toBeVisible();
   for (const field of [
-    "Mean score", "Estimated mean cost", "Runs", "Mean tokens", "Rates (USD/M tokens)",
+    "Mean score", "Estimated mean cost", "Pareto front", "Runs", "Mean tokens", "Rates (USD/M tokens)",
     "Pricing profile", "Provider", "Quantization", "Pricing date", "Sources",
   ]) {
     await expect(tooltip).toContainText(field);
   }
   await expect(tooltip).not.toContainText("Cost method");
   await expect(tooltip).not.toContainText("Pricing match");
-  await expect(tooltip.locator("tr")).toHaveCount(11);
+  await expect(tooltip.locator("tr")).toHaveCount(12);
   const compactTooltip = await tooltip.evaluate((element) => ({
     left: element.getBoundingClientRect().left,
     right: element.getBoundingClientRect().right,

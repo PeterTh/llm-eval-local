@@ -52,6 +52,8 @@ Cost profiles are read from the canonical 4d analysis table. Explicit model/prof
 
 Generation durations come from `total_time` in `release/scored_results.csv`, in seconds, with documented retry backoff already removed. The manifest uses schema version 3. Run shards carry the same nullable `generationTimeSeconds` field as the timing dataset. Missing durations remain null; supplied durations must be finite and positive. Time Efficiency includes unsuccessful results, calculates statistics before axis transforms, and displays minutes while exporting seconds. Its scatter plot and Tukey distributions share filters and a scale control, with separate complete time domains. The time view defaults to linear; Cost Efficiency and Performance retain logarithmic defaults.
 
+The cost and time scatter plots outline Pareto-optimal models and connect their distinct coordinates with a dashed line. Membership is calculated from unrounded aggregates among the currently plotted models, maximizing mean score and minimizing mean cost or generation time. All active filters affect the front; axis scale does not. Exact ties remain on the front together. Tooltips and accessible tables report membership, while models without a plotted observation are not evaluated. CSV columns and aggregate definitions are unchanged.
+
 Entity IDs are arbitrary strings. Existing presentation labels, backend order, and named model sets are optional overrides in `config/site.json`; an unseen ID is displayed verbatim. Exclusion-based model sets include newly observed models automatically.
 
 ## Routes and filter state

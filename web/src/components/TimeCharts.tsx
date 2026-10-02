@@ -7,12 +7,12 @@ import type { DatasetManifest, FilterState } from "../data/types";
 import { formatCount, formatGenerationTime, formatScore } from "../utils/format";
 import { stableStringHash } from "../utils/hash";
 import { useMediaQuery } from "../utils/media";
+import { scatterLabels } from "./scatterLabels";
 import { VegaChart } from "./VegaChart";
 
 const LIGHT_COLORS = ["#004aad", "#3c6fa8", "#655f9b", "#28786d", "#8a5b42", "#6f6d31", "#526f91"];
 const DARK_COLORS = ["#8fb8f5", "#74a7dc", "#aaa0e1", "#69b9ab", "#d5a080", "#b8b36a", "#91afd0"];
 const SHAPES = ["circle", "square", "triangle-up", "diamond", "triangle-down"];
-const ANCHORS = ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"];
 
 function theme(dark: boolean) {
   return {
@@ -40,25 +40,29 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: Ch
   const narrow = useMediaQuery("(max-width: 600px)");
   const dark = useMediaQuery("(prefers-color-scheme: dark)");
   const spec = useMemo<VisualizationSpec>(() => {
+    const paretoModels = new Set(analysis.paretoModelIds);
     // Place labels for the most constrained (leftmost) points first.
     const points = [...analysis.plottedModels].sort((left, right) =>
       left.meanGenerationTimeSeconds! - right.meanGenerationTimeSeconds!
       || left.modelLabel.localeCompare(right.modelLabel, "en")).map((model) => {
       const hash = stableStringHash(model.modelId);
       const pointShape = SHAPES[hash % SHAPES.length]!;
+      const isPareto = paretoModels.has(model.modelId);
       return {
         modelId: model.modelId,
         modelLabel: model.modelLabel,
         pointLabel: narrow && model.modelLabel.length > 19 ? `${model.modelLabel.slice(0, 11)}…${model.modelLabel.slice(-7)}` : model.modelLabel,
         minutes: model.meanGenerationTimeSeconds! / 60,
         meanScore: model.meanScore,
+        isPareto,
         pointColor: (dark ? DARK_COLORS : LIGHT_COLORS)[hash % 7],
         pointShape,
         pointSize: Math.round((narrow ? 115 : 145) * (pointShape.startsWith("triangle") ? 1.35 : pointShape === "diamond" ? 1.2 : 1)),
-        description: `${model.modelLabel}; mean score ${formatScore(model.meanScore)}; mean generation time ${formatGenerationTime(model.meanGenerationTimeSeconds)}; ${model.timeRunCount} timed runs`,
+        description: `${model.modelLabel}; mean score ${formatScore(model.meanScore)}; mean generation time ${formatGenerationTime(model.meanGenerationTimeSeconds)}; ${model.timeRunCount} timed runs; Pareto front: ${isPareto ? "Yes" : "No"}`,
         tooltip: {
           Model: model.modelLabel,
           "Mean score": formatScore(model.meanScore),
+          "Pareto front": isPareto ? "Yes" : "No",
           "Mean generation time": formatGenerationTime(model.meanGenerationTimeSeconds),
           "Median generation time": formatGenerationTime(model.distribution!.median),
           Runs: `${formatCount(model.scoreRunCount)} scored · ${formatCount(model.timeRunCount)} timed`,
@@ -69,11 +73,20 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: Ch
       $schema: "https://vega.github.io/schema/vega/v6.json",
       description: "Mean overall score versus mean agent generation time.",
       width: 600,
-      height: Math.max(narrow ? 480 : 400, points.length * (narrow ? 55 : 38)),
+      height: Math.max(narrow ? 480 : 400, points.length * (narrow ? (points.length > 20 ? 65 : 55) : points.length > 20 ? 42 : 38)),
       // Refit on container resize through VegaChart, not on pointer-driven updates.
       autosize: { type: "fit", contains: "padding" },
       padding: { left: 8, right: 8, top: 12, bottom: 6 },
-      data: [{ name: "time_values", values: points }],
+      data: [
+        { name: "time_values", values: points },
+        {
+          name: "time_pareto", source: "time_values", transform: [
+            { type: "filter", expr: "datum.isPareto" },
+            { type: "aggregate", groupby: ["minutes", "meanScore"] },
+            { type: "collect", sort: { field: "minutes", order: "ascending" } },
+          ],
+        },
+      ],
       scales: [
         { name: "time_x", type: scale, domain: timeDomain(analysis.plottedModels.map((model) => model.meanGenerationTimeSeconds!), scale).map((seconds) => seconds / 60), range: "width", nice: false, zero: scale === "linear" },
         { name: "score_y", type: "linear", domain: adaptiveScoreDomain(points.map((point) => point.meanScore), manifest.scoreScale.minimum, manifest.scoreScale.maximum), range: "height", nice: false, zero: false },
@@ -84,31 +97,32 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: Ch
       ],
       marks: [
         {
+          name: "time_pareto_line", type: "line", from: { data: "time_pareto" }, interactive: false, aria: false,
+          encode: { update: {
+            x: { scale: "time_x", field: "minutes" }, y: { scale: "score_y", field: "meanScore" },
+            defined: { signal: "length(data('time_pareto')) > 1" },
+            stroke: { value: dark ? "#edf0eb" : "#303941" }, strokeWidth: { value: 1.5 },
+            strokeDash: { value: [6, 4] }, strokeOpacity: { value: 0.7 }, interpolate: { value: "linear" },
+          } },
+        },
+        {
           name: "time_points", type: "symbol", from: { data: "time_values" },
           encode: { update: {
             x: { scale: "time_x", field: "minutes" }, y: { scale: "score_y", field: "meanScore" },
             shape: { field: "pointShape" }, size: { field: "pointSize" }, fill: { field: "pointColor" }, fillOpacity: { value: 0.88 },
-            stroke: { value: dark ? "#182126" : "#ffffff" }, strokeWidth: { value: 1.3 }, cursor: { value: "pointer" },
+            stroke: [
+              { test: "datum.isPareto", value: dark ? "#edf0eb" : "#303941" },
+              { value: dark ? "#182126" : "#ffffff" },
+            ],
+            strokeWidth: { signal: "datum.isPareto ? 2.5 : 1.3" }, cursor: { value: "pointer" },
             description: { field: "description" }, tooltip: { field: "tooltip" },
           } },
         },
-        {
-          name: "time_labels", type: "text", from: { data: "time_points" }, interactive: false,
-          encode: { enter: {
-            text: { field: "datum.pointLabel" }, font: { value: theme(dark).font }, fontSize: { value: narrow ? (points.length > 20 ? 11 : 12) : 14 },
-            fontWeight: { value: 520 }, fill: { value: dark ? "#edf0eb" : "#303941" },
-          } },
-          transform: [{ type: "label", anchor: [9, 18, 30, 45, 65].flatMap(() => ANCHORS), offset: [9, 18, 30, 45, 65].flatMap((distance) => ANCHORS.map(() => distance)), padding: 0, size: { signal: "[width, height]" } }],
-        },
-        {
-          name: "time_label_guides", type: "rule", from: { data: "time_labels" }, interactive: false, aria: false,
-          encode: { update: {
-            x: { field: "x" }, y: { field: "y" },
-            x2: { field: "datum.x" }, y2: { field: "datum.y" },
-            stroke: { value: dark ? "#91afd0" : "#526f91" }, strokeWidth: { value: 0.7 },
-            opacity: { signal: "datum.opacity && hypot(datum.x - datum.datum.x, datum.y - datum.datum.y) > 35 ? 0.5 : 0" },
-          } },
-        },
+        ...scatterLabels({
+          name: "time_labels", points: "time_points", font: theme(dark).font,
+          fontSize: narrow ? (points.length > 20 ? 11 : 12) : 14,
+          color: dark ? "#edf0eb" : "#303941", guideColor: dark ? "#91afd0" : "#526f91", padding: 0,
+        }),
       ],
       config: theme(dark),
     } as VisualizationSpec;

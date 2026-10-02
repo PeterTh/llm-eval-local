@@ -1,4 +1,5 @@
 import type { DatasetManifest, FilterState, TimeDataset, TimeRunRecord } from "../data/types";
+import { getParetoModelIds } from "./pareto";
 import { summarizeDistribution, type DistributionStatistics } from "./statistics";
 
 export interface TimeModelSummary {
@@ -16,6 +17,7 @@ export interface TimeModelSummary {
 export interface TimeAnalysis {
   models: TimeModelSummary[];
   plottedModels: TimeModelSummary[];
+  paretoModelIds: string[];
   scoreRunCount: number;
   timeRunCount: number;
   unavailableTimeRunCount: number;
@@ -69,9 +71,13 @@ export function analyzeTime(
     }
     return left.modelLabel.localeCompare(right.modelLabel, "en");
   });
+  const plottedModels = summaries.filter((model) => model.distribution !== null);
   return {
     models: summaries,
-    plottedModels: summaries.filter((model) => model.distribution !== null),
+    plottedModels,
+    paretoModelIds: getParetoModelIds(plottedModels.map((model) => ({
+      modelId: model.modelId, value: model.meanGenerationTimeSeconds!, score: model.meanScore,
+    }))),
     scoreRunCount: summaries.reduce((total, model) => total + model.scoreRunCount, 0),
     timeRunCount: summaries.reduce((total, model) => total + model.timeRunCount, 0),
     unavailableTimeRunCount: summaries.reduce((total, model) => total + model.unavailableTimeRunCount, 0),

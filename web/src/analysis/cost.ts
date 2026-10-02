@@ -7,6 +7,7 @@ import type {
 } from "../data/types";
 import { formatCount, formatScore, formatUsd, formatUsdPerMillion } from "../utils/format";
 import { stableStringHash } from "../utils/hash";
+import { getParetoModelIds } from "./pareto";
 
 const POINT_SHAPES = ["circle", "square", "triangle-up", "diamond", "triangle-down"] as const;
 
@@ -66,6 +67,7 @@ export interface CostModelSummary {
 export interface CostAnalysis {
   models: CostModelSummary[];
   plottedModels: CostModelSummary[];
+  paretoModelIds: string[];
   scoreRunCount: number;
   costRunCount: number;
   unavailableCostRunCount: number;
@@ -237,6 +239,9 @@ export function analyzeCost(
   return {
     models: summaries,
     plottedModels,
+    paretoModelIds: getParetoModelIds(plottedModels.map((model) => ({
+      modelId: model.modelId, value: model.meanEstimatedCostUsd, score: model.meanScore,
+    }))),
     scoreRunCount: summaries.reduce((total, model) => total + model.scoreRunCount, 0),
     costRunCount: summaries.reduce((total, model) => total + model.costRunCount, 0),
     unavailableCostRunCount: summaries.reduce((total, model) => total + model.unavailableCostRunCount, 0),

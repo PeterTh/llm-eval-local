@@ -25,7 +25,8 @@ export function VegaChart({
 
     const initialWidth = Math.max(280, container.clientWidth - 32);
     const embeddedSpec = fitContainerWidth ? { ...spec, width: initialWidth } as VisualizationSpec : spec;
-    void import("vega-embed").then(({ default: vegaEmbed }) => vegaEmbed(container, embeddedSpec, {
+    // Label layout caches text measurements, so wait for the actual chart font.
+    void Promise.all([import("vega-embed"), document.fonts.ready]).then(([{ default: vegaEmbed }]) => vegaEmbed(container, embeddedSpec, {
         renderer: "svg",
         actions: {
           export: { svg: true, png: true },

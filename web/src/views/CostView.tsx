@@ -4,6 +4,8 @@ import type { VisualizationSpec } from "vega-embed";
 
 import { adaptiveScoreDomain, analyzeCost, costDomain, type CostAnalysis, type CostModelSummary } from "../analysis/cost";
 import { FilterBar } from "../components/FilterBar";
+import { ParetoLegend } from "../components/ParetoLegend";
+import { scatterLabels } from "../components/scatterLabels";
 import { VegaChart } from "../components/VegaChart";
 import { loadCostDataset } from "../data/client";
 import { useDataset } from "../data/context";
@@ -16,6 +18,7 @@ import { useMediaQuery } from "../utils/media";
 const EMPTY_ANALYSIS: CostAnalysis = {
   models: [],
   plottedModels: [],
+  paretoModelIds: [],
   scoreRunCount: 0,
   costRunCount: 0,
   unavailableCostRunCount: 0,
@@ -24,7 +27,6 @@ const EMPTY_ANALYSIS: CostAnalysis = {
 
 const LIGHT_POINT_COLORS = ["#004aad", "#3c6fa8", "#655f9b", "#28786d", "#8a5b42", "#6f6d31", "#526f91"];
 const DARK_POINT_COLORS = ["#8fb8f5", "#74a7dc", "#aaa0e1", "#69b9ab", "#d5a080", "#b8b36a", "#91afd0"];
-const LABEL_ANCHORS = ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"];
 
 function compactChartLabel(label: string): string {
   if (label.length <= 19) return label;
@@ -86,6 +88,8 @@ export function CostView() {
     manifest.scoreScale.minimum,
     manifest.scoreScale.maximum,
   );
+  const paretoModels = useMemo(() => new Set(analysis.paretoModelIds), [analysis.paretoModelIds]);
+  const plottedModels = new Set(analysis.plottedModels.map((model) => model.modelId));
   const xDomain = costDomain(
     analysis.plottedModels.flatMap((model) => model.meanEstimatedCostUsd === null ? [] : [model.meanEstimatedCostUsd]),
     state.scale,
@@ -93,6 +97,9 @@ export function CostView() {
   const pointColors = isDark ? DARK_POINT_COLORS : LIGHT_POINT_COLORS;
   const chartPoints = useMemo(() => analysis.plottedModels.map((model) => ({
     ...model,
+    isPareto: paretoModels.has(model.modelId),
+    paretoLabel: paretoModels.has(model.modelId) ? "Yes" : "No",
+    accessibleDescription: `${model.accessibleDescription}; Pareto front: ${paretoModels.has(model.modelId) ? "Yes" : "No"}`,
     pointColor: pointColors[model.styleIndex]!,
     pointSize: Math.round((isNarrow ? 115 : 145) * (model.pointShape.startsWith("triangle") ? 1.35 : model.pointShape === "diamond" ? 1.2 : 1)),
     pointLabel: isNarrow ? compactChartLabel(model.modelLabel) : model.modelLabel,
@@ -102,10 +109,10 @@ export function CostView() {
     pricingQuantizationLabel: model.pricingQuantization ?? "Unavailable",
     pricingDateLabel: model.pricingAsOf ?? "Unavailable",
     pricingMatchLabel: model.pricingMatchNote ?? "Unavailable",
-  })), [analysis.plottedModels, pointColors, isNarrow]);
+  })), [analysis.plottedModels, paretoModels, pointColors, isNarrow]);
   const chartHeight = isNarrow
-    ? Math.max(480, chartPoints.length * 42)
-    : Math.max(400, chartPoints.length * 38);
+    ? Math.max(480, chartPoints.length * (chartPoints.length > 20 ? 55 : 42))
+    : Math.max(400, chartPoints.length * (chartPoints.length > 20 ? 42 : 38));
   const xTitle = state.scale === "log"
     ? "Estimated API cost per run (USD, log scale)"
     : "Estimated API cost per run (USD)";
@@ -117,7 +124,16 @@ export function CostView() {
     // VegaChart refits on container resize; refitting on hover can oscillate with label placement.
     autosize: { type: "fit", contains: "padding" },
     padding: { left: 8, right: 8, top: 12, bottom: 6 },
-    data: [{ name: "cost_values", values: chartPoints }],
+    data: [
+      { name: "cost_values", values: chartPoints },
+      {
+        name: "cost_pareto", source: "cost_values", transform: [
+          { type: "filter", expr: "datum.isPareto" },
+          { type: "aggregate", groupby: ["meanEstimatedCostUsd", "meanScore"] },
+          { type: "collect", sort: { field: "meanEstimatedCostUsd", order: "ascending" } },
+        ],
+      },
+    ],
     scales: [
       {
         name: "cost_x",
@@ -162,6 +178,15 @@ export function CostView() {
     ],
     marks: [
       {
+        name: "cost_pareto_line", type: "line", from: { data: "cost_pareto" }, interactive: false, aria: false,
+        encode: { update: {
+          x: { scale: "cost_x", field: "meanEstimatedCostUsd" }, y: { scale: "score_y", field: "meanScore" },
+          defined: { signal: "length(data('cost_pareto')) > 1" },
+          stroke: { value: isDark ? "#edf0eb" : "#303941" }, strokeWidth: { value: 1.5 },
+          strokeDash: { value: [6, 4] }, strokeOpacity: { value: 0.7 }, interpolate: { value: "linear" },
+        } },
+      },
+      {
         name: "cost_points",
         type: "symbol",
         from: { data: "cost_values" },
@@ -173,39 +198,24 @@ export function CostView() {
             size: { field: "pointSize" },
             fill: { field: "pointColor" },
             fillOpacity: { value: 0.88 },
-            stroke: { value: isDark ? "#182126" : "#ffffff" },
-            strokeWidth: { value: 1.3 },
+            stroke: [
+              { test: "datum.isPareto", value: isDark ? "#edf0eb" : "#303941" },
+              { value: isDark ? "#182126" : "#ffffff" },
+            ],
+            strokeWidth: { signal: "datum.isPareto ? 2.5 : 1.3" },
             cursor: { value: "pointer" },
             description: { field: "accessibleDescription" },
             tooltip: {
-              signal: "{'Model': datum.modelLabel, 'Mean score': datum.scoreLabel, 'Estimated mean cost': datum.costLabel, 'Runs': datum.runCountsLabel, 'Mean tokens': datum.tokenSummaryLabel, 'Rates (USD/M tokens)': datum.rateSummaryLabel, 'Pricing profile': datum.pricingProfileLabel, 'Provider': datum.providerSummaryLabel, 'Quantization': datum.pricingQuantizationLabel, 'Pricing date': datum.pricingDateLabel, 'Sources': datum.sourceAvailabilityLabel}",
+              signal: "{'Model': datum.modelLabel, 'Mean score': datum.scoreLabel, 'Estimated mean cost': datum.costLabel, 'Pareto front': datum.paretoLabel, 'Runs': datum.runCountsLabel, 'Mean tokens': datum.tokenSummaryLabel, 'Rates (USD/M tokens)': datum.rateSummaryLabel, 'Pricing profile': datum.pricingProfileLabel, 'Provider': datum.providerSummaryLabel, 'Quantization': datum.pricingQuantizationLabel, 'Pricing date': datum.pricingDateLabel, 'Sources': datum.sourceAvailabilityLabel}",
             },
           },
         },
       },
-      {
-        name: "cost_labels",
-        type: "text",
-        from: { data: "cost_points" },
-        interactive: false,
-        encode: {
-          enter: {
-            text: { field: "datum.pointLabel" },
-            font: { value: "Roboto Condensed Variable, Roboto Condensed, Arial Narrow, sans-serif" },
-            fontSize: { value: isNarrow ? 12 : 14 },
-            fontWeight: { value: 520 },
-            fill: { value: isDark ? "#edf0eb" : "#303941" },
-          },
-        },
-        transform: [{
-          type: "label",
-          // Denser model sets need additional collision-free positions, especially on mobile.
-          anchor: [9, 18, 30].flatMap(() => LABEL_ANCHORS),
-          offset: [9, 18, 30].flatMap((distance) => LABEL_ANCHORS.map(() => distance)),
-          padding: isNarrow ? 32 : 4,
-          size: { signal: "[width, height]" },
-        }],
-      },
+      ...scatterLabels({
+        name: "cost_labels", points: "cost_points", font: "Roboto Condensed Variable, Roboto Condensed, Arial Narrow, sans-serif",
+        fontSize: isNarrow ? 12 : 14, color: isDark ? "#edf0eb" : "#303941",
+        guideColor: isDark ? "#91afd0" : "#526f91", padding: isNarrow ? 32 : 4,
+      }),
     ],
     config: {
       background: isDark ? "#182126" : "#ffffff",
@@ -298,6 +308,7 @@ export function CostView() {
               interactiveMarkSelector=".cost_points path"
               fitContainerWidth
             />
+            <ParetoLegend metric="mean cost" />
             {(analysis.unavailableCostRunCount > 0 || analysis.unpricedModelCount > 0) && (
               <p className="chart-footnote">
                 {analysis.unavailableCostRunCount > 0 && `${formatCount(analysis.unavailableCostRunCount)} scored ${analysis.unavailableCostRunCount === 1 ? "run has" : "runs have"} no cost estimate.`}
@@ -322,7 +333,7 @@ export function CostView() {
             <table>
               <caption>Per-model aggregates for the active cost efficiency selection</caption>
               <thead>
-                <tr><th scope="col">Model</th><th scope="col">Mean score</th><th scope="col">Estimated mean cost</th><th scope="col">Score n</th><th scope="col">Cost n</th><th scope="col">Mean priced tokens</th><th scope="col">Observed effective rate</th><th scope="col">Pricing</th><th scope="col">Method</th><th scope="col">Sources</th><th scope="col">Records</th></tr>
+                <tr><th scope="col">Model</th><th scope="col">Mean score</th><th scope="col">Estimated mean cost</th><th scope="col">Pareto front</th><th scope="col">Score n</th><th scope="col">Cost n</th><th scope="col">Mean priced tokens</th><th scope="col">Observed effective rate</th><th scope="col">Pricing</th><th scope="col">Method</th><th scope="col">Sources</th><th scope="col">Records</th></tr>
               </thead>
               <tbody>
                 {analysis.models.map((summary) => (
@@ -330,6 +341,7 @@ export function CostView() {
                     <th scope="row">{summary.modelLabel}</th>
                     <td className="numeric">{formatScore(summary.meanScore)}</td>
                     <td className="numeric">{formatUsd(summary.meanEstimatedCostUsd)}</td>
+                    <td>{!plottedModels.has(summary.modelId) ? "Not evaluated" : paretoModels.has(summary.modelId) ? "Yes" : "No"}</td>
                     <td className="numeric">{formatCount(summary.scoreRunCount)}</td>
                     <td className="numeric">{formatCount(summary.costRunCount)}</td>
                     <td className="numeric">{formatCount(summary.meanPricedTokens)}</td>
