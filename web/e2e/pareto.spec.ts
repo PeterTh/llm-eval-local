@@ -49,7 +49,7 @@ for (const kind of ["cost", "time"] as const) {
           expect(y).toBeCloseTo(front[index]!.y, 2);
         });
         await expect(line).not.toHaveAttribute("tabindex");
-        await expect(chart.getByText("Pareto front · current selection", { exact: true })).toBeVisible();
+        await expect(chart.getByText("Pareto front", { exact: true })).toBeVisible();
         const labelLayout = await chart.locator(`.${kind}_labels text`).evaluateAll((elements) => {
           const visible = elements.filter((element) => getComputedStyle(element).opacity !== "0");
           const boxes = visible.map((element) => element.getBoundingClientRect());
@@ -120,7 +120,7 @@ for (const kind of ["cost", "time"] as const) {
     const second = hiddenFront.find((point) => point.id !== dominated)!.id;
     await page.goto(`${basePath}#/${kind}?model=${encodeURIComponent(dominated)}`);
     await expect(points).toHaveCount(1);
-    await expect(points.first()).toHaveAttribute("aria-label", /Pareto front: Yes$/);
+    await expect(points.first()).toHaveAttribute("aria-label", /Pareto front: Yes; Highlighted: No$/);
     await expect(points.first()).toHaveAttribute("stroke-width", "2.5");
     expect(await page.locator(`.${kind}_pareto_line path`).getAttribute("d")).toBeFalsy();
     await points.first().focus();
@@ -142,9 +142,30 @@ for (const kind of ["cost", "time"] as const) {
     await page.reload();
     await expect(points).toHaveCount(2);
     for (const point of await points.all()) {
-      await expect(point).toHaveAttribute("aria-label", /Pareto front: Yes$/);
+      await expect(point).toHaveAttribute("aria-label", /Pareto front: Yes; Highlighted: No$/);
       await expect(point).toHaveAttribute("stroke-width", "2.5");
     }
     expect(await page.locator(`.${kind}_pareto_line path`).getAttribute("d")).toBeFalsy();
+
+    // Coincident points remain separate selections by ID, including in the table.
+    await page.getByRole("button", { name: "Highlight mode" }).click();
+    for (let index = 0; index < 2; index += 1) {
+      const point = points.nth(index);
+      await expect(point).toHaveAttribute("aria-pressed", "false");
+      await point.focus();
+      await page.keyboard.press("Enter");
+      await expect(point).toHaveAttribute("aria-pressed", "true");
+    }
+    await expect(page.locator(`.${kind}_highlight_halos path`)).toHaveCount(2);
+    await expect(page.getByRole("status")).toHaveText("2 highlighted");
+    await page.locator(`.${kind}-data > summary`).click();
+    const controls = page.locator(`.${kind}-data`).getByRole("checkbox");
+    await expect(controls.first()).toBeChecked();
+    await expect(controls.last()).toBeChecked();
+    await controls.first().click();
+    await expect(controls.first()).not.toBeChecked();
+    await expect(controls.first()).toBeFocused();
+    await expect(page.locator(`.${kind}_highlight_halos path`)).toHaveCount(1);
+    for (const point of await points.all()) await expect(point).toHaveAttribute("stroke-width", "2.5");
   });
 }

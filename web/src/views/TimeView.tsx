@@ -3,17 +3,19 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { analyzeTime } from "../analysis/time";
 import { FilterBar } from "../components/FilterBar";
+import { HighlightActions, HighlightCheckbox } from "../components/HighlightActions";
 import { ParetoLegend } from "../components/ParetoLegend";
 import { TimeDistributionChart, TimeScatterChart } from "../components/TimeCharts";
 import { loadTimeDataset } from "../data/client";
 import { useDataset } from "../data/context";
 import type { FilterState, TimeDataset } from "../data/types";
 import { useFilterState } from "../state/filters";
+import { copyHighlights, useHighlightState } from "../state/highlights";
 import { downloadText, timeSummariesToCsv } from "../utils/csv";
 import { formatCount, formatGenerationTime, formatScore } from "../utils/format";
 
-function runsPath(modelId: string, filters: Pick<FilterState, "benchmarks" | "backends">): string {
-  const query = new URLSearchParams();
+function runsPath(modelId: string, filters: Pick<FilterState, "benchmarks" | "backends">, current: URLSearchParams): string {
+  const query = copyHighlights(current);
   query.append("model", modelId);
   filters.benchmarks.forEach((value) => query.append("benchmark", value));
   filters.backends.forEach((value) => query.append("backend", value));
@@ -43,13 +45,14 @@ export function TimeView() {
 
   const analysis = useMemo(() => analyzeTime(dataset ?? { schemaVersion: 1, sourceDigest: manifest.scoringDigest, runs: [] }, manifest, state), [dataset, manifest, state]);
   const paretoModels = new Set(analysis.paretoModelIds);
+  const highlights = useHighlightState("modelIds", analysis.plottedModels.map((model) => model.modelId));
   const plottedModels = new Set(analysis.plottedModels.map((model) => model.modelId));
   const openModel = useCallback((datum: Record<string, unknown>) => {
-    if (typeof datum.modelId === "string") navigate(runsPath(datum.modelId, state));
-  }, [navigate, state]);
+    if (typeof datum.modelId === "string") navigate(runsPath(datum.modelId, state, params));
+  }, [navigate, state, params]);
   const openRun = useCallback((datum: Record<string, unknown>) => {
     if (typeof datum.runId !== "string") return;
-    const query = new URLSearchParams();
+    const query = copyHighlights(params);
     for (const key of ["model", "model-set", "benchmark", "backend", "scale"]) {
       params.getAll(key).forEach((value) => query.append(key, value));
     }
@@ -88,12 +91,15 @@ export function TimeView() {
         <header className="panel-heading">
           <div>
             <h2>Mean score vs. generation time</h2>
-            <p>Generation time includes tool execution and excludes documented retry waits. It reflects the recorded harness and execution conditions. <Link to="/methodology">Measurement details</Link></p>
+            <p>Generation time includes tool execution and excludes documented retry waits.</p>
           </div>
+          <HighlightActions selection={highlights}>
           <button className="secondary-button" type="button" disabled={loading || error !== null || analysis.models.length === 0}
+            title="Export per-model score and generation-time aggregates for the active filters (CSV)"
             onClick={() => downloadText("llm-eval-score-time.csv", timeSummariesToCsv(analysis.models), "text/csv;charset=utf-8")}>
-            Export aggregates · CSV
+            Export
           </button>
+          </HighlightActions>
         </header>
         {loading ? (
           <div className="analysis-loading" aria-live="polite"><i /><i /><i /><span>Loading time records…</span></div>
@@ -104,8 +110,8 @@ export function TimeView() {
           </div>
         ) : analysis.plottedModels.length > 0 ? (
           <>
-            <TimeScatterChart analysis={analysis} manifest={manifest} scale={state.scale} onDatumClick={openModel} />
-            <ParetoLegend metric="mean generation time" />
+            <TimeScatterChart analysis={analysis} manifest={manifest} scale={state.scale} onDatumClick={openModel} highlights={highlights} />
+            <ParetoLegend />
           </>
         ) : (
           <div className="empty-state">
@@ -137,16 +143,17 @@ export function TimeView() {
             <thead><tr>
               <th scope="col">Model</th><th scope="col">Mean score</th><th scope="col">Pareto front</th><th scope="col">Scored n</th><th scope="col">Timed n</th><th scope="col">Missing n</th>
               <th scope="col">Mean</th><th scope="col">Median</th><th scope="col">Q1</th><th scope="col">Q3</th>
-              <th scope="col">Lower whisker</th><th scope="col">Upper whisker</th><th scope="col">Minimum</th><th scope="col">Maximum</th><th scope="col">Outliers</th><th scope="col">Records</th>
+              <th scope="col">Lower whisker</th><th scope="col">Upper whisker</th><th scope="col">Minimum</th><th scope="col">Maximum</th><th scope="col">Outliers</th><th scope="col">Records</th><th scope="col">Highlighted</th>
             </tr></thead>
             <tbody>{analysis.models.map((model) => {
               const stats = model.distribution;
-              return <tr key={model.modelId}>
+              return <tr key={model.modelId} className={highlights.selected.has(model.modelId) ? "is-highlighted" : undefined}>
                 <th scope="row">{model.modelLabel}</th><td className="numeric">{formatScore(model.meanScore)}</td>
                 <td>{!plottedModels.has(model.modelId) ? "Not evaluated" : paretoModels.has(model.modelId) ? "Yes" : "No"}</td>
                 <td className="numeric">{formatCount(model.scoreRunCount)}</td><td className="numeric">{formatCount(model.timeRunCount)}</td><td className="numeric">{formatCount(model.unavailableTimeRunCount)}</td>
                 {[model.meanGenerationTimeSeconds, stats?.median, stats?.firstQuartile, stats?.thirdQuartile, stats?.lowerWhisker, stats?.upperWhisker, stats?.minimum, stats?.maximum].map((seconds, index) => <td className="numeric" key={index}>{formatGenerationTime(seconds ?? null)}</td>)}
-                <td className="numeric">{formatCount(stats?.outlierCount ?? null)}</td><td><Link to={runsPath(model.modelId, state)}>Open runs</Link></td>
+                <td className="numeric">{formatCount(stats?.outlierCount ?? null)}</td><td><Link to={runsPath(model.modelId, state, params)}>Open runs</Link></td>
+                <td><HighlightCheckbox selection={highlights} id={model.modelId} label={model.modelLabel} /></td>
               </tr>;
             })}</tbody>
           </table></div>

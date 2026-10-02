@@ -31,7 +31,7 @@ export interface HarnessMetadata {
   label: string;
   commandTemplate: string;
   parameters: string[];
-  configurationSource?: { url: string; sha256: string; artifactPath?: string };
+  configurationSource?: { label?: string; url: string; sha256: string; artifactPath?: string };
 }
 
 export interface ExecutionSystemMetadata {

@@ -50,7 +50,7 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await expect(page.locator(".time_boxes path")).toHaveCount(27);
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Export aggregates/ }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("llm-eval-score-time.csv");
   const exported = parse(await readFile((await download.path())!, "utf8"), { columns: true }) as Record<string, string>[];
@@ -106,7 +106,7 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await expect(summary.getByText("5", { exact: true })).toHaveCount(2);
   await expect(page.locator(".time_boxes path")).toHaveCount(1);
   const filteredDownload = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Export aggregates/ }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   const filteredRows = parse(await readFile((await (await filteredDownload).path())!, "utf8"), { columns: true }) as Record<string, string>[];
   const cell = source.filter((run) => run.model === "claude-opus-5-cc-medium" && run.benchmark === "black-scholes" && run.par_type === "omp");
   expect(filteredRows).toHaveLength(1);

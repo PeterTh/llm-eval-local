@@ -100,13 +100,80 @@ async function renderApp(initial = "/tiers", options: { runError?: Error; costEr
 }
 
 describe("explorer routing", () => {
+  it("carries model highlights across views and preserves them on filter reset", async () => {
+    await renderApp("/tiers?model-set=all&highlight-model=model%2Fa%3Fx&highlight-model=missing&highlight-run=stored-run&highlight-benchmark=bench%26one");
+    expect(screen.getByRole("status")).toHaveTextContent("2 highlighted · 1 not shown");
+    for (const [view, table] of [["Tiered Success", "Accessible data table"], ["Model Scores", "Accessible statistics table"], ["Cost Efficiency", "Accessible cost efficiency table"], ["Time Efficiency", "Accessible time efficiency table"]] as const) {
+      await userEvent.click(screen.getByRole("link", { name: view }));
+      await userEvent.click(await screen.findByText(table));
+      expect(await screen.findByRole("checkbox", { name: "Highlight Model A" })).toBeChecked();
+      expect(screen.getByRole("button", { name: "Highlight mode" })).toHaveAttribute("aria-pressed", "false");
+    }
+    await userEvent.click(screen.getByRole("button", { name: /Reset/ }));
+    expect(screen.getByRole("status")).toHaveTextContent("2 highlighted · 2 not shown");
+    expect(screen.getByRole("link", { name: "Cost Efficiency" }).getAttribute("href")).toContain("highlight-model=model%2Fa%3Fx");
+    await userEvent.click(screen.getByRole("button", { name: "Clear highlights" }));
+    const link = screen.getByRole("link", { name: "Performance" }).getAttribute("href")!;
+    expect(link).not.toContain("highlight-model");
+    expect(link).toContain("highlight-run=stored-run");
+    expect(link).toContain("highlight-benchmark=bench%26one");
+  });
+
+  it("keeps highlight controls beside Export and uses Escape to leave selection mode", async () => {
+    const { container } = await renderApp("/tiers?model-set=all");
+    const actions = within(container.querySelector(".panel-heading .chart-actions")!);
+    expect(actions.getByRole("button", { name: "Export" })).toHaveAttribute("title", expect.stringContaining("CSV"));
+    await userEvent.click(actions.getByRole("button", { name: "Highlight mode" }));
+    expect(actions.getByRole("button", { name: "Highlight mode" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.keyboard("{Escape}");
+    expect(actions.getByRole("button", { name: "Highlight mode" })).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(screen.getByText("Accessible data table"));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Highlight Model A" }));
+    expect(screen.getByRole("status")).toHaveTextContent("1 highlighted");
+  });
+
+  it("limits Complexity highlight controls to benchmark rows", async () => {
+    await renderApp("/complexity?model-set=all&highlight-benchmark=bench%26one&highlight-model=unknown-model");
+    await userEvent.click(screen.getByText("Accessible complexity statistics"));
+    expect(screen.getByRole("checkbox", { name: "Highlight Bench & One" })).toBeChecked();
+    expect(screen.queryByRole("checkbox", { name: "Highlight GPU + X" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("1 highlighted");
+  });
+
+  it.each(["cost", "time"] as const)("retains unavailable %s highlights without creating plotted observations", async (kind) => {
+    const { costDatasetFixture, timeDatasetFixture } = await import("./test/fixtures");
+    await renderApp(`/${kind}?model-set=all&highlight-model=model%2Fa%3Fx`, {
+      costDataset: { ...costDatasetFixture, runs: costDatasetFixture.runs.map((run) => ({ ...run, estimatedCostUsd: null })) },
+      timeDataset: { ...timeDatasetFixture, runs: timeDatasetFixture.runs.map((run) => ({ ...run, generationTimeSeconds: null })) },
+    });
+    await userEvent.click(await screen.findByText(`Accessible ${kind} efficiency table`));
+    expect(screen.getByRole("status")).toHaveTextContent("1 highlighted · 1 not shown");
+    const checkbox = screen.getByRole("checkbox", { name: "Highlight Model A" });
+    expect(checkbox).toBeChecked();
+    expect(screen.queryByText(`Synthetic ${kind} point`)).not.toBeInTheDocument();
+    await userEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it("preserves run highlights and legacy focus through result navigation", async () => {
+    const id = "bench&one_model/a?x_gpu+x_r2";
+    await renderApp(`/performance?model-set=all&focus=model%2Fa%3Fx&highlight-run=${encodeURIComponent(id)}`);
+    await userEvent.click(await screen.findByText("Accessible performance statistics"));
+    expect(screen.getByRole("checkbox", { name: `Highlight run ${id}` })).toBeChecked();
+    await userEvent.click(screen.getByRole("button", { name: "Synthetic performance point" }));
+    const back = await screen.findByRole("link", { name: /Back to performance/ });
+    expect(back).toHaveAttribute("href", expect.stringContaining(`highlight-run=${encodeURIComponent(id)}`));
+    expect(back).toHaveAttribute("href", expect.stringContaining("focus=model%2Fa%3Fx"));
+    expect(screen.getByRole("link", { name: /Performance in this benchmark cell/ })).toHaveAttribute("href", expect.stringContaining("highlight-run="));
+  });
+
   it.each(["cost", "time"] as const)("reports %s Pareto membership in the accessible table", async (kind) => {
     const { costDatasetFixture, timeDatasetFixture } = await import("./test/fixtures");
     const { container } = await renderApp(`/${kind}?model-set=all`, {
       costDataset: { ...costDatasetFixture, runs: costDatasetFixture.runs.map((run) => ({ ...run, estimatedCostUsd: run.modelId === "unknown-model" ? 30 : 60 })) },
       timeDataset: { ...timeDatasetFixture, runs: timeDatasetFixture.runs.map((run) => ({ ...run, generationTimeSeconds: run.modelId === "unknown-model" ? 30 : 60 })) },
     });
-    expect(await screen.findByText("Pareto front · current selection")).toBeInTheDocument();
+    expect(await screen.findByText("Pareto front", { selector: ".pareto-legend-label" })).toBeInTheDocument();
     await userEvent.click(screen.getByText(`Accessible ${kind} efficiency table`));
     const table = within(container.querySelector(`.${kind}-data table`)!);
     const column = table.getAllByRole("columnheader").findIndex((header) => header.textContent === "Pareto front");
@@ -122,7 +189,7 @@ describe("explorer routing", () => {
     });
     await userEvent.click(await screen.findByText(`Accessible ${kind} efficiency table`));
     expect(screen.getAllByRole("cell", { name: "Not evaluated" })).toHaveLength(2);
-    expect(screen.queryByText("Pareto front · current selection")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pareto front", { selector: ".pareto-legend-label" })).not.toBeInTheDocument();
   });
 
   it("shares filters with Time Efficiency and keeps scale defaults scoped to each page", async () => {
@@ -168,7 +235,7 @@ describe("explorer routing", () => {
   it("announces loading while time data is pending", async () => {
     await renderApp("/time", { timeDataset: new Promise(() => {}) });
     expect(screen.getByText("Loading time records…")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Export aggregates/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
   });
 
   it("drills from a tier segment to filtered runs and preserves context in detail", async () => {
@@ -435,7 +502,7 @@ describe("explorer routing", () => {
     expect(aboutPanel.queryByText(/current publication target/)).not.toBeInTheDocument();
     expect(aboutPanel.getByText(/lists the authors and copyable BibTeX/)).toBeInTheDocument();
     await userEvent.click(aboutPanel.getByRole("link", { name: "Methodology" }));
-    expect(await view.findByRole("heading", { name: "Methodology" })).toBeInTheDocument();
+    expect(await view.findByRole("heading", { name: "Background & Methodology" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Agent harnesses" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Five sequential stages" })).toBeInTheDocument();
     expect(view.getByRole("heading", { name: "Recorded local execution system" })).toBeInTheDocument();

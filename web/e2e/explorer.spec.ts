@@ -143,7 +143,7 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   await expect(modelMenu).not.toHaveAttribute("open", "");
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Export records/ }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await downloadPromise).suggestedFilename()).toBe("llm-eval-tiered-selection.csv");
 
   const chartExport = page.getByLabel("Export chart");
@@ -227,7 +227,7 @@ test("model scores filters distributions and opens individual runs", async ({ pa
   await expect(summaryTooltip).toBeHidden();
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Export records/ }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await downloadPromise).suggestedFilename()).toBe("llm-eval-model-scores.csv");
 
   // The final SVG point is painted on top when runs share a score and nearly share jitter.
@@ -394,7 +394,7 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await expect(page.getByRole("checkbox", { name: "Show measurement ranges" })).toBeChecked();
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Export active records/ }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await downloadPromise).suggestedFilename()).toBe("llm-eval-performance-cell.csv");
 
   await page.getByRole("combobox", { name: "Benchmark" }).selectOption("nbody");
@@ -449,7 +449,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   }
   await expect(tooltip).not.toContainText("Cost method");
   await expect(tooltip).not.toContainText("Pricing match");
-  await expect(tooltip.locator("tr")).toHaveCount(12);
+  await expect(tooltip.locator("tr")).toHaveCount(13);
   const compactTooltip = await tooltip.evaluate((element) => ({
     left: element.getBoundingClientRect().left,
     right: element.getBoundingClientRect().right,
@@ -527,7 +527,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   expect(allLabelLayout).toEqual({ visibleCount: 27, materialOverlaps: [] });
 
   const exportPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Export aggregates/ }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await exportPromise).suggestedFilename()).toBe("llm-eval-score-cost.csv");
   await page.getByText("Accessible cost efficiency table", { exact: true }).click();
   const pricingSource = page.locator(".cost-data tbody tr").first().getByRole("link", { name: "Pricing source" });
@@ -814,7 +814,7 @@ test("complexity recomputes benchmark and target distributions and opens their r
   await expect(selectionSummary.getByText("5.45", { exact: true })).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Export active records/ }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await downloadPromise).suggestedFilename()).toBe("llm-eval-complexity-selection.csv");
 
   const selectedBenchmark = page.locator('.benchmark-complexity svg [role="button"][aria-label^="Benchmark "]').first();
@@ -913,7 +913,7 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-10-02T01:03:56Z");
   await expect(page.locator(".primary-nav")).not.toContainText("Snapshot");
   await goto(page, "/methodology");
-  await expect(page.getByRole("heading", { name: "Methodology" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Background & Methodology", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Agent harnesses" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Five sequential stages" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Recorded local execution system" })).toBeVisible();
@@ -922,9 +922,8 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(page.getByRole("heading", { name: "Codex CLI", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "GitHub Copilot CLI", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Claude Code", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Claude Code harness source", exact: true })).toHaveAttribute(
-    "href", "https://github.com/PeterTh/llm-eval-experiment/blob/fa046134cf22a2cb3b8398567f2cf4115bceb021/experiment.rb",
-  );
+  await expect(page.locator(".harness-list").getByRole("link")).toHaveCount(0);
+  await expect(page.locator(".harness-list")).not.toContainText("SHA-256");
   await expect(page.getByRole("heading", { name: "pi", exact: true })).toBeVisible();
   await expect(page.locator('[aria-labelledby="method-system"] > p').filter({ hasText: "128 physical cores" })).toBeVisible();
   await expect(page.getByText("128 ranks, 64 per socket, 1 physical core per rank", { exact: true })).toBeVisible();

@@ -7,6 +7,7 @@ import { pricedTokenCountForRun } from "../analysis/cost";
 import { PageIntro } from "../components/PageIntro";
 import { loadCostDataset, loadRunById } from "../data/client";
 import { useDataset } from "../data/context";
+import { copyHighlights } from "../state/highlights";
 import type { CostDataset, RunRecord } from "../data/types";
 import { formatCount, formatGenerationTime, formatMilliseconds, formatUsd } from "../utils/format";
 
@@ -88,16 +89,16 @@ export function RunDetailView() {
     && costRun.inputTokens !== null
     && costRun.cachedInputTokens !== null
     && costRun.outputTokens !== null;
-  const tierQuery = new URLSearchParams();
+  const tierQuery = copyHighlights(returnParams);
   tierQuery.append("model", run.modelId);
-  const performanceQuery = new URLSearchParams();
+  const performanceQuery = copyHighlights(returnParams);
   for (const key of ["model", "model-set"]) {
     returnParams.getAll(key).forEach((value) => performanceQuery.append(key, value));
   }
   performanceQuery.append("benchmark", run.benchmarkId);
   performanceQuery.append("backend", run.backendId);
   performanceQuery.set("focus", run.modelId);
-  const cellQuery = new URLSearchParams();
+  const cellQuery = copyHighlights(returnParams);
   cellQuery.append("benchmark", run.benchmarkId);
   cellQuery.append("backend", run.backendId);
   const costQuery = new URLSearchParams(cellQuery);

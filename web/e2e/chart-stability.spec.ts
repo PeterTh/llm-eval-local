@@ -11,6 +11,14 @@ for (const route of ["cost", "time"]) {
       await page.goto(basePath + "#/" + route + "?model-set=all&scale=" + scale);
       const points = page.locator("." + route + "_points path");
       await expect(points).toHaveCount(27);
+      const selectedIds = await points.evaluateAll((elements) => {
+        const data = elements.map((element) => (element as SVGElement & { __data__: { datum: { modelId: string; isPareto: boolean } } }).__data__.datum);
+        return [data.find((point) => point.isPareto)!.modelId, data.find((point) => !point.isPareto)!.modelId];
+      });
+      const highlighted = new URLSearchParams({ "model-set": "all", scale });
+      selectedIds.forEach((id) => highlighted.append("highlight-model", id));
+      await page.goto(`${basePath}#/${route}?${highlighted}`);
+      await expect(page.locator(`.${route}_highlight_halos path`)).toHaveCount(2);
       await page.evaluate(async () => { await document.fonts.ready; });
       const chart = page.locator("." + route + "-analysis .chart");
       const snapshot = () => chart.evaluate((element) => {

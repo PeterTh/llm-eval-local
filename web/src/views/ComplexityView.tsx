@@ -5,11 +5,13 @@ import type { VisualizationSpec } from "vega-embed";
 import { analyzeComplexity, type ComplexityCategorySummary } from "../analysis/complexity";
 import { filterRuns } from "../analysis/runs";
 import { FilterBar } from "../components/FilterBar";
+import { HighlightActions, HighlightCheckbox, highlightColor } from "../components/HighlightActions";
 import { VegaChart } from "../components/VegaChart";
 import { loadRuns } from "../data/client";
 import { useDataset } from "../data/context";
 import type { FilterState } from "../data/types";
 import { useFilterState } from "../state/filters";
+import { copyHighlights, useHighlightState } from "../state/highlights";
 import { downloadText, runsToCsv } from "../utils/csv";
 import { useMediaQuery } from "../utils/media";
 
@@ -28,7 +30,7 @@ function runsPath(
   filters: Pick<FilterState, "models" | "benchmarks" | "backends">,
   current: URLSearchParams,
 ): string {
-  const query = new URLSearchParams();
+  const query = copyHighlights(current);
   for (const key of ["model", "model-set"]) {
     current.getAll(key).forEach((value) => query.append(key, value));
   }
@@ -39,7 +41,7 @@ function runsPath(
   return `/runs?${query}`;
 }
 
-function summaryTooltip() {
+function summaryTooltip(withHighlight = false) {
   return [
     { field: "categoryLabel", title: "Category" },
     { field: "runCount", title: "Runs", format: ",d" },
@@ -48,6 +50,7 @@ function summaryTooltip() {
     { field: "median", title: "Median", format: ".2f" },
     { field: "thirdQuartile", title: "Q3", format: ".2f" },
     { field: "grandMean", title: "Grand mean", format: ".2f" },
+    ...(withHighlight ? [{ field: "highlightLabel", title: "Highlighted" }] : []),
   ];
 }
 
@@ -60,6 +63,13 @@ export function ComplexityView() {
   const isCompact = useMediaQuery("(max-width: 1050px)");
   const isDark = useMediaQuery("(prefers-color-scheme: dark)");
   const analysis = useMemo(() => analyzeComplexity(scoreCube, manifest, state), [manifest, scoreCube, state]);
+  const highlights = useHighlightState("benchmarkIds", analysis.benchmarkSummaries.map((summary) => summary.categoryId));
+  const benchmarkObservations = useMemo(() => analysis.benchmarkObservations.map((observation) => ({
+    ...observation, highlightLabel: highlights.selected.has(observation.categoryId) ? "Yes" : "No",
+    accessibleDescription: `${observation.accessibleDescription}; Highlighted: ${highlights.selected.has(observation.categoryId) ? "Yes" : "No"}`,
+  })), [analysis.benchmarkObservations, highlights.selected]);
+  const benchmarkHighlightId = (datum: Record<string, unknown>) => typeof datum.categoryId === "string" ? datum.categoryId
+    : analysis.benchmarkSummaries.find((summary) => summary.categoryKey === (datum.categoryKey ?? datum.value ?? datum.chartLabel))?.categoryId ?? null;
   const scoreDomain = [manifest.scoreScale.minimum, manifest.scoreScale.maximum];
   const scoreTicks = Array.from(
     { length: manifest.scoreScale.maximum - manifest.scoreScale.minimum + 1 },
@@ -97,7 +107,7 @@ export function ComplexityView() {
 
   const benchmarkSpec = useMemo<VisualizationSpec>(() => ({
     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
-    data: { values: analysis.benchmarkObservations },
+    data: { values: benchmarkObservations },
     facet: {
       row: {
         field: "categoryKey", type: "nominal", sort: benchmarkOrder,
@@ -119,9 +129,18 @@ export function ComplexityView() {
       height: benchmarkRowHeight,
       layer: [
         {
+          name: "benchmark_highlight_rows",
+          transform: [
+            { aggregate: [{ op: "count", as: "observations" }], groupby: ["categoryId", "highlightLabel"] },
+            { filter: "datum.highlightLabel === 'Yes'" },
+          ],
+          mark: { type: "rect", fill: highlightColor(isDark), fillOpacity: 0.1, stroke: highlightColor(isDark), strokeWidth: 2, aria: false, tooltip: null },
+          encoding: { x: { value: 0 }, x2: { value: benchmarkWidth }, y: { value: 0 }, y2: { value: benchmarkRowHeight } },
+        },
+        {
           transform: [
             {
-              density: "score", groupby: densityGroupFields, extent: scoreDomain,
+              density: "score", groupby: [...densityGroupFields, "highlightLabel"], extent: scoreDomain,
               bandwidth: densityBandwidth, steps: 81, as: ["scoreValue", "density"],
             },
             { calculate: "-datum.density", as: "negativeDensity" },
@@ -143,7 +162,7 @@ export function ComplexityView() {
             y: { field: "density", type: "quantitative", axis: null },
             y2: { field: "negativeDensity" },
             description: { field: "accessibleDescription", type: "nominal" },
-            tooltip: summaryTooltip(),
+            tooltip: summaryTooltip(true),
           },
         },
         {
@@ -162,6 +181,7 @@ export function ComplexityView() {
           },
         },
         {
+          name: "benchmark_means",
           mark: {
             type: "point", shape: "diamond", filled: true, size: isNarrow ? 72 : 96,
             color: meanFill, stroke: meanStroke, strokeWidth: 1.1, cursor: "pointer",
@@ -172,7 +192,7 @@ export function ComplexityView() {
             detail: { field: "categoryId", type: "nominal" },
             key: { field: "categoryId", type: "nominal" },
             description: { field: "accessibleDescription", type: "nominal" },
-            tooltip: summaryTooltip(),
+            tooltip: summaryTooltip(true),
           },
         },
       ],
@@ -180,7 +200,7 @@ export function ComplexityView() {
     resolve: { scale: { y: "independent" } },
     config: chartConfig,
   }) as VisualizationSpec, [
-    analysis.benchmarkObservations, benchmarkOrder, benchmarkRowHeight, benchmarkWidth,
+    benchmarkObservations, benchmarkOrder, benchmarkRowHeight, benchmarkWidth,
     chartConfig, densityBandwidth, densityFill, densityStroke, grandMeanStroke, isDark, isNarrow,
     meanFill, meanStroke, scoreDomain, scoreTicks, statisticStroke,
   ]);
@@ -198,7 +218,7 @@ export function ComplexityView() {
           labelFontSize: isNarrow ? 11 : 14,
           labelFontWeight: 540,
           labelLimit: targetWidth + 12,
-          labelPadding: 18,
+          labelPadding: 22,
         },
       },
     },
@@ -303,10 +323,10 @@ export function ComplexityView() {
     <div className="table-scroll">
       <table>
         <caption>{caption}</caption>
-        <thead><tr><th scope="col">{label}</th><th scope="col">Runs</th><th scope="col">Mean</th><th scope="col">Q1</th><th scope="col">Median</th><th scope="col">Q3</th><th scope="col">Records</th></tr></thead>
+        <thead><tr><th scope="col">{label}</th><th scope="col">Runs</th><th scope="col">Mean</th><th scope="col">Q1</th><th scope="col">Median</th><th scope="col">Q3</th><th scope="col">Records</th>{label === "Benchmark" && <th scope="col">Highlighted</th>}</tr></thead>
         <tbody>
           {summaries.map((summary) => (
-            <tr key={summary.categoryId}>
+            <tr key={summary.categoryId} className={summary.categoryType === "benchmark" && highlights.selected.has(summary.categoryId) ? "is-highlighted" : undefined}>
               <th scope="row">{summary.categoryLabel}</th>
               <td>{summary.runCount}</td>
               <td>{statistic(summary.meanScore)}</td>
@@ -314,6 +334,7 @@ export function ComplexityView() {
               <td>{statistic(summary.median)}</td>
               <td>{statistic(summary.thirdQuartile)}</td>
               <td><Link to={runsPath(summary.categoryType, summary.categoryId, state, params)}>Open runs</Link></td>
+              {summary.categoryType === "benchmark" && <td><HighlightCheckbox selection={highlights} id={summary.categoryId} label={summary.categoryLabel} /></td>}
             </tr>
           ))}
         </tbody>
@@ -353,14 +374,18 @@ export function ComplexityView() {
                   <h2>Benchmark complexity</h2>
                   <p>Benchmarks are ordered from highest to lowest filtered mean score.</p>
                 </div>
-                <button className="secondary-button" type="button" disabled={exporting} onClick={() => void exportRecords()}>
-                  {exporting ? "Preparing…" : "Export active records · CSV"}
-                </button>
+                <HighlightActions selection={highlights}>
+                  <button className="secondary-button" type="button" disabled={exporting} onClick={() => void exportRecords()}
+                    title="Export individual scored run records for the active model, benchmark, and target filters (CSV)">
+                    {exporting ? "Preparing…" : "Export"}
+                  </button>
+                </HighlightActions>
               </header>
               <VegaChart
                 spec={benchmarkSpec}
                 ariaLabel={`Benchmark complexity violin chart for ${analysis.benchmarkSummaries.length} benchmarks and ${analysis.runCount} runs`}
                 onDatumClick={openBenchmark}
+                highlight={{ selection: highlights, markSelector: ".benchmark_means_marks path, .role-row-header text", getId: benchmarkHighlightId }}
                 interactiveMarkSelector='[aria-roledescription="area"], [aria-roledescription="point"]'
               />
               <p className="chart-footnote">The diamond marks the mean; the solid rule marks the median; the dashed rule marks the active grand mean. Select a violin or mean to open its runs.</p>
@@ -391,6 +416,9 @@ export function ComplexityView() {
         </>
       ) : (
         <div className="empty-state analysis-panel">
+          <HighlightActions selection={highlights}>
+            <button className="secondary-button" type="button" disabled title="Export individual scored run records for the active filters (CSV)">Export</button>
+          </HighlightActions>
           <p className="eyebrow">No observations</p>
           <h2>This filter combination has no scored runs.</h2>
           <button className="secondary-button" type="button" onClick={reset}>Clear filters</button>

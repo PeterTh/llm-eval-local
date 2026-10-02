@@ -60,6 +60,8 @@ Entity IDs are arbitrary strings. Existing presentation labels, backend order, a
 
 The site uses Pages-safe hash routes. Model, benchmark, backend, tier, outcome, sorting, and view-specific state are encoded as query parameters, so browser history and copied URLs restore the view. Cross-view navigation preserves only the shared model, benchmark, and backend filters; run-specific filters remain scoped to the Runs view and its detail return path.
 
+Shareable highlights use repeated `highlight-model`, `highlight-benchmark`, and `highlight-run` parameters containing opaque entity IDs. Model highlights appear in Cost/Time scatter plots and Tiered Success/Model Scores rows; benchmark highlights apply only to Complexity's benchmark rows; run highlights apply to plotted Performance results. Highlights survive filters, resets, navigation, and reloads without changing the analysis or fetching other cells. Selected IDs outside the current chart are counted as not shown. Highlight mode is a local interaction toggle beside Export, starts off on entry, and can be exited with Escape; Clear highlights removes only the current view's highlight type. The existing Performance `focus` parameter remains supported.
+
 ## Deployment
 
 Pull requests build and test without publishing. Updates to website, campaign, release, individual-analysis, or analysis-table inputs on `main` run artifact verification and website tests before uploading `web/dist` through GitHub's artifact-based Pages workflow. The repository's Pages source must be set once to **GitHub Actions**.

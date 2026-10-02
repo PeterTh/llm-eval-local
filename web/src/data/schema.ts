@@ -34,6 +34,7 @@ const harnessSchema = z.object({
   commandTemplate: z.string().min(1),
   parameters: z.array(z.string().min(1)),
   configurationSource: z.object({
+    label: z.string().min(1).optional(),
     url: z.string().url(),
     sha256: z.string().regex(/^[0-9a-f]{64}$/),
   }).optional(),

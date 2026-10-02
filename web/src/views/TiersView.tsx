@@ -5,10 +5,12 @@ import type { VisualizationSpec } from "vega-embed";
 import { aggregateTiers } from "../analysis/tiers";
 import { filterRuns } from "../analysis/runs";
 import { FilterBar } from "../components/FilterBar";
+import { HighlightActions, HighlightCheckbox, highlightColor } from "../components/HighlightActions";
 import { VegaChart } from "../components/VegaChart";
 import { loadRuns } from "../data/client";
 import { useDataset } from "../data/context";
 import { useFilterState } from "../state/filters";
+import { modelHighlightId, useHighlightState } from "../state/highlights";
 import { downloadText, runsToCsv } from "../utils/csv";
 import { useMediaQuery } from "../utils/media";
 
@@ -33,13 +35,19 @@ export function TiersView() {
   const isNarrow = useMediaQuery("(max-width: 600px)");
   const isDark = useMediaQuery("(prefers-color-scheme: dark)");
   const summaries = useMemo(() => aggregateTiers(scoreCube, manifest, state), [manifest, scoreCube, state]);
-  const segments = useMemo(() => summaries.flatMap((summary) => summary.segments), [summaries]);
+  const highlights = useHighlightState("modelIds", summaries.map((summary) => summary.modelId));
+  const segments = useMemo(() => summaries.flatMap((summary) => summary.segments.map((segment) => ({
+    ...segment, highlightLabel: highlights.selected.has(summary.modelId) ? "Yes" : "No",
+  }))), [summaries, highlights.selected]);
   const modelLabels = useMemo(() => summaries.map((summary) => ({
     modelId: summary.modelId,
     modelLabel: summary.modelLabel,
     modelHarnessLabel: summary.modelHarnessLabel,
     modelInvocationLabel: summary.modelInvocationLabel,
-  })), [summaries]);
+    highlightLabel: highlights.selected.has(summary.modelId) ? "Yes" : "No",
+  })), [summaries, highlights.selected]);
+  const highlightedRows = modelLabels.filter((model) => highlights.selected.has(model.modelId))
+    .map((model) => ({ ...model, highlightMinimum: 0, highlightMaximum: 100 }));
   const visibleRuns = summaries.reduce((total, model) => total + model.runCount, 0);
   const weightedMean = visibleRuns === 0 ? null : summaries.reduce((total, model) => total + model.meanScore * model.runCount, 0) / visibleRuns;
   const modelOrder = summaries.map((summary) => summary.modelLabel);
@@ -97,6 +105,7 @@ export function TiersView() {
       },
       order: { field: "bandOrder", type: "ordinal" },
       tooltip: [
+        { field: "highlightLabel", title: "Highlighted" },
         { field: "bandLabel", title: "Tier" },
         { field: "bandDetail", title: "Score range" },
         { field: "count", title: "Runs", format: ",d" },
@@ -106,6 +115,11 @@ export function TiersView() {
       ],
     },
     layer: [
+      {
+        name: "tiers_highlight_rows", data: { values: highlightedRows },
+        mark: { type: "rect", fill: highlightColor(isDark), fillOpacity: 0.1, stroke: highlightColor(isDark), strokeWidth: 2, aria: false, tooltip: null },
+        encoding: { x: { field: "highlightMinimum", type: "quantitative" }, x2: { field: "highlightMaximum" }, color: { value: highlightColor(isDark) } },
+      },
       {
         mark: { type: "bar", cornerRadius: 1, stroke: isDark ? "#182126" : "#ffffff", strokeWidth: 0.6 },
         encoding: { x2: { field: "endPercentage" } },
@@ -120,7 +134,7 @@ export function TiersView() {
         },
       },
       {
-        data: { values: modelLabels },
+        name: "tiers_model_labels", data: { values: modelLabels },
         mark: {
           type: "text",
           align: "right",
@@ -135,14 +149,20 @@ export function TiersView() {
         encoding: {
           x: { value: 0 },
           y: { field: "modelLabel", type: "nominal", sort: modelOrder },
-          color: { value: isDark ? "#c1cbc9" : "#49535d" },
+          color: { condition: { test: "datum.highlightLabel === 'Yes'", value: highlightColor(isDark) }, value: isDark ? "#c1cbc9" : "#49535d" },
           text: { field: "modelLabel", type: "nominal" },
           tooltip: [
             { field: "modelLabel", title: "Model" },
             { field: "modelHarnessLabel", title: "Agent harness" },
             { field: "modelInvocationLabel", title: "Invocation" },
+            { field: "highlightLabel", title: "Highlighted" },
           ],
         },
+      },
+      {
+        name: "tiers_highlight_outlines", data: { values: highlightedRows },
+        mark: { type: "rect", fillOpacity: 0, stroke: highlightColor(isDark), strokeWidth: 2, aria: false, tooltip: null },
+        encoding: { x: { field: "highlightMinimum", type: "quantitative" }, x2: { field: "highlightMaximum" }, color: { value: highlightColor(isDark) } },
       },
     ],
     config: {
@@ -159,7 +179,7 @@ export function TiersView() {
     },
   }) as VisualizationSpec, [
     isDark, isNarrow, manifest.scoreScale.bands, minimumTierLabelWidthPx,
-    modelLabels, modelOrder, segments, summaries.length,
+    modelLabels, modelOrder, segments, summaries.length, highlightedRows,
   ]);
 
   const openSegment = useCallback((datum: Record<string, unknown>) => {
@@ -225,13 +245,17 @@ export function TiersView() {
             <h2>Share of runs by score tier</h2>
             <p>Select a segment to inspect its individual runs.</p>
           </div>
-          <button className="secondary-button" type="button" disabled={exporting || visibleRuns === 0} onClick={() => void exportRecords()}>
-            {exporting ? "Preparing…" : "Export records · CSV"}
-          </button>
+          <HighlightActions selection={highlights}>
+            <button className="secondary-button" type="button" disabled={exporting || visibleRuns === 0} onClick={() => void exportRecords()}
+              title="Export individual scored run records for the active filters (CSV)">
+              {exporting ? "Preparing…" : "Export"}
+            </button>
+          </HighlightActions>
         </header>
         {summaries.length > 0 ? (
           <>
-            <VegaChart spec={spec} ariaLabel={`Stacked score-tier chart for ${summaries.length} models and ${visibleRuns} runs`} onDatumClick={openSegment} />
+            <VegaChart spec={spec} ariaLabel={`Stacked score-tier chart for ${summaries.length} models and ${visibleRuns} runs`} onDatumClick={openSegment}
+              highlight={{ selection: highlights, markSelector: ".tiers_model_labels_marks text", getId: modelHighlightId }} />
             <p className="chart-footnote">Percentages use each model’s filtered sample size. Hover for counts and mean scores.</p>
           </>
         ) : (
@@ -249,10 +273,10 @@ export function TiersView() {
           <div className="table-scroll">
             <table>
               <caption>Tier counts and percentages for the active selection</caption>
-              <thead><tr><th scope="col">Model</th><th scope="col">Runs</th><th scope="col">Mean</th>{manifest.scoreScale.bands.map((band) => <th key={band.id} scope="col">{band.label}</th>)}</tr></thead>
+              <thead><tr><th scope="col">Model</th><th scope="col">Runs</th><th scope="col">Mean</th>{manifest.scoreScale.bands.map((band) => <th key={band.id} scope="col">{band.label}</th>)}<th scope="col">Highlighted</th></tr></thead>
               <tbody>
                 {summaries.map((summary) => (
-                  <tr key={summary.modelId}>
+                  <tr key={summary.modelId} className={highlights.selected.has(summary.modelId) ? "is-highlighted" : undefined}>
                     <th scope="row">{summary.modelLabel}</th>
                     <td>{summary.runCount}</td>
                     <td>{summary.meanScore.toFixed(2)}</td>
@@ -261,6 +285,7 @@ export function TiersView() {
                         <Link to={runLink(segment.modelId, segment.bandId, params)}>{segment.count} <small>({segment.percentage.toFixed(1)}%)</small></Link>
                       </td>
                     ))}
+                    <td><HighlightCheckbox selection={highlights} id={summary.modelId} label={summary.modelLabel} /></td>
                   </tr>
                 ))}
               </tbody>

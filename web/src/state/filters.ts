@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 import type { DatasetManifest, FilterState, SortOrder } from "../data/types";
 import { getDefaultModelSet, selectionsMatch } from "./modelSets";
+import { copyHighlights } from "./highlights";
 
 const sortOrders = new Set<SortOrder>(["weakest", "strongest", "alphabetical"]);
 
@@ -72,7 +73,7 @@ export function useFilterState(manifest: DatasetManifest, { defaultScale = "log"
     });
   }, [setParams]);
 
-  const reset = useCallback(() => setParams(new URLSearchParams()), [setParams]);
+  const reset = useCallback(() => setParams((current) => copyHighlights(current)), [setParams]);
 
   return { state, params, setParams, replaceValues, replaceValue, reset };
 }

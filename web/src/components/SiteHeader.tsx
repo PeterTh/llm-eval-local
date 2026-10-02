@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { useDataset } from "../data/context";
 import { shortHash } from "../utils/format";
 import { CopyLinkButton } from "./CopyLinkButton";
+import { copyHighlights } from "../state/highlights";
 
 const navigation = [
   { to: "/tiers", label: "Tiered Success", enabled: true, className: "nav-tiers" },
@@ -25,7 +26,7 @@ export function SiteHeader() {
   for (const key of ["model", "model-set", "benchmark", "backend"]) {
     currentParams.getAll(key).forEach((value) => persistentParams.append(key, value));
   }
-  const persistentSearch = persistentParams.toString();
+  const persistentSearch = copyHighlights(currentParams, persistentParams).toString();
 
   useEffect(() => {
     function closeOnOutsidePointer(event: PointerEvent) {

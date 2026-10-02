@@ -4,6 +4,7 @@ import type { VisualizationSpec } from "vega-embed";
 
 import { adaptiveScoreDomain, analyzeCost, costDomain, type CostAnalysis, type CostModelSummary } from "../analysis/cost";
 import { FilterBar } from "../components/FilterBar";
+import { HighlightActions, HighlightCheckbox, highlightColor } from "../components/HighlightActions";
 import { ParetoLegend } from "../components/ParetoLegend";
 import { scatterLabels } from "../components/scatterLabels";
 import { VegaChart } from "../components/VegaChart";
@@ -11,6 +12,7 @@ import { loadCostDataset } from "../data/client";
 import { useDataset } from "../data/context";
 import type { CostDataset, FilterState } from "../data/types";
 import { useFilterState } from "../state/filters";
+import { copyHighlights, modelHighlightId, useHighlightState } from "../state/highlights";
 import { costSummariesToCsv, downloadText } from "../utils/csv";
 import { formatCount, formatScore, formatUsd, formatUsdPerMillion } from "../utils/format";
 import { useMediaQuery } from "../utils/media";
@@ -33,8 +35,8 @@ function compactChartLabel(label: string): string {
   return `${label.slice(0, 11)}…${label.slice(-7)}`;
 }
 
-function runsPath(modelId: string, filters: Pick<FilterState, "benchmarks" | "backends">): string {
-  const query = new URLSearchParams();
+function runsPath(modelId: string, filters: Pick<FilterState, "benchmarks" | "backends">, current: URLSearchParams): string {
+  const query = copyHighlights(current);
   query.append("model", modelId);
   filters.benchmarks.forEach((benchmark) => query.append("benchmark", benchmark));
   filters.backends.forEach((backend) => query.append("backend", backend));
@@ -55,7 +57,7 @@ function pricingLinks(summary: CostModelSummary) {
 
 export function CostView() {
   const { manifest } = useDataset();
-  const { state, replaceValues, replaceValue, reset } = useFilterState(manifest);
+  const { state, params, replaceValues, replaceValue, reset } = useFilterState(manifest);
   const navigate = useNavigate();
   const [dataset, setDataset] = useState<CostDataset | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,6 +91,7 @@ export function CostView() {
     manifest.scoreScale.maximum,
   );
   const paretoModels = useMemo(() => new Set(analysis.paretoModelIds), [analysis.paretoModelIds]);
+  const highlights = useHighlightState("modelIds", analysis.plottedModels.map((model) => model.modelId));
   const plottedModels = new Set(analysis.plottedModels.map((model) => model.modelId));
   const xDomain = costDomain(
     analysis.plottedModels.flatMap((model) => model.meanEstimatedCostUsd === null ? [] : [model.meanEstimatedCostUsd]),
@@ -99,7 +102,9 @@ export function CostView() {
     ...model,
     isPareto: paretoModels.has(model.modelId),
     paretoLabel: paretoModels.has(model.modelId) ? "Yes" : "No",
-    accessibleDescription: `${model.accessibleDescription}; Pareto front: ${paretoModels.has(model.modelId) ? "Yes" : "No"}`,
+    isHighlighted: highlights.selected.has(model.modelId),
+    highlightLabel: highlights.selected.has(model.modelId) ? "Yes" : "No",
+    accessibleDescription: `${model.accessibleDescription}; Pareto front: ${paretoModels.has(model.modelId) ? "Yes" : "No"}; Highlighted: ${highlights.selected.has(model.modelId) ? "Yes" : "No"}`,
     pointColor: pointColors[model.styleIndex]!,
     pointSize: Math.round((isNarrow ? 115 : 145) * (model.pointShape.startsWith("triangle") ? 1.35 : model.pointShape === "diamond" ? 1.2 : 1)),
     pointLabel: isNarrow ? compactChartLabel(model.modelLabel) : model.modelLabel,
@@ -109,7 +114,7 @@ export function CostView() {
     pricingQuantizationLabel: model.pricingQuantization ?? "Unavailable",
     pricingDateLabel: model.pricingAsOf ?? "Unavailable",
     pricingMatchLabel: model.pricingMatchNote ?? "Unavailable",
-  })), [analysis.plottedModels, paretoModels, pointColors, isNarrow]);
+  })), [analysis.plottedModels, paretoModels, highlights.selected, pointColors, isNarrow]);
   const chartHeight = isNarrow
     ? Math.max(480, chartPoints.length * (chartPoints.length > 20 ? 55 : 42))
     : Math.max(400, chartPoints.length * (chartPoints.length > 20 ? 42 : 38));
@@ -126,6 +131,7 @@ export function CostView() {
     padding: { left: 8, right: 8, top: 12, bottom: 6 },
     data: [
       { name: "cost_values", values: chartPoints },
+      { name: "cost_highlights", source: "cost_values", transform: [{ type: "filter", expr: "datum.isHighlighted" }] },
       {
         name: "cost_pareto", source: "cost_values", transform: [
           { type: "filter", expr: "datum.isPareto" },
@@ -187,6 +193,15 @@ export function CostView() {
         } },
       },
       {
+        name: "cost_highlight_halos", type: "symbol", from: { data: "cost_highlights" }, interactive: false, aria: false,
+        encode: { update: {
+          x: { scale: "cost_x", field: "meanEstimatedCostUsd" }, y: { scale: "score_y", field: "meanScore" },
+          // Triangle edges sit closer to the origin and need more room around the Pareto stroke.
+          shape: { field: "pointShape" }, size: { signal: "pow(sqrt(datum.pointSize) + (indexof(datum.pointShape, 'triangle') === 0 ? 16 : 8), 2)" },
+          fill: { value: null }, stroke: { value: highlightColor(isDark) }, strokeWidth: { value: 2 },
+        } },
+      },
+      {
         name: "cost_points",
         type: "symbol",
         from: { data: "cost_values" },
@@ -206,7 +221,7 @@ export function CostView() {
             cursor: { value: "pointer" },
             description: { field: "accessibleDescription" },
             tooltip: {
-              signal: "{'Model': datum.modelLabel, 'Mean score': datum.scoreLabel, 'Estimated mean cost': datum.costLabel, 'Pareto front': datum.paretoLabel, 'Runs': datum.runCountsLabel, 'Mean tokens': datum.tokenSummaryLabel, 'Rates (USD/M tokens)': datum.rateSummaryLabel, 'Pricing profile': datum.pricingProfileLabel, 'Provider': datum.providerSummaryLabel, 'Quantization': datum.pricingQuantizationLabel, 'Pricing date': datum.pricingDateLabel, 'Sources': datum.sourceAvailabilityLabel}",
+              signal: "{'Model': datum.modelLabel, 'Mean score': datum.scoreLabel, 'Estimated mean cost': datum.costLabel, 'Pareto front': datum.paretoLabel, 'Highlighted': datum.highlightLabel, 'Runs': datum.runCountsLabel, 'Mean tokens': datum.tokenSummaryLabel, 'Rates (USD/M tokens)': datum.rateSummaryLabel, 'Pricing profile': datum.pricingProfileLabel, 'Provider': datum.providerSummaryLabel, 'Quantization': datum.pricingQuantizationLabel, 'Pricing date': datum.pricingDateLabel, 'Sources': datum.sourceAvailabilityLabel}",
             },
           },
         },
@@ -232,8 +247,8 @@ export function CostView() {
   }) as VisualizationSpec, [chartHeight, chartPoints, isDark, isNarrow, scoreDomain, state.scale, xDomain, xTitle]);
 
   const openPoint = useCallback((datum: Record<string, unknown>) => {
-    if (typeof datum.modelId === "string") navigate(runsPath(datum.modelId, state));
-  }, [navigate, state]);
+    if (typeof datum.modelId === "string") navigate(runsPath(datum.modelId, state, params));
+  }, [navigate, state, params]);
 
   function exportRecords(): void {
     setExporting(true);
@@ -283,11 +298,14 @@ export function CostView() {
         <header className="panel-heading">
           <div>
             <h2>Mean score vs. estimated API cost</h2>
-            <p>Costs use independently dated, frozen pricing profiles (latest addition: {manifest.cost.pricingAsOf}); each model shows its own snapshot date. Missing token records are excluded from cost means.</p>
+            <p>Costs use independently dated, frozen pricing profiles.</p>
           </div>
-          <button className="secondary-button" type="button" disabled={exporting || loading || analysis.models.length === 0} onClick={exportRecords}>
-            {exporting ? "Preparing…" : "Export aggregates · CSV"}
-          </button>
+          <HighlightActions selection={highlights}>
+            <button className="secondary-button" type="button" disabled={exporting || loading || analysis.models.length === 0} onClick={exportRecords}
+              title="Export per-model score and estimated cost aggregates for the active filters (CSV)">
+              {exporting ? "Preparing…" : "Export"}
+            </button>
+          </HighlightActions>
         </header>
 
         {loading ? (
@@ -306,9 +324,10 @@ export function CostView() {
               ariaLabel={`Cost efficiency chart for ${analysis.plottedModels.length} models, ${analysis.scoreRunCount} scored runs, and ${analysis.costRunCount} costed runs`}
               onDatumClick={openPoint}
               interactiveMarkSelector=".cost_points path"
+              highlight={{ selection: highlights, markSelector: ".cost_points path", getId: modelHighlightId }}
               fitContainerWidth
             />
-            <ParetoLegend metric="mean cost" />
+            <ParetoLegend />
             {(analysis.unavailableCostRunCount > 0 || analysis.unpricedModelCount > 0) && (
               <p className="chart-footnote">
                 {analysis.unavailableCostRunCount > 0 && `${formatCount(analysis.unavailableCostRunCount)} scored ${analysis.unavailableCostRunCount === 1 ? "run has" : "runs have"} no cost estimate.`}
@@ -333,11 +352,11 @@ export function CostView() {
             <table>
               <caption>Per-model aggregates for the active cost efficiency selection</caption>
               <thead>
-                <tr><th scope="col">Model</th><th scope="col">Mean score</th><th scope="col">Estimated mean cost</th><th scope="col">Pareto front</th><th scope="col">Score n</th><th scope="col">Cost n</th><th scope="col">Mean priced tokens</th><th scope="col">Observed effective rate</th><th scope="col">Pricing</th><th scope="col">Method</th><th scope="col">Sources</th><th scope="col">Records</th></tr>
+                <tr><th scope="col">Model</th><th scope="col">Mean score</th><th scope="col">Estimated mean cost</th><th scope="col">Pareto front</th><th scope="col">Score n</th><th scope="col">Cost n</th><th scope="col">Mean priced tokens</th><th scope="col">Observed effective rate</th><th scope="col">Pricing</th><th scope="col">Method</th><th scope="col">Sources</th><th scope="col">Records</th><th scope="col">Highlighted</th></tr>
               </thead>
               <tbody>
                 {analysis.models.map((summary) => (
-                  <tr key={summary.modelId}>
+                  <tr key={summary.modelId} className={highlights.selected.has(summary.modelId) ? "is-highlighted" : undefined}>
                     <th scope="row">{summary.modelLabel}</th>
                     <td className="numeric">{formatScore(summary.meanScore)}</td>
                     <td className="numeric">{formatUsd(summary.meanEstimatedCostUsd)}</td>
@@ -349,7 +368,8 @@ export function CostView() {
                     <td>{summary.pricingProvider ?? "Unavailable"}<small>{summary.pricingProviderTag ? ` · ${summary.pricingProviderTag}` : ""}</small></td>
                     <td>{summary.costMethod}</td>
                     <td>{pricingLinks(summary)}</td>
-                    <td><Link to={runsPath(summary.modelId, state)}>Open runs</Link></td>
+                    <td><Link to={runsPath(summary.modelId, state, params)}>Open runs</Link></td>
+                    <td><HighlightCheckbox selection={highlights} id={summary.modelId} label={summary.modelLabel} /></td>
                   </tr>
                 ))}
               </tbody>

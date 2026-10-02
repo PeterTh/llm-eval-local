@@ -35,10 +35,13 @@ test("twice-corrected historical QT exposes initial, intermediate and final sour
   await expect(page.getByRole("link", { name: /Benchmark JSONL evidence/ })).toHaveAttribute("href", /corrections\/20261001-gpt6-qt\/benchmark\/records/);
 });
 
-test("methodology exposes the exact GPT-6 launch snapshot", async ({ page }) => {
+test("methodology unifies Codex models under one harness", async ({ page }) => {
   await page.goto(basePath + "#/methodology");
-  await expect(page.getByText("Codex CLI 0.159.0 (GPT-6 campaign)", { exact: true }).first()).toBeVisible();
-  const link = page.locator('a[href*="batches/20260929-135931/generation/method/experiment.rb"]');
-  await expect(link).toHaveAttribute("href", /\/blob\/[0-9a-f]{40}\//);
-  await expect(page.getByText("GPT-6 Astra Medium", { exact: true })).toHaveAttribute("title", /invoked model gpt-6-astra; reasoning effort medium/);
+  await expect(page.getByRole("heading", { name: /^Codex CLI/ })).toHaveCount(1);
+  const codexHarness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Codex CLI", exact: true }) });
+  await expect(codexHarness.locator("header > span")).toHaveText("12 models");
+  await expect(codexHarness.locator(".harness-models > span")).toHaveCount(12);
+  await expect(codexHarness.locator(":scope > code")).toContainText("model_reasoning_effort=<effort>");
+  await expect(codexHarness.getByText("GPT-6 Astra Medium", { exact: true })).toHaveAttribute("title", /invoked model gpt-6-astra; reasoning effort medium/);
+  await expect(codexHarness.getByText("GPT-5.6 Sol Low", { exact: true })).toHaveAttribute("title", /invoked model gpt-5.6-sol; reasoning effort low/);
 });

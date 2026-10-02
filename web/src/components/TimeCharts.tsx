@@ -9,6 +9,8 @@ import { stableStringHash } from "../utils/hash";
 import { useMediaQuery } from "../utils/media";
 import { scatterLabels } from "./scatterLabels";
 import { VegaChart } from "./VegaChart";
+import { highlightColor } from "./HighlightActions";
+import { modelHighlightId, type HighlightSelection } from "../state/highlights";
 
 const LIGHT_COLORS = ["#004aad", "#3c6fa8", "#655f9b", "#28786d", "#8a5b42", "#6f6d31", "#526f91"];
 const DARK_COLORS = ["#8fb8f5", "#74a7dc", "#aaa0e1", "#69b9ab", "#d5a080", "#b8b36a", "#91afd0"];
@@ -36,7 +38,7 @@ interface ChartProps {
   onDatumClick: (datum: Record<string, unknown>) => void;
 }
 
-export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: ChartProps) {
+export function TimeScatterChart({ analysis, manifest, scale, onDatumClick, highlights }: ChartProps & { highlights: HighlightSelection }) {
   const narrow = useMediaQuery("(max-width: 600px)");
   const dark = useMediaQuery("(prefers-color-scheme: dark)");
   const spec = useMemo<VisualizationSpec>(() => {
@@ -55,14 +57,16 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: Ch
         minutes: model.meanGenerationTimeSeconds! / 60,
         meanScore: model.meanScore,
         isPareto,
+        isHighlighted: highlights.selected.has(model.modelId),
         pointColor: (dark ? DARK_COLORS : LIGHT_COLORS)[hash % 7],
         pointShape,
         pointSize: Math.round((narrow ? 115 : 145) * (pointShape.startsWith("triangle") ? 1.35 : pointShape === "diamond" ? 1.2 : 1)),
-        description: `${model.modelLabel}; mean score ${formatScore(model.meanScore)}; mean generation time ${formatGenerationTime(model.meanGenerationTimeSeconds)}; ${model.timeRunCount} timed runs; Pareto front: ${isPareto ? "Yes" : "No"}`,
+        description: `${model.modelLabel}; mean score ${formatScore(model.meanScore)}; mean generation time ${formatGenerationTime(model.meanGenerationTimeSeconds)}; ${model.timeRunCount} timed runs; Pareto front: ${isPareto ? "Yes" : "No"}; Highlighted: ${highlights.selected.has(model.modelId) ? "Yes" : "No"}`,
         tooltip: {
           Model: model.modelLabel,
           "Mean score": formatScore(model.meanScore),
           "Pareto front": isPareto ? "Yes" : "No",
+          Highlighted: highlights.selected.has(model.modelId) ? "Yes" : "No",
           "Mean generation time": formatGenerationTime(model.meanGenerationTimeSeconds),
           "Median generation time": formatGenerationTime(model.distribution!.median),
           Runs: `${formatCount(model.scoreRunCount)} scored · ${formatCount(model.timeRunCount)} timed`,
@@ -79,6 +83,7 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: Ch
       padding: { left: 8, right: 8, top: 12, bottom: 6 },
       data: [
         { name: "time_values", values: points },
+        { name: "time_highlights", source: "time_values", transform: [{ type: "filter", expr: "datum.isHighlighted" }] },
         {
           name: "time_pareto", source: "time_values", transform: [
             { type: "filter", expr: "datum.isPareto" },
@@ -106,6 +111,15 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: Ch
           } },
         },
         {
+          name: "time_highlight_halos", type: "symbol", from: { data: "time_highlights" }, interactive: false, aria: false,
+          encode: { update: {
+            x: { scale: "time_x", field: "minutes" }, y: { scale: "score_y", field: "meanScore" },
+            // Triangle edges sit closer to the origin and need more room around the Pareto stroke.
+            shape: { field: "pointShape" }, size: { signal: "pow(sqrt(datum.pointSize) + (indexof(datum.pointShape, 'triangle') === 0 ? 16 : 8), 2)" },
+            fill: { value: null }, stroke: { value: highlightColor(dark) }, strokeWidth: { value: 2 },
+          } },
+        },
+        {
           name: "time_points", type: "symbol", from: { data: "time_values" },
           encode: { update: {
             x: { scale: "time_x", field: "minutes" }, y: { scale: "score_y", field: "meanScore" },
@@ -126,8 +140,9 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick }: Ch
       ],
       config: theme(dark),
     } as VisualizationSpec;
-  }, [analysis, manifest, scale, narrow, dark]);
-  return <VegaChart spec={spec} ariaLabel={`Time efficiency chart for ${analysis.plottedModels.length} models`} onDatumClick={onDatumClick} interactiveMarkSelector=".time_points path" fitContainerWidth />;
+  }, [analysis, manifest, scale, narrow, dark, highlights.selected]);
+  return <VegaChart spec={spec} ariaLabel={`Time efficiency chart for ${analysis.plottedModels.length} models`} onDatumClick={onDatumClick} interactiveMarkSelector=".time_points path"
+    highlight={{ selection: highlights, markSelector: ".time_points path", getId: modelHighlightId }} fitContainerWidth />;
 }
 
 export function TimeDistributionChart({ analysis, manifest, scale, onDatumClick }: ChartProps) {

@@ -4,16 +4,18 @@ import type { VisualizationSpec } from "vega-embed";
 
 import { summarizeModelScores } from "../analysis/scores";
 import { FilterBar } from "../components/FilterBar";
+import { HighlightActions, HighlightCheckbox, highlightColor } from "../components/HighlightActions";
 import { VegaChart } from "../components/VegaChart";
 import { loadRuns } from "../data/client";
 import { useDataset } from "../data/context";
 import type { FilterState, RunRecord } from "../data/types";
 import { useFilterState } from "../state/filters";
+import { copyHighlights, modelHighlightId, useHighlightState } from "../state/highlights";
 import { downloadText, runsToCsv } from "../utils/csv";
 import { useMediaQuery } from "../utils/media";
 
 function copySharedParams(source: URLSearchParams): URLSearchParams {
-  const target = new URLSearchParams();
+  const target = copyHighlights(source);
   for (const key of ["model", "model-set", "benchmark", "backend"]) {
     source.getAll(key).forEach((value) => target.append(key, value));
   }
@@ -28,8 +30,8 @@ function detailPath(runId: string, source: URLSearchParams): string {
   return `/run/${encodeURIComponent(runId)}?${query}`;
 }
 
-function runsPath(modelId: string, filters: Pick<FilterState, "benchmarks" | "backends">): string {
-  const query = new URLSearchParams();
+function runsPath(modelId: string, filters: Pick<FilterState, "benchmarks" | "backends">, current: URLSearchParams): string {
+  const query = copyHighlights(current);
   query.append("model", modelId);
   filters.benchmarks.forEach((value) => query.append("benchmark", value));
   filters.backends.forEach((value) => query.append("backend", value));
@@ -79,6 +81,12 @@ export function ScoresView() {
     [activeRuns, manifest, state],
   );
   const visibleRuns = activeRuns.length;
+  const highlights = useHighlightState("modelIds", summaries.map((summary) => summary.modelId));
+  const chartSummaries = useMemo(() => summaries.map((summary) => ({
+    ...summary, highlightLabel: highlights.selected.has(summary.modelId) ? "Yes" : "No",
+  })), [summaries, highlights.selected]);
+  const highlightedRows = chartSummaries.filter((summary) => highlights.selected.has(summary.modelId))
+    .map((summary) => ({ ...summary, highlightMinimum: manifest.scoreScale.minimum, highlightMaximum: manifest.scoreScale.maximum }));
   const weightedMean = visibleRuns === 0
     ? null
     : activeRuns.reduce((total, run) => total + run.overallScore, 0) / visibleRuns;
@@ -89,9 +97,10 @@ export function ScoresView() {
   const returnQuery = useMemo(() => copySharedParams(new URLSearchParams(paramsKey)).toString(), [paramsKey]);
   const points = useMemo(() => summaries.flatMap((summary) => summary.points.map((point) => ({
     ...point,
+    highlightLabel: highlights.selected.has(point.modelId) ? "Yes" : "No",
     jitterOffset: rowStep / 2 + (point.jitter - 0.5) * (isNarrow ? 16 : 20),
-    accessibleDescription: `Run ${point.runId}; ${point.modelLabel}; score ${point.score}; ${point.benchmarkLabel}; ${point.backendLabel}; repetition ${point.repetition}`,
-  }))), [isNarrow, rowStep, summaries]);
+    accessibleDescription: `Run ${point.runId}; ${point.modelLabel}; score ${point.score}; ${point.benchmarkLabel}; ${point.backendLabel}; repetition ${point.repetition}; Highlighted: ${highlights.selected.has(point.modelId) ? "Yes" : "No"}`,
+  }))), [isNarrow, rowStep, summaries, highlights.selected]);
   const modelLabels = useMemo(() => summaries.map((summary, rowIndex) => ({
     modelId: summary.modelId,
     modelLabel: summary.modelLabel,
@@ -100,7 +109,8 @@ export function ScoresView() {
     runCount: summary.runCount,
     meanScore: summary.meanScore,
     rowIndex,
-  })), [summaries]);
+    highlightLabel: highlights.selected.has(summary.modelId) ? "Yes" : "No",
+  })), [summaries, highlights.selected]);
   const rowBandRows = modelLabels.filter((model) => model.rowIndex % 2 === 1).map((model) => ({
     ...model,
     bandMinimum: manifest.scoreScale.minimum,
@@ -146,6 +156,11 @@ export function ScoresView() {
     },
     layer: [
       {
+        name: "score_highlight_rows", data: { values: highlightedRows },
+        mark: { type: "rect", fill: highlightColor(isDark), fillOpacity: 0.1, stroke: highlightColor(isDark), strokeWidth: 2, aria: false, tooltip: null },
+        encoding: { x: { field: "highlightMinimum", type: "quantitative" }, x2: { field: "highlightMaximum" } },
+      },
+      {
         name: "score_row_bands",
         data: { values: rowBandRows },
         mark: {
@@ -180,6 +195,7 @@ export function ScoresView() {
           tooltip: [
             { field: "modelLabel", title: "Model" },
             { aggregate: "max", field: "runCount", title: "Runs", format: ",d" },
+            { field: "highlightLabel", title: "Highlighted" },
             { aggregate: "max", field: "meanScore", title: "Mean", format: ".2f" },
             { aggregate: "max", field: "lowerWhisker", title: "Lower whisker", format: ".2f" },
             { aggregate: "max", field: "firstQuartile", title: "Q1", format: ".2f" },
@@ -191,7 +207,7 @@ export function ScoresView() {
         },
       },
       {
-        data: { values: summaries },
+        data: { values: chartSummaries },
         mark: {
           type: "point",
           shape: "diamond",
@@ -213,6 +229,7 @@ export function ScoresView() {
             { field: "thirdQuartile", title: "Q3", format: ".2f" },
             { field: "upperWhisker", title: "Upper whisker", format: ".2f" },
             { field: "outlierCount", title: "Outliers", format: ",d" },
+            { field: "highlightLabel", title: "Highlighted" },
           ],
         },
       },
@@ -257,11 +274,12 @@ export function ScoresView() {
             { field: "score", title: "Score", format: "d" },
             { field: "scoreBandLabel", title: "Tier" },
             { field: "isOutlier", title: "Tukey outlier" },
+            { field: "highlightLabel", title: "Highlighted" },
           ],
         },
       },
       {
-        data: { values: modelLabels },
+        name: "score_model_labels", data: { values: modelLabels },
         mark: {
           type: "text",
           align: "right",
@@ -276,12 +294,13 @@ export function ScoresView() {
         encoding: {
           x: { value: 0 },
           y: { field: "modelId", type: "nominal", sort: modelOrder },
-          color: { value: isDark ? "#c1cbc9" : "#49535d" },
+          color: { condition: { test: "datum.highlightLabel === 'Yes'", value: highlightColor(isDark) }, value: isDark ? "#c1cbc9" : "#49535d" },
           text: { field: "modelLabel", type: "nominal" },
           tooltip: [
             { field: "modelLabel", title: "Model" },
             { field: "modelHarnessLabel", title: "Agent harness" },
             { field: "modelInvocationLabel", title: "Invocation" },
+            { field: "highlightLabel", title: "Highlighted" },
             { field: "runCount", title: "Runs", format: ",d" },
             { field: "meanScore", title: "Mean", format: ".2f" },
           ],
@@ -300,7 +319,7 @@ export function ScoresView() {
       legend: { labelColor: isDark ? "#edf0eb" : "#303941", offset: 12 },
       view: { stroke: null },
     },
-  }) as VisualizationSpec, [chartHeight, isDark, isNarrow, manifest.scoreScale, modelLabels, modelOrder, points, rowBandRows, summaries]);
+  }) as VisualizationSpec, [chartHeight, isDark, isNarrow, manifest.scoreScale, modelLabels, modelOrder, points, rowBandRows, chartSummaries, highlightedRows]);
 
   const openPoint = useCallback((datum: Record<string, unknown>) => {
     if (typeof datum.runId === "string") {
@@ -358,9 +377,12 @@ export function ScoresView() {
             <h2>Per-model score distributions</h2>
             <p>Boxes use 1.5 × IQR whiskers. Select a point to inspect that run.</p>
           </div>
-          <button className="secondary-button" type="button" disabled={exporting || loading || visibleRuns === 0} onClick={() => void exportRecords()}>
-            {exporting ? "Preparing…" : "Export records · CSV"}
-          </button>
+          <HighlightActions selection={highlights}>
+            <button className="secondary-button" type="button" disabled={exporting || loading || visibleRuns === 0} onClick={() => void exportRecords()}
+              title="Export individual scored run records for the active filters (CSV)">
+              {exporting ? "Preparing…" : "Export"}
+            </button>
+          </HighlightActions>
         </header>
 
         {loading ? (
@@ -379,6 +401,7 @@ export function ScoresView() {
               ariaLabel={`Score distribution chart for ${summaries.length} models and ${visibleRuns} individual runs`}
               onDatumClick={openPoint}
               interactiveMarkSelector='[aria-roledescription="circle"]'
+              highlight={{ selection: highlights, markSelector: ".score_model_labels_marks text", getId: modelHighlightId }}
             />
             <p className="chart-footnote">The diamond marks the filtered mean. Points are individual runs; color labels the reviewed score tier.</p>
           </>
@@ -397,10 +420,10 @@ export function ScoresView() {
           <div className="table-scroll">
             <table>
               <caption>Box-plot statistics for the active score selection</caption>
-              <thead><tr><th scope="col">Model</th><th scope="col">Runs</th><th scope="col">Mean</th><th scope="col">Lower whisker</th><th scope="col">Q1</th><th scope="col">Median</th><th scope="col">Q3</th><th scope="col">Upper whisker</th><th scope="col">Outliers</th><th scope="col">Records</th></tr></thead>
+              <thead><tr><th scope="col">Model</th><th scope="col">Runs</th><th scope="col">Mean</th><th scope="col">Lower whisker</th><th scope="col">Q1</th><th scope="col">Median</th><th scope="col">Q3</th><th scope="col">Upper whisker</th><th scope="col">Outliers</th><th scope="col">Records</th><th scope="col">Highlighted</th></tr></thead>
               <tbody>
                 {summaries.map((summary) => (
-                  <tr key={summary.modelId}>
+                  <tr key={summary.modelId} className={highlights.selected.has(summary.modelId) ? "is-highlighted" : undefined}>
                     <th scope="row">{summary.modelLabel}</th>
                     <td>{summary.runCount}</td>
                     <td>{statistic(summary.meanScore)}</td>
@@ -410,7 +433,8 @@ export function ScoresView() {
                     <td>{statistic(summary.thirdQuartile)}</td>
                     <td>{statistic(summary.upperWhisker)}</td>
                     <td>{summary.outlierCount}</td>
-                    <td><Link to={runsPath(summary.modelId, state)}>Open runs</Link></td>
+                    <td><Link to={runsPath(summary.modelId, state, params)}>Open runs</Link></td>
+                    <td><HighlightCheckbox selection={highlights} id={summary.modelId} label={summary.modelLabel} /></td>
                   </tr>
                 ))}
               </tbody>

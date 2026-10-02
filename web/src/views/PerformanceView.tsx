@@ -8,11 +8,13 @@ import {
   type PerformanceOrder,
 } from "../analysis/performance";
 import { FilterBar } from "../components/FilterBar";
+import { HighlightActions, HighlightCheckbox, highlightColor } from "../components/HighlightActions";
 import { VegaChart } from "../components/VegaChart";
 import { loadCellRuns } from "../data/client";
 import { useDataset } from "../data/context";
 import type { CellDescriptor, RunRecord } from "../data/types";
 import { useFilterState } from "../state/filters";
+import { copyHighlights, runHighlightId, useHighlightState } from "../state/highlights";
 import { downloadText, runsToCsv } from "../utils/csv";
 import { formatMilliseconds } from "../utils/format";
 import { useMediaQuery } from "../utils/media";
@@ -30,8 +32,8 @@ function runDetailPath(runId: string, params: URLSearchParams): string {
   return `/run/${encodeURIComponent(runId)}?${query}`;
 }
 
-function modelRunsPath(modelId: string, cell: CellDescriptor): string {
-  const query = new URLSearchParams();
+function modelRunsPath(modelId: string, cell: CellDescriptor, current: URLSearchParams): string {
+  const query = copyHighlights(current);
   query.append("model", modelId);
   query.append("benchmark", cell.benchmarkId);
   query.append("backend", cell.backendId);
@@ -100,6 +102,7 @@ export function PerformanceView() {
     return runs.filter((run) => selectedModels.size === 0 || selectedModels.has(run.modelId));
   }, [analysisState.models, runs]);
   const modelOrder = analysis.models.map((model) => model.modelId);
+  const highlights = useHighlightState("runIds", analysis.models.flatMap((model) => model.points.map((point) => point.runId)));
   const chartHeight = Math.max(isNarrow ? 150 : 170, analysis.models.length * (isNarrow ? 40 : 46));
   const rowStep = chartHeight / Math.max(1, analysis.models.length);
   const points = useMemo(() => analysis.models.flatMap((model, modelIndex) => {
@@ -112,13 +115,17 @@ export function PerformanceView() {
     const availableRowHeight = Math.max(0, rowStep - pointInset * 2);
     return orderedPoints.map((point, index) => ({
       ...point,
+      isHighlighted: highlights.selected.has(point.runId),
+      highlightLabel: highlights.selected.has(point.runId) ? "Yes" : "No",
+      accessibleDescription: `${point.accessibleDescription}; Highlighted: ${highlights.selected.has(point.runId) ? "Yes" : "No"}`,
       rowOffset: orderedPoints.length === 1
         ? rowStep / 2
         : pointInset + availableRowHeight * index / (orderedPoints.length - 1),
       pointShape,
       pointSize: Math.round((isNarrow ? 48 : 65) * sizeMultiplier),
+      highlightSize: (Math.sqrt(Math.round((isNarrow ? 48 : 65) * sizeMultiplier)) + 8) ** 2,
     }));
-  }), [analysis.models, isNarrow, rowStep]);
+  }), [analysis.models, isNarrow, rowStep, highlights.selected]);
   const modelRows = useMemo(() => analysis.models.map((model, index) => ({
     ...model,
     rowIndex: index,
@@ -248,6 +255,15 @@ export function PerformanceView() {
       },
       ...rangeLayer,
       {
+        name: "performance_highlight_halos", data: { values: points.filter((point) => point.isHighlighted) },
+        mark: { type: "point", filled: false, stroke: highlightColor(isDark), strokeWidth: 2, opacity: 1, aria: false, tooltip: null },
+        encoding: {
+          yOffset: { field: "rowOffset", type: "quantitative", scale: null },
+          shape: { field: "pointShape", type: "nominal", scale: null, legend: null },
+          size: { field: "highlightSize", type: "quantitative", scale: null, legend: null },
+        },
+      },
+      {
         name: "performance_model_medians",
         data: { values: modelRows.filter((model) => model.plotMedian !== null) },
         mark: {
@@ -293,6 +309,7 @@ export function PerformanceView() {
             { field: "measurementsLabel", title: "Measurements" },
             { field: "relativeToFastest", title: "Relative to fastest", format: ".3~f" },
             { field: "sourceAvailabilityLabel", title: "Source evidence" },
+            { field: "highlightLabel", title: "Highlighted" },
           ],
         },
       },
@@ -496,9 +513,12 @@ export function PerformanceView() {
             <h2>{benchmarkLabel} · {backendLabel}</h2>
             <p>Points are successful program-run medians; shape identifies the model row, and vertical rules mark model medians.</p>
           </div>
-          <button className="secondary-button" type="button" disabled={exporting || loading || activeRuns.length === 0} onClick={() => void exportRecords()}>
-            {exporting ? "Preparing…" : "Export active records · CSV"}
-          </button>
+          <HighlightActions selection={highlights}>
+            <button className="secondary-button" type="button" disabled={exporting || loading || activeRuns.length === 0} onClick={() => void exportRecords()}
+              title="Export all active run records in this benchmark cell, including omitted timings (CSV)">
+              {exporting ? "Preparing…" : "Export"}
+            </button>
+          </HighlightActions>
         </header>
 
         {!activeCell ? (
@@ -523,6 +543,7 @@ export function PerformanceView() {
               ariaLabel={`Performance chart for ${benchmarkLabel}, ${backendLabel}, ${analysis.models.length} models, and ${analysis.successfulRunCount} successful runs${focusedModelId ? `; ${labels.models.get(focusedModelId) ?? focusedModelId} highlighted` : ""}`}
               onDatumClick={openPoint}
               interactiveMarkSelector='[aria-label^="Run "]'
+              highlight={{ selection: highlights, markSelector: '[aria-label^="Run "]', getId: runHighlightId }}
             />
             <p className="chart-footnote">
               {analysis.omittedRunCount} active {analysis.omittedRunCount === 1 ? "run is" : "runs are"} omitted:
@@ -556,12 +577,21 @@ export function PerformanceView() {
                     <td>{model.omittedRunCount}</td>
                     <td>{formatMilliseconds(model.medianMs)}</td>
                     <td>{model.relativeMedian === null ? "—" : `${model.relativeMedian.toFixed(3)}×`}</td>
-                    <td><Link to={modelRunsPath(model.modelId, activeCell)}>Open runs</Link></td>
+                    <td><Link to={modelRunsPath(model.modelId, activeCell, params)}>Open runs</Link></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <div className="table-scroll"><table className="performance-runs-table">
+            <caption>Plotted performance runs for {benchmarkLabel} and {backendLabel}</caption>
+            <thead><tr><th scope="col">Run</th><th scope="col">Model</th><th scope="col">Repetition</th><th scope="col">Median</th><th scope="col">Highlighted</th><th scope="col">Result</th></tr></thead>
+            <tbody>{points.map((point) => <tr key={point.runId} className={highlights.selected.has(point.runId) ? "is-highlighted" : undefined}>
+              <th scope="row">{point.runId}</th><td>{point.modelLabel}</td><td>{point.repetition}</td><td>{point.medianLabel}</td>
+              <td><HighlightCheckbox selection={highlights} id={point.runId} label={`run ${point.runId}`} /></td>
+              <td><Link to={runDetailPath(point.runId, params)}>Open result</Link></td>
+            </tr>)}</tbody>
+          </table></div>
         </details>
       )}
     </main>

@@ -47,8 +47,8 @@ export function MethodologyView() {
     <main id="main-content" className="page-shell methodology-page">
       <PageIntro
         eyebrow="Study design"
-        title="Methodology"
-        description={<>Summary of the program generation, validation, performance measurement, scoring, cost estimation, and generation-time measurements represented by this dataset snapshot.</>}
+        title="Background & Methodology"
+        description={<>The goal of this study is to quantify the performance and efficiency of LLMs in generating parallel C++ programs from sequential sources. This page provides a summary of the program generation, validation, performance measurement, scoring, cost estimation, and generation-time measurements represented by this dataset snapshot. For more background information, refer to the paper.</>}
         aside={(
           <div className="metric-strip" aria-label="Dataset design summary">
             <div><strong>{manifest.counts.runs.toLocaleString()}</strong><span>runs</span></div>
@@ -64,8 +64,8 @@ export function MethodologyView() {
             <p className="eyebrow">Experimental unit</p>
             <h2 id="method-unit">LLM-generated parallel programs</h2>
             <p>
-              Each record represents one LLM-agent invocation for a model, a sequential benchmark application,
-              a requested parallelization backend, and a repetition. The same concise prompt template is adapted
+              Each record represents one LLM-agent invocation for a given model on a sequential benchmark application,
+              with a requested parallelization backend. The same concise prompt template is adapted
               to the benchmark and backend but not otherwise varied between models. The agent harness varies by model
               as recorded below. Each invocation starts from
               the sequential source in an isolated user environment; the resulting program and invocation metadata
@@ -106,12 +106,6 @@ export function MethodologyView() {
                       ? <code>{harness.parameters.join(" ")}</code>
                       : <p>No additional harness parameters were passed.</p>}
                   </details>
-                  {harness.configurationSource && (
-                    <p>
-                      <a href={harness.configurationSource.url} target="_blank" rel="noreferrer">{harness.label} harness source</a>
-                      {" · SHA-256 "}<code className="inline-digest">{harness.configurationSource.sha256}</code>
-                    </p>
-                  )}
                 </article>
               ))}
               {modelsWithoutHarness.length > 0 && (
@@ -121,8 +115,7 @@ export function MethodologyView() {
               )}
             </div>
             <p>
-              Campaign-specific harness configurations are linked above. Per-run transcripts and invocation
-              metadata are retained alongside the generated source.
+              Per-run transcripts and invocation metadata are retained alongside the generated source.
             </p>
           </section>
 
@@ -255,8 +248,6 @@ export function MethodologyView() {
               Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired
               models use the last known live rate as a fallback.
               {" "}The GPT-6 profiles use the lowest published non-batch OpenAI tier, Flex, with official model documentation as their source.
-              Active filters change the run averages but not these rates. Long-context surcharges,
-              separate cache-write premiums, storage, tools, batch discounts, and later pricing or routing changes are not modeled.
             </p>
           </section>
         </div>
