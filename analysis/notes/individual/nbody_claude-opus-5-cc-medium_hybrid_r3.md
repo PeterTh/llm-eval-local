@@ -1,27 +1,40 @@
 # `nbody_claude-opus-5-cc-medium_hybrid_r3`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+Hybrid N-body, 50,000 bodies and 30 steps. The median is 853 ms, versus 1,004 ms
+for Opus r4, but the winner's samples range widely from 786 to 1,098 ms.
 
-New nominal winner in `nbody/hybrid` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-n 50000 -s 30`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 907.0, 788.0, 1098.0, 853.0, 786.0 ms, median **853.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/nbody_gpt-5.6-terra-xhigh_hybrid_r3.md), `nbody_gpt-5.6-terra-xhigh_hybrid_r3`, had times 1744.604, 1740.221, 1739.388, 1737.937, 1742.917 ms and median 1740.221 ms. The old/new median ratio is 2.0401x. This compares independent campaigns, not paired measurements or a confidence interval.
+CPU and GPU work shares adapt while ranks own disjoint target bodies. The GPU
+splits each target's source-body loop into segments, exposing more independent
+blocks, then reduces partial forces and integrates. Updated coordinates are
+all-gathered before the next step.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/db27e2872a28b900024d318f6a3004a3a7fddfa7/20260901-162328/nbody_claude-opus-5-cc-medium_hybrid_r3/nbody/nbody.cpp); file SHA-256 `93b3e1c21ba7397b4553b0e851bac4bbb470bfe13e9901739ae954815c452faa`. Timing-fixed flag: **false**. This program did not require a timing correction in the retained campaign.
+## Close-group comparison
 
-## Implementation and timing
+Opus r4 also balances CPU and GPU work. Its GPU kernel instead assigns a thread
+to a target and visits all source tiles in sequence. Segmenting that long reduction
+can improve GPU occupancy, at the cost of partial-force storage and a second kernel.
+The winner also performs three coordinate all-gathers where r4 gathers packed
+positions once, so not every design difference favors it.
 
-MPI assigns body slices and republishes positions each step. GPU kernels evaluate all pair interactions for their slices using shared-memory tiles and segmented partial sums; a second kernel combines segments and integrates positions. OpenMP computes another slice concurrently. The CPU/GPU split is adjusted from observed worker throughput after each step.
+The 15.0% median lead warrants examination, but r4's tight 999–1,014 ms range lies
+inside the winner's wider range. This is a promising design difference with variable
+observed performance, not a uniformly demonstrated 15% advantage.
 
-The timed loop includes host/device transfers, CPU work, GPU stream completion, the adaptive split, and all three position all-gathers on every step. `MPI_MAX` aggregates elapsed time. The final velocity replication is output preparation outside the interval, not work needed for subsequent simulated steps.
+## Correctness and timing
 
-Combining host and accelerator work plausibly explains the roughly twofold gain. Segmented GPU sums and CPU reduction order can differ from the sequential accumulation; retained tolerance-based validation passed, but this is not a claim of bitwise equivalence for arbitrary long chaotic trajectories. The benchmark keeps its original 30 steps; no convergence shortcut is present.
+Retained tolerance-based validation passed. Force evaluation reads old positions;
+updated buffers become the next step's inputs only after completion and gathering.
+The corrected maximum-rank interval includes all steps, work splitting, GPU
+transfers and position collectives. Final velocity collection for output is outside.
 
-## Limits and release decision
+## Interpretation
 
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
-
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+The segmented GPU reduction is a concrete candidate explanation for the faster
+samples. Load balance and variability make the exact median gap less conclusive
+than the headline ordering suggests.

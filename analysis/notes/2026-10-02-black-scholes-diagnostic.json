@@ -1,0 +1,320 @@
+{
+  "program_id": "black-scholes_gpt-6-sol-medium_cuda_r3",
+  "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+  "purpose": "Separate seven-family arithmetic reuse from device-to-host result transfer cost; diagnostic only, never canonical measurements.",
+  "started_at": "2026-10-02T09:47:13Z",
+  "benchmark_args": [
+    "-n",
+    "25000000"
+  ],
+  "validation_args": [
+    "-n",
+    "10000",
+    "-v",
+    "-r"
+  ],
+  "gpu_inventory": "0, NVIDIA GeForce RTX 3090, 0 %, 2 MiB\n1, NVIDIA GeForce RTX 3090, 0 %, 2 MiB\n2, NVIDIA GeForce RTX 3090, 0 %, 2 MiB\n3, NVIDIA GeForce RTX 3090, 0 %, 2 MiB",
+  "pipeline_commit": "d86f98f9aa7777a7afa66310fe4dce0d83a67dfb",
+  "variants": {
+    "baseline": {
+      "source_sha256": "0cbd10849bb8bad54d31c7bb106b85d50302c88d09788a7d50eef65700e9b3fc",
+      "times_ms": [
+        1.225,
+        1.242,
+        1.224
+      ],
+      "median_ms": 1.225
+    },
+    "full-formula": {
+      "source_sha256": "6c5614fdc2cf4a1ff7143fab92c98cc8a76005dc9776fa5a80197f007a796f83",
+      "correctness_comparison": {
+        "passed": true,
+        "message": "Validation successful. All objects match reference output.\n - Object OptionPrices: PASSED (hash match: false)\n"
+      },
+      "times_ms": [
+        34.317,
+        34.316,
+        34.317
+      ],
+      "median_ms": 34.317,
+      "patch": "2026-10-02-black-scholes-diagnostic/full-formula.patch",
+      "patch_sha256": "1e00dbfbf9900999386e60f0c9ff64e6ae0006eefb9a927e902c8ab47d615e50"
+    },
+    "include-download": {
+      "source_sha256": "710a8d09ce547fc34fbfb1926e1ddd9610a455c541209948b8d7064d62a14841",
+      "correctness_comparison": {
+        "passed": true,
+        "message": "Validation successful. All objects match reference output.\n - Object OptionPrices: PASSED (hash match: true)\n"
+      },
+      "times_ms": [
+        18.667,
+        18.375,
+        26.525
+      ],
+      "median_ms": 18.667,
+      "patch": "2026-10-02-black-scholes-diagnostic/include-download.patch",
+      "patch_sha256": "d9f7d8fa4467bd1b58c69c441848966fab4d4d65c1ba0a9e975ebf51e8f5a6d4"
+    }
+  },
+  "executions": [
+    {
+      "variant": "baseline",
+      "label": "correctness",
+      "args": [
+        "-n",
+        "10000",
+        "-v",
+        "-r"
+      ],
+      "reported_ms": 0.08,
+      "wall_seconds": 0.9685028549283743,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000\nValidation: enabled\nPricing options...\nComputation time: 0.080 ms\nOptions per second: 125000000\n=== RESULTS ===\nName: OptionPrices\nElements: 10000\nSum: 3.11366175001330115e+06\nMin: 2.07828649441422382e-02\nMax: 1.42998174421691783e+03\nSample[0]: 6.42531332374790143e+00\nSample[2500]: 7.52281167696416286e-01\nSample[5000]: 1.35683671198831775e+02\nSample[7500]: 1.07507814119794102e+03\nSample[9999]: 1.42998174421691783e+03\nHash: 4b46baaa52f6918f\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n",
+      "stderr": "",
+      "executable": "builds/baseline/black_scholes"
+    },
+    {
+      "variant": "full-formula",
+      "label": "correctness",
+      "args": [
+        "-n",
+        "10000",
+        "-v",
+        "-r"
+      ],
+      "reported_ms": 0.102,
+      "wall_seconds": 0.869084469974041,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000\nValidation: enabled\nPricing options...\nComputation time: 0.102 ms\nOptions per second: 98039216\n=== RESULTS ===\nName: OptionPrices\nElements: 10000\nSum: 3.11366175001330115e+06\nMin: 2.07828649441422590e-02\nMax: 1.42998174421691897e+03\nSample[0]: 6.42531332374790143e+00\nSample[2500]: 7.52281167696248865e-01\nSample[5000]: 1.35683671198831746e+02\nSample[7500]: 1.07507814119793966e+03\nSample[9999]: 1.42998174421691897e+03\nHash: 5b4a8471c75c4875\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n",
+      "stderr": "",
+      "executable": "builds/full-formula/black_scholes"
+    },
+    {
+      "variant": "include-download",
+      "label": "correctness",
+      "args": [
+        "-n",
+        "10000",
+        "-v",
+        "-r"
+      ],
+      "reported_ms": 0.102,
+      "wall_seconds": 0.8687969725579023,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000\nValidation: enabled\nPricing options...\nComputation time: 0.102 ms\nOptions per second: 98039216\n=== RESULTS ===\nName: OptionPrices\nElements: 10000\nSum: 3.11366175001330115e+06\nMin: 2.07828649441422382e-02\nMax: 1.42998174421691783e+03\nSample[0]: 6.42531332374790143e+00\nSample[2500]: 7.52281167696416286e-01\nSample[5000]: 1.35683671198831775e+02\nSample[7500]: 1.07507814119794102e+03\nSample[9999]: 1.42998174421691783e+03\nHash: 4b46baaa52f6918f\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n",
+      "stderr": "",
+      "executable": "builds/include-download/black_scholes"
+    },
+    {
+      "variant": "baseline",
+      "label": "warmup",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 1.225,
+      "wall_seconds": 0.8678976614028215,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 1.225 ms\nOptions per second: 20408163265\n",
+      "stderr": "",
+      "executable": "builds/baseline/black_scholes"
+    },
+    {
+      "variant": "full-formula",
+      "label": "warmup",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 34.322,
+      "wall_seconds": 0.9198319353163242,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 34.322 ms\nOptions per second: 728395781\n",
+      "stderr": "",
+      "executable": "builds/full-formula/black_scholes"
+    },
+    {
+      "variant": "include-download",
+      "label": "warmup",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 18.136,
+      "wall_seconds": 1.12034335359931,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 18.136 ms\nOptions per second: 1378473754\n",
+      "stderr": "",
+      "executable": "builds/include-download/black_scholes"
+    },
+    {
+      "variant": "baseline",
+      "label": "measured-1",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 1.225,
+      "wall_seconds": 0.8689566943794489,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 1.225 ms\nOptions per second: 20408163265\n",
+      "stderr": "",
+      "executable": "builds/baseline/black_scholes"
+    },
+    {
+      "variant": "full-formula",
+      "label": "measured-1",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 34.317,
+      "wall_seconds": 0.9189315140247345,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 34.317 ms\nOptions per second: 728501909\n",
+      "stderr": "",
+      "executable": "builds/full-formula/black_scholes"
+    },
+    {
+      "variant": "include-download",
+      "label": "measured-1",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 18.667,
+      "wall_seconds": 1.1190490759909153,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 18.667 ms\nOptions per second: 1339261799\n",
+      "stderr": "",
+      "executable": "builds/include-download/black_scholes"
+    },
+    {
+      "variant": "full-formula",
+      "label": "measured-2",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 34.316,
+      "wall_seconds": 0.917895894497633,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 34.316 ms\nOptions per second: 728523138\n",
+      "stderr": "",
+      "executable": "builds/full-formula/black_scholes"
+    },
+    {
+      "variant": "include-download",
+      "label": "measured-2",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 18.375,
+      "wall_seconds": 1.1195357535034418,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 18.375 ms\nOptions per second: 1360544218\n",
+      "stderr": "",
+      "executable": "builds/include-download/black_scholes"
+    },
+    {
+      "variant": "baseline",
+      "label": "measured-2",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 1.242,
+      "wall_seconds": 0.8676707949489355,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 1.242 ms\nOptions per second: 20128824477\n",
+      "stderr": "",
+      "executable": "builds/baseline/black_scholes"
+    },
+    {
+      "variant": "include-download",
+      "label": "measured-3",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 26.525,
+      "wall_seconds": 1.1194633468985558,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 26.525 ms\nOptions per second: 942507069\n",
+      "stderr": "",
+      "executable": "builds/include-download/black_scholes"
+    },
+    {
+      "variant": "baseline",
+      "label": "measured-3",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 1.224,
+      "wall_seconds": 0.8684798125177622,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 1.224 ms\nOptions per second: 20424836601\n",
+      "stderr": "",
+      "executable": "builds/baseline/black_scholes"
+    },
+    {
+      "variant": "full-formula",
+      "label": "measured-3",
+      "args": [
+        "-n",
+        "25000000"
+      ],
+      "reported_ms": 34.317,
+      "wall_seconds": 0.9182553328573704,
+      "exit_code": 0,
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 25000000\nValidation: disabled\nPricing options...\nComputation time: 34.317 ms\nOptions per second: 728501909\n",
+      "stderr": "",
+      "executable": "builds/full-formula/black_scholes"
+    }
+  ],
+  "finished_at": "2026-10-02T09:48:14Z",
+  "runner_sha256": "2a7c1eaf7317a14d12a86c166abb43332e55d8afa092b1067bc680a877ffefb9",
+  "schema_version": 1,
+  "source_repository": "https://github.com/PeterTh/llm-eval-generated",
+  "source_path": "20260929-135931/black-scholes_gpt-6-sol-medium_cuda_r3",
+  "source_files": {
+    "black-scholes/CMakeLists.txt": "8e1878c3feedf149acf0b13c41f5d16fd0d4782d0fba02afc3e40efd113713a0",
+    "black-scholes/black_scholes.cpp": "0cbd10849bb8bad54d31c7bb106b85d50302c88d09788a7d50eef65700e9b3fc",
+    "common/hash.hpp": "da47685f2f22487193f986eeba67fe414f80d50536a63e03cae0a6935d76a4e9",
+    "common/results_output.hpp": "39dce5caf66268985c8ea44e5c60b619f1cca6e663a0fec4ff9c1dea9cc43e5e"
+  },
+  "pipeline_repository": "https://github.com/PeterTh/llm-eval-experiment",
+  "correctness_scope": "Existing numerical validator against the unchanged, previously validated winner at N=10000; not a full-size reference comparison. Program-internal expected-price messages are not the external comparison.",
+  "design": "Three variants; one correctness run and one warmup each; three timed rounds with rotated order. No sample discarded or added after inspecting the timings.",
+  "resource_policy": {
+    "host_performance_lock": true,
+    "execution_timeout_seconds": 30,
+    "memory_max_bytes": 274877906944,
+    "tasks_max": 512,
+    "file_size_max_bytes": 1073741824,
+    "output_limit_bytes": 8388608,
+    "io_write_bandwidth_bytes_per_second": 16777216,
+    "network": "deny external; allow localhost",
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "0",
+      "OMP_NUM_THREADS": "1",
+      "CC": "/usr/bin/gcc-13",
+      "CXX": "/usr/bin/g++-13"
+    },
+    "command_prefix": [
+      "numactl",
+      "--physcpubind=0-63",
+      "--membind=0"
+    ],
+    "workspace_policy": "Local /tmp, not NFS; no concurrent benchmark/model workload."
+  },
+  "build": {
+    "configure": "cmake -S ${diagnostic_workspace}/${variant}/black-scholes -B ${diagnostic_workspace}/builds/${variant} -DCMAKE_BUILD_TYPE\\=Release -DCMAKE_C_COMPILER\\=/usr/bin/gcc-13 -DCMAKE_CXX_COMPILER\\=/usr/bin/g++-13 -DCMAKE_CUDA_ARCHITECTURES\\=86 -DCMAKE_CUDA_COMPILER\\=/usr/local/cuda/bin/nvcc -DCUDAToolkit_ROOT\\=/usr/local/cuda",
+    "compile": "cmake --build ${diagnostic_workspace}/builds/${variant} --parallel 8",
+    "effective_cuda_flags": "-O3 -DNDEBUG -std=c++20 -arch=native -O3",
+    "configure_stdout": "-- The CXX compiler identification is GNU 13.2.0\n-- The CUDA compiler identification is NVIDIA 12.6.77\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/g++-13 - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Detecting CUDA compiler ABI info\n-- Detecting CUDA compiler ABI info - done\n-- Check for working CUDA compiler: /usr/local/cuda/bin/nvcc - skipped\n-- Detecting CUDA compile features\n-- Detecting CUDA compile features - done\n-- Configuring done (5.9s)\n-- Generating done (0.0s)\n-- Build files have been written to: ${workspace}/diagnostic/builds/baseline\n",
+    "note": "The source target specifies CUDA_ARCHITECTURES native, overriding the configure default 86. All three variants built successfully with the same settings."
+  }
+}

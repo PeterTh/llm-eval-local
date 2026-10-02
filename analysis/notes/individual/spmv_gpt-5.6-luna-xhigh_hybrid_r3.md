@@ -8,7 +8,8 @@ Status: static performance explanation; no validation, measurement, or scoring c
 
 This is the first-place hybrid result in the `spmv` cell of data release
 `local-eval-2026-08-25` at data commit `f83773e`. The benchmark used an 18,000-row
-matrix with 40 nonzeros per row and 50,000 repetitions on four ranks and four GPUs.
+matrix with one nonzero per 40 entries (450 per row on average) and 50,000
+repetitions on four ranks and four GPUs.
 Its times are 1793.625, 1793.366, 1793.484, 1793.547, and 1793.696 ms, with a
 1793.547 ms median. The runner-up median is 1797.715 ms.
 

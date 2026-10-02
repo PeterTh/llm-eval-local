@@ -1,27 +1,36 @@
 # `cholesky_claude-opus-5-cc-medium_omp_r3`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+OpenMP Cholesky, N=4,992. The median is 58 ms, followed by Opus r2 at 65 ms and
+r4 at 68 ms.
 
-New nominal winner in `cholesky/omp` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-n 4992`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 58.0, 60.0, 58.0, 57.0, 59.0 ms, median **58.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/cholesky_gpt-5.6-sol-xhigh_omp_r2.md), `cholesky_gpt-5.6-sol-xhigh_omp_r2`, had times 80.0, 81.0, 80.0, 80.0, 81.0 ms and median 80.0 ms. The old/new median ratio is 1.3793x. This compares independent campaigns, not paired measurements or a confidence interval.
+The implementation uses two-level left-looking blocking: 32-wide inner panels
+inside 128-wide outer panels. Packed row data feeds a 6×8 AVX2 update kernel, and
+partial dot products survive across inner panels. Cyclic row ownership distributes
+the shrinking trailing work among the threads.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/db27e2872a28b900024d318f6a3004a3a7fddfa7/20260901-162328/cholesky_claude-opus-5-cc-medium_omp_r3/cholesky/cholesky.cpp); file SHA-256 `d9890980d1ff6d2ebff0c24083f1a870e883e46e57b16ef2048b9830bf8776c6`. Timing-fixed flag: **false**. This program did not require a timing correction in the retained campaign.
+## Close-group comparison
 
-## Implementation and timing
+Opus r2 instead uses one level of 64-wide panels and a 4×8 register kernel.
+The winner's 57–60 ms samples are separated from r2's 64–65 ms, so the 10.8% lead
+is meaningful in this group. The extra blocking and retained partial updates offer
+a specific locality explanation; neither register shape nor block size has been
+isolated experimentally. The
+[older Sol review](cholesky_gpt-5.6-sol-xhigh_omp_r2.md) provides the broader blocked
+factorization context.
 
-This is a two-level blocked left-looking factorization. Packed panel rows feed an AVX2 register microkernel, while per-row partial dot products are continued across panels. Cyclic ownership of row blocks remains consistent across phases. The implementation also reestablishes parallel first touch after vector allocation, which matters for a multi-socket matrix working set.
+## Correctness and timing
 
-Panel dependencies are enforced by OpenMP worksharing, barriers, and single-thread diagonal steps. The timer wraps the complete factorization, including packed workspaces and the enclosing parallel region; it stops only after the team finishes. Matrix construction is separate.
+Retained validation passed. The factorization workspace, dependent panel work and
+completion of the parallel region are included. No NUMA-local allocation advantage
+is inferred under the campaign's interleaved memory policy.
 
-The 80-to-58 ms change is consistent with improved blocking and locality. The inspected accumulation scheme preserves increasing inner-product order, while retained internal and external validation provide the empirical correctness evidence. No new local-kernel ablation was performed, so attributing the entire gain to any one optimization would be stronger than the evidence.
+## Interpretation
 
-## Limits and release decision
-
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
-
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+A distinct cache-blocking refinement of the same factorization, with a moderate,
+consistently observed lead over its nearest implementation peers.

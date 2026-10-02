@@ -1,0 +1,24 @@
+--- a/black-scholes/black_scholes.cpp
++++ b/black-scholes/black_scholes.cpp
+@@ -71,17 +71,14 @@
+ // Scaling both spot and strike scales the option price by the same amount.
+ // Each block prices the seven distinct contracts once, then expands them.
+ __global__ void priceOptions(double* results, size_t numOptions) {
+-    __shared__ double basePrices[7];
+-    if (threadIdx.x < 7) {
+-        basePrices[threadIdx.x] = blackScholes(deviceTestOptions[threadIdx.x]);
+-    }
+-    __syncthreads();
+-
+     const size_t first = static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+     const size_t stride = static_cast<size_t>(gridDim.x) * blockDim.x;
+     for (size_t i = first; i < numOptions; i += stride) {
+         const double factor = 1.0 + 0.1 * (i / 7.0);
+-        results[i] = basePrices[i % 7] * factor;
++        OptionInput option = deviceTestOptions[i % 7];
++        option.spot *= factor;
++        option.strike *= factor;
++        results[i] = blackScholes(option);
+     }
+ }
+ 

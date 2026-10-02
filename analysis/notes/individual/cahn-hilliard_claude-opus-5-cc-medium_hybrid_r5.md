@@ -1,27 +1,34 @@
 # `cahn-hilliard_claude-opus-5-cc-medium_hybrid_r5`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+Hybrid Cahn–Hilliard, a 512³ grid for 100 steps. The median is 437 ms, followed by
+Opus r3 at 451 ms and Sol 6 r2 at 454 ms.
 
-New nominal winner in `cahn-hilliard/hybrid` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-x 512 -i 100`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 428.0, 437.0, 445.0, 435.0, 444.0 ms, median **437.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/cahn-hilliard_gpt-5.2_hybrid_r5.md), `cahn-hilliard_gpt-5.2_hybrid_r5`, had times 458.0, 468.0, 467.0, 468.0, 463.0 ms and median 467.0 ms. The old/new median ratio is 1.0686x. This compares independent campaigns, not paired measurements or a confidence interval.
+Ranks own Z slabs. Two concentration ghost planes allow each GPU to reconstruct
+the chemical-potential halo locally, so a step needs one concentration exchange
+instead of separate exchanges for concentration and chemical potential. Boundary
+work starts early, while streams overlap communication with interior updates; the
+interior kernel rolls several Z values through registers.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/db27e2872a28b900024d318f6a3004a3a7fddfa7/20260901-162328/cahn-hilliard_claude-opus-5-cc-medium_hybrid_r5/cahn-hilliard/cahn_hilliard.cpp); file SHA-256 `fc4d40c441946fb566503efdee45bea769a334c8b130c2998d8e20ba40e88b96`. Timing-fixed flag: **false**. This program did not require a timing correction in the retained campaign.
+## Close-group comparison
 
-## Implementation and timing
+Opus r3 also uses slabs and overlaps interior work, but performs the two distinct
+halo exchanges. That is a concrete communication/computation tradeoff between the
+nearest peers. Their samples, 428–445 and 449–459 ms, support a modest 3.1% median
+lead, not a fundamentally different scaling regime.
 
-The domain is split into Z slabs. Each rank uses two concentration ghost planes, recomputing chemical potential on the inner ghost plane so each step needs one concentration halo exchange instead of separate concentration and potential exchanges. CUDA threads roll through four Z planes in registers. Boundary updates are launched first; events and separate streams let halo staging overlap the interior sweeps.
+## Correctness and timing
 
-The main loop waits for both halo and bulk streams before swapping buffers. Final device synchronization and a communicator barrier precede the elapsed-time calculation, and the world `MPI_MAX` covers the reported duration. OpenMP handles host initialization and validation, not the GPU stencil itself.
+Retained validation passed. Reconstructed halo values use the expanded concentration
+neighborhood needed by the two stencil stages. The timed steps finish GPU work and
+communicator synchronization before the maximum-rank time is reported.
 
-This is a modest improvement with a concrete communication/overlap mechanism. Input allocation, initial halo establishment, and output assembly are not included in the kernel time. Retained validation supports the clamped-boundary implementation; static inspection is not a proof for arbitrary grid shapes or multi-node topologies.
+## Interpretation
 
-## Limits and release decision
-
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
-
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+A slightly faster member of a close distributed-stencil group, plausibly helped by
+exchanging a wider concentration halo instead of communicating two fields.

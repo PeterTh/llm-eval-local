@@ -1,27 +1,43 @@
 # `floydwarshall_claude-opus-5-cc-medium_omp_r4`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+OpenMP Floyd–Warshall, N=8,704. The median is 1,024 ms, versus 1,274 ms for both
+Sol 5.6 medium r2 and r4: a 19.6% reduction with nonoverlapping retained ranges.
 
-New nominal winner in `floydwarshall/omp` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-n 8704`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 1009.0, 1025.0, 1017.0, 1030.0, 1024.0 ms, median **1024.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/floydwarshall_gpt-5.6-sol-medium_omp_r2.md), `floydwarshall_gpt-5.6-sol-medium_omp_r2`, had times 1278.0, 1271.0, 1302.0, 1271.0, 1274.0 ms and median 1274.0 ms. The old/new median ratio is 1.2441x. This compares independent campaigns, not paired measurements or a confidence interval.
+The algorithm processes 64×64 tiles within the row-major distance and path
+matrices. Each pivot tile is completed first, then its row and column panels,
+then the independent trailing tiles. A trailing update packs its reused distance
+panel into contiguous scratch space and keeps small output chunks in registers
+while visiting the 64 pivot indices. Branch-free minimum updates maintain path
+information alongside distance values.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/db27e2872a28b900024d318f6a3004a3a7fddfa7/20260901-162328/floydwarshall_claude-opus-5-cc-medium_omp_r4/floydwarshall/floydwarshall.cpp); file SHA-256 `947fd39c53bab763414f87aa151b8294a4aa940e9dd3c64c4169f28af4ad5965`. Timing-fixed flag: **false**. This program did not require a timing correction in the retained campaign.
+This reorganizes reuse: a tile's panel data serves many updates while still close
+to the cores, instead of repeatedly streaming full matrix rows. Packing the reused
+panel avoids large-stride reads in the inner loop. Phase barriers
+enforce Floyd–Warshall's dependencies without a whole-team barrier for every scalar
+pivot throughout the trailing matrix.
 
-## Implementation and timing
+## Close-group comparison
 
-The implementation uses 64-by-64 cache tiles and the standard diagonal, panel, and independent-tile phases. Panel tiles are copied to contiguous scratch space, avoiding cache-set conflicts from the full matrix's row stride. The phase-three kernel retains 32-distance chunks across the inner K block and uses branch-free SIMD comparisons and blends.
+The [previous winner](floydwarshall_gpt-5.6-sol-medium_omp_r2.md) and its near-tied
+r4 peer retain the ordered scalar-pivot loop, parallelize rows and vectorize the
+column updates. Their medians coincide at 1,274 ms; the new winner's 1,009–1,030 ms
+range is clearly separated from both. This is a change in the locality and
+synchronization structure, not just a different SIMD spelling inside the same loop.
 
-All pivot blocks are processed. The OpenMP phase boundaries enforce dependencies before independent updates proceed, and the enclosing factorization call completes before the stop timestamp. Random graph generation is kept semantically consistent with the sequential generator rather than replaced with a different graph.
+## Correctness and timing
 
-A 1.24x improvement is consistent with cache and register reuse. This is a static mechanism explanation supported by retained output comparison, not an isolated measurement of the packing benefit. General graph/path semantics beyond the existing validation cases are not newly certified by this analysis.
+Retained validation passed. The original graph generator and path updates remain;
+the blocked phases preserve the required pivot ordering. Packing and the complete
+algorithm are included in the timer, so panel packing is not hidden setup.
 
-## Limits and release decision
+## Interpretation
 
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
-
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+Cache/register reuse and coarser synchronization give a concrete explanation for
+this outlier. Their individual contributions were not measured separately; the
+evidence supports the combined blocked design rather than a precise causal split.

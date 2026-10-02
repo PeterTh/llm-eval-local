@@ -1,27 +1,42 @@
 # `cahn-hilliard_claude-opus-5-cc-medium_omp_r4`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+OpenMP Cahn–Hilliard, a 512³ grid for 30 steps. The median is 489 ms, versus
+540 ms for Opus r5 and 742 ms for Opus r2.
 
-New nominal winner in `cahn-hilliard/omp` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-x 512 -i 30`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 490.0, 487.0, 493.0, 489.0, 484.0 ms, median **489.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/cahn-hilliard_gpt-5.6-sol-medium_omp_r2.md), `cahn-hilliard_gpt-5.6-sol-medium_omp_r2`, had times 2259.0, 2267.0, 2265.0, 2258.0, 2266.0 ms and median 2265.0 ms. The old/new median ratio is 4.6319x. This compares independent campaigns, not paired measurements or a confidence interval.
+The two stencil stages are fused through a small rolling buffer of three
+chemical-potential planes. Y/Z tiles retain contiguous X rows. Recomputing the
+small tile halo is cheaper than writing and rereading a complete intermediate
+field; non-temporal output stores further reduce cache traffic.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/db27e2872a28b900024d318f6a3004a3a7fddfa7/20260901-162328/cahn-hilliard_claude-opus-5-cc-medium_omp_r4/cahn-hilliard/cahn_hilliard.cpp); file SHA-256 `a698f845b1801b95e2686b4529f43216c150b37df6586f0f37baea9f6a5fb6ba`. Timing-fixed flag: **false**. This program did not require a timing correction in the retained campaign.
+This explains a different memory-traffic regime from the older
+[Sol 5.6 implementation](cahn-hilliard_gpt-5.6-sol-medium_omp_r2.md), whose median
+is 2,265 ms. It does not, by itself, explain the ordering within the new fast pair.
 
-## Implementation and timing
+## Close-group comparison
 
-The important change relative to the previous winner's two full-grid sweeps is `fusedStep`: chemical potential is produced into a per-thread three-plane ring buffer and consumed immediately by the concentration update. Tiles recompute a narrow potential halo, exchanging a small amount of arithmetic for avoiding full-grid intermediate-field traffic. The large 512-cubed case selects this cache-blocked path; the ordinary two-sweep path remains for cache-resident cases.
+Opus r5 also fuses the stages using three intermediate planes and streaming stores.
+It tiles X as well as Y/Z, whereas r4 keeps full contiguous rows within its Y/Z
+tiles. Buffer layout, tile dimensions and redundant boundary work are therefore
+the relevant distinctions, not the mere presence of fusion.
 
-X remains contiguous, tile ownership is stable, and large output rows use streaming stores. A store fence and OpenMP barriers complete each update before the shared buffer swap. One parallel region encloses all 30 iterations, and the outer wall-clock timer ends after the team finishes.
+The 9.4% gap is consistent across tightly separated samples, at 484–493 versus
+539–542 ms. The source supports a cache/blocking
+explanation, but no ablation identifies which detail supplies that remaining gap.
 
-The 4.6x gain is consistent with a major memory-traffic reduction rather than omitted iterations. The retained correctness test passed, and the inspected fused loop covers the same two stencil operations and boundary handling. No controlled ablation was performed here, so the exact fraction due to fusion versus locality and stores remains unmeasured.
+## Correctness and timing
 
-## Limits and release decision
+Retained validation passed. The fused path preserves the clamped boundary behavior
+and both update stages. Streaming stores are fenced before dependent work, and the
+timer encloses the complete parallel evolution. Memory placement follows the
+campaign's NUMA-interleave policy, not an inferred first-touch advantage.
 
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
+## Interpretation
 
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+Fusion explains the fast implementation family; r4's additional lead is a credible
+but smaller improvement in how that fused computation is tiled and stored.

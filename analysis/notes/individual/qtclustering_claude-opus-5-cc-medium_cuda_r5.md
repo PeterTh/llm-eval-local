@@ -1,34 +1,45 @@
 # `qtclustering_claude-opus-5-cc-medium_cuda_r5`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+CUDA QT clustering, 7,800 points. The median is 43 ms, followed by Opus r1 at
+53 ms and r2 at 56 ms.
 
-New nominal winner in `qtclustering/cuda` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-n 7800`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 41.0, 43.0, 43.0, 43.0, 43.0 ms, median **43.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/qtclustering_gpt-5.6-sol-xhigh_cuda_r2.md), `qtclustering_gpt-5.6-sol-xhigh_cuda_r2`, had times 800.0, 804.0, 799.0, 810.0, 808.0 ms and median 804.0 ms. The old/new median ratio is 18.6977x. This compares independent campaigns, not paired measurements or a confidence interval.
+One cooperative kernel executes the greedy outer loop, using grid synchronization
+between cluster decisions. A warp grows each seed's candidate, incrementally
+maintaining maximum distances and compacting infeasible points. Small candidate
+sets stay in shared memory, with a global-memory spill path.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/db27e2872a28b900024d318f6a3004a3a7fddfa7/20260901-162328/qtclustering_claude-opus-5-cc-medium_cuda_r5/qtclustering/qtclustering.cpp); file SHA-256 `367bae56cc63b9398ad31571c6c7e1f14aafd23a9d7609d2a7e452e5fd74fb41`. Timing-fixed flag: **false**. This program did not require a timing correction in the retained campaign.
+Single precision filters distance decisions using an error window for the
+generator's bounded coordinates. Candidates near an ambiguous minimum are checked
+against actual members in double precision. This reduces expensive arithmetic
+without simply changing every clustering decision to float.
 
-## Implementation and timing
+## Close-group comparison
 
-The whole greedy outer loop lives in one cooperative kernel, avoiding a launch and host round trip for every committed cluster. One warp grows each seed's candidate, compacting infeasible points and maintaining maximum distances incrementally. Up to 128 candidates per warp stay in shared memory, with a global spill path. Active points are compacted in order, preserving seed/index tie-breaking.
+Opus r1 uses a block per seed, precomputed double-precision squared distances and
+cached candidate sizes. It already batches rounds with CUDA graphs, so removing
+host round trips is not unique to the winner. Warp-level growth, shared candidate
+storage and filtered precision distinguish the 41–43 ms result from r1's 53 ms
+samples. The 18.9% lead is substantial; the much larger gap from the
+[older Sol result](qtclustering_gpt-5.6-sol-xhigh_cuda_r2.md) describes an entire
+new fast group, not the isolated benefit of a single cooperative kernel.
 
-Single precision screens candidate distances using a conservative error window for the generator's bounded coordinates. Isolated candidates safely inside the threshold are selected directly; ambiguous candidates are re-evaluated against actual members in double precision. This is a filtered mixed-precision algorithm, not wholesale conversion of the clustering decisions to float. General bitwise equivalence at every floating-point tie is not established merely by its comments.
+## Correctness and timing
 
-The timer wraps allocation, upload, initialization, the cooperative kernel, synchronous result downloads, host reconstruction, and cleanup. Only CUDA context setup precedes it. The 18.7x gain has strong structural explanations—warp-level growth, pruning, mixed-precision screening, and removal of per-cluster launches—but no ablation assigns a separate factor to each.
+The timer includes allocation, preprocessing, the greedy loop, result downloads
+and reconstruction. Retained validation passed. Additional
+[correctness checks](../2026-09-29-qt-winner-correctness.json) matched the sequential
+reference at N=1,200 and matched all four Claude QT winners at N=4,000, 5,000,
+6,200 and 7,800. The sequential N=4,000 attempt timed out, so those cross-checks
+are not a full-size reference proof. Floating-point filtering still merits that
+distinction; source comments alone do not prove every boundary case.
 
-## Limits and release decision
+## Interpretation
 
-Additional correctness-only checks found identical complete result blocks, including
-the membership hash, against the unchanged sequential reference at N=1200. All four
-new QT winners also agree at N=4000, 5000, 6200 and 7800. This supports the measured
-paths without claiming a full-size reference proof: the direct sequential N=4000
-attempt timed out after 240 seconds. [Commands, output and hashes](../2026-09-29-qt-winner-correctness.json)
-are retained; these probe timings never enter the benchmark dataset.
-
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
-
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+A credible fast candidate-growth design with a clear lead over already optimized
+peers. No ablation assigns separate gains to warp granularity, storage or precision.

@@ -1,27 +1,35 @@
 # `cholesky_claude-opus-5-cc-medium_hybrid_r1`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+Hybrid Cholesky, N=4,096. The median is 68 ms, versus 74 ms for Opus r2 and
+83.734 ms for Astra 6 r3.
 
-New nominal winner in `cholesky/hybrid` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-n 4096`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 68.0, 68.0, 68.0, 68.0, 68.0 ms, median **68.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/cholesky_gpt-5.6-sol-xhigh_hybrid_r2.md), `cholesky_gpt-5.6-sol-xhigh_hybrid_r2`, had times 90.0, 92.0, 94.0, 95.0, 95.0 ms and median 94.0 ms. The old/new median ratio is 1.3824x. This compares independent campaigns, not paired measurements or a confidence interval.
+Cyclic block columns stay resident on the GPUs. cuSOLVER handles diagonal
+factorization and cuBLAS supplies triangular solves and trailing updates.
+High-priority lookahead, multiple panel buffers and node-shared panel storage keep
+the next diagonal work from waiting for all unrelated trailing work.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/db27e2872a28b900024d318f6a3004a3a7fddfa7/20260901-162328/cholesky_claude-opus-5-cc-medium_hybrid_r1/cholesky/cholesky.cpp); file SHA-256 `ecb16e6d12e810b4976af65187339701e85d224cd6cf65e4d973cf5378bc9f72`. Timing-fixed flag: **false**. This program did not require a timing correction in the retained campaign.
+## Close-group comparison
 
-## Implementation and timing
+Opus r2 also uses cuBLAS for most matrix work, but has a custom 64-wide diagonal
+kernel and broadcasts diagonal data through the world communicator. The leading
+pair therefore shares library-backed GPU updates, not an identical panel pipeline.
+The 68 ms samples are consistently below r2's 72–75 ms, an 8.1% median improvement.
+Panel scheduling and data movement offer concrete explanations; the observations
+do not separate their contributions.
 
-Block columns are distributed cyclically across ranks and remain resident on their GPUs. cuSOLVER factors diagonal panels and cuBLAS performs triangular solves and trailing DGEMMs. One-step lookahead prioritizes the next panel; triple-buffered panels and CUDA events protect cross-stream dependencies. Within the measured single node, shared-memory panel exchange avoids redundant MPI message copies; a node-leader ring is available for other topologies.
+## Correctness and timing
 
-All panel and update work is issued within `choleskyDecomposition`. Both GPU streams are synchronized before it returns, and a world barrier completes before the stop timestamp. Thus the root's interval includes every rank's factorization work. Library warm-up and input generation are outside the interval, as is output assembly.
+Retained validation passed. The timed factorization follows panel dependencies,
+joins the GPU streams and reaches the final world barrier before reporting.
+An unfinished trailing update cannot be hidden by an early local stop.
 
-The 1.38x improvement is consistent with panel lookahead and efficient library kernels. OpenMP is used for host-side assembly/validation. The data is a four-GPU, single-node result; it does not test the inter-node ring's claimed scalability. No isolated panel-pipeline ablation was performed.
+## Interpretation
 
-## Limits and release decision
-
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
-
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+A clear but moderate lead within the fast library-backed group, with a more
+carefully overlapped panel path rather than a different Cholesky algorithm.

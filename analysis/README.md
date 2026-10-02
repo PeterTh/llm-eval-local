@@ -1,7 +1,9 @@
 # Analysis
 
-Analysis reads only versioned campaign records under `data/` and `batches/`, joined
-and scored under `release/`. Reusable source belongs in
+Release analysis reads versioned campaign records under `data/` and `batches/`,
+joined and scored under `release/`. Provisional individual reviews may additionally
+use completed native measurements, explicitly pinned in a review snapshot below.
+Reusable source belongs in
 `src/`, optional output-stripped notebooks in `notebooks/`, final machine-readable
 tables in `tables/`, and final figures in `figures/`.
 
@@ -61,8 +63,9 @@ The backing CSV records counts, frozen prices, pricing date, and source URLs.
 The evidence lives in `metadata/codex-usage/<source-batch>.jsonl`. All 1,980
 GPT-5.6 and 660 GPT-6 records matched a unique session, completed task, transcript
 hash, and consistent final cumulative counters. Only the historical GPT-5.6
-overlay is applied to this release; the GPT-6 campaign still needs validation,
-timing review, and benchmarking. No generated programs or transcripts were edited.
+overlay is applied to this release; GPT-6 validation, timing review and benchmarking
+are complete, with release integration still pending. No generated programs or
+transcripts were edited by the usage recovery.
 The compact evidence totals 2,283,539 bytes; complete session logs are not duplicated.
 
 Recover a completed batch from the original locally retained sessions with:
@@ -172,3 +175,84 @@ as a calibratable estimate of the corrected global makespan.
 Do not commit notebook cell output, caches, serialized interpreter workspaces, or
 intermediate datasets. Prefer CSV for tables and PDF for vector figures; retain one
 canonical format unless the publication toolchain requires another.
+
+## Individual implementation reviews
+
+Published run reviews live in `notes/individual/` and are embedded by the website.
+The five new GPT-6 winner reviews are staged in `notes/pending-gpt6/`: those IDs are
+not yet in the scored release, and the website correctly rejects reviews for
+unreleased IDs. Move the notes into `individual/` and update relative links and
+snapshot note paths when integrating GPT-6; do not make the website accept orphaned
+reviews. The 2026-10-02 work adds five notes and rewrites all 24 Claude-5 notes.
+One older SpMV scope sentence is also corrected: `-s 40` means one nonzero per
+40 matrix entries, not 40 nonzeros per row.
+
+The [review snapshot](notes/2026-10-02-winner-review-context.json) pins artifact
+commit `7aa7ea28c484b508b6ba12ce991773fc1050b41c`, benchmark input digests and
+generated-source revisions. This is the rebased equivalent of the reviewed
+`c6984fc`; the snapshot retains the original SHA, and all scientific artifact files
+are byte-identical between those commits. It combines the published campaigns with the completed
+`20261001-gpt6-validation` measurements and the limited historical QT rerun
+`20261001-gpt6-qt-corrected`. Native rerun records replace the same IDs rather than
+being counted twice. This provisional comparison is not a new scored release:
+validation classifications, generated sources, canonical timings and scores are
+unchanged. The source pins identify comparison inputs, not 99 independent full
+correctness audits.
+
+Reviews use a short Scope, then Finding, Close-group comparison, Correctness and
+timing, and Interpretation. Depth follows separation from the nearest competitive
+group, sample spread and the implementation distinction; 15% is not a threshold.
+Near ties link earlier group reviews instead of repeating them. Medians and ranges
+describe five retained repetitions, not confidence intervals or paired trials.
+Source-visible explanations are identified as such; an optimization shared by the
+nearest peer cannot alone explain their difference. OpenMP campaign memory is
+NUMA-interleaved, so parallel initialization alone does not demonstrate local
+first-touch placement. Common provenance stays here and in machine-readable
+records, rather than being repeated in every note.
+
+Check all 29 notes, links, comparison medians, diagnostic evidence and unchanged
+versioned benchmark inputs with:
+
+```bash
+ruby analysis/src/check_winner_reviews.rb
+```
+
+On the measurement host, additionally verify the native input digests with
+`--local-evaluation=/home/petert/llm_para_local_evaluation`. The context snapshot
+retains the comparison vectors needed to read the notes without those workspaces.
+Retained Claude QT correctness probes are in
+`notes/2026-09-29-qt-winner-correctness.json`; they are not new GPT-6 probes.
+
+### Limited Black–Scholes diagnostic
+
+The only new program executions for these reviews were a bounded diagnostic of
+`black-scholes_gpt-6-sol-medium_cuda_r3`: one baseline and two single-change
+variants, each with one correctness run, one warmup and three measured runs
+(15 executions total). The measured order rotates between variants. The
+[compact record](notes/2026-10-02-black-scholes-diagnostic.json) retains all outputs,
+sample vectors, source hashes, build/run settings and numerical-comparison results.
+Two small patches are retained beside it; source trees and binaries are not.
+
+The full-formula variant disables seven-contract price reuse. The download variant
+keeps that arithmetic but includes the device-to-host result copy in the interval.
+The baseline, full-formula and download medians are 1.225, 34.317 and 18.667 ms; the download
+samples are variable (18.375–26.525 ms). The correctness comparison uses the
+unchanged, previously validated winner at 10,000 options and the existing validator:
+it is not a new full-size sequential-reference test. The full-formula outputs pass
+the numerical tolerance but are not bit-identical.
+
+For reproduction, extract the pinned generated run into three separate local
+workspaces using `git archive`, apply the corresponding patch with `patch -p1` in
+each variant root, and use the recorded CMake configure/build commands. The source's
+target sets the effective CUDA architecture to `native`; the diagnostic ran on an
+RTX 3090. Use the recorded argument sets and rotation order with the campaign's
+CUDA resource binding (`CUDA_VISIBLE_DEVICES=0`, `OMP_NUM_THREADS=1`, CPU 0–63,
+NUMA node 0). The experiment pipeline's host-performance lock and process/resource
+containment were used; its commit is pinned in the record. Do not run this alongside
+benchmarking or model tuning, and keep all temporary builds off NFS. To reproduce
+the report's median table without running any programs, use the checker above and
+read the diagnostic's `variants` object.
+
+These diagnostic timings never enter benchmarking or scoring. They show why the
+outlier needs both an arithmetic-specialization explanation and an explicit
+result-transfer boundary, not a blanket claim about general pricing throughput.

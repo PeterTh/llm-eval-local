@@ -1,27 +1,48 @@
 # `stencil3d_claude-opus-5-cc-medium_hybrid_r2`
 
-Date: 2026-09-29
+Date: 2026-10-02
 
-Status: static winner review against retained validation and measurements; no additional source or measurement change proposed
+## Scope
 
-## Scope and evidence
+Hybrid 3D stencil, a 384³ grid for 2,800 steps. The median is 1,463 ms, versus
+2,866 ms for Opus r4 and 2,873 ms for GPT-5.2 r4.
 
-New nominal winner in `stencil3d/hybrid` after adding batch `20260901-162328` to the combined release. The inherited arguments are `-x 384 -i 2800`; calibration and resources were not changed for this batch.
+## Finding
 
-The five retained times are 1463.0, 1464.0, 1462.0, 1461.0, 1465.0 ms, median **1463.0 ms**. The [previous winner](https://github.com/PeterTh/llm-eval-local/blob/7c91b05a5ba6b7c5991d7177211f173cdd4b4fdb/analysis/notes/individual/stencil3d_gpt-5.2_hybrid_r4.md), `stencil3d_gpt-5.2_hybrid_r4`, had times 2984.0, 3091.0, 2856.0, 2814.0, 2873.0 ms and median 2873.0 ms. The old/new median ratio is 1.9638x. This compares independent campaigns, not paired measurements or a confidence interval.
+Ranks own Z slabs. Boundary planes are computed and staged early for halo exchange
+while the GPU processes the interior. The bulk kernel uses 64×4 threads, rolls
+Z-neighbor values through registers and obtains X/Y neighbors through cached loads.
+Each block handles a 32-plane Z segment, exposing additional blocks along Z without
+block-wide barriers inside that bulk sweep.
 
-Reviewed [source](https://github.com/PeterTh/llm-eval-generated/blob/4500d708ad5c7b5d1594f93704011d6dfbca09a1/20260901-162328/stencil3d_claude-opus-5-cc-medium_hybrid_r2/stencil3d/stencil3d.cpp); file SHA-256 `0caf412376f662c1642521997099548aac2227a25b07c28aefc700b649dea155`. Timing-fixed flag: **true**. The accepted timing-only correction and scoped revalidation remain part of the record; the original is available at commit `db27e2872a28b900024d318f6a3004a3a7fddfa7`.
+Node-shared MPI windows, double-buffered halos and CUDA events overlap the exchanges
+with useful work. Division by seven uses a refined multiply/FMA sequence.
 
-## Implementation and timing
+## Close-group comparison
 
-Z slabs are distributed over ranks. Separate boundary and bulk CUDA kernels prioritize halo-producing planes; node-local shared-memory windows allow direct staged GPU copies between neighbors while the interior runs. Double-buffered halo slots, events, and per-stream waits prevent reuse before consumers finish. Off-node neighbors use nonblocking MPI messages, a path not exercised by the retained single-node benchmark.
+Those last communication and arithmetic features are also present in Opus r4.
+They cannot by themselves explain why its median is almost twice as large.
+The important visible kernel contrast is r4's shared-memory X/Y tile: it uses
+32×8 threads, traverses a whole slab per block and performs two block barriers for
+each Z plane. The winner trades that explicit shared-memory reuse for register
+rolling, cached neighbor loads and more independent Z segments.
 
-The kernel rolls through 32 Z planes in registers. A multiply plus FMA residual correction implements division by seven; this is a rounding-sensitive optimization, so retained numerical validation matters. Fixed physical boundaries are initialized in both buffers and do not need repeated copying.
+The 1,461–1,465 versus 2,862–2,870 ms ranges show a stable, substantial gap.
+Reduced barrier cost and different block scheduling are credible explanations,
+but no ablation assigns the near-twofold gain to either. The
+[older GPT-5.2 review](stencil3d_gpt-5.2_hybrid_r4.md) remains useful broader context,
+not a substitute for comparing these two closely related Opus designs.
 
-The corrected timer starts before the world barrier and ends after all 2800 iterations, device synchronization, and another world barrier. It measures a common-start distributed interval, not root's kernel-launch latency. The roughly 1.96x gain is compatible with lower memory/halo overhead. No new ablation isolates division, register tiling, and shared-window exchange.
+## Correctness and timing
 
-## Limits and release decision
+Retained validation passed. Fixed physical boundaries are preserved in both
+ping-pong buffers; halo completion precedes dependent updates. The corrected
+interval covers all 2,800 steps, starting before synchronization and ending after
+device completion and the world barrier. This single-node result does not test
+the separate inter-node communication path.
 
-The retained program passed all five validation stages. That is empirical evidence for the established test input, not a formal proof for every size or machine. The code inspection above checks the measured execution path and timing boundaries; optimization comments alone are not treated as measured causal evidence.
+## Interpretation
 
-This note leaves generated source, validation outcomes, and all retained timing vectors unchanged. Joint release scoring is recomputed mechanically from the combined distribution by the existing threshold method; the review itself does not award extra points or replace measurements.
+A strong GPU stencil-kernel outlier inside a shared overlapped communication design.
+The review attributes the candidate cause to the actual nearest-peer differences,
+not to shared-memory MPI or fast division that both programs already use.
