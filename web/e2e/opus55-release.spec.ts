@@ -29,7 +29,7 @@ test("Opus 5.5 outlier review includes retained phase comparison", async ({ page
   await page.screenshot({ path: testInfo.outputPath("opus55-outlier-review.png"), fullPage: true });
 });
 
-test("Opus 5.5 pricing and pinned Claude Code harness are available", async ({ page }, testInfo) => {
+test("Opus 5.5 pricing is available and Claude Code models share one harness", async ({ page }, testInfo) => {
   await page.goto(basePath + "#/cost?model=claude-opus-5.5-cc-medium");
   await expect(page.locator(".cost_points path")).toHaveCount(1);
   await page.getByText("Accessible cost efficiency table", { exact: true }).click();
@@ -37,7 +37,13 @@ test("Opus 5.5 pricing and pinned Claude Code harness are available", async ({ p
   await expect(row).toContainText("Opus 5.5 Medium");
   await expect(row.getByRole("link", { name: "Pricing source" })).toHaveAttribute("href", "https://platform.claude.com/docs/en/about-claude/pricing");
   await page.goto(basePath + "#/methodology");
-  const harness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Claude Code 2.1.287", exact: true }) });
+  await expect(page.getByRole("heading", { name: /^Claude Code/ })).toHaveCount(1);
+  const harness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Claude Code", exact: true }) });
+  await expect(harness.locator("header > span")).toHaveText("4 models");
+  await expect(harness.locator(".harness-models > span")).toHaveCount(4);
+  for (const label of ["Fable 5 Medium", "Opus 5 Medium", "Opus 5.5 Medium", "Sonnet 5 Medium"]) {
+    await expect(harness.getByText(label, { exact: true })).toBeVisible();
+  }
   await expect(harness.getByText("Opus 5.5 Medium", { exact: true })).toHaveAttribute("title", /invoked model claude-opus-5-5; reasoning effort medium/);
   await harness.getByText("Exact harness parameters", { exact: true }).click();
   await expect(harness.locator(".harness-parameters code")).toContainText("WebSearch,WebFetch,Agent,Task");
