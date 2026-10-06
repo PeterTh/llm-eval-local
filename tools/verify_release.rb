@@ -16,7 +16,7 @@ class ReleaseVerifier
 
   DISALLOWED_EXTENSIONS = %w[
     .a .bin .c .cc .cpp .cu .cubin .d .dll .dylib .exe .fatbin .h .hpp .ii .o .obj
-    .out .ptx .so
+    .out .ptx .pyc .pyo .so
   ].freeze
   DISALLOWED_COMPONENTS = %w[CMakeFiles build bin source].freeze
   VALIDATION_KEYS = %w[

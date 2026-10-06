@@ -37,6 +37,14 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "claude-opus-5.5-cc-medium": {
+        "label": "Opus 5.5 Medium", "color": "#e35d32", "marker": "P",
+        "pricing_as_of": "2026-10-06", "pricing_model_id": "anthropic/claude-opus-5.5",
+        "input_price": 4.0, "cached_input_price": 0.2, "output_price": 20.0,
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-opus-5.5/endpoints",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+    },
     "gpt-6-sol-medium": {
         "label": "GPT-6 Sol Medium", "color": "#216c47", "marker": "o",
         "pricing_as_of": "2026-10-02", "pricing_model_id": "openai/gpt-6-sol",
@@ -314,6 +322,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "claude-opus-5.5-cc-medium": (-7, 12),
     "gpt-6-sol-medium": (-7, 9),
     "gpt-6-luna-medium": (7, -6),
     "gpt-6-astra-medium": (-7, 12),

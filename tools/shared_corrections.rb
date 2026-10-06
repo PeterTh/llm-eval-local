@@ -58,7 +58,12 @@ class SharedCorrections
       raise "overlapping validation IDs" unless (original_validations.keys & selection.keys).empty?
       original_validations.merge!(selection)
       records = loader.call(campaign.fetch("benchmark_records"))
-      old_benchmarks.merge!(records) unless campaign.fetch("validation_format") == "shared"
+      in_historical_scope = if @config["baseline_campaign_ids"]
+        @config.fetch("baseline_campaign_ids").include?(campaign.fetch("id"))
+      else
+        campaign.fetch("validation_format") != "shared"
+      end
+      old_benchmarks.merge!(records) if in_historical_scope
       all_benchmarks.merge!(records)
     end
     expected = @config.fetch("expected")

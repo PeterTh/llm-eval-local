@@ -27,6 +27,18 @@ class CurrentReleaseTest < Minitest::Test
     assert_equal 2, CurrentRelease.score(row.merge("validation_status" => "2", "benchmark_success" => ""), cell)
   end
 
+  def test_corrected_native_pass_does_not_require_cross_run_hash_equality
+    release = CurrentRelease.new(ROOT)
+    original = { "logs" => { "validation_out_stdout.log" => "=== RESULTS ===\nSum: 1.0\nHash: original\n=== END RESULTS ===" } }
+    corrected = { "metadata" => { "stages" => LocalEvalArtifact::VALIDATION_STAGES.to_h { |s| [s, true] } },
+      "logs" => { "validation_out_stdout.log" => "=== RESULTS ===\nSum: 1.0\nHash: corrected\n=== END RESULTS ===" } }
+    release.verify_corrected_scientific_validation!("example", original, corrected)
+    corrected.fetch("metadata").fetch("stages")["output_comparison"] = false
+    assert_match(/scientific validation failed/, assert_raises(RuntimeError) {
+      release.verify_corrected_scientific_validation!("example", original, corrected)
+    }.message)
+  end
+
   def test_checked_in_outputs_and_every_winner_review_reconstruct
     assert_output(/Current release verified/) { CurrentRelease.new(ROOT).run(check: true, require_reviews: true) }
   end

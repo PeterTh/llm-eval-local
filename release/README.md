@@ -1,9 +1,10 @@
-# Combined release: 2026-10-02
+# Combined release: 2026-10-06
 
-This is a reproducible view over three retained campaigns, not a second raw-data archive.
+This is a reproducible view over four retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
-`batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`.
+`batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`;
+Opus 5.5 is under `batches/20261002-142720/`.
 
 The catalog's
 `codex_usage_overlays` joins exact reported counters for all 1,980 GPT-5.6 runs from
@@ -25,10 +26,16 @@ This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 5,940 programs, 27 model/effort combinations, 220 programs each.
-- 5,076 effectively validated programs and benchmark attempts; 4,703 successful measurements.
-- 830 timing-fixed programs (including two failed revalidations), with source history.
-- 44 benchmark/backend cells; five newly reviewed GPT-6 winners, 73 retained reviews total.
+- 6,160 programs, 28 model/effort combinations, 220 programs each.
+- 5,295 effectively validated programs and benchmark attempts; 4,922 successful measurements.
+- 913 timing-fixed programs (including two failed revalidations), with source history.
+- 44 benchmark/backend cells; 13 newly reviewed Opus 5.5 winners, 86 retained reviews total.
+
+Opus 5.5 adds 219 successful benchmarks and preserves its one validation failure.
+Its 83 timing-only corrections passed revalidation before measurement. All 5,940
+prior observations are unchanged; 263 prior scores change through joint thresholds.
+The [Opus 5.5 review context](../analysis/notes/2026-10-06-opus55-winner-context.json)
+pins the previous release at `c31465b`, source revisions and comparison vectors.
 
 `scored_results.csv` is the current analysis and website input. The unchanged historic
 log-natural-break threshold procedure is applied to the joint successful-measurement
@@ -37,7 +44,8 @@ joint-threshold changes from affected QT timing-boundary replacements.
 The builder also reproduces all 4,620 old scores with the old thresholds as a regression
 check. Previous QT observations stay immutable in `data/` and the Claude batch.
 
-`winners.json` retains all current/previous winner IDs, five measurements, medians,
+`winners.json` retains current winner IDs and comparisons to the original 4,620-run
+campaign, five measurements, medians,
 ratios, arguments and timing-fix flags. All current winners have individual notes under
 `analysis/notes/individual/`; superseded winner notes are retained too. Small median
 differences and coarse integer-millisecond timings are identified as practical ties

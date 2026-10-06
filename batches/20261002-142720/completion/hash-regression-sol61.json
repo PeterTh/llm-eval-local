@@ -1,0 +1,585 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-10-06",
+  "reviewer": "Sol-6.1 static-only adjudication",
+  "case_id": "black-scholes_claude-opus-5.5-cc-medium_hybrid_r1",
+  "batch": "20261002-142720",
+  "scope": {
+    "static_only": true,
+    "generated_programs_executed": false,
+    "builds_tests_validation_benchmarks_or_new_experiments_executed": false,
+    "source_edits": false,
+    "only_write": "This report, via apply_patch.",
+    "tools_used": "Read-only file enumeration, line-numbered reads, git inspection, SHA-256 hashing, nm/objdump and cuobjdump inspection of already-built retained binaries; in-memory comparison of disassembled text."
+  },
+  "versions": {
+    "original_generated_commit": "d2d8446a37657d114b3ea1c171767218539cae54",
+    "corrected_generated_commit": "a14535a1a0101b4ddbc725d374772c2da529c824",
+    "frozen_pipeline_commit": "a3eeeb276f3adab395387324c09a957e8c4b3d3b",
+    "sequential_reference_commit": "2bc11aeac658a87b5cae25d03e0669f65d32922e",
+    "original_and_corrected_clean_worktrees_observed": true,
+    "platform": "Recorded Linux x86_64 LP64, GCC/libstdc++ 13.2.0, CUDA 12.6.77, Open MPI 4.1.6, RTX 3090 sm_86.",
+    "platform_citation": {
+      "evidence": "platform_context",
+      "lines": "1-14"
+    },
+    "retained_validation_configuration": "-v -r -n 10000; 4 MPI ranks, 8 OpenMP threads per rank, 4 visible GPUs; topology wrapper assigns local GPU.",
+    "configuration_citations": [
+      {
+        "evidence": "original_command",
+        "lines": "12-27"
+      },
+      {
+        "evidence": "corrected_command",
+        "lines": "12-27"
+      }
+    ],
+    "environment_caveat": "The command logs show different PATH strings, but equal fixed compiler environment variables, resource settings, CLI/MPI arguments, and byte-identical compiled CUDA flags. No claim that every environment byte was unchanged."
+  },
+  "overall_verdict": {
+    "classification": "NATIVE_PASS_RETAINED; TIMING_ONLY_PATCH_RETAINED; SUPPLEMENTAL_BITWISE_EQUALITY_FAILED_AND_CAUSE_NOT_CONCLUSIVELY_ADJUDICATED",
+    "overall_confidence": "medium",
+    "summary": "The unchanged native rules legitimately accept both runs, and the source diff is strictly timing-only with no identified result-affecting regression. A pre-existing adaptive CPU/GPU routing mechanism with demonstrably different compiled floating-point arithmetic makes numerical nondeterminism a plausible explanation. However, hash.hpp hashes double result object bytes, not padding. The retained evidence proves a full-array representation difference but does not prove the exact changed indices, split boundaries, error magnitudes, or that every unsampled difference is harmless. It is not justified to declare the mismatch conclusively benign, nor to declare an algorithm/race failure solely from these two hashes.",
+    "confidence_by_claim": {
+      "native_validation_pass_under_unchanged_rules": "high",
+      "strictly_timing_only_source_diff": "high",
+      "no_identified_timing_fix_regression": "high for source scope; not an unconditional proof about every execution",
+      "preexisting_different_cpu_gpu_arithmetic_and_adaptive_routing": "high",
+      "exact_observed_mismatch_caused_by_changed_routing": "medium plausibility, not proved",
+      "all_unsampled_errors_are_small_or_within_native_tolerance": "low; not established",
+      "no_demonstrated_race_or_uninitialized_result_or_interleaving": "medium-to-high scoped static evidence; not a formal universal absence proof"
+    }
+  },
+  "findings": [
+    {
+      "id": "native_policy_pass",
+      "confidence": "high",
+      "conclusion": "Both retained executions passed all five unchanged native validation stages. The validator's established policy explicitly does not require Hash equality.",
+      "proof": [
+        {
+          "evidence": "original_metadata",
+          "lines": "8-13",
+          "detail": "basic_para, validation_build, validation_run, internal_validation, output_comparison are all true."
+        },
+        {
+          "evidence": "corrected_metadata",
+          "lines": "8-13",
+          "detail": "The same five stages are true for the corrected case."
+        },
+        {
+          "evidence": "native_result",
+          "lines": "1-7",
+          "detail": "Both byte-identical result.txt files say PASSED, including '(hash match: false)'."
+        },
+        {
+          "evidence": "validation_helper",
+          "lines": "98-110",
+          "detail": "Hash is recorded and skipped for acceptance; element count must match exactly."
+        },
+        {
+          "evidence": "validation_helper",
+          "lines": "112-142",
+          "detail": "Other differing floating fields are compared with the existing absolute epsilon 1e-5 for Black-Scholes; a passing hash is not required."
+        },
+        {
+          "evidence": "validation_pipeline",
+          "lines": "221-237",
+          "detail": "Pipeline separately checks the internal PASSED marker, then invokes validate(reference, output, benchmark)."
+        },
+        {
+          "evidence": "validation_pipeline",
+          "lines": "4-5,272-275",
+          "detail": "Black-Scholes native validation arguments are -v -r -n 10000."
+        }
+      ],
+      "limits": "This is legitimate acceptance under the recorded native summary-based policy, not proof of elementwise correctness, determinism, or absence of races. No numeric tolerance change is justified or proposed."
+    },
+    {
+      "id": "timing_only_diff",
+      "confidence": "high",
+      "conclusion": "The only case diff changes how the already-stopped elapsed duration is reported: local microseconds are converted to an explicitly typed long long and reduced to rank zero with MPI_MAX. No algorithm, partition calibration, synchronization of results, gather, hash, numeric field, or output code was modified.",
+      "exact_git_diff": "@@ -398,7 +398,10 @@\n     MPI_Barrier(MPI_COMM_WORLD);  // all ranks have their prices\n \n     auto end = std::chrono::high_resolution_clock::now();\n-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);\n+    const long long localDuration = static_cast<long long>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());\n+    long long maxDuration = 0;\n+    MPI_Reduce(&localDuration, &maxDuration, 1, MPI_LONG_LONG_INT, MPI_MAX, 0, MPI_COMM_WORLD);\n+    auto duration = std::chrono::microseconds(maxDuration);\n",
+      "proof": [
+        {
+          "evidence": "original_cpp",
+          "lines": "386-423",
+          "detail": "Calibration precedes start; all output writes complete before end; distributed results are collected afterward."
+        },
+        {
+          "evidence": "corrected_cpp",
+          "lines": "386-427",
+          "detail": "Same code with a timing-only reduction at 401-404. MPI_LONG_LONG_INT matches actual long long buffers; the reduction does not reference results."
+        },
+        {
+          "evidence": "corrected_cpp",
+          "lines": "440-448",
+          "detail": "Only root prints duration and results; numerical output is unchanged."
+        },
+        {
+          "evidence": "cmake",
+          "lines": "21-30",
+          "detail": "CMake is byte-identical, including optimization and dependencies."
+        },
+        {
+          "evidence": "cuda_flags",
+          "lines": "4-9",
+          "detail": "Retained build flags are byte-identical: sm_86, C++20, -O3, -march=native, OpenMP; no --use_fast_math or disabled contraction."
+        }
+      ],
+      "limits": "A timing-only source change can alter compiled layout or execution conditions, which may indirectly affect the pre-timer calibration's measured split. That possibility is not an algorithm/output edit and is not proof of the observed cause."
+    },
+    {
+      "id": "actual_hash_difference",
+      "confidence": "high",
+      "conclusion": "The numerical printed RESULTS lines are byte-identical between original and corrected, but different hashes prove that the complete hashed byte sequences were not identical, assuming the retained logs faithfully report these executions.",
+      "observed": {
+        "original_hash": "1fe5d7e3f4e3eeed",
+        "corrected_hash": "155f9e3d505918f1",
+        "elements": 10000,
+        "sum": "3.11366175001330115e+06",
+        "min": "2.07828649441422590e-02",
+        "max": "1.42998174421691897e+03",
+        "samples": [
+          "Sample[0]: 6.42531332374790143e+00",
+          "Sample[2500]: 7.52281167696248865e-01",
+          "Sample[5000]: 1.35683671198831746e+02",
+          "Sample[7500]: 1.07507814119793966e+03",
+          "Sample[9999]: 1.42998174421691897e+03"
+        ]
+      },
+      "proof": [
+        {
+          "evidence": "original_stdout",
+          "lines": "7-19"
+        },
+        {
+          "evidence": "corrected_stdout",
+          "lines": "7-19"
+        },
+        {
+          "evidence": "hash_hpp",
+          "lines": "10-21",
+          "detail": "FNV-1a initializes d deterministically and reads every byte of sizeof(T) of each input value."
+        },
+        {
+          "evidence": "results_output_hpp",
+          "lines": "26-65",
+          "detail": "Here T is double because main allocates std::vector<double> results; all elements, in fixed vector order, are added to the hash."
+        },
+        {
+          "evidence": "corrected_cpp",
+          "lines": "363-375,445-448",
+          "detail": "The hashed data are double prices, not OptionInput or DeviceBaseOption structures."
+        },
+        {
+          "evidence": "platform_context",
+          "lines": "1-3",
+          "detail": "The target is x86_64 GCC/CUDA, with ordinary 8-byte binary64 doubles, not extended long doubles."
+        }
+      ],
+      "representation_assessment": "There is no long-double or struct-padding hash mechanism here. On the target ABI double is an 8-byte IEEE binary64 representation without padding. Struct padding in DeviceBaseOption may be copied to device constant storage, but it is not hashed and only initialized named fields are used. Different hashes therefore imply at least one double representation differs; they cannot be explained merely by harmless padding bytes. With finite positive reported statistics and the non-fast-math build, signed-zero/NaN representation variation is not a supported explanation.",
+      "limits": "The summary reports a Kahan sum, min/max, and only five samples. It does not retain all 10,000 doubles, and matching these summaries cannot bound every unsampled difference. A different FNV digest gives no information about error magnitude, number of changed elements, or changed indices."
+    },
+    {
+      "id": "preexisting_numeric_nondeterminism_mechanism",
+      "confidence": "high for mechanism; medium for attribution to the observed pair",
+      "conclusion": "The original source already chooses the GPU-prefix/CPU-suffix boundary from measured throughput before each timed computation. CPU and GPU paths have different compiled arithmetic, so timing-dependent routing can change double price bits without a race.",
+      "proof": [
+        {
+          "evidence": "original_cpp",
+          "lines": "249-275",
+          "detail": "calibrateGpuShare measures GPU and CPU samples twice, computes cpuFraction from measured rates, and converts that fraction to a split count. It is not a fixed deterministic boundary unless BS_CPU_FRACTION is supplied."
+        },
+        {
+          "evidence": "original_cpp",
+          "lines": "386-398",
+          "detail": "gpuCount is calculated before start; enqueueGpu prices prefix [0,gpuCount), cpuPrice prices suffix [gpuCount,count)."
+        },
+        {
+          "evidence": "original_cpp",
+          "lines": "109-115,147-167,208-212",
+          "detail": "CPU evaluates blackScholes(makeOption(index)); GPU uses explicitly separate __dmul_rn/__dadd_rn factor operations, precomputed host terms, device log/erf, and a branch-free signed put expression."
+        },
+        {
+          "evidence": "original_binary",
+          "elf_addresses": "cpuPrice 0x4fa0; 0x517e and 0x51a6",
+          "detail": "Static disassembly shows division for i/7 followed by vfmadd132sd at 0x51a6 for 1 + 0.1*(i/7), unlike the GPU's separate factor multiply/add."
+        },
+        {
+          "evidence": "corrected_binary",
+          "elf_addresses": "cpuPrice 0x5010; factor FMA at 0x5216",
+          "detail": "The corrected compiled CPU function retains the same instruction sequence after relocation normalization."
+        },
+        {
+          "evidence": "original_binary",
+          "derived_ptx_lines": "67-71",
+          "detail": "cuobjdump --dump-ptx shows div.rn.f64, mul.rn.f64, add.rn.f64 for the factor; the comment 'same rounding sequence as makeOption (no contraction)' is not a guarantee about the actual CPU compiler's FMA."
+        },
+        {
+          "evidence": "original_binary",
+          "elf_addresses": "cpuPrice: FMA at 0x51ff; host log call at 0x51c7",
+          "detail": "CPU also contracts floating expressions and calls host log/erf."
+        },
+        {
+          "evidence": "original_binary",
+          "derived_ptx_lines": "85-202,205-367,385-394",
+          "detail": "GPU uses an inlined device log/erf sequence, separate addition to precomputed drift, and separate final product/subtraction instructions."
+        }
+      ],
+      "compiled_artifact_comparison": {
+        "gpu_ptx_output_sha256_original": "c993011d3a12b31398e93b1b9aece6a544bc8182601adefb9afda24d8093dede",
+        "gpu_ptx_output_sha256_corrected": "c993011d3a12b31398e93b1b9aece6a544bc8182601adefb9afda24d8093dede",
+        "gpu_ptx_dump_byte_identical": true,
+        "cpuPrice_normalized_disassembly_equal": true,
+        "cpuPrice_instruction_count_each": 195,
+        "cpu_normalization": "In-memory comparison removed instruction-address/byte columns, RIP-relative displacements/comments, direct target addresses and symbol +0xoffsets; retained operation/operand sequences. This is evidence of unchanged computation structure, not a formal equivalence proof of all binary state."
+      },
+      "limits": "The retained logs do not print per-rank gpuCount, calibration timings, or full result arrays. We cannot show which indices actually changed execution path between these two runs, nor prove which CPU/GPU rounding distinction changed each price. No general error bound for all unsampled elements was derived. 'Expected low-bit numerical nondeterminism' remains a plausible attribution, not a conclusive benign explanation."
+    },
+    {
+      "id": "race_and_initialization_review",
+      "confidence": "medium-to-high for this scoped static review",
+      "conclusion": "No race, uninitialized result read, or MPI output interleaving defect was identified. The known adaptive route is scheduling-sensitive numerical variation, not by itself a race.",
+      "proof": [
+        {
+          "evidence": "original_cpp",
+          "lines": "257-267",
+          "detail": "Calibration synchronizes CUDA before CPU overwrites the sample; an OpenMP parallel region has a completion join even though the omp for uses nowait."
+        },
+        {
+          "evidence": "original_cpp",
+          "lines": "170-176,189-204,208-212",
+          "detail": "GPU grid-stride indices cover each output exactly once; chunks use same-stream kernel/copy ordering; CPU iterations write individual suffix entries."
+        },
+        {
+          "evidence": "original_cpp",
+          "lines": "348-375,386-398",
+          "detail": "Ranks have nonoverlapping block ranges; local GPU/CPU subranges are disjoint; each local price region is completed before gather. Rank-zero vector<double> is value initialized and buffers remain stable."
+        },
+        {
+          "evidence": "corrected_cpp",
+          "lines": "406-427",
+          "detail": "After completion, MPI receives fill nonroot blocks and MPI_Waitall completes before output; requests hold MPI handles and results vector storage is not reallocated."
+        },
+        {
+          "evidence": "original_cpp",
+          "lines": "331-346,147-168",
+          "detail": "All used DeviceBaseOption members are initialized before cudaMemcpyToSymbol. Padding, if any, is not accessed as a price."
+        },
+        {
+          "evidence": "corrected_cpp",
+          "lines": "311-315,390-391,440-462",
+          "detail": "Normal banner/pricing/results/validation output is emitted only by rank zero."
+        },
+        {
+          "evidence": "original_stdout",
+          "lines": "1-32",
+          "detail": "One complete, noninterleaved RESULTS section followed by PASSED."
+        },
+        {
+          "evidence": "corrected_stdout",
+          "lines": "1-32",
+          "detail": "Same complete structure; stderr is empty for both runs."
+        }
+      ],
+      "limits": "This is not a sanitizer, execution, or formal all-input proof. It does not authorize accepting any demonstrated race or numeric defect; none was demonstrated in this inspection. Validation n=10000/ranks=4 is the observed scope; no full-benchmark run or error guarantee is inferred."
+    },
+    {
+      "id": "reference_and_validation_coverage",
+      "confidence": "high",
+      "conclusion": "Both candidates are close to the same sequential reference in the reported native fields; neither matched the reference hash. The built-in expected-value discrepancy is inherited from the sequential program and is not evidence of a timing-correction regression.",
+      "proof": [
+        {
+          "evidence": "original_reference_stdout",
+          "lines": "9-18",
+          "detail": "Reference Sum 3.11366175001330208e+06, Sample[2500] 7.52281167696447817e-01, Hash a1819ec14da95077."
+        },
+        {
+          "evidence": "corrected_reference_stdout",
+          "lines": "9-18",
+          "detail": "All retained reference RESULTS lines match the original reference exactly."
+        },
+        {
+          "evidence": "sequential_cpp",
+          "lines": "112-134",
+          "detail": "Built-in validation checks only first ten values for positivity/reasonableness and NaN/Inf; it does not fail on its printed known-value relative errors."
+        },
+        {
+          "evidence": "original_cpp",
+          "lines": "215-238",
+          "detail": "Generated code retained that built-in validation behavior unchanged."
+        },
+        {
+          "evidence": "original_stdout",
+          "lines": "22-32",
+          "detail": "Printed relative errors and PASSED are byte-identical to corrected, and the same printed relative errors occur in the sequential reference."
+        }
+      ],
+      "limits": "Native acceptance is not a blanket guarantee about all vector entries. This report does not recommend weakening numeric tolerances or treating matching samples as an excuse for a demonstrated numerical defect."
+    }
+  ],
+  "recommended_disposition": {
+    "retain_native_observation": "Record both five-stage native passes, including native hash_match=false, without changing the established validator or tolerances.",
+    "retain_timing_patch": "Keep the strictly timing-only patch unchanged; no algorithm or output repair is justified or authorized.",
+    "supplemental_observation": "Record original-vs-corrected bitwise RESULTS equality as failed solely at Hash, not passed and not automatically equated to an algorithmic failure.",
+    "campaign": "Leave further campaign execution stopped pending the user's decision; no retries, runs, compilation, or benchmarks were undertaken by this reviewer.",
+    "question_for_user": "Should the corrected campaign proceed using the unchanged native floating-point validation policy, with this case's bitwise reproducibility discrepancy explicitly recorded as unresolved, or should this case remain uncertified/excluded because byte-identical result arrays are required?",
+    "why_decision_needed": "The retained code demonstrates a plausible pre-existing numerical nondeterminism mechanism, but retained run evidence does not prove every changed value is harmless. Continuing as if exact equality were proved would silently choose an acceptance standard the static evidence cannot satisfy.",
+    "additional_static_work": "No mandatory further static work is identified that can recover unlogged split boundaries/full arrays. A deeper formal floating-point error analysis could in principle bound both implementations, but was not performed and would still not reconstruct the exact two-run cause. Do not request a matching-hash rerun.",
+    "must_not_do": [
+      "Do not label this mismatch conclusively benign padding or ordinary representation noise.",
+      "Do not label a demonstrated race/interleaved output/numerical defect acceptable merely because sampled fields match.",
+      "Do not modify the algorithm, partitioning, output, hash, or tolerances in a timing-only correction.",
+      "Do not count the other 82 corrected cases as natively validated from this first case."
+    ]
+  },
+  "read_only_commands_used": [
+    {
+      "command": "pwd",
+      "workdir": "/home/petert/llm_eval/experiment"
+    },
+    {
+      "command": "rg --files -g AGENTS.md -g '*hash*' -g '*results_output*' -g '*validation*'",
+      "roots": [
+        "/tmp/opus55-evaluation-20261006.cnIZzu/generated/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/corrected/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/experiment",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/benchmarks"
+      ]
+    },
+    {
+      "command": "rg --files -g AGENTS.md",
+      "roots": [
+        "/home/petert/llm_eval",
+        "/tmp/opus55-evaluation-20261006.cnIZzu"
+      ]
+    },
+    {
+      "command": "git status --short; git rev-parse HEAD; git diff d2d8446a37657d114b3ea1c171767218539cae54 a14535a1a0101b4ddbc725d374772c2da529c824 -- 20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1",
+      "workdir": "/tmp/opus55-evaluation-20261006.cnIZzu/corrected"
+    },
+    {
+      "command": "rg --files",
+      "roots": [
+        "/tmp/opus55-evaluation-20261006.cnIZzu/generated/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1"
+      ]
+    },
+    {
+      "command": "nl -ba PATH",
+      "paths": "Source, CMake, policy, platform, command, metadata, result and stdout files listed in evidence_inputs."
+    },
+    {
+      "command": "command -v cuobjdump"
+    },
+    {
+      "command": "git rev-parse HEAD",
+      "workdirs": [
+        "/tmp/opus55-evaluation-20261006.cnIZzu/generated",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/experiment",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/benchmarks"
+      ]
+    },
+    {
+      "command": "git status --short",
+      "workdir": "/tmp/opus55-evaluation-20261006.cnIZzu/generated"
+    },
+    {
+      "command": "objdump -d -C --disassemble='blackScholes(OptionInput const&)' /home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes"
+    },
+    {
+      "command": "/usr/local/cuda/bin/cuobjdump --dump-ptx /home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes | rg -n 'Function|entry|fma.rn.f64|mul.rn.f64|add.rn.f64|sub.f64|div.rn.f64|erf|log'"
+    },
+    {
+      "command": "/usr/local/cuda/bin/cuobjdump --dump-ptx PATH | sha256sum",
+      "paths": [
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes"
+      ]
+    },
+    {
+      "command": "nm -C /home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes | rg -n 'cpuPrice|makeOption|omp_fn|blackScholes'"
+    },
+    {
+      "command": "/usr/local/cuda/bin/cuobjdump --dump-ptx /home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes | nl -ba | sed -n '58,90p;190,210p;378,404p'"
+    },
+    {
+      "command": "objdump -d -C /home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes | rg -n -B 10 -A 10 'vfmadd.*'"
+    },
+    {
+      "command": "sha256sum PATHS",
+      "paths": "All evidence_inputs paths, including identical staged copies."
+    },
+    {
+      "command": "objdump -d -C --disassemble='cpuPrice(double*, unsigned long, unsigned long, unsigned long)' PATH",
+      "paths": [
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes"
+      ]
+    },
+    {
+      "command": "objdump -s --start-address=0x66e0 --stop-address=0x6700 /home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes"
+    },
+    {
+      "command": "objdump -s --start-address=0x6710 --stop-address=0x6730 /home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes",
+      "note": "Read-only rodata peek; not used for a value-comparison finding."
+    },
+    {
+      "command": "nl -ba /tmp/opus55-evaluation-20261006.cnIZzu/generated/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black-scholes/black_scholes.cpp | sed -n '386,447p'"
+    }
+  ],
+  "evidence_inputs": [
+    {
+      "id": "original_cpp",
+      "path": "/tmp/opus55-evaluation-20261006.cnIZzu/generated/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black-scholes/black_scholes.cpp",
+      "sha256": "da09a3e8e84332acd0b266fccca869bd20e59c027c8c7f65f510add65cbb0592",
+      "identical_staged_path": "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/black-scholes/black_scholes.cpp"
+    },
+    {
+      "id": "corrected_cpp",
+      "path": "/tmp/opus55-evaluation-20261006.cnIZzu/corrected/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black-scholes/black_scholes.cpp",
+      "sha256": "546d8ffc6ac03c547f84daf716b0081b8757b79ba6127e062518a62a00005400",
+      "identical_staged_path": "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/black-scholes/black_scholes.cpp"
+    },
+    {
+      "id": "cmake",
+      "paths": [
+        "/tmp/opus55-evaluation-20261006.cnIZzu/generated/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black-scholes/CMakeLists.txt",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/corrected/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black-scholes/CMakeLists.txt",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/black-scholes/CMakeLists.txt",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/black-scholes/CMakeLists.txt"
+      ],
+      "sha256": "d877a35e46ca5ad4d70c42bc42b30bee149655f251f6c953aa56ebe5638dafa7"
+    },
+    {
+      "id": "hash_hpp",
+      "paths": [
+        "/tmp/opus55-evaluation-20261006.cnIZzu/generated/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/common/hash.hpp",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/corrected/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/common/hash.hpp",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/benchmarks/common/hash.hpp",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/common/hash.hpp",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/common/hash.hpp"
+      ],
+      "sha256": "da47685f2f22487193f986eeba67fe414f80d50536a63e03cae0a6935d76a4e9"
+    },
+    {
+      "id": "results_output_hpp",
+      "paths": [
+        "/tmp/opus55-evaluation-20261006.cnIZzu/generated/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/common/results_output.hpp",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/corrected/20261002-142720/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/common/results_output.hpp",
+        "/tmp/opus55-evaluation-20261006.cnIZzu/benchmarks/common/results_output.hpp",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/common/results_output.hpp",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/source/common/results_output.hpp"
+      ],
+      "sha256": "39dce5caf66268985c8ea44e5c60b619f1cca6e663a0fec4ff9c1dea9cc43e5e"
+    },
+    {
+      "id": "sequential_cpp",
+      "path": "/tmp/opus55-evaluation-20261006.cnIZzu/benchmarks/black-scholes/black_scholes.cpp",
+      "sha256": "59144047074fc781dd7d4210e2e6e03bfbc689157b56e7399e4c41d91e164c13"
+    },
+    {
+      "id": "validation_helper",
+      "path": "/tmp/opus55-evaluation-20261006.cnIZzu/experiment/validation_helper.rb",
+      "sha256": "5ceb747b5896b08bce26d815373d4d0a32d46a688ed72a9b13c4fd0d19d8e14c"
+    },
+    {
+      "id": "general_evaluation",
+      "path": "/tmp/opus55-evaluation-20261006.cnIZzu/experiment/general_evaluation.rb",
+      "sha256": "1be1de3d2568f4e9574a358f82dce968d43be9971974168d93b5ad79e14af354"
+    },
+    {
+      "id": "validation_pipeline",
+      "path": "/tmp/opus55-evaluation-20261006.cnIZzu/experiment/lib/local_evaluation/validation_pipeline.rb",
+      "sha256": "5a714911d4e1e3b587aa025987549b1e912dd960a58b2365ca5a6db72da07d98"
+    },
+    {
+      "id": "platform_context",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/timing-platform-context.txt",
+      "sha256": "e07d0346c1e312df08f8941c9de226001e8d5ee586f1af2c24b552f8600a385f"
+    },
+    {
+      "id": "original_stdout",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_stdout.log",
+      "sha256": "b90beb5d2510e84a7810caf1cab1095b904ad003ee820e67d92e16e2d5727260"
+    },
+    {
+      "id": "corrected_stdout",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_stdout.log",
+      "sha256": "c7f592e4df65f4e6f94e2c034ddc0165ff40482c9e5fe89b494dc8d9ab18685b"
+    },
+    {
+      "id": "original_metadata",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_metadata.yaml",
+      "sha256": "df7203cdb0e87feb4beeeec33efe37824f6bcbb5e80d7d1fee8e3b714a6448d6"
+    },
+    {
+      "id": "corrected_metadata",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_metadata.yaml",
+      "sha256": "adc2ed9ac34102078130137ba18710ece4130509f606c644991fd2e7fa4aed07"
+    },
+    {
+      "id": "native_result",
+      "paths": [
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_result.txt",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_result.txt"
+      ],
+      "sha256": "091a18d52137b6ba3f2d8ef9a4a10f4c9d2ec5e3cf565263a005e29aea61dfbf"
+    },
+    {
+      "id": "original_command",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_command.log",
+      "sha256": "fa6b8237474417bf3ce36e042ef9f75f9743de72f81e0161266704c31d389be1"
+    },
+    {
+      "id": "corrected_command",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_command.log",
+      "sha256": "dd2bcc73740b17937015fe3bcafca78332f9e344d6bedca11bae70872dcd21ef"
+    },
+    {
+      "id": "stderr",
+      "paths": [
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_stderr.log",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_stderr.log"
+      ],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "exitcode",
+      "paths": [
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_exitcode.log",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/validation_out_exitcode.log"
+      ],
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "id": "cuda_flags",
+      "paths": [
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/CMakeFiles/black_scholes.dir/flags.make",
+        "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/CMakeFiles/black_scholes.dir/flags.make"
+      ],
+      "sha256": "23ee2c7888d7fb80c18439fb5af421ad4681cf88e73610702c42d8e8e4e59863"
+    },
+    {
+      "id": "original_binary",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes",
+      "sha256": "30190de9a8271a8838358d35376b2bf5623b5c4c91adc53558c755cc0d579fae"
+    },
+    {
+      "id": "corrected_binary",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/black-scholes_claude-opus-5.5-cc-medium_hybrid_r1/black_scholes",
+      "sha256": "8fc8342c9f4fba8d9e6b07740c673af13fcfc835f1ed56cc90070bb55f860603"
+    },
+    {
+      "id": "original_reference_stdout",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-validation/validation/reference/black-scholes/validation_out_stdout.log",
+      "sha256": "cbab23db19b4b6bae282af14350073d66682e849cd24f4756f1301e47edd4925"
+    },
+    {
+      "id": "corrected_reference_stdout",
+      "path": "/home/petert/llm_para_local_evaluation/20261006-opus55-corrected/validation/reference/black-scholes/validation_out_stdout.log",
+      "sha256": "39b17654cda92757ad67110619824a8676cd2f7a4ad736cef0e67cb19157e61d"
+    }
+  ]
+}

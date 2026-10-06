@@ -47,6 +47,15 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertEqual("$0.005", combined._format_cost(0.005, 1))
         self.assertEqual("$0.01", combined._format_cost(0.01, 2))
 
+    def test_opus55_exact_tokens_use_dated_cache_discount(self):
+        frame = self.frame.assign(model="claude-opus-5.5-cc-medium")
+        row = combined.aggregate(frame).iloc[0]
+        self.assertAlmostEqual((20 * 4 + 80 * 0.2 + 10 * 20) / 1_000_000,
+                               row.estimated_cost_usd_per_run)
+        self.assertEqual("2026-10-06", row.pricing_as_of)
+        self.assertEqual(110, row.mean_total_tokens)
+        self.assertEqual(0.2, row.cached_input_price_usd_per_million)
+
 
 if __name__ == "__main__":
     unittest.main()

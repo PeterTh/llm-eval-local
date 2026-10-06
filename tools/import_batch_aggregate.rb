@@ -21,11 +21,13 @@ if $PROGRAM_NAME == __FILE__
     "benchmark_full_results_sha256" => "benchmark/benchmark_full_results.yaml",
     "benchmark_config_sha256" => "benchmark_config.yaml",
     "aggregate_results_sha256" => "aggregate_results.yaml",
-    "pipeline_amendment_sha256" => "pipeline_amendment.yaml",
     "source_correction_amendment_sha256" => "source_correction_amendment.yaml"
   }.each do |key, relative|
     raise "stale native aggregate #{key}" unless metadata.fetch(key) == LocalEvalArtifact.sha256(File.join(native, relative))
   end
+  amendment_path = File.join(native, "pipeline_amendment.yaml")
+  amendment_digest = File.file?(amendment_path) ? LocalEvalArtifact.sha256(amendment_path) : nil
+  raise "stale native aggregate pipeline_amendment_sha256" unless metadata.fetch("pipeline_amendment_sha256") == amendment_digest
   csv = File.binread(File.join(native, "aggregate_results.csv"))
   rows = CSV.parse(csv, headers: true)
   summary = JSON.parse(File.read(File.join(batch, "summary.json")))
@@ -37,11 +39,15 @@ if $PROGRAM_NAME == __FILE__
   File.write(File.join(batch, "summary.json"), JSON.pretty_generate(summary) + "\n")
   destination = File.join(batch, "aggregate")
   # Retain only the amendment delta; unchanged pipeline files already exist in the batch.
-  amendment = LocalEvalArtifact.load_yaml(File.join(native, "pipeline_amendment.yaml"))
-  layout = amendment.fetch("amended_pipeline_source").fetch("files").to_h do |relative, digest|
+  pipeline = if amendment_digest
+    LocalEvalArtifact.load_yaml(amendment_path).fetch("amended_pipeline_source")
+  else
+    LocalEvalArtifact.load_yaml(File.join(native, "evaluation_manifest.yaml")).fetch("pipeline_source")
+  end
+  layout = pipeline.fetch("files").to_h do |relative, digest|
     stored = "method/validation/#{relative}"
     unless File.file?(File.join(batch, stored)) && LocalEvalArtifact.sha256(File.join(batch, stored)) == digest
-      source = File.join(amendment.fetch("amended_pipeline_source").fetch("root"), relative)
+      source = File.join(pipeline.fetch("root"), relative)
       raise "amended pipeline source changed #{relative}" unless LocalEvalArtifact.sha256(source) == digest
       stored = "benchmark/method/pipeline-delta/#{relative}"
       FileUtils.mkdir_p(File.dirname(File.join(batch, stored)))

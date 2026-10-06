@@ -28,6 +28,7 @@ MODEL_LABELS = {
     "gpt-6-astra-medium": "GPT-6 Astra Medium",
     "claude-fable-5-cc-medium": "Fable 5 Medium",
     "claude-opus-5-cc-medium": "Opus 5 Medium",
+    "claude-opus-5.5-cc-medium": "Opus 5.5 Medium",
     "claude-sonnet-5-cc-medium": "Sonnet 5 Medium",
     "claude-haiku-4.5": "Haiku 4.5",
     "claude-sonnet-4.5": "Sonnet 4.5",
