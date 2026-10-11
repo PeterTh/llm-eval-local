@@ -1,0 +1,23 @@
+containment_unit: local-evaluation-511446-d64ed93eee3d.scope
+io_write_device: /dev/nvme2n1p1
+network_policy: deny external; allow localhost
+limits:
+  allowed_cpus=0-15
+  cpu_quota_percent=1600
+  file_size_max_bytes=1073741824
+  io_write_bandwidth_bytes_per_second=16777216
+  memory_max_bytes=34359738368
+  output_limit_bytes=8388608
+  tasks_max=256
+environment:
+  CC=/usr/bin/gcc-13
+  CXX=/usr/bin/g++-13
+  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1004/bus
+  HOME=/home/petert
+  LANG=en_US.UTF-8
+  LOGNAME=petert
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin
+  USER=petert
+  XDG_RUNTIME_DIR=/run/user/1004
+command: cmake -S /home/petert/llm_para_local_evaluation/20261010-sol61-validation/validation/reference/matmul/source/matmul -B /home/petert/llm_para_local_evaluation/20261010-sol61-validation/validation/reference/matmul -DCMAKE_BUILD_TYPE\=Release -DCMAKE_C_COMPILER\=/usr/bin/gcc-13 -DCMAKE_CXX_COMPILER\=/usr/bin/g++-13
+effective_command: systemd-run --user --scope --quiet --collect --unit\=local-evaluation-511446-d64ed93eee3d --property\=MemoryMax\=34359738368 --property\=MemorySwapMax\=0 --property\=TasksMax\=256 --property\=OOMPolicy\=kill --property\=IPAddressDeny\=any --property\=IPAddressAllow\=localhost --property\=RuntimeMaxSec\=125s --property\=AllowedCPUs\=0-15 --property\=CPUQuota\=1600\% --property\=IOWriteBandwidthMax\=/dev/nvme2n1p1\ 16777216 -- cmake -S /home/petert/llm_para_local_evaluation/20261010-sol61-validation/validation/reference/matmul/source/matmul -B /home/petert/llm_para_local_evaluation/20261010-sol61-validation/validation/reference/matmul -DCMAKE_BUILD_TYPE\=Release -DCMAKE_C_COMPILER\=/usr/bin/gcc-13 -DCMAKE_CXX_COMPILER\=/usr/bin/g++-13

@@ -165,7 +165,7 @@ test("history, hidden IDs, and clearing preserve independent selections", async 
   await page.goto(`${basePath}#/time?model-set=all&highlight-model=unknown%2F%3F%26%2B&highlight-run=stored-run&highlight-benchmark=stored-benchmark`);
   await expect(page.getByRole("status")).toContainText("1 highlighted · 1 not shown");
   const points = page.locator(".time_points path");
-  await expect(points).toHaveCount(28);
+  await expect(points).toHaveCount(30);
   const first = points.last();
   const id = (await first.getAttribute("data-highlight-id"))!;
   await page.getByRole("button", { name: "Highlight mode" }).click();

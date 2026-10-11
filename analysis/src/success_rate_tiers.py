@@ -23,6 +23,8 @@ DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "8_success_rate_tier
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "8_success_rate_tiers.csv"
 
 MODEL_LABELS = {
+    "gpt-6.1-sol-medium": "GPT-6.1 Sol Medium",
+    "gpt-6.1-sol-xhigh": "GPT-6.1 Sol XHigh",
     "gpt-6-sol-medium": "GPT-6 Sol Medium",
     "gpt-6-luna-medium": "GPT-6 Luna Medium",
     "gpt-6-astra-medium": "GPT-6 Astra Medium",

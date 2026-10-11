@@ -47,6 +47,16 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertEqual("$0.005", combined._format_cost(0.005, 1))
         self.assertEqual("$0.01", combined._format_cost(0.01, 2))
 
+    def test_sol61_profiles_share_rates_but_retain_both_efforts(self):
+        for effort in ("medium", "xhigh"):
+            with self.subTest(effort=effort):
+                row = combined.aggregate(self.frame.assign(model=f"gpt-6.1-sol-{effort}")).iloc[0]
+                self.assertAlmostEqual((20 * 1 + 80 * 0.05 + 10 * 5) / 1_000_000,
+                                       row.estimated_cost_usd_per_run)
+                self.assertEqual("2026-10-11", row.pricing_as_of)
+                self.assertEqual(0.05, row.cached_input_price_usd_per_million)
+                self.assertEqual("https://developers.openai.com/api/docs/models/gpt-6.1-sol", row.pricing_source_url)
+
     def test_opus55_exact_tokens_use_dated_cache_discount(self):
         frame = self.frame.assign(model="claude-opus-5.5-cc-medium")
         row = combined.aggregate(frame).iloc[0]

@@ -39,9 +39,11 @@ test("methodology unifies Codex models under one harness", async ({ page }) => {
   await page.goto(basePath + "#/methodology");
   await expect(page.getByRole("heading", { name: /^Codex CLI/ })).toHaveCount(1);
   const codexHarness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Codex CLI", exact: true }) });
-  await expect(codexHarness.locator("header > span")).toHaveText("12 models");
-  await expect(codexHarness.locator(".harness-models > span")).toHaveCount(12);
+  await expect(codexHarness.locator("header > span")).toHaveText("14 models");
+  await expect(codexHarness.locator(".harness-models > span")).toHaveCount(14);
   await expect(codexHarness.locator(":scope > code")).toContainText("model_reasoning_effort=<effort>");
   await expect(codexHarness.getByText("GPT-6 Astra Medium", { exact: true })).toHaveAttribute("title", /invoked model gpt-6-astra; reasoning effort medium/);
   await expect(codexHarness.getByText("GPT-5.6 Sol Low", { exact: true })).toHaveAttribute("title", /invoked model gpt-5.6-sol; reasoning effort low/);
+  await expect(codexHarness.getByText("GPT-6.1 Sol Medium", { exact: true })).toHaveAttribute("title", /invoked model gpt-6.1-sol; reasoning effort medium/);
+  await expect(codexHarness.getByText("GPT-6.1 Sol XHigh", { exact: true })).toHaveAttribute("title", /invoked model gpt-6.1-sol; reasoning effort xhigh/);
 });

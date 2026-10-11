@@ -3,6 +3,93 @@ require_relative "artifact_common"
 
 # Checks retained batch evidence without needing the native workspace or Git sources.
 module BatchVerification
+  def verify_generation_observations!(campaign, observations, rows, usage: nil)
+    raise 'generation observation scope differs' unless observations.size == rows.size && observations.map { |r| r.fetch('id') }.sort == rows.keys.sort
+    if usage
+      raise 'generation usage scope differs' unless usage.keys.sort == rows.keys.sort
+    end
+    observations.each do |observation|
+      id = observation.fetch('id')
+      row = rows.fetch(id)
+      if usage
+        record = usage.fetch(id)
+        raise "generation usage identity differs #{id}" unless record.fetch('batch') == campaign.fetch('id') &&
+          record.fetch('session_id') == observation.fetch('session_id') &&
+          record.fetch('session_cwd') == observation.fetch('session_cwd') &&
+          record.fetch('cli_version') == observation.fetch('version') &&
+          record.fetch('transcript_sha256') == observation.fetch('sha256').fetch('output.txt') &&
+          record.fetch('legacy_reported_tokens') == observation.fetch('legacy_reported_tokens') &&
+          row.fetch('model') == "#{observation.fetch('model')}-#{observation.fetch('reasoning_effort')}"
+        counters = record.fetch('usage')
+        expected = { 'input_tokens' => counters.fetch('input_tokens'), 'cached_tokens' => counters.fetch('cached_input_tokens'),
+          'output_tokens' => counters.fetch('output_tokens'), 'total_tokens' => counters.fetch('total_tokens'),
+          'reasoning_output_tokens' => counters['reasoning_output_tokens'], 'cache_write_input_tokens' => counters['cache_write_input_tokens'],
+          'legacy_reported_tokens' => record.fetch('legacy_reported_tokens'), 'total_time' => observation.fetch('total_seconds'),
+          'api_time' => observation['api_seconds'] }
+        { 'token_usage_source' => record.fetch('source'), 'token_usage_session_id' => record.fetch('session_id') }.each do |key, value|
+          raise "generation usage provenance differs #{id}/#{key}" unless row.fetch(key) == value
+        end
+      else
+        expected = { 'input_tokens' => observation.fetch('inclusive_input_tokens'),
+          'cached_tokens' => observation.dig('token_counts', 'cache_read_input_tokens'),
+          'output_tokens' => observation.dig('token_counts', 'output_tokens'), 'total_tokens' => observation.fetch('total_tokens'),
+          'api_time' => observation.fetch('api_seconds'), 'total_time' => observation.fetch('total_seconds') }
+      end
+      expected.each do |key, value|
+        actual = row.fetch(key)
+        matches = value.nil? ? actual.to_s.empty? : Float(actual) == value
+        raise "generation counter differs #{id}/#{key}" unless matches
+      end
+    end
+  end
+
+  def verify_batch_audit_selection!(campaign, original, corrections, summary)
+    relative = summary['timing_audit_selection']
+    return unless relative
+    base = "batches/#{campaign.fetch('id')}"
+    selection = JSON.parse(File.read(path("#{base}/#{relative}")))
+    raise 'resolved audit source differs' unless selection.fetch('schema_version') == 1 && selection.fetch('source_commit') == campaign.fetch('source_commit')
+    resolved = {}
+    inputs = selection.fetch('ordered_decisions')
+    raise 'resolved audit input scope differs' if inputs.empty? || inputs.map { |r| r.fetch('path') }.uniq.size != inputs.size
+    inputs.each do |input|
+      file = path("#{base}/#{input.fetch('path')}")
+      raise 'resolved audit input changed' unless sha256(file) == input.fetch('sha256')
+      records = LocalEvalArtifact.read_jsonl(file)
+      raise 'duplicate resolved audit ID' unless records.map { |r| r.fetch('program_id') }.uniq.size == records.size
+      records.each do |record|
+        id = record.fetch('program_id')
+        if resolved[id]
+          %w[benchmark model par_type run source_tree_oid source_digest].each do |key|
+            raise "resolved audit source differs #{id}" unless record.fetch(key) == resolved.fetch(id).fetch(key)
+          end
+        end
+        resolved[id] = record
+      end
+    end
+    expected = original.values.select do |record|
+      info = record.fetch('metadata')
+      LocalEvalArtifact::VALIDATION_STAGES.all? { |stage| info.fetch('stages').fetch(stage) == true } &&
+        (%w[mpi hybrid].include?(info.fetch('par_type')) || info.fetch('benchmark') == 'qtclustering')
+    end.map { |record| record.fetch('id') }.sort
+    raise 'resolved audit coverage differs' unless resolved.keys.sort == expected && resolved.size == selection.fetch('record_count')
+    counts = resolved.values.group_by { |record| record.fetch('final_verdict') }.transform_values(&:size)
+    raise 'resolved audit verdict counts differ' unless counts == selection.fetch('verdict_counts') && counts == summary.fetch('timing_audit_final_verdicts')
+    resolved.each_value do |record|
+      verdict = record.fetch('final_verdict')
+      raise 'unresolved audit decision' unless %w[valid invalid].include?(verdict) && record.fetch('final_confidence') == 'high' &&
+        record.fetch('timing_review_required') == false && record.fetch('timing_fix_required') == (verdict == 'invalid')
+    end
+    ids = resolved.values.select { |r| r.fetch('timing_fix_required') }.map { |r| r.fetch('program_id') }.sort
+    raise 'resolved audit correction scope differs' unless ids == corrections.keys.sort && ids == selection.fetch('correction_ids')
+    corrections.each do |id, correction|
+      raise "resolved audit correction source differs #{id}" unless correction.fetch('original_source').fetch('digest') == resolved.fetch(id).fetch('source_digest')
+    end
+    correction_summary = summary.fetch('timing_corrections')
+    raise 'resolved audit correction binding differs' unless correction_summary.fetch('audit_selection') == relative &&
+      correction_summary.fetch('audit_selection_sha256') == sha256(path("#{base}/#{relative}"))
+  end
+
   def verify_corrected_scientific_validation!(id, original, corrected)
     stages = corrected.fetch("metadata").fetch("stages")
     raise "corrected scientific validation failed #{id}" unless LocalEvalArtifact::VALIDATION_STAGES.all? { |stage| stages.fetch(stage) == true }
@@ -44,6 +131,7 @@ module BatchVerification
     end
     corrections = LocalEvalArtifact.read_jsonl(path("#{base}/timing-corrections/final/corrections.jsonl"))
     by_id = corrections.to_h { |r| [r.fetch("program_id"), r] }
+    verify_batch_audit_selection!(campaign, original, by_id, summary)
     raise "batch correction scope differs" unless by_id.size == corrections.size && by_id.keys.sort == corrected.keys.sort && by_id.keys.sort == records.values.select { |r| r.fetch("timing_fixed") }.map { |r| r.fetch("id") }.sort
     amendment_digest = sha256(path("#{base}/benchmark/provenance/source_correction_amendment.yaml"))
     by_id.each do |id, correction|
@@ -80,22 +168,27 @@ module BatchVerification
     layout.each { |name, relative| raise "batch pipeline hash differs #{name}" unless sha256(path("#{base}/#{relative}")) == pipeline.fetch(name) }
     if campaign['generation_manifest']
       generation = read_json.call('generation/campaign.json')
+      generation_layout = if campaign['generation_method_layout']
+        JSON.parse(File.read(path(campaign.fetch('generation_method_layout'))))
+      else
+        generation.fetch('files').to_h { |name, _| [name, "#{base}/generation/method/#{name}"] }
+      end
+      raise 'generation method file set differs' unless generation_layout.keys.sort == generation.fetch('files').keys.sort
       generation.fetch('files').each do |name, digest|
-        raise "generation method changed #{name}" unless sha256(path("#{base}/generation/method/#{name}")) == digest
+        raise "generation method changed #{name}" unless sha256(path(generation_layout.fetch(name))) == digest
       end
       observations = LocalEvalArtifact.read_jsonl(path("#{base}/generation/observations.jsonl"))
       rows = CSV.read(path(campaign.fetch('aggregate_csv')), headers: true).to_h { |r| [self.class.id(r), r] }
-      raise 'generation observation scope differs' unless observations.size == rows.size && observations.map { |r| r.fetch('id') }.sort == rows.keys.sort
-      observations.each do |observation|
-        row = rows.fetch(observation.fetch('id'))
-        { 'input_tokens' => observation.fetch('inclusive_input_tokens'),
-          'cached_tokens' => observation.dig('token_counts', 'cache_read_input_tokens'),
-          'output_tokens' => observation.dig('token_counts', 'output_tokens'),
-          'total_tokens' => observation.fetch('total_tokens'),
-          'api_time' => observation.fetch('api_seconds'), 'total_time' => observation.fetch('total_seconds') }.each do |key, value|
-          raise "generation counter differs #{observation['id']}/#{key}" unless Float(row.fetch(key)) == value
-        end
+      usage = nil
+      if campaign['exact_codex_usage']
+        usage_path = path(campaign.fetch('exact_codex_usage'))
+        raise 'native aggregate Codex usage binding differs' unless metadata.fetch('codex_usage_sha256') == sha256(usage_path)
+        recovery = read_json.call('generation/usage-recovery.json')
+        usage = CodexUsage.load_records(usage_path)
+        raise 'generation usage receipt differs' unless recovery.fetch('sha256') == sha256(usage_path) &&
+          recovery.fetch('records') == usage.size && recovery.fetch('unavailable').empty?
       end
+      verify_generation_observations!(campaign, observations, rows, usage: usage)
     end
   end
 end

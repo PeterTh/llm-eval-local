@@ -238,7 +238,7 @@ export function MethodologyView() {
               each token class is priced separately. Copilot and the normalized Claude Code metadata include
               cache-read tokens in their input count, while
               Pi reports uncached input and cache reads separately; the calculation follows the recorded convention.
-              GPT-5.6 and GPT-6 token counts come from retained Codex session records.
+              Codex token counts come from retained session records.
               Cached input is included in input;
               reasoning tokens are included in output and are not charged twice.
             </p>
@@ -247,7 +247,7 @@ export function MethodologyView() {
               estimated cost among the available live, non-batch OpenRouter endpoints for that model's observed token mix;
               Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired
               models use the last known live rate as a fallback.
-              {" "}The GPT-6 profiles use the lowest published non-batch OpenAI tier, Flex, with official model documentation as their source.
+              {" "}The GPT-6 and GPT-6.1 profiles use the lowest published non-batch OpenAI tier, Flex, with official model documentation as their source.
             </p>
           </section>
         </div>

@@ -12,14 +12,14 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await page.goto(basePath + "#/time");
   await expect(page.getByRole("link", { name: "Time Efficiency" })).toHaveClass(/active/);
   const summary = page.getByLabel("Current time efficiency selection summary");
-  await expect(summary.getByText("21", { exact: true })).toBeVisible();
-  await expect(summary.getByText("4,620", { exact: true })).toHaveCount(2);
+  await expect(summary.getByText("23", { exact: true })).toBeVisible();
+  await expect(summary.getByText("5,060", { exact: true })).toHaveCount(2);
   const scale = page.getByRole("combobox", { name: "Time scale" });
   await expect(scale).toHaveValue("linear");
   const points = page.locator(".time_points path");
   const outliers = page.locator(".time_outlier_points path");
-  await expect(points).toHaveCount(21);
-  await expect(page.locator(".time_boxes path")).toHaveCount(21);
+  await expect(points).toHaveCount(23);
+  await expect(page.locator(".time_boxes path")).toHaveCount(23);
   await expect(page.locator(".time-distribution svg text").filter({ hasText: /^Opus 5 Medium$/ })).toHaveCount(1);
   await expect(outliers.first()).toHaveAttribute("tabindex", "0");
   await page.screenshot({ path: testInfo.outputPath("time-default-linear.png"), fullPage: true });
@@ -44,10 +44,10 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await modelMenu.locator("summary").click();
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await page.mouse.click(4, 400);
-  await expect(summary.getByText("28", { exact: true })).toBeVisible();
-  await expect(summary.getByText("6,160", { exact: true })).toHaveCount(2);
-  await expect(points).toHaveCount(28);
-  await expect(page.locator(".time_boxes path")).toHaveCount(28);
+  await expect(summary.getByText("30", { exact: true })).toBeVisible();
+  await expect(summary.getByText("6,600", { exact: true })).toHaveCount(2);
+  await expect(points).toHaveCount(30);
+  await expect(page.locator(".time_boxes path")).toHaveCount(30);
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -55,8 +55,8 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   expect(download.suggestedFilename()).toBe("llm-eval-score-time.csv");
   const exported = parse(await readFile((await download.path())!, "utf8"), { columns: true }) as Record<string, string>[];
   const source = parse(await readFile(new URL("../../release/scored_results.csv", import.meta.url), "utf8"), { columns: true }) as Record<string, string>[];
-  expect(source).toHaveLength(6160);
-  expect(exported).toHaveLength(28);
+  expect(source).toHaveLength(6600);
+  expect(exported).toHaveLength(30);
   for (const row of exported) {
     const selected = source.filter((run) => run.model === row.model);
     const times = selected.map((run) => Number(run.total_time)).sort((a, b) => a - b);
@@ -91,7 +91,7 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await expect(page.getByRole("heading", { name: /min generation time/ })).toBeVisible();
   await page.getByRole("link", { name: /Back to Time Efficiency/ }).click();
   await expect(scale).toHaveValue("log");
-  await expect(summary.getByText("28", { exact: true })).toBeVisible();
+  await expect(summary.getByText("30", { exact: true })).toBeVisible();
 
   await points.first().focus();
   await page.keyboard.press("Enter");
@@ -99,7 +99,7 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await page.goBack();
   await page.getByRole("button", { name: /Reset/ }).click();
   await expect(scale).toHaveValue("linear");
-  await expect(summary.getByText("21", { exact: true })).toBeVisible();
+  await expect(summary.getByText("23", { exact: true })).toBeVisible();
 
   await page.goto(basePath + "#/time?model=claude-opus-5-cc-medium&benchmark=black-scholes&backend=omp&scale=log");
   await expect(points).toHaveCount(1);
@@ -126,8 +126,8 @@ test("time charts retain labels and complete ranges at every scale and theme", a
     for (const scale of ["linear", "log"]) {
       await page.goto(basePath + "#/time?model-set=all&scale=" + scale);
       const labels = page.locator(".time_labels text");
-      await expect(labels).toHaveCount(28);
-      await expect(page.locator(".time_boxes path")).toHaveCount(28);
+      await expect(labels).toHaveCount(30);
+      await expect(page.locator(".time_boxes path")).toHaveCount(30);
       const layout = await labels.evaluateAll((elements) => {
         const visible = elements.filter((element) => {
           const style = getComputedStyle(element);
@@ -145,15 +145,15 @@ test("time charts retain labels and complete ranges at every scale and theme", a
         return { count: visible.length, overlaps, hidden: elements.filter((element) => !visible.includes(element)).map((element) => element.textContent) };
       });
       await page.screenshot({ path: testInfo.outputPath("time-all-" + colorScheme + "-" + scale + ".png"), fullPage: true });
-      expect(layout).toEqual({ count: 28, overlaps: 0, hidden: [] });
+      expect(layout).toEqual({ count: 30, overlaps: 0, hidden: [] });
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
     }
   }
   if (testInfo.project.name === "mobile") {
     await page.setViewportSize({ width: 320, height: 844 });
     await page.goto(basePath + "#/time");
-    await expect(page.locator(".time_points path")).toHaveCount(21);
-    await expect(page.locator(".time_boxes path")).toHaveCount(21);
+    await expect(page.locator(".time_points path")).toHaveCount(23);
+    await expect(page.locator(".time_boxes path")).toHaveCount(23);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
     await page.screenshot({ path: testInfo.outputPath("time-320-dark.png"), fullPage: true });
   }

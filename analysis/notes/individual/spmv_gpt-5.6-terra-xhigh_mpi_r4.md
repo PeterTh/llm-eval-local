@@ -8,7 +8,8 @@ Status: static performance explanation; no validation, measurement, or scoring c
 
 This is the first-place MPI result in the `spmv` cell of data release
 `local-eval-2026-08-25` at data commit `f83773e`. The benchmark used a 10,000-row
-matrix with 40 nonzeros per row and 50,000 repetitions on 128 ranks. Its times are
+matrix with approximately 250 nonzeros per row (`-s 40`, one in 40 matrix entries)
+and 50,000 repetitions on 128 ranks. Its times are
 1378.891, 1381.833, 1386.340, 1377.341, and 1385.503 ms, giving a 1381.833 ms
 median. The runner-up median is 1417.276 ms.
 

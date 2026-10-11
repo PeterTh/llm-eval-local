@@ -1,0 +1,45 @@
+Additional independently checked static target-platform facts
+
+The recorded platform, resource profiles, inherited benchmark configuration and
+chrono ABI facts in the parent dossier are unchanged. No benchmark or validation
+program was executed for this evidence. No previous review verdict is supplied.
+
+The installed MPI packages are Ubuntu 4.1.6-7ubuntu2. The validated executable
+requires libmpi.so.40 and records RUNPATH /usr/lib/x86_64-linux-gnu/openmpi/lib.
+That directory's libmpi.so resolves to the installed
+/usr/lib/x86_64-linux-gnu/libmpi.so.40.30.6, SHA-256
+9055018b12757e830591aa0283e485e471f1f2a06d3bc0dd5fb35ab00386c172.
+The retained native invocation has no LD_PRELOAD or LD_LIBRARY_PATH override.
+
+Upstream pinned source:
+https://github.com/open-mpi/ompi/blob/v4.1.6/ompi/mpi/c/comm_split_type.c
+SHA-256 a85ad03e9b88e38b84b44e75e9ae7de8baa16b40d44ca6e266e61e63b06094fa.
+Its normal successful MPI_COMM_WORLD path calls ompi_comm_split_type. The only
+successful bypass is MPI_COMM_SELF together with MPI_UNDEFINED; that is not the
+world/shared call in the supplied generated source. Installed-library static
+disassembly confirms the binding calls ompi_comm_split_type at address 0x78f6f.
+
+https://github.com/open-mpi/ompi/blob/v4.1.6/ompi/communicator/comm.c
+SHA-256 b0df0d9d40b252deddf76590e2fb4c22ed56e7899cd57cdeacc5ba8316fff98f.
+The implementation of ompi_comm_split_type starts at line 738. Its first step,
+lines 754-764, initializes four integers from this invocation's split_type and
+key, then calls the communicator's blocking coll_allreduce function with count
+4, MPI_INT and MPI_MAX. This precedes group construction, communicator activation,
+key reordering checks and every successful return. It is not contingent on
+needing to reorder ranks, nor limited to the subsequently created node subgroup.
+
+The installed binary agrees with this first step: it reads c_coll at offset
+0x150, stores split_type, -split_type, key and -key to a local four-int buffer,
+loads the MPI_INT and MPI_MAX objects, and calls the function pointer at offset
+0x20 in that table at address 0x336cc. The only preceding early-return branch is
+the invalid null-output-pointer check. An independently compiled, unlinked C
+static-assert probe using the exact installed Open MPI headers verifies
+offsetof(ompi_communicator_t, c_coll) == 0x150,
+offsetof(mca_coll_base_comm_coll_t, coll_allreduce) == 0x20, and
+offsetof(mca_coll_base_comm_coll_t, coll_allreduce_module) == 0x28.
+The compile exited zero; no probe or generated executable was linked or run.
+
+These are facts about the pinned implementation, not a claim that arbitrary
+MPI collectives are barriers or that barrier return times are simultaneous.
+Apply the original timing and QT preprocessing contract to the supplied program
+using these additional facts, tracing entry and completion order explicitly.

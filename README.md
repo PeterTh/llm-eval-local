@@ -22,13 +22,13 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 6,160 initial validation outcomes and scoped revalidations, including exact execution output;
-- all 5,295 current benchmark outcomes (4,922 successful), measured values and wall times;
+- all 6,600 initial validation outcomes and scoped revalidations, including exact execution output;
+- all 5,734 current benchmark outcomes (5,361 successful), measured values and wall times;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
-- static MPI/hybrid timing audits covering 2,343 programs, all-backend QT audits
-  of 445 validated programs, 913 timing-fixed implementations, and scoped rerun comparisons;
+- static MPI/hybrid timing audits covering 2,562 programs, all-backend QT audits
+  of 485 validated programs, 924 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
-- compact, provenance-bound Codex usage records for 1,980 GPT-5.6 and 660 GPT-6 runs;
+- compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 440 GPT-6.1 runs;
 - the exact final local-evaluation pipeline source snapshot; and
 - reproducible analysis source and final publication tables/figures as they are added.
 
@@ -51,13 +51,13 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 6,160 scored
-programs across 28 models, using the same scoring procedure applied jointly to four
-campaigns. It includes Claude 5, GPT-6 and Opus 5.5, with timing-corrected measurements and
+The current combined release is under [`release/`](release/README.md): 6,600 scored
+programs across 30 model/effort profiles, using the same scoring procedure applied jointly to five
+campaigns. It includes Claude 5, GPT-6, Opus 5.5 and Sol 6.1, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
-analyses; superseded reviews are retained too (86 notes in total).
+analyses; superseded reviews are retained too (93 notes in total).
 
-GPT-5.6 and GPT-6 cost estimates use exact reported token counts from retained
+Codex cost estimates use exact reported token counts from retained
 Codex session records.
 See [token recovery and cost accounting](analysis/README.md#gpt-56-scorecost-comparison).
 
@@ -74,6 +74,7 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 642 | 627 |
 | [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 609 | 588 |
 | [Opus 5.5 Medium](batches/20261002-142720/README.md) | 220 | 219 | 219 |
+| [Sol 6.1 Medium and XHigh](batches/20261006-204623/README.md) | 440 | 439 | 439 |
 
 All campaigns use the same reviewed benchmark sizes, iterations, timeouts and
 resource profiles, with one warm-up and five measurements. Campaign records and

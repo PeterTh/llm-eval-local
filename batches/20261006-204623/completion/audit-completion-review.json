@@ -1,0 +1,140 @@
+{
+  "checked_at": "2026-10-10T19:47:21.365484Z",
+  "passed": false,
+  "unique_programs": 239,
+  "reviews": [
+    {
+      "root": "/home/petert/llm_timing_audit/20261010-sol61",
+      "model": "gpt-5.6-luna",
+      "effort": "high",
+      "responses": 219,
+      "attempts": 241,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "455ff4be4171b025ed33a7bd3778a2bce74d8ac2d237d396bcf2ce01d7b919c2"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261010-sol61-priority",
+      "model": "gpt-5.6-luna",
+      "effort": "high",
+      "responses": 12,
+      "attempts": 12,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "ecada67a0c231bb7f2685f1409638fa221ab269ca3409635b2d93ecbbd18200f"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261010-sol61-sol61",
+      "model": "gpt-6.1-sol",
+      "effort": "xhigh",
+      "responses": 10,
+      "attempts": 10,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "7efff47195ea4eb0c14bccdcc9ae4e78407fe71d0819a98e342cbffeed2071ec"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261010-sol61-qtclustering",
+      "model": "gpt-5.6-luna",
+      "effort": "high",
+      "responses": 40,
+      "attempts": 40,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "46cdf5b17aadc886a9e3a5abb1324c7e3dc66beded6575ee4b3b49d7da516892"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261010-sol61-qtclustering-sol61",
+      "model": "gpt-6.1-sol",
+      "effort": "xhigh",
+      "responses": 19,
+      "attempts": 19,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "6db8ff11d084fdbca041e1ff66484757b30ea054241e6f982a10ed092346069a"
+    }
+  ],
+  "input_sha256": {
+    "/home/petert/llm_timing_audit/20261010-sol61/final/decisions.jsonl": "b66d0f267fac916a449131a942f338ee05642afcba81856a9d15305f1d7662d0",
+    "/home/petert/llm_timing_audit/20261010-sol61-qtclustering/final/decisions.jsonl": "5e7c5a6eb99b6a9c2c12f05efe4f5a9d858d75b997f9481d859f4a37f0734000"
+  },
+  "verdicts": {
+    "valid": 227,
+    "invalid": 11,
+    "ambiguous": 1
+  },
+  "corrections_by_benchmark": {
+    "qtclustering": 5,
+    "roomsim": 6
+  },
+  "unresolved": [
+    {
+      "benchmark": "qtclustering",
+      "model": "gpt-6.1-sol-medium",
+      "par_type": "hybrid",
+      "run": 2,
+      "source_tree_oid": "56b3c239179f0b3ea75ef232002a83f0bd8fd35b",
+      "source_digest": "1977863882d7626c528096c637bad56200ef90c5d8ffb0538deb9efa547afd1e",
+      "overall_score": null,
+      "benchmark_median_time_ms": null,
+      "origin": "/home/petert/llm_para_local_evaluation/20261010-sol61-validation",
+      "previously_timing_fixed": false,
+      "previous_benchmark_success": null,
+      "program_id": "qtclustering_gpt-6.1-sol-medium_hybrid_r2",
+      "primary_verdict": "invalid",
+      "adjudication_verdict": "valid",
+      "final_verdict": "ambiguous",
+      "final_issue_categories": [
+        "none"
+      ],
+      "final_confidence": "medium",
+      "decision_basis": "sol_6_1_blind_adjudication",
+      "timing_fix_required": null,
+      "timing_review_required": true,
+      "timing_only_fix_possible": false,
+      "minimal_fix": "",
+      "timed_region": "All algorithmic preprocessing is included in qtClustering: the earliest pairwise distances are computed by countNeighbors, followed by CPU CSR-offset construction and fillNeighbors. Candidate growth computes and caches further distances inside growCandidates. Host winner selection, clustering collectives, and membership updates also occur inside the call. Each rank starts at line 541 and stops at line 546 after qtClustering and the final world barrier. Input generation and coordinate distribution precede timing; validation and reporting follow it.",
+      "semantic_equivalence_basis": "The reported root interval spans all replacement distance/neighbor preprocessing, candidate computation, and distributed clustering decisions, with completed GPU work on every rank. Its global-makespan justification depends on the pinned Open MPI communicator-splitting implementation, rather than simultaneous barrier returns.",
+      "notes": "Verdict applies to the supplied full benchmark: -n 5000, default threshold 2.0, four hybrid ranks, and pinned Open MPI 4.1.6. The entry-gate argument relies specifically on that implementation's all-rank communicator-split input exchange and is not asserted for arbitrary MPI implementations. Supplied LP64/toolchain probe evidence supports the timer count type and printf format. Included runtime setup is conservative. No workload-specific truncation, zero-time, or overflow defect is established.",
+      "evidence": [
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "289-302",
+          "finding": "The first operation inside qtClustering is a world-communicator split; GPU setup and all input-dependent clustering computation follow it."
+        },
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "123-158",
+          "finding": "countNeighbors and fillNeighbors compute Euclidean distances and construct threshold-neighbor information."
+        },
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "315-343",
+          "finding": "Neighbor counting, blocking count retrieval, CPU CSR-offset construction, and neighbor filling are all inside qtClustering."
+        },
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "213-220",
+          "finding": "Candidate distance caches are initialized during GPU candidate growth."
+        },
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "245-272",
+          "finding": "Candidate selection and distance-cache updates perform further on-demand algorithmic computation."
+        },
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "368-385",
+          "finding": "Candidate kernels complete through blocking copies before joined OpenMP winner selection and the clustering Allreduce."
+        },
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "392-413",
+          "finding": "Winner reconstruction, membership broadcast, host/device membership updates, and final device synchronization occur before return."
+        },
+        {
+          "path": "qtclustering/qtclustering.cpp",
+          "lines": "528-552",
+          "finding": "Input generation/distribution precedes local starts; qtClustering and the final barrier precede local stops; only root prints the millisecond duration."
+        }
+      ]
+    }
+  ],
+  "source_only": true,
+  "policy": "Reconcile the same-source all-backend QT overlay; retain all original review evidence; no new scientific verdicts in this integrity report."
+}

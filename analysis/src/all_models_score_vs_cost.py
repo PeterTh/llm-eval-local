@@ -37,6 +37,28 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "gpt-6.1-sol-medium": {
+        "label": "GPT-6.1 Sol Medium", "color": "#19856f", "marker": "o",
+        "pricing_as_of": "2026-10-11", "pricing_model_id": "openai/gpt-6.1-sol",
+        "input_price": 1.0, "cached_input_price": 0.05, "output_price": 5.0,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model pricing",
+        "pricing_selection_policy": "lowest published non-batch OpenAI processing tier (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    },
+    "gpt-6.1-sol-xhigh": {
+        "label": "GPT-6.1 Sol XHigh", "color": "#19856f", "marker": "D",
+        "pricing_as_of": "2026-10-11", "pricing_model_id": "openai/gpt-6.1-sol",
+        "input_price": 1.0, "cached_input_price": 0.05, "output_price": 5.0,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model pricing",
+        "pricing_selection_policy": "lowest published non-batch OpenAI processing tier (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    },
     "claude-opus-5.5-cc-medium": {
         "label": "Opus 5.5 Medium", "color": "#e35d32", "marker": "P",
         "pricing_as_of": "2026-10-06", "pricing_model_id": "anthropic/claude-opus-5.5",
@@ -322,12 +344,14 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "gpt-6.1-sol-medium": (-7, 10),
+    "gpt-6.1-sol-xhigh": (-7, 12),
     "claude-opus-5.5-cc-medium": (-7, 12),
     "gpt-6-sol-medium": (-7, 9),
     "gpt-6-luna-medium": (7, -6),
-    "gpt-6-astra-medium": (-7, 12),
+    "gpt-6-astra-medium": (7, -4),
     "claude-fable-5-cc-medium": (-7, -8),
-    "claude-opus-5-cc-medium": (-7, 9),
+    "claude-opus-5-cc-medium": (-7, -6),
     "claude-sonnet-5-cc-medium": (7, -9),
     "deepseek-v4-flash": (-7, 4),
     "gpt-5-mini": (7, 0),
@@ -341,7 +365,7 @@ LABEL_OFFSETS = {
     "gpt-5.6-terra-xhigh": (-7, -9),
     "claude-sonnet-4.5": (7, 8),
     "gemini-3-pro-preview": (7, -7),
-    "gpt-5.6-sol-xhigh": (7, -3),
+    "gpt-5.6-sol-xhigh": (7, -10),
     "claude-opus-4.6": (-7, 0),
 }
 
