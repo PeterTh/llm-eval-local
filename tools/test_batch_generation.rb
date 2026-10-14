@@ -56,4 +56,29 @@ class BatchGenerationTest < Minitest::Test
       @release.verify_generation_observations!(@campaign, [observation], { "claude" => row })
     }.message)
   end
+
+  def test_context_usage_binds_original_observation_and_counter_totals
+    counts = { 'input_tokens' => 20, 'cache_read_input_tokens' => 80,
+      'cache_creation_input_tokens' => 10, 'output_tokens' => 10 }
+    observation = @observation.merge('model' => 'claude-haiku-5-5', 'token_counts' => counts)
+    campaign = @campaign.merge('source_commit' => 'b' * 40)
+    short = { 'input_tokens' => 20, 'cache_read_input_tokens' => 80, 'cache_creation_5m_tokens' => 0,
+      'cache_creation_1h_tokens' => 10, 'output_tokens' => 10, 'inclusive_input_tokens' => 110,
+      'requests' => 1, 'max_request_input_tokens' => 110, 'streamed_output_lower_bound' => 1 }
+    record = { 'id' => observation.fetch('id'), 'schema_version' => 1,
+      'source_batch' => campaign.fetch('id'), 'source_commit' => campaign.fetch('source_commit'),
+      'session_id' => observation.fetch('session_id'), 'model' => observation.fetch('model'),
+      'claude_code_version' => observation.fetch('version'), 'transcript_sha256' => 'a' * 64,
+      'native_token_counts' => counts, 'bands' => { 'short' => short, 'long' => short.transform_values { 0 } },
+      'requests' => 1, 'request_input_threshold_tokens' => 100000,
+      'output_band_evidence' => 'native_total_in_single_observed_band', 'per_request_output_available' => false }
+    @release.verify_context_observations!(campaign, [observation], [record])
+    assert_match(/identity differs/, assert_raises(RuntimeError) {
+      @release.verify_context_observations!(campaign, [observation], [record.merge('source_commit' => 'c' * 40)])
+    }.message)
+    short['output_tokens'] = 9
+    assert_match(/counters differ/, assert_raises(RuntimeError) {
+      @release.verify_context_observations!(campaign, [observation], [record])
+    }.message)
+  end
 end

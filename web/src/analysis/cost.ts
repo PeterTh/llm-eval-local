@@ -41,6 +41,7 @@ export interface CostModelSummary {
   cachedInputPriceUsdPerMillion: number | null;
   outputPriceUsdPerMillion: number | null;
   effectivePriceUsdPerMillion: number | null;
+  longContext?: CostPricingProfile["longContext"];
   costMethod: string;
   pointShape: typeof POINT_SHAPES[number];
   styleIndex: number;
@@ -99,6 +100,7 @@ function profileMethod(
   convention: "includes-cached" | "excludes-cached",
 ): string {
   if (!profile) return "Cost unavailable";
+  if (profile.longContext) return profile.costMethod;
   if (profile.effectivePriceUsdPerMillion !== null) {
     return "Combined token count priced with a fixed 50/50 input/output rate";
   }
@@ -155,12 +157,19 @@ export function analyzeCost(
       `${formatCount(meanOutputTokens)} output`,
       `${formatCount(meanPricedTokens)} priced`,
     ].join(" · ");
-    const rateSummaryLabel = [
+    const baseRates = [
       `${formatUsd(profile?.inputPriceUsdPerMillion ?? null)} input`,
       `${formatUsd(profile?.cachedInputPriceUsdPerMillion ?? null)} cached`,
       `${formatUsd(profile?.outputPriceUsdPerMillion ?? null)} output`,
-      `${formatUsd(effectiveObservedPriceUsdPerMillion)} observed`,
     ].join(" · ");
+    const long = profile?.longContext;
+    const thresholdLabel = long ? formatCount(long.requestInputThresholdTokens) : "";
+    const rateSummaryLabel = long
+      ? `≤${thresholdLabel} input/request: ${baseRates}; >${thresholdLabel}: ${formatUsd(long.inputPriceUsdPerMillion)} input · ${formatUsd(long.cachedInputPriceUsdPerMillion)} cached · ${formatUsd(long.outputPriceUsdPerMillion)} output · ${formatUsd(effectiveObservedPriceUsdPerMillion)} observed`
+      : `${baseRates} · ${formatUsd(effectiveObservedPriceUsdPerMillion)} observed`;
+    const priceLabel = (key: "inputPriceUsdPerMillion" | "cachedInputPriceUsdPerMillion" | "outputPriceUsdPerMillion"): string => long
+      ? `${formatUsdPerMillion(profile![key])} (≤${thresholdLabel}); ${formatUsdPerMillion(long[key])} (>${thresholdLabel} input/request)`
+      : formatUsdPerMillion(profile?.[key] ?? null);
     const providerSummaryLabel = profile
       ? `${profile.pricingProvider} · ${profile.pricingProviderTag}`
       : "—";
@@ -201,6 +210,7 @@ export function analyzeCost(
       cachedInputPriceUsdPerMillion: profile?.cachedInputPriceUsdPerMillion ?? null,
       outputPriceUsdPerMillion: profile?.outputPriceUsdPerMillion ?? null,
       effectivePriceUsdPerMillion: profile?.effectivePriceUsdPerMillion ?? null,
+      longContext: profile?.longContext ?? null,
       costMethod,
       pointShape: POINT_SHAPES[hash % POINT_SHAPES.length]!,
       styleIndex: hash % 7,
@@ -215,9 +225,9 @@ export function analyzeCost(
       outputTokensLabel: formatCount(meanOutputTokens),
       tokenSummaryLabel,
       effectiveObservedPriceLabel: formatUsdPerMillion(effectiveObservedPriceUsdPerMillion),
-      inputPriceLabel: formatUsdPerMillion(profile?.inputPriceUsdPerMillion ?? null),
-      cachedInputPriceLabel: formatUsdPerMillion(profile?.cachedInputPriceUsdPerMillion ?? null),
-      outputPriceLabel: formatUsdPerMillion(profile?.outputPriceUsdPerMillion ?? null),
+      inputPriceLabel: priceLabel("inputPriceUsdPerMillion"),
+      cachedInputPriceLabel: priceLabel("cachedInputPriceUsdPerMillion"),
+      outputPriceLabel: priceLabel("outputPriceUsdPerMillion"),
       rateSummaryLabel,
       providerSummaryLabel,
       sourceAvailabilityLabel,

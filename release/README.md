@@ -1,11 +1,11 @@
-# Combined release: 2026-10-11
+# Combined release: 2026-10-14
 
-This is a reproducible view over five retained campaigns, not a second raw-data archive.
+This is a reproducible view over six retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
 `batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`;
 Opus 5.5 is under `batches/20261002-142720/`; Sol 6.1 medium and xhigh are under
-`batches/20261006-204623/`.
+`batches/20261006-204623/`; Haiku 5.5 is under `batches/20261012-111947/`.
 
 The catalog's
 `codex_usage_overlays` joins exact reported counters for all 1,980 GPT-5.6 runs from
@@ -22,24 +22,24 @@ revalidation and remain invalid, giving 609 eligible programs. Both observations
 remain accessible. All 4,435 unrelated historical benchmark records are guarded
 unchanged.
 
-The Claude generation harness and campaign tooling are published at
+The initial Claude 5 generation harness and campaign tooling are published at
 [`fa046134`](https://github.com/PeterTh/llm-eval-experiment/tree/fa046134cf22a2cb3b8398567f2cf4115bceb021).
 This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 6,600 programs, 30 model/effort combinations, 220 programs each.
-- 5,734 effectively validated programs and benchmark attempts; 5,361 successful measurements.
-- 924 timing-fixed programs (including two failed revalidations), with source history.
-- 44 benchmark/backend cells; seven newly reviewed Sol 6.1 winners, 93 retained reviews total.
+- 6,820 programs, 31 model/effort combinations, 220 programs each.
+- 5,953 effectively validated programs and benchmark attempts; 5,580 successful measurements.
+- 957 timing-fixed programs (including two failed revalidations), with source history.
+- 44 benchmark/backend cells, all with reviewed winners; 93 retained reviews total.
 
-Sol 6.1 adds 439 successful benchmarks and preserves its one validation failure.
-Its 11 timing-only corrections passed revalidation before measurement. All 6,160
-prior observations are unchanged; 97 prior scores change through joint thresholds.
-The [Sol 6.1 review context](../analysis/notes/2026-10-11-sol61-winner-context.json)
-pins the previous release at `d267574`, source revisions and comparison vectors.
-A bounded SpMV/MPI diagnostic supports the explanation of its outlier lead;
-its ten executions are separate from the canonical benchmark measurements.
+Haiku 5.5 contributes 219 successful benchmarks and preserves its one validation
+failure. Its 33 timing-only corrections passed revalidation before measurement.
+All 6,600 prior observations are unchanged; 84 prior scores change through joint
+thresholds. The [comparison snapshot](../analysis/notes/2026-10-14-haiku55-winner-context.json)
+pins the preceding release and confirms that Haiku introduces no new cell winners.
+Its [request-context pricing evidence](../analysis/notes/2026-10-14-haiku55-pricing.md)
+supports both short- and long-context rates without changing original token totals.
 
 `scored_results.csv` is the current analysis and website input. The unchanged historic
 log-natural-break threshold procedure is applied to the joint successful-measurement

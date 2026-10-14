@@ -3,6 +3,47 @@ require_relative "artifact_common"
 
 # Checks retained batch evidence without needing the native workspace or Git sources.
 module BatchVerification
+  def verify_context_observations!(campaign, observations, records)
+    by_id = observations.to_h { |row| [row.fetch('id'), row] }
+    raise 'context usage scope differs' unless records.size == by_id.size && records.map { |row| row.fetch('id') }.sort == by_id.keys.sort
+    records.each do |record|
+      id = record.fetch('id')
+      observation = by_id.fetch(id)
+      raise "context usage identity differs #{id}" unless record.fetch('schema_version') == 1 &&
+        record.fetch('source_batch') == campaign.fetch('id') && record.fetch('source_commit') == campaign.fetch('source_commit') &&
+        record.fetch('session_id') == observation.fetch('session_id') && record.fetch('model') == observation.fetch('model') &&
+        record.fetch('claude_code_version') == observation.fetch('version') &&
+        record.fetch('transcript_sha256') == observation.fetch('sha256').fetch('output.txt') &&
+        record.fetch('native_token_counts') == observation.fetch('token_counts')
+      bands = record.fetch('bands')
+      raise "context band scope differs #{id}" unless bands.keys.sort == %w[long short]
+      keys = %w[input_tokens cache_read_input_tokens cache_creation_5m_tokens cache_creation_1h_tokens output_tokens inclusive_input_tokens requests max_request_input_tokens streamed_output_lower_bound]
+      bands.each do |name, band|
+        raise "invalid context count #{id}" unless keys.all? { |key| band.fetch(key).is_a?(Integer) && band.fetch(key) >= 0 }
+        inclusive = band.values_at('input_tokens', 'cache_read_input_tokens', 'cache_creation_5m_tokens', 'cache_creation_1h_tokens').sum
+        raise "context band input differs #{id}" unless inclusive == band.fetch('inclusive_input_tokens')
+        maximum, requests = band.values_at('max_request_input_tokens', 'requests')
+        raise "context request length differs #{id}" unless maximum <= inclusive && inclusive <= maximum * requests
+        if requests.positive?
+          raise "wrong context band #{id}" unless (maximum > record.fetch('request_input_threshold_tokens')) == (name == 'long')
+        end
+        raise "context output below lower bound #{id}" unless band.fetch('output_tokens') >= band.fetch('streamed_output_lower_bound')
+        raise "context output without requests #{id}" if requests.zero? && band.fetch('output_tokens').positive?
+      end
+      expected = {
+        'input_tokens' => bands.values.sum { |band| band.fetch('input_tokens') },
+        'cache_read_input_tokens' => bands.values.sum { |band| band.fetch('cache_read_input_tokens') },
+        'cache_creation_input_tokens' => bands.values.sum { |band| band.values_at('cache_creation_5m_tokens', 'cache_creation_1h_tokens').sum },
+        'output_tokens' => bands.values.sum { |band| band.fetch('output_tokens') }
+      }
+      raise "context counters differ #{id}" unless expected == observation.fetch('token_counts') &&
+        bands.values.sum { |band| band.fetch('requests') } == record.fetch('requests')
+      mixed = bands.values.all? { |band| band.fetch('requests').positive? }
+      label = mixed ? 'derived_from_reported_list_cost_and_native_output_total' : 'native_total_in_single_observed_band'
+      raise "context output provenance differs #{id}" unless record.fetch('output_band_evidence') == label && record.fetch('per_request_output_available') == false
+    end
+  end
+
   def verify_generation_observations!(campaign, observations, rows, usage: nil)
     raise 'generation observation scope differs' unless observations.size == rows.size && observations.map { |r| r.fetch('id') }.sort == rows.keys.sort
     if usage
@@ -189,6 +230,19 @@ module BatchVerification
           recovery.fetch('records') == usage.size && recovery.fetch('unavailable').empty?
       end
       verify_generation_observations!(campaign, observations, rows, usage: usage)
+      if campaign['context_token_usage']
+        context_path = path(campaign.fetch('context_token_usage'))
+        context_records = LocalEvalArtifact.read_jsonl(context_path)
+        recovery = read_json.call('generation/context-usage/recovery.json')
+        raise 'context recovery binding differs' unless recovery.fetch('records') == context_records.size &&
+          recovery.fetch('usage_sha256') == sha256(context_path) && recovery.fetch('source_commit') == campaign.fetch('source_commit')
+        context_layout = read_json.call('generation/context-usage/method-layout.json')
+        raise 'context method scope differs' unless context_layout.keys.sort == recovery.fetch('method_files').keys.sort
+        recovery.fetch('method_files').each do |name, digest|
+          raise "context method changed #{name}" unless sha256(path(context_layout.fetch(name))) == digest
+        end
+        verify_context_observations!(campaign, observations, context_records)
+      end
     end
   end
 end

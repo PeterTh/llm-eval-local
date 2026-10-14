@@ -68,6 +68,7 @@ class CurrentRelease
       relative = campaign.fetch("aggregate_csv")
       inputs[relative] = sha256(path(relative))
       inputs[campaign.fetch("exact_codex_usage")] = sha256(path(campaign.fetch("exact_codex_usage"))) if campaign["exact_codex_usage"]
+      inputs[campaign.fetch("context_token_usage")] = sha256(path(campaign.fetch("context_token_usage"))) if campaign["context_token_usage"]
       table = CSV.read(path(relative), headers: true)
       headers |= table.headers
       validations = load_records(campaign.fetch("validation_records"))

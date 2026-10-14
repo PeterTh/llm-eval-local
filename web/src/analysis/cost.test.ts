@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
 
 import { costDatasetFixture, manifestFixture } from "../test/fixtures";
+import { costSummariesToCsv } from "../utils/csv";
 import { adaptiveScoreDomain, analyzeCost, costDomain, pricedTokenCountForRun } from "./cost";
 
 describe("score and cost analysis", () => {
+  it("shows both request-context tiers and retains them in downloaded CSV", () => {
+    const dataset = {
+      ...costDatasetFixture,
+      profiles: costDatasetFixture.profiles.map((profile) => ({
+        ...profile, costMethod: "Request-context bands; mixed output splits derived from list-price totals",
+        longContext: { requestInputThresholdTokens: 100000, inputPriceUsdPerMillion: 5,
+          cachedInputPriceUsdPerMillion: 0.5, outputPriceUsdPerMillion: 20,
+          usagePath: "batches/test/usage.jsonl", sourceCommit: "a".repeat(40) },
+      })),
+    };
+    const analysis = analyzeCost(dataset, manifestFixture, { models: ["model/a?x"], benchmarks: [], backends: [] });
+    expect(analysis.models[0]!.rateSummaryLabel).toContain("≤100,000 input/request");
+    expect(analysis.models[0]!.rateSummaryLabel).toContain(">100,000");
+    expect(analysis.models[0]!.outputPriceLabel).toContain("$20");
+    expect(analysis.models[0]!.costMethod).toContain("derived");
+    expect(costSummariesToCsv(analysis.models)).toContain("long_output_price_usd_per_million");
+    expect(costSummariesToCsv(analysis.models)).toContain(",100000,5,0.5,20");
+  });
   it("recomputes separate score and cost aggregates for unbalanced active subsets", () => {
     const dataset = {
       ...costDatasetFixture,

@@ -109,6 +109,14 @@ export interface CostPricingProfile {
   cachedInputPriceUsdPerMillion: number;
   outputPriceUsdPerMillion: number;
   effectivePriceUsdPerMillion: number | null;
+  longContext?: {
+    requestInputThresholdTokens: number;
+    inputPriceUsdPerMillion: number;
+    cachedInputPriceUsdPerMillion: number;
+    outputPriceUsdPerMillion: number;
+    usagePath: string;
+    sourceCommit: string;
+  } | null;
   pricingAsOf: string;
   pricingModelId: string;
   pricingProvider: string;

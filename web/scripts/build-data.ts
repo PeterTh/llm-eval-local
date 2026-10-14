@@ -26,6 +26,8 @@ import { parseGenerationTime } from "./time-data";
 import {
   costRunFromScoredRow,
   parseCostPricingProfiles,
+  parseContextUsageRecords,
+  type ContextUsageRecord,
   reconcileCanonicalCostAggregates,
   validateCostConfig,
 } from "./cost-data";
@@ -627,6 +629,15 @@ export async function buildData(): Promise<void> {
   const validatedCostConfig = validateCostConfig(costConfig, parsedCostProfiles.profiles, knownModelIds);
   const costAliases = validatedCostConfig.aliases;
   const costProfileMap = new Map(parsedCostProfiles.profiles.map((profile) => [profile.id, profile]));
+  const contextUsage = new Map<string, ContextUsageRecord>();
+  for (const profile of parsedCostProfiles.profiles) {
+    if (!profile.longContext) continue;
+    const content = await readFile(resolve(repositoryRoot, profile.longContext.usagePath), "utf8");
+    for (const [id, record] of parseContextUsageRecords(content)) {
+      invariant(!contextUsage.has(id), `duplicate request-context evidence: ${id}`);
+      contextUsage.set(id, record);
+    }
+  }
   const costRuns = scoredRows.map((row) => costRunFromScoredRow(
     row,
     costProfileMap,
@@ -634,6 +645,7 @@ export async function buildData(): Promise<void> {
     validatedCostConfig.inputTokenAccounting,
     config.scoreScale.minimum,
     config.scoreScale.maximum,
+    contextUsage,
   ));
   const runsById = new Map(runs.map((run) => [run.id, run]));
   const costRunIds = new Set<string>();
@@ -650,6 +662,7 @@ export async function buildData(): Promise<void> {
     `cost/scored identity mismatch: ${costRun.id}`);
   }
   invariant(runs.every((run) => costRunIds.has(run.id)), "scored results contain runs outside the cost dataset");
+  invariant([...contextUsage.keys()].every((id) => costRunIds.has(id)), "request-context evidence contains unscored runs");
   costRuns.sort((left, right) => left.benchmarkId.localeCompare(right.benchmarkId, "en")
     || left.backendId.localeCompare(right.backendId, "en")
     || left.modelId.localeCompare(right.modelId, "en")

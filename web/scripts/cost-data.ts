@@ -1,6 +1,44 @@
 import type { CostPricingProfile, CostRunRecord } from "../src/data/types";
+import { z } from "zod";
 
 export type CsvRow = Record<string, string>;
+
+const contextBandSchema = z.object({
+  input_tokens: z.number().int().nonnegative(),
+  cache_read_input_tokens: z.number().int().nonnegative(),
+  cache_creation_5m_tokens: z.number().int().nonnegative(),
+  cache_creation_1h_tokens: z.number().int().nonnegative(),
+  output_tokens: z.number().int().nonnegative(),
+  inclusive_input_tokens: z.number().int().nonnegative(),
+  requests: z.number().int().nonnegative(),
+  max_request_input_tokens: z.number().int().nonnegative(),
+  streamed_output_lower_bound: z.number().int().nonnegative(),
+});
+const contextUsageSchema = z.object({
+  schema_version: z.literal(1),
+  id: z.string().min(1),
+  source_commit: z.string().regex(/^[0-9a-f]{40}$/),
+  pricing_as_of: z.iso.date(),
+  request_input_threshold_tokens: z.number().int().positive(),
+  requests: z.number().int().positive(),
+  bands: z.object({ short: contextBandSchema, long: contextBandSchema }),
+  output_band_evidence: z.enum(["derived_from_reported_list_cost_and_native_output_total", "native_total_in_single_observed_band"]),
+  per_request_output_available: z.literal(false),
+  comparison_cost_nanodollars: z.number().int().nonnegative(),
+  cache_write_surcharge_nanodollars: z.number().int().nonnegative(),
+  native_list_cost_nanodollars: z.number().int().nonnegative(),
+});
+export type ContextUsageRecord = z.infer<typeof contextUsageSchema>;
+
+export function parseContextUsageRecords(content: string): Map<string, ContextUsageRecord> {
+  const records = new Map<string, ContextUsageRecord>();
+  for (const line of content.split("\n").filter((line) => line.trim() !== "")) {
+    const record = contextUsageSchema.parse(JSON.parse(line));
+    invariant(!records.has(record.id), `duplicate context usage: ${record.id}`);
+    records.set(record.id, record);
+  }
+  return records;
+}
 
 export interface ParsedCostProfiles {
   profiles: CostPricingProfile[];
@@ -99,6 +137,25 @@ export function parseCostPricingProfiles(rows: readonly CsvRow[]): ParsedCostPro
       `${id} pricing profile has no positive rate`);
     invariant(effectivePriceUsdPerMillion === null || effectivePriceUsdPerMillion > 0,
       `${id}.effective_price_usd_per_million must be positive when present`);
+    const threshold = optionalInteger(row.request_input_threshold_tokens, `${id}.request_input_threshold_tokens`);
+    invariant(threshold !== null || [row.long_input_price_usd_per_million, row.long_cached_input_price_usd_per_million,
+      row.long_output_price_usd_per_million, row.context_usage_path, row.context_source_commit].every((value) => !value?.trim()),
+    `${id} context rates require a request-input threshold`);
+    let longContext: CostPricingProfile["longContext"] = null;
+    if (threshold !== null) {
+      invariant(threshold > 0 && effectivePriceUsdPerMillion === null, `${id} has incompatible context pricing`);
+      const usagePath = required(row.context_usage_path, `${id}.context_usage_path`);
+      invariant(!usagePath.startsWith("/") && !usagePath.split("/").includes(".."), `${id} context path must be repository-relative`);
+      const sourceCommit = required(row.context_source_commit, `${id}.context_source_commit`);
+      invariant(/^[0-9a-f]{40}$/.test(sourceCommit), `${id} context source commit is malformed`);
+      longContext = {
+        requestInputThresholdTokens: threshold,
+        inputPriceUsdPerMillion: requiredNumber(row.long_input_price_usd_per_million, `${id}.long_input_price_usd_per_million`),
+        cachedInputPriceUsdPerMillion: requiredNumber(row.long_cached_input_price_usd_per_million, `${id}.long_cached_input_price_usd_per_million`),
+        outputPriceUsdPerMillion: requiredNumber(row.long_output_price_usd_per_million, `${id}.long_output_price_usd_per_million`),
+        usagePath, sourceCommit,
+      };
+    }
     return {
       id,
       modelLabel: required(row.model_label, `${id}.model_label`),
@@ -106,6 +163,7 @@ export function parseCostPricingProfiles(rows: readonly CsvRow[]): ParsedCostPro
       cachedInputPriceUsdPerMillion,
       outputPriceUsdPerMillion,
       effectivePriceUsdPerMillion,
+      longContext,
       pricingAsOf: validateDate(required(row.pricing_as_of, `${id}.pricing_as_of`), `${id}.pricing_as_of`),
       pricingModelId: required(row.pricing_model_id, `${id}.pricing_model_id`),
       pricingProvider: required(row.pricing_provider, `${id}.pricing_provider`),
@@ -167,6 +225,7 @@ export function estimateRunCost(
   profile: CostPricingProfile,
   inputTokenAccounting: "includes-cached" | "excludes-cached" = "includes-cached",
 ): number | null {
+  invariant(!profile.longContext, "request-context pricing requires band evidence");
   if (profile.effectivePriceUsdPerMillion !== null) {
     return tokens.totalTokens === null
       ? null
@@ -184,6 +243,51 @@ export function estimateRunCost(
   ) / 1_000_000;
 }
 
+export function estimateContextRunCost(
+  tokens: Pick<CostRunRecord, "inputTokens" | "cachedInputTokens" | "outputTokens" | "totalTokens">,
+  profile: CostPricingProfile,
+  evidence: ContextUsageRecord,
+): number {
+  const long = profile.longContext;
+  invariant(long, "missing request-context pricing profile");
+  invariant(evidence.source_commit === long.sourceCommit && evidence.pricing_as_of === profile.pricingAsOf,
+    `${evidence.id} context source revision or pricing date mismatch`);
+  invariant(evidence.request_input_threshold_tokens === long.requestInputThresholdTokens, `${evidence.id} context threshold mismatch`);
+  let input = 0, cached = 0, output = 0, requests = 0, costNanos = 0;
+  for (const [name, band] of Object.entries(evidence.bands)) {
+    const uncached = band.input_tokens + band.cache_creation_5m_tokens + band.cache_creation_1h_tokens;
+    invariant(band.inclusive_input_tokens === uncached + band.cache_read_input_tokens, `${evidence.id} band input total mismatch`);
+    invariant(band.output_tokens >= band.streamed_output_lower_bound, `${evidence.id} output below retained lower bound`);
+    if (band.requests === 0) {
+      invariant(uncached + band.cache_read_input_tokens + band.output_tokens + band.max_request_input_tokens === 0,
+        `${evidence.id} tokens assigned to unused band`);
+    } else {
+      invariant((band.max_request_input_tokens > long.requestInputThresholdTokens) === (name === "long"), `${evidence.id} request in wrong context band`);
+      invariant(band.max_request_input_tokens <= band.inclusive_input_tokens
+        && band.inclusive_input_tokens <= band.max_request_input_tokens * band.requests, `${evidence.id} request lengths disagree with band total`);
+    }
+    const rate = name === "long" ? long : profile;
+    const prices = [rate.inputPriceUsdPerMillion, rate.cachedInputPriceUsdPerMillion, rate.outputPriceUsdPerMillion];
+    const nanos = prices.map((price) => Math.round(price * 1000));
+    invariant(prices.every((price, index) => Math.abs(price * 1000 - nanos[index]!) < 1e-8), "off-grid context rate");
+    costNanos += uncached * nanos[0]! + band.cache_read_input_tokens * nanos[1]! + band.output_tokens * nanos[2]!;
+    input += band.inclusive_input_tokens;
+    cached += band.cache_read_input_tokens;
+    output += band.output_tokens;
+    requests += band.requests;
+  }
+  invariant(input === tokens.inputTokens && cached === tokens.cachedInputTokens && output === tokens.outputTokens
+    && input + output === tokens.totalTokens, `${evidence.id} context totals disagree with scored tokens`);
+  invariant(requests === evidence.requests, `${evidence.id} request count mismatch`);
+  const mixed = Object.values(evidence.bands).every((band) => band.requests > 0);
+  invariant(evidence.output_band_evidence === (mixed ? "derived_from_reported_list_cost_and_native_output_total" : "native_total_in_single_observed_band"),
+    `${evidence.id} output provenance mismatch`);
+  invariant(costNanos === evidence.comparison_cost_nanodollars
+    && costNanos + evidence.cache_write_surcharge_nanodollars === evidence.native_list_cost_nanodollars,
+    `${evidence.id} recomputed context cost mismatch`);
+  return costNanos / 1_000_000_000;
+}
+
 export function costRunFromScoredRow(
   row: CsvRow,
   profiles: ReadonlyMap<string, CostPricingProfile>,
@@ -191,6 +295,7 @@ export function costRunFromScoredRow(
   inputTokenAccounting: Readonly<Record<string, "includes-cached" | "excludes-cached">>,
   scoreMinimum: number,
   scoreMaximum: number,
+  contextUsage: ReadonlyMap<string, ContextUsageRecord> = new Map(),
 ): CostRunRecord {
   const modelId = required(row.model, "cost run model");
   const benchmarkId = required(row.benchmark, `${modelId}.benchmark`);
@@ -217,7 +322,15 @@ export function costRunFromScoredRow(
   const profile = pricingProfileId === null ? null : profiles.get(pricingProfileId) ?? null;
   invariant(pricingProfileId === null || profile !== null, `${id} references missing profile ${pricingProfileId}`);
   const tokenRecord = { inputTokens, cachedInputTokens, outputTokens, totalTokens };
-  const estimatedCostUsd = profile ? estimateRunCost(tokenRecord, profile, accountingConvention) : null;
+  let estimatedCostUsd: number | null = null;
+  if (profile?.longContext) {
+    const evidence = contextUsage.get(id);
+    invariant(evidence && evidence.id === id, `missing request-context evidence: ${id}`);
+    invariant(accountingConvention === "includes-cached", "context evidence requires inclusive input accounting");
+    estimatedCostUsd = estimateContextRunCost(tokenRecord, profile, evidence);
+  } else if (profile) {
+    estimatedCostUsd = estimateRunCost(tokenRecord, profile, accountingConvention);
+  }
   invariant(estimatedCostUsd === null || Number.isFinite(estimatedCostUsd), `${id} produced a malformed cost`);
   return {
     id,

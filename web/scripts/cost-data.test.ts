@@ -4,6 +4,8 @@ import type { CostPricingProfile, CostRunRecord } from "../src/data/types";
 import {
   costRunFromScoredRow,
   estimateRunCost,
+  estimateContextRunCost,
+  parseContextUsageRecords,
   parseCostPricingProfiles,
   reconcileCanonicalCostAggregates,
   validateCostConfig,
@@ -47,7 +49,53 @@ function splitProfile(): CostPricingProfile {
   return parseCostPricingProfiles([pricingRow()]).profiles[0]!;
 }
 
+function contextFixture() {
+  const id = "bench_model-a_cpu_r1";
+  const profile = parseCostPricingProfiles([pricingRow({
+    input_price_usd_per_million: "0.1", cached_input_price_usd_per_million: "0.01", output_price_usd_per_million: "0.5",
+    request_input_threshold_tokens: "100000", long_input_price_usd_per_million: "0.5",
+    long_cached_input_price_usd_per_million: "0.05", long_output_price_usd_per_million: "2.5",
+    context_usage_path: "batches/test/usage.jsonl", context_source_commit: "a".repeat(40),
+  })]).profiles[0]!;
+  const evidence = {
+    schema_version: 1, id, source_commit: "a".repeat(40), pricing_as_of: "2026-08-22",
+    request_input_threshold_tokens: 100000, requests: 2, per_request_output_available: false,
+    output_band_evidence: "derived_from_reported_list_cost_and_native_output_total",
+    comparison_cost_nanodollars: 11485500, cache_write_surcharge_nanodollars: 102500, native_list_cost_nanodollars: 11588000,
+    bands: {
+      short: { input_tokens: 9900, cache_read_input_tokens: 90000, cache_creation_5m_tokens: 100, cache_creation_1h_tokens: 0,
+        output_tokens: 20, inclusive_input_tokens: 100000, requests: 1, max_request_input_tokens: 100000, streamed_output_lower_bound: 1 },
+      long: { input_tokens: 9801, cache_read_input_tokens: 90000, cache_creation_5m_tokens: 0, cache_creation_1h_tokens: 200,
+        output_tokens: 30, inclusive_input_tokens: 100001, requests: 1, max_request_input_tokens: 100001, streamed_output_lower_bound: 1 },
+    },
+  };
+  const parsed = parseContextUsageRecords(JSON.stringify(evidence)).get(id)!;
+  const tokens = { inputTokens: 200001, cachedInputTokens: 180000, outputTokens: 50, totalTokens: 200051 };
+  return { id, profile, evidence: parsed, tokens };
+}
+
 describe("cost data generation", () => {
+  it("prices context bands separately and never silently falls back to flat rates", () => {
+    const { id, profile, evidence, tokens } = contextFixture();
+    expect(estimateContextRunCost(tokens, profile, evidence)).toBe(0.0114855);
+    expect(() => estimateRunCost(tokens, profile)).toThrow(/requires band evidence/);
+    const row = { model: "model-a", benchmark: "bench", par_type: "cpu", run: "1", overall_score: "8",
+      input_tokens: "200001", cached_tokens: "180000", output_tokens: "50", total_tokens: "200051" };
+    expect(() => costRunFromScoredRow(row, new Map([[profile.id, profile]]), {}, {}, 0, 10)).toThrow(/missing request-context/);
+    expect(costRunFromScoredRow(row, new Map([[profile.id, profile]]), {}, {}, 0, 10, new Map([[id, evidence]])).estimatedCostUsd).toBe(0.0114855);
+  });
+
+  it("checks context threshold, totals, provenance and duplicate evidence", () => {
+    const { profile, evidence, tokens } = contextFixture();
+    const incorrect = structuredClone(evidence);
+    incorrect.bands.long.max_request_input_tokens = 100000;
+    expect(() => estimateContextRunCost(tokens, profile, incorrect)).toThrow(/wrong context band/);
+    expect(() => estimateContextRunCost({ ...tokens, cachedInputTokens: 170000 }, profile, evidence)).toThrow(/scored tokens/);
+    expect(() => estimateContextRunCost(tokens, profile, { ...evidence, source_commit: "b".repeat(40) })).toThrow(/revision/);
+    expect(() => estimateContextRunCost(tokens, profile, { ...evidence, comparison_cost_nanodollars: 1 })).toThrow(/cost mismatch/);
+    expect(() => parseContextUsageRecords(`${JSON.stringify(evidence)}\n${JSON.stringify(evidence)}`)).toThrow(/duplicate/);
+  });
+
   it("keeps historical prices dated independently when a later batch is added", () => {
     const parsed = parseCostPricingProfiles([pricingRow(), pricingRow({ model: "model-b", pricing_as_of: "2026-09-29" })]);
     expect(parsed.pricingAsOf).toBe("2026-09-29");
@@ -75,6 +123,7 @@ describe("cost data generation", () => {
     expect(() => parseCostPricingProfiles([pricingRow(), pricingRow()])).toThrow(/duplicate/);
     expect(() => parseCostPricingProfiles([pricingRow({ pricing_source_url: "relative" })])).toThrow(/URL/);
     expect(() => parseCostPricingProfiles([pricingRow({ pricing_as_of: "2026-02-31" })])).toThrow(/ISO date/);
+    expect(() => parseCostPricingProfiles([pricingRow({ long_input_price_usd_per_million: "0.5" })])).toThrow(/threshold/);
     expect(() => validateCostConfig({ aliases: { alias: "missing" } }, profiles.profiles, new Set(["alias"]))).toThrow(/unknown pricing profile/);
   });
 

@@ -16,6 +16,8 @@ from matplotlib.ticker import FixedLocator, FuncFormatter
 import numpy as np
 import pandas as pd
 
+from context_token_cost import context_run_cost, load_context_usage
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = REPOSITORY_ROOT / "release" / "scored_results.csv"
@@ -37,6 +39,21 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "claude-haiku-5.5-cc-medium": {
+        "label": "Haiku 5.5 Medium", "color": "#dd9b45", "marker": "v",
+        "pricing_as_of": "2026-10-14", "pricing_model_id": "anthropic/claude-haiku-5.5",
+        "input_price": 0.1, "cached_input_price": 0.01, "output_price": 0.5,
+        "context_threshold_tokens": 100_000,
+        "long_input_price": 0.5, "long_cached_input_price": 0.05, "long_output_price": 2.5,
+        "context_usage_path": "batches/20261012-111947/generation/context-usage/usage.jsonl",
+        "context_source_commit": "71ba7cc523997c8fd1537d7a8159b583f260793d",
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_selection_policy": "lowest live non-batch rates in both request-context tiers; historical profiles unchanged",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-haiku-5.5/endpoints",
+        "pricing_source_url": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+        "secondary_pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing",
+        "cost_method": "Request-context bands priced separately; cache creation at ordinary input rates. Mixed-tier output splits derived from native output and list-price totals.",
+    },
     "gpt-6.1-sol-medium": {
         "label": "GPT-6.1 Sol Medium", "color": "#19856f", "marker": "o",
         "pricing_as_of": "2026-10-11", "pricing_model_id": "openai/gpt-6.1-sol",
@@ -344,6 +361,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "claude-haiku-5.5-cc-medium": (-7, 8),
     "gpt-6.1-sol-medium": (-7, 10),
     "gpt-6.1-sol-xhigh": (-7, 12),
     "claude-opus-5.5-cc-medium": (-7, 12),
@@ -442,7 +460,7 @@ def load_and_validate(path: Path) -> pd.DataFrame:
     return selected
 
 
-def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
+def aggregate(frame: pd.DataFrame, context_usage: dict | None = None) -> pd.DataFrame:
     rows = []
     for model, group in frame.groupby("model", sort=False):
         config = MODELS[model]
@@ -461,6 +479,16 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
             + cost_rows["cached_tokens"] * config["cached_input_price"]
             + cost_rows["output_tokens"] * config["output_price"]
         ) / 1_000_000
+        if "context_threshold_tokens" in config:
+            usage = context_usage if context_usage is not None else load_context_usage(
+                REPOSITORY_ROOT / config["context_usage_path"])
+            costs = []
+            for _, cost_row in cost_rows.iterrows():
+                run_id = f"{cost_row['benchmark']}_{model}_{cost_row['par_type']}_r{int(cost_row['run'])}"
+                if run_id not in usage:
+                    raise ValueError(f"missing request-context evidence: {run_id}")
+                costs.append(context_run_cost(cost_row, config, usage[run_id]))
+            per_run_cost = pd.Series(costs, dtype=float)
         estimated_cost = per_run_cost.mean()
         mean_total_tokens = (
             cost_rows["input_tokens"] + cost_rows["output_tokens"]
@@ -472,6 +500,7 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
         cost_method = (
             "uncached input, cached input, and output tokens priced separately"
         )
+        cost_method = config.get("cost_method", cost_method)
 
         rows.append(
             {
@@ -489,6 +518,12 @@ def aggregate(frame: pd.DataFrame) -> pd.DataFrame:
                     "cached_input_price"
                 ],
                 "output_price_usd_per_million": config["output_price"],
+                "request_input_threshold_tokens": config.get("context_threshold_tokens", np.nan),
+                "long_input_price_usd_per_million": config.get("long_input_price", np.nan),
+                "long_cached_input_price_usd_per_million": config.get("long_cached_input_price", np.nan),
+                "long_output_price_usd_per_million": config.get("long_output_price", np.nan),
+                "context_usage_path": config.get("context_usage_path", ""),
+                "context_source_commit": config.get("context_source_commit", ""),
                 "effective_price_usd_per_million": effective_price,
                 "estimated_cost_usd_per_run": estimated_cost,
                 "pricing_as_of": config.get("pricing_as_of", PRICING_AS_OF),

@@ -12,7 +12,7 @@ provide one command that rebuilds its tables and figures.
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
-`release/catalog.json` identifies five campaigns, the scoped QT overlay and generated-source commits.
+`release/catalog.json` identifies six campaigns, the scoped QT overlay and generated-source commits.
 Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
@@ -27,7 +27,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 30 model names and tier percentages legible at the paper's
+intentional: it keeps all 31 model names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -124,15 +124,19 @@ Cost is computed per run from uncached input, cached input, and output tokens be
 averaging. The backing CSV records the method,
 all rates, selected providers and routing tags, model matches, source URLs, and the
 per-model pricing date: 2026-08-22 for existing profiles, 2026-09-29 for the three
-Claude 5 additions, 2026-10-02 for GPT-6, 2026-10-06 for Opus 5.5 and 2026-10-11
-for Sol 6.1. The GPT-6 and GPT-6.1 profiles use officially
+Claude 5 additions, 2026-10-02 for GPT-6, 2026-10-06 for Opus 5.5, 2026-10-11
+for Sol 6.1 and 2026-10-14 for Haiku 5.5. The GPT-6 and GPT-6.1 profiles use officially
 published non-batch OpenAI Flex prices. Rates are frozen per model.
 See [Claude pricing](notes/2026-09-29-claude5-pricing.md) and
 [GPT-6 pricing and limitations](notes/2026-10-02-gpt6-pricing.md),
 [Opus 5.5 pricing](notes/2026-10-06-opus55-pricing.md) and
-[Sol 6.1 pricing](notes/2026-10-11-sol61-pricing.md).
-Long-context surcharges, storage, tools, future provider
-routing changes, and batch discounts are not modeled.
+[Sol 6.1 pricing](notes/2026-10-11-sol61-pricing.md), and
+[Haiku 5.5 request-context pricing](notes/2026-10-14-haiku55-pricing.md).
+Haiku 5.5 uses retained per-run token totals grouped by each request's context tier;
+mixed-tier output splits are derived from native output and list-price totals.
+Cache creation uses ordinary input rates for all Claude profiles. Other profiles
+do not model long-context surcharges. Storage, tools, future provider routing
+changes, and batch discounts are not modeled.
 
 Rebuild with:
 
@@ -157,11 +161,11 @@ This historical analysis remains scoped to the original 4,620-program campaign a
 its 587 corrections; it consumes `data/`, not the jointly rescored `release/` view.
 The additional 174 corrections were made before benchmarking, so no comparable
 uncorrected performance measurements exist for those runs. The current combined
-dataset carries the timing-fix flag for 924 distinct corrected programs, including
+dataset carries the timing-fix flag for 957 distinct corrected programs, including
 two failed revalidations. The 81 newer corrections include 12 previously retimed
 historical QT programs. Their 32 scoped historical reruns are retained separately
 under `corrections/20261001-gpt6-qt/`, not folded into this older 587-case analysis.
-The 83 Opus 5.5 and 11 Sol 6.1 corrections likewise precede those campaigns' first benchmarks.
+The 83 Opus 5.5, 11 Sol 6.1 and 33 Haiku 5.5 corrections likewise precede those campaigns' first benchmarks.
 
 The retained historical analysis joins the original static-audit score, corrected scoped-rerun
 measurements, final scores, issue categories, and original/corrected source links:
@@ -184,7 +188,15 @@ canonical format unless the publication toolchain requires another.
 ## Individual implementation reviews
 
 Published run reviews live in `notes/individual/` and are embedded by the website.
-The Sol 6.1 release adds seven winner reviews, bringing the retained total to 93.
+All 44 current cell winners have reviews; 93 notes are retained, including superseded winners.
+Haiku 5.5 introduces no new cell winners. Its
+[comparison snapshot](notes/2026-10-14-haiku55-winner-context.json) verifies that
+all 6,600 prior observations are unchanged against the preceding release;
+84 prior scores change solely through joint thresholds.
+The [release check record](notes/2026-10-14-haiku55-release-checks.json) retains
+accounting, preservation, test and visual-inspection results.
+
+The Sol 6.1 release added seven winner reviews.
 Their [comparison snapshot](notes/2026-10-11-sol61-winner-context.json) pins
 the preceding release at `d2675741cb5ac74cea6fd94fb38f46aef11cb4b4`, all new benchmark
 record digests, source revisions and close-group samples. All 6,160 prior

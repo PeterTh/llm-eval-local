@@ -243,6 +243,12 @@ export function MethodologyView() {
               reasoning tokens are included in output and are not charged twice.
             </p>
             <p>
+              Haiku 5.5 uses request-length-dependent rates: requests above 100,000 input tokens, including cache reads and writes,
+              use the long-context tier. Costs sum the two context bands, not a tier selected from the cumulative session length.
+              Mixed-tier output totals are derived from native output and list-price totals. Claude cache writes are priced as ordinary input.
+              {" "}<a href={`${artifactBlob}/analysis/notes/2026-10-14-haiku55-pricing.md`} target="_blank" rel="noreferrer">Context-pricing evidence and limits</a>.
+            </p>
+            <p>
               Rates are frozen per model, with snapshot dates shown in the cost details. OpenRouter profiles use the lowest
               estimated cost among the available live, non-batch OpenRouter endpoints for that model's observed token mix;
               Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired

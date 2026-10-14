@@ -45,6 +45,8 @@ export function costSummariesToCsv(summaries: readonly CostModelSummary[]): stri
     "output_price_usd_per_million", "effective_price_usd_per_million", "cost_method",
     "pricing_source_kind", "pricing_selection_policy", "pricing_match_note", "pricing_catalog_url",
     "pricing_endpoint_url", "pricing_source_url", "secondary_pricing_source_url",
+    "request_input_threshold_tokens", "long_input_price_usd_per_million",
+    "long_cached_input_price_usd_per_million", "long_output_price_usd_per_million",
   ];
   const rows = summaries.map((summary) => [
     summary.modelId,
@@ -77,6 +79,10 @@ export function costSummariesToCsv(summaries: readonly CostModelSummary[]): stri
     summary.pricingEndpointUrl,
     summary.pricingSourceUrl,
     summary.secondaryPricingSourceUrl,
+    summary.longContext?.requestInputThresholdTokens ?? null,
+    summary.longContext?.inputPriceUsdPerMillion ?? null,
+    summary.longContext?.cachedInputPriceUsdPerMillion ?? null,
+    summary.longContext?.outputPriceUsdPerMillion ?? null,
   ].map(csvCell).join(","));
   return `${headers.join(",")}\n${rows.join("\n")}\n`;
 }
