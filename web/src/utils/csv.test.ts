@@ -7,6 +7,16 @@ import { costSummariesToCsv, runsToCsv, timeSummariesToCsv } from "./csv";
 import { parse } from "csv-parse/sync";
 
 describe("runsToCsv", () => {
+  it("exports recovered generation provenance without inventing wrapper status", () => {
+    const run = structuredClone(runsFixture[0]!);
+    run.generationTimeRecovery = { source: "claude_result_duration_ms", wrapperExitStatusAvailable: false,
+      evidenceSha256: "a".repeat(64), evidenceUrl: "https://example.test/recovery.json" };
+    const rows = parse(runsToCsv([run, runsFixture[1]!]), { columns: true });
+    expect(rows[0]).toMatchObject({ generation_time_seconds: "60", generation_time_recovered: "true",
+      generation_time_source: "claude_result_duration_ms", wrapper_exit_status_available: "false",
+      generation_recovery_sha256: "a".repeat(64), generation_recovery_evidence_url: "https://example.test/recovery.json" });
+    expect(rows[1]).toMatchObject({ generation_time_recovered: "false", wrapper_exit_status_available: "" });
+  });
   it("exports generation statistics in seconds with explicit coverage and empty missing values", () => {
     const dataset = { ...timeDatasetFixture, runs: timeDatasetFixture.runs.map((run) => run.modelId === "unknown-model" ? { ...run, generationTimeSeconds: null } : run) };
     const analysis = analyzeTime(dataset, manifestFixture, { models: [], benchmarks: [], backends: [] });

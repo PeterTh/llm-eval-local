@@ -8,6 +8,7 @@ export interface TimeModelSummary {
   scoreRunCount: number;
   timeRunCount: number;
   unavailableTimeRunCount: number;
+  recoveredTimeRunCount: number;
   meanScore: number;
   meanGenerationTimeSeconds: number | null;
   distribution: (DistributionStatistics & { minimum: number; maximum: number }) | null;
@@ -21,6 +22,7 @@ export interface TimeAnalysis {
   scoreRunCount: number;
   timeRunCount: number;
   unavailableTimeRunCount: number;
+  recoveredTimeRunCount: number;
 }
 
 export function analyzeTime(
@@ -55,6 +57,7 @@ export function analyzeTime(
       scoreRunCount: runs.length,
       timeRunCount: timed.length,
       unavailableTimeRunCount: runs.length - timed.length,
+      recoveredTimeRunCount: timed.filter((run) => run.generationTimeRecovery != null).length,
       meanScore: runs.reduce((total, run) => total + run.overallScore, 0) / runs.length,
       meanGenerationTimeSeconds: distribution?.mean ?? null,
       distribution,
@@ -81,6 +84,7 @@ export function analyzeTime(
     scoreRunCount: summaries.reduce((total, model) => total + model.scoreRunCount, 0),
     timeRunCount: summaries.reduce((total, model) => total + model.timeRunCount, 0),
     unavailableTimeRunCount: summaries.reduce((total, model) => total + model.unavailableTimeRunCount, 0),
+    recoveredTimeRunCount: summaries.reduce((total, model) => total + model.recoveredTimeRunCount, 0),
   };
 }
 

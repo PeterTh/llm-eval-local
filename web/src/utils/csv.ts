@@ -13,6 +13,8 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
     "score_band", "validation_status", "benchmark_success", "benchmark_median_ms",
     "timing_fixed", "timing_issue_categories", "source_url", "original_source_url",
     "validation_evidence_url", "benchmark_evidence_url",
+    "generation_time_seconds", "generation_time_recovered", "generation_time_source",
+    "wrapper_exit_status_available", "generation_recovery_sha256", "generation_recovery_evidence_url",
   ];
   const rows = runs.map((run) => [
     run.id,
@@ -31,6 +33,12 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
     run.timingCorrection?.originalSource.url ?? "",
     run.validationEvidenceUrl,
     run.benchmarkEvidenceUrl,
+    run.generationTimeSeconds,
+    run.generationTimeRecovery != null,
+    run.generationTimeRecovery?.source ?? "",
+    run.generationTimeRecovery?.wrapperExitStatusAvailable ?? "",
+    run.generationTimeRecovery?.evidenceSha256 ?? "",
+    run.generationTimeRecovery?.evidenceUrl ?? "",
   ].map(csvCell).join(","));
   return `${headers.join(",")}\n${rows.join("\n")}\n`;
 }
@@ -101,14 +109,14 @@ export function timeSummariesToCsv(summaries: readonly TimeModelSummary[]): stri
     "model", "model_label", "mean_score", "score_run_count", "time_run_count", "unavailable_time_run_count",
     "mean_generation_seconds", "median_generation_seconds", "q1_generation_seconds", "q3_generation_seconds",
     "lower_whisker_generation_seconds", "upper_whisker_generation_seconds", "minimum_generation_seconds",
-    "maximum_generation_seconds", "outlier_count",
+    "maximum_generation_seconds", "outlier_count", "recovered_time_run_count",
   ];
   const rows = summaries.map((summary) => {
     const stats = summary.distribution;
     return [
       summary.modelId, summary.modelLabel, summary.meanScore, summary.scoreRunCount, summary.timeRunCount,
       summary.unavailableTimeRunCount, summary.meanGenerationTimeSeconds, stats?.median, stats?.firstQuartile,
-      stats?.thirdQuartile, stats?.lowerWhisker, stats?.upperWhisker, stats?.minimum, stats?.maximum, stats?.outlierCount,
+      stats?.thirdQuartile, stats?.lowerWhisker, stats?.upperWhisker, stats?.minimum, stats?.maximum, stats?.outlierCount, summary.recoveredTimeRunCount,
     ].map(csvCell).join(",");
   });
   return `${headers.join(",")}\n${rows.join("\n")}\n`;

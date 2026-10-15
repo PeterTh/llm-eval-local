@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture } from "../test/fixtures";
-import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema } from "./schema";
+import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture, timeDatasetFixture } from "../test/fixtures";
+import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema, timeDatasetSchema } from "./schema";
 
 describe("runtime dataset validation", () => {
+  it("preserves generation recovery without treating unknown wrapper status as success", () => {
+    const run = structuredClone(runsFixture[0]!);
+    run.generationTimeRecovery = { source: "claude_result_duration_ms", wrapperExitStatusAvailable: false,
+      evidenceSha256: "a".repeat(64), evidenceUrl: "https://example.test/recovery.json" };
+    expect(runShardSchema.parse([run])[0]).toEqual(run);
+    expect(() => runShardSchema.parse([{ ...run, generationTimeSeconds: null }])).toThrow(/recovered generation time/);
+    expect(() => runShardSchema.parse([{ ...run, generationTimeRecovery: { ...run.generationTimeRecovery, wrapperExitStatusAvailable: true } }])).toThrow();
+    const dataset = structuredClone(timeDatasetFixture);
+    dataset.runs[0]!.generationTimeRecovery = run.generationTimeRecovery;
+    expect(timeDatasetSchema.parse(dataset)).toEqual(dataset);
+    dataset.runs[0]!.generationTimeSeconds = null;
+    expect(() => timeDatasetSchema.parse(dataset)).toThrow(/recovered generation time/);
+  });
   it("retains the complete correction history and explicit failed revalidation", () => {
     const run = structuredClone(runsFixture[1]!);
     run.timingCorrection!.intermediateSources = [run.timingCorrection!.originalSource];

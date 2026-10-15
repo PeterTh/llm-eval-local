@@ -3,6 +3,40 @@ require_relative "artifact_common"
 
 # Checks retained batch evidence without needing the native workspace or Git sources.
 module BatchVerification
+  def verify_generation_recovery!(campaign, observation, row)
+    id = observation.fetch('id')
+    recovered = observation.fetch('generation_time_recovered', false)
+    flag = row['generation_time_recovered'].to_s
+    raise "invalid generation recovery flag #{id}" unless [true, false].include?(recovered) &&
+      ['', 'false', 'true'].include?(flag) && (flag == 'true') == recovered
+    unless recovered
+      raise "unflagged generation recovery metadata #{id}" if
+        %w[generation_time_source generation_recovery_sha256 wrapper_exit_status_available].any? { |key| !row[key].to_s.empty? }
+      return
+    end
+    raise "unsafe generation recovery identity #{id}" unless id.match?(/\A[a-zA-Z0-9_.-]+\z/) && campaign.fetch('id').match?(/\A\d{8}-\d{6}\z/)
+    raise "unsupported generation recovery #{id}" unless observation.fetch('generation_time_source') == 'claude_result_duration_ms' &&
+      observation.fetch('wrapper_exit_status_available') == false
+    %w[generation_time_source wrapper_exit_status_available generation_recovery_sha256].each do |key|
+      raise "generation recovery provenance differs #{id}/#{key}" unless row.fetch(key) == observation.fetch(key).to_s
+    end
+    digest = observation.fetch('generation_recovery_sha256')
+    file = path("batches/#{campaign.fetch('id')}/generation/recoveries/#{id}.json")
+    raise "generation recovery receipt changed #{id}" unless digest.match?(/\A[0-9a-f]{64}\z/) && sha256(file) == digest &&
+      observation.fetch('sha256').fetch('generation-recovery.txt') == digest
+    receipt = JSON.parse(File.read(file))
+    raise "generation recovery receipt identity differs #{id}" unless receipt.fetch('schema_version') == 1 &&
+      receipt.fetch('run_id') == id && receipt.fetch('campaign_id') == campaign.fetch('id') &&
+      receipt.fetch('approved_by') == 'user' && receipt.fetch('decision') == 'retain_completed_native_result' &&
+      %w[model session_id version generation_time_source generation_time_recovered wrapper_exit_status_available].all? { |key| receipt.fetch(key) == observation.fetch(key) }
+    raise "generation recovery duration differs #{id}" unless receipt.fetch('duration_ms').is_a?(Integer) &&
+      receipt.fetch('duration_ms').positive? && receipt.fetch('duration_ms') / 1000.0 == observation.fetch('total_seconds') &&
+      %w[wrapper_wall_time_seconds wrapper_start_time wrapper_end_time].all? { |key| receipt.fetch(key).nil? }
+    %w[output.txt timing.txt instruction.txt process-status.txt].each do |name|
+      raise "generation recovery metadata differs #{id}/#{name}" unless receipt.fetch('metadata_sha256').fetch(name) == observation.fetch('sha256').fetch(name)
+    end
+  end
+
   def verify_context_observations!(campaign, observations, records)
     by_id = observations.to_h { |row| [row.fetch('id'), row] }
     raise 'context usage scope differs' unless records.size == by_id.size && records.map { |row| row.fetch('id') }.sort == by_id.keys.sort
@@ -81,6 +115,7 @@ module BatchVerification
         matches = value.nil? ? actual.to_s.empty? : Float(actual) == value
         raise "generation counter differs #{id}/#{key}" unless matches
       end
+      verify_generation_recovery!(campaign, observation, row)
     end
   end
 

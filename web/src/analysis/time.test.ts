@@ -5,6 +5,15 @@ import { analyzeTime, timeDomain } from "./time";
 const all = { models: [], benchmarks: [], backends: [] };
 
 describe("generation-time analysis", () => {
+  it("retains recovered durations in statistics and reports their count under filters", () => {
+    const dataset = structuredClone(timeDatasetFixture);
+    dataset.runs[0]!.generationTimeRecovery = { source: "claude_result_duration_ms", wrapperExitStatusAvailable: false,
+      evidenceSha256: "a".repeat(64), evidenceUrl: "https://example.test/recovery.json" };
+    const result = analyzeTime(dataset, manifestFixture, all);
+    expect(result.recoveredTimeRunCount).toBe(1);
+    expect(result.models.find((row) => row.modelId === "model/a?x")).toMatchObject({ recoveredTimeRunCount: 1, meanGenerationTimeSeconds: 120 });
+    expect(analyzeTime(dataset, manifestFixture, { ...all, models: ["unknown-model"] }).recoveredTimeRunCount).toBe(0);
+  });
   it("includes failed outcomes and weights individual runs, keeping timing coverage separate", () => {
     const dataset = { ...timeDatasetFixture, runs: timeDatasetFixture.runs.map((run, index) => index === 1 ? { ...run, generationTimeSeconds: null } : run) };
     const result = analyzeTime(dataset, manifestFixture, { ...all, models: ["model/a?x"], benchmarks: ["bench&one"], backends: ["gpu+x"] });

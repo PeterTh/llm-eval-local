@@ -23,6 +23,7 @@ import type {
   TimeDataset,
 } from "../src/data/types";
 import { parseGenerationTime } from "./time-data";
+import { generationRecoveryPath, parseGenerationRecovery } from "./generation-recovery-data";
 import {
   costRunFromScoredRow,
   parseCostPricingProfiles,
@@ -482,6 +483,15 @@ export async function buildData(): Promise<void> {
   }
 
   const runIds = new Set<string>();
+  const generationRecoveries = new Map<string, NonNullable<RunRecord["generationTimeRecovery"]>>();
+  for (const row of scoredRows) {
+    const id = recordId(row);
+    const evidencePath = generationRecoveryPath(row, id);
+    if (evidencePath === null) continue;
+    const evidence = await readFile(resolve(repositoryRoot, evidencePath), "utf8");
+    const url = `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(evidencePath)}`;
+    generationRecoveries.set(id, parseGenerationRecovery(row, id, evidence, url));
+  }
   const runs: RunRecord[] = scoredRows.map((row) => {
     const id = recordId(row);
     invariant(!runIds.has(id), `duplicate scored run: ${id}`);
@@ -574,6 +584,7 @@ export async function buildData(): Promise<void> {
       repetition,
       overallScore: score,
       generationTimeSeconds: parseGenerationTime(row.total_time, id),
+      generationTimeRecovery: generationRecoveries.get(id) ?? null,
       scoreBandId: bandFor(score, config.scoreScale.bands).id,
       validationStatus,
       validationMessage: row.validation_err_string ?? "",
@@ -793,8 +804,8 @@ export async function buildData(): Promise<void> {
   const timeDataset: TimeDataset = {
     schemaVersion: 1,
     sourceDigest: scoringDigest,
-    runs: runs.map(({ id, modelId, benchmarkId, backendId, repetition, overallScore, generationTimeSeconds }) => ({
-      id, modelId, benchmarkId, backendId, repetition, overallScore, generationTimeSeconds,
+    runs: runs.map(({ id, modelId, benchmarkId, backendId, repetition, overallScore, generationTimeSeconds, generationTimeRecovery }) => ({
+      id, modelId, benchmarkId, backendId, repetition, overallScore, generationTimeSeconds, generationTimeRecovery,
     })),
   };
   const timeDatasetPath = await writeHashedAsset("time", timeDataset);

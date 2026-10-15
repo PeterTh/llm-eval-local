@@ -152,6 +152,10 @@ export function RunDetailView() {
           <p className="eyebrow">Program generation</p>
           <h2 id="run-time-heading">{run.generationTimeSeconds === null ? "Generation time unavailable" : `${formatGenerationTime(run.generationTimeSeconds)} generation time`}</h2>
           <p>Agent generation time includes tool execution and excludes documented retry waits. Benchmark execution time is reported separately above.</p>
+          {run.generationTimeRecovery && <p>
+            <strong>Recovered generation duration.</strong> This uses the native Claude Code duration because the wrapper measurement is unavailable.
+            It excludes wrapper setup and teardown; the wrapper exit status is unknown. <a href={run.generationTimeRecovery.evidenceUrl} target="_blank" rel="noreferrer">Recovery evidence ↗</a>
+          </p>}
         </section>
 
         <section className="detail-card cost-card" aria-labelledby="run-cost-heading">

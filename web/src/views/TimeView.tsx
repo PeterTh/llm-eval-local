@@ -123,6 +123,9 @@ export function TimeView() {
         {!loading && !error && analysis.unavailableTimeRunCount > 0 && (
           <p className="chart-footnote">{formatCount(analysis.unavailableTimeRunCount)} scored runs have no generation time. Score means include all selected runs; time statistics use available durations.</p>
         )}
+        {!loading && !error && analysis.recoveredTimeRunCount > 0 && (
+          <p className="chart-footnote">Includes {formatCount(analysis.recoveredTimeRunCount)} recovered native generation duration{analysis.recoveredTimeRunCount === 1 ? "" : "s"}, excluding wrapper setup and teardown. Individual results link to the recovery evidence.</p>
+        )}
       </section>
 
       {!loading && !error && analysis.plottedModels.length > 0 && (

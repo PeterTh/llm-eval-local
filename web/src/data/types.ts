@@ -218,6 +218,13 @@ export interface TimingCorrectionProvenance {
   intermediateSources?: TimingCorrectionSource[];
 }
 
+export interface GenerationTimeRecovery {
+  source: "claude_result_duration_ms";
+  wrapperExitStatusAvailable: false;
+  evidenceSha256: string;
+  evidenceUrl: string;
+}
+
 export interface RunRecord {
   id: string;
   modelId: string;
@@ -226,6 +233,7 @@ export interface RunRecord {
   repetition: number;
   overallScore: number;
   generationTimeSeconds: number | null;
+  generationTimeRecovery?: GenerationTimeRecovery | null;
   scoreBandId: string;
   validationStatus: number;
   validationMessage: string;
@@ -246,7 +254,7 @@ export interface RunRecord {
 }
 
 export type TimeRunRecord = Pick<RunRecord,
-  "id" | "modelId" | "benchmarkId" | "backendId" | "repetition" | "overallScore" | "generationTimeSeconds">;
+  "id" | "modelId" | "benchmarkId" | "backendId" | "repetition" | "overallScore" | "generationTimeSeconds" | "generationTimeRecovery">;
 
 export interface TimeDataset {
   schemaVersion: 1;

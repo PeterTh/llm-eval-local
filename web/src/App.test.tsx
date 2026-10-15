@@ -85,10 +85,10 @@ vi.mock("./components/VegaChart", () => ({
   },
 }));
 
-async function renderApp(initial = "/tiers", options: { runError?: Error; costError?: Error; timeError?: Error; costDataset?: unknown; timeDataset?: unknown } = {}) {
+async function renderApp(initial = "/tiers", options: { runs?: unknown[]; runError?: Error; costError?: Error; timeError?: Error; costDataset?: unknown; timeDataset?: unknown } = {}) {
   const { costDatasetFixture, timeDatasetFixture, manifestFixture, scoreCubeFixture, runsFixture } = await import("./test/fixtures");
   fixtures.dataset = { manifest: manifestFixture, scoreCube: scoreCubeFixture };
-  fixtures.runs = runsFixture;
+  fixtures.runs = options.runs ?? runsFixture;
   fixtures.costDataset = options.costDataset ?? costDatasetFixture;
   fixtures.timeDataset = options.timeDataset ?? timeDatasetFixture;
   fixtures.runError = options.runError ?? null;
@@ -100,6 +100,18 @@ async function renderApp(initial = "/tiers", options: { runError?: Error; costEr
 }
 
 describe("explorer routing", () => {
+  it("labels a recovered generation duration separately from benchmark timing", async () => {
+    const { runsFixture } = await import("./test/fixtures");
+    const runs = structuredClone(runsFixture);
+    runs[0]!.generationTimeRecovery = {
+      source: "claude_result_duration_ms", wrapperExitStatusAvailable: false,
+      evidenceSha256: "a".repeat(64), evidenceUrl: "https://example.test/recovery.json",
+    };
+    await renderApp(`/run/${encodeURIComponent(runs[0]!.id)}`, { runs });
+    expect(await screen.findByText("Recovered generation duration.")).toBeInTheDocument();
+    expect(screen.getByText(/wrapper exit status is unknown/)).toHaveTextContent("excludes wrapper setup and teardown");
+    expect(screen.getByRole("link", { name: /Recovery evidence/ })).toHaveAttribute("href", "https://example.test/recovery.json");
+  });
   it("carries model highlights across views and preserves them on filter reset", async () => {
     await renderApp("/tiers?model-set=all&highlight-model=model%2Fa%3Fx&highlight-model=missing&highlight-run=stored-run&highlight-benchmark=bench%26one");
     expect(screen.getByRole("status")).toHaveTextContent("2 highlighted · 1 not shown");

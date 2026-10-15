@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require "minitest/autorun"
+require "tmpdir"
 require_relative "current_release"
 
 class BatchGenerationTest < Minitest::Test
@@ -80,5 +81,48 @@ class BatchGenerationTest < Minitest::Test
     assert_match(/counters differ/, assert_raises(RuntimeError) {
       @release.verify_context_observations!(campaign, [observation], [record])
     }.message)
+  end
+
+  def test_generation_recovery_binds_native_duration_and_unknown_wrapper_status
+    Dir.mktmpdir('generation-recovery-test-') do |root|
+      @release.instance_variable_set(:@root, root)
+      observation = @observation.merge('model' => 'claude-sonnet-5-5', 'version' => '2.1.296',
+        'total_seconds' => 865.229, 'generation_time_source' => 'claude_result_duration_ms',
+        'generation_time_recovered' => true, 'wrapper_exit_status_available' => false,
+        'sha256' => %w[output.txt timing.txt instruction.txt process-status.txt].to_h { |name| [name, 'a' * 64] })
+      receipt = observation.slice('model', 'session_id', 'version', 'generation_time_source', 'generation_time_recovered', 'wrapper_exit_status_available').merge(
+        'schema_version' => 1, 'run_id' => 'example', 'campaign_id' => @campaign.fetch('id'),
+        'approved_by' => 'user', 'decision' => 'retain_completed_native_result', 'duration_ms' => 865229,
+        'wrapper_wall_time_seconds' => nil, 'wrapper_start_time' => nil, 'wrapper_end_time' => nil,
+        'metadata_sha256' => observation.fetch('sha256').dup)
+      row = { 'generation_time_recovered' => 'true', 'generation_time_source' => 'claude_result_duration_ms', 'wrapper_exit_status_available' => 'false' }
+      file = File.join(root, "batches/#{@campaign.fetch('id')}/generation/recoveries/example.json")
+      FileUtils.mkdir_p(File.dirname(file))
+      retain = lambda do |record|
+        File.write(file, JSON.generate(record))
+        digest = Digest::SHA256.file(file).hexdigest
+        observation['generation_recovery_sha256'] = digest
+        observation.fetch('sha256')['generation-recovery.txt'] = digest
+        row['generation_recovery_sha256'] = digest
+      end
+      retain.call(receipt)
+      @release.verify_generation_recovery!(@campaign, observation, row)
+      assert_raises(RuntimeError) { @release.verify_generation_recovery!(@campaign, observation, row.merge('generation_time_recovered' => 'false')) }
+      assert_raises(RuntimeError) { @release.verify_generation_recovery!(@campaign, observation, row.merge('wrapper_exit_status_available' => 'true')) }
+      File.write(file, File.read(file) + "\n")
+      assert_match(/receipt changed/, assert_raises(RuntimeError) { @release.verify_generation_recovery!(@campaign, observation, row) }.message)
+      [receipt.merge('duration_ms' => 865230), receipt.merge('wrapper_start_time' => 'invented'),
+       receipt.merge('approved_by' => 'unknown'), receipt.merge('session_id' => 'another'),
+       receipt.merge('metadata_sha256' => receipt.fetch('metadata_sha256').merge('output.txt' => 'b' * 64))].each do |changed|
+        retain.call(changed)
+        assert_raises(RuntimeError) { @release.verify_generation_recovery!(@campaign, observation, row) }
+      end
+    end
+  end
+
+  def test_rejects_recovery_metadata_without_a_recovery_flag
+    assert_raises(RuntimeError) do
+      @release.verify_generation_recovery!(@campaign, @observation, @row.merge('generation_time_source' => 'claude_result_duration_ms'))
+    end
   end
 end

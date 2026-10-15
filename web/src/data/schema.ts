@@ -186,6 +186,13 @@ const timingCorrectionSourceSchema = z.object({
   url: z.string().url(),
 });
 
+const generationTimeRecoverySchema = z.object({
+  source: z.literal("claude_result_duration_ms"),
+  wrapperExitStatusAvailable: z.literal(false),
+  evidenceSha256: z.string().regex(/^[0-9a-f]{64}$/),
+  evidenceUrl: z.string().url(),
+});
+
 export const runRecordSchema = z.object({
   id: z.string().min(1),
   modelId: z.string().min(1),
@@ -194,6 +201,7 @@ export const runRecordSchema = z.object({
   repetition: z.number().int().positive(),
   overallScore: z.number().int(),
   generationTimeSeconds: z.number().positive().nullable(),
+  generationTimeRecovery: generationTimeRecoverySchema.nullable().optional(),
   scoreBandId: z.string().min(1),
   validationStatus: z.number().int().nonnegative(),
   validationMessage: z.string(),
@@ -217,6 +225,9 @@ export const runRecordSchema = z.object({
   validationDisposition: z.object({ classification: z.string().min(1), reason: z.string().min(1) }).nullable().optional(),
   benchmarkEvidenceUrl: z.string().url().nullable(),
 }).superRefine((run, context) => {
+  if (run.generationTimeRecovery && run.generationTimeSeconds === null) {
+    context.addIssue({ code: "custom", message: "recovered generation time is missing", path: ["generationTimeSeconds"] });
+  }
   if (run.timingFixed !== (run.timingCorrection !== null)) {
     context.addIssue({ code: "custom", message: "timing correction flag/payload mismatch", path: ["timingCorrection"] });
   }
@@ -241,10 +252,14 @@ export const timeDatasetSchema = z.object({
     repetition: z.number().int().positive(),
     overallScore: z.number().int(),
     generationTimeSeconds: z.number().positive().nullable(),
+    generationTimeRecovery: generationTimeRecoverySchema.nullable().optional(),
   })),
 }).superRefine((dataset, context) => {
   const ids = new Set<string>();
   dataset.runs.forEach((run, index) => {
+    if (run.generationTimeRecovery && run.generationTimeSeconds === null) {
+      context.addIssue({ code: "custom", message: "recovered generation time is missing", path: ["runs", index, "generationTimeSeconds"] });
+    }
     if (ids.has(run.id)) {
       context.addIssue({ code: "custom", message: `duplicate time run: ${run.id}`, path: ["runs", index, "id"] });
     }
