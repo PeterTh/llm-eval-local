@@ -39,6 +39,16 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "claude-sonnet-5.5-cc-medium": {
+        "label": "Sonnet 5.5 Medium", "color": "#c97342", "marker": "s",
+        "pricing_as_of": "2026-10-15", "pricing_model_id": "anthropic/claude-sonnet-5.5",
+        "input_price": 2.0, "cached_input_price": 0.1, "output_price": 10.0,
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_selection_policy": "componentwise lowest live non-batch rates; no context tiers; historical profiles unchanged",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-sonnet-5.5/endpoints",
+        "pricing_source_url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+        "cost_method": "Native cumulative token counts; cache creation at ordinary input rates.",
+    },
     "claude-haiku-5.5-cc-medium": {
         "label": "Haiku 5.5 Medium", "color": "#dd9b45", "marker": "v",
         "pricing_as_of": "2026-10-14", "pricing_model_id": "anthropic/claude-haiku-5.5",
@@ -361,6 +371,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "claude-sonnet-5.5-cc-medium": (-7, 8),
     "claude-haiku-5.5-cc-medium": (-7, 8),
     "gpt-6.1-sol-medium": (-7, 10),
     "gpt-6.1-sol-xhigh": (-7, 12),
