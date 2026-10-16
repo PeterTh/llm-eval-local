@@ -371,7 +371,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
-    "claude-sonnet-5.5-cc-medium": (-7, 8),
+    "claude-sonnet-5.5-cc-medium": (35, 27),
     "claude-haiku-5.5-cc-medium": (-7, 8),
     "gpt-6.1-sol-medium": (-7, 10),
     "gpt-6.1-sol-xhigh": (-7, 12),
@@ -633,6 +633,8 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             ha="right" if offset_x < 0 else "left",
             va="center",
             fontsize=8.5,
+            arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
+            if row.model == "claude-sonnet-5.5-cc-medium" else None,
             zorder=4,
         )
 

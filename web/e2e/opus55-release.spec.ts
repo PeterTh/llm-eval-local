@@ -39,9 +39,9 @@ test("Opus 5.5 pricing is available and Claude Code models share one harness", a
   await page.goto(basePath + "#/methodology");
   await expect(page.getByRole("heading", { name: /^Claude Code/ })).toHaveCount(1);
   const harness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Claude Code", exact: true }) });
-  await expect(harness.locator("header > span")).toHaveText("5 models");
-  await expect(harness.locator(".harness-models > span")).toHaveCount(5);
-  for (const label of ["Fable 5 Medium", "Haiku 5.5 Medium", "Opus 5 Medium", "Opus 5.5 Medium", "Sonnet 5 Medium"]) {
+  await expect(harness.locator("header > span")).toHaveText("6 models");
+  await expect(harness.locator(".harness-models > span")).toHaveCount(6);
+  for (const label of ["Fable 5 Medium", "Haiku 5.5 Medium", "Opus 5 Medium", "Opus 5.5 Medium", "Sonnet 5 Medium", "Sonnet 5.5 Medium"]) {
     await expect(harness.getByText(label, { exact: true })).toBeVisible();
   }
   await expect(harness.getByText("Opus 5.5 Medium", { exact: true })).toHaveAttribute("title", /invoked model claude-opus-5-5; reasoning effort medium/);

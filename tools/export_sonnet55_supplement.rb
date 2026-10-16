@@ -31,14 +31,14 @@ module Sonnet55Supplement
         copy.call(file, "#{destination}/#{name}") if File.file?(file)
       end
     end
-    report = JSON.parse(File.read(File.join(evaluation, "audit-completion-review.json")))
+    report = JSON.parse(File.read(File.join(evaluation, "audit-resolution-review.json")))
     raise "Audit not resolved" unless report.fetch("passed") && report.fetch("unique_programs") == 115 && report.fetch("unresolved").empty?
     report.fetch("input_sha256").each do |path, digest|
       raise "Audit input changed" unless LocalEvalArtifact.sha256(path) == digest
     end
 
     if phase == "audit"
-      %w[qtclustering qtclustering-sol61].each do |suffix|
+      %w[qtclustering qtclustering-sol61 mpi-split-supplemental].each do |suffix|
         source = "#{audit}-#{suffix}"
         destination = "timing-audit/#{suffix}"
         expected = report.fetch("reviews").find { |row| row.fetch("root") == source }
@@ -47,7 +47,7 @@ module Sonnet55Supplement
           result-schema.json runner-snapshot.rb static-evidence-snapshot.rb preparer-snapshot.rb summary-full.jsonl
           summary-full.csv summary-trial.jsonl summary-trial.csv review-guidance.txt platform-context.txt comparison.jsonl
           comparison.csv operational-provenance.json review-policy-snapshot.rb active-review-policy-full.rb
-          adjudication-plan-full.json adjudication-selection.jsonl pilot-review.json])
+          adjudication-plan-full.json adjudication-selection.jsonl pilot-review.json supplemental-selection.jsonl])
         results = Dir[File.join(source, "results/*.json")].sort.map { |path| JSON.parse(File.read(path)) }
         selected_ids = if suffix == "qtclustering-sol61"
           plan = JSON.parse(File.read(File.join(source, "adjudication-plan-full.json")))
@@ -73,7 +73,7 @@ module Sonnet55Supplement
         Dir[File.join(source, "final/*")].sort.each { |path| copy.call(path, "#{destination}/final/#{File.basename(path)}") if File.file?(path) }
       end
       decisions = {}
-      inputs = %w[primary qtclustering].map do |stage|
+      inputs = %w[primary qtclustering mpi-split-supplemental].map do |stage|
         relative = "timing-audit/#{stage}/final/decisions.jsonl"
         LocalEvalArtifact.read_jsonl(File.join(batch, relative)).each do |row|
           id = row.fetch("program_id")
@@ -94,26 +94,38 @@ module Sonnet55Supplement
       json.call("timing-audit/resolved-selection.json", {
         "schema_version" => 1, "source_commit" => ORIGINAL, "record_count" => decisions.size,
         "ordered_decisions" => inputs, "verdict_counts" => counts, "correction_ids" => correction_ids,
-        "policy" => "Later same-source QT boundary decisions overlay the general audit; all original review evidence is retained."
+        "policy" => "Later same-source QT boundary and focused supplemental decisions overlay the general audit in order; all original review evidence is retained."
       })
       write.call("timing-audit/conditional-decisions.jsonl", "")
       selected.call(evaluation, "completion", %w[audit-completion-review.json verify-audit-completion.rb review-policy.json
         prepare-review-policy.rb verify-primary-pilot.rb audit-pilot-driver.rb audit-full-driver-policy.rb
-        audit-pilot-launch.json audit-full-launch.json])
+        audit-pilot-launch.json audit-full-launch.json audit-resolution-review.json verify-audit-resolution.rb
+        finalize-supplemental.rb prepare-supplemental-review.rb audit-supplemental-driver.rb
+        audit-supplemental-launch.json supplemental-driver-amendment.json adapt-supplemental-followup.rb])
+      copy.call(File.join(evaluation, "mpi-split-selection.jsonl"), "completion/mpi-split-selection.jsonl")
+      mpi_evidence = File.join(evaluation, "mpi-split-evidence")
+      reuse = JSON.parse(File.read(File.join(mpi_evidence, "reuse-layout.json")))
+      reuse.each_value do |entry|
+        relative = entry.fetch("path")
+        raise "Unexpected reused MPI evidence path" unless relative.start_with?("batches/20261006-204623/timing-audit/mpi-split-evidence/") && !relative.split('/').include?('..')
+        raise "Reused MPI evidence changed" unless LocalEvalArtifact.sha256(File.join(root, relative)) == entry.fetch("sha256")
+      end
+      selected.call(mpi_evidence, "timing-audit/mpi-split-evidence", %w[evidence.json reuse-layout.json supplemental-context.txt
+        program-dynamic-section.stdout.txt program-dynamic-section.stderr.txt packages.stdout.txt packages.stderr.txt])
       Dir[File.join(evaluation, "review-policy-method/**/*")].select { |path| File.file?(path) }.each do |path|
         relative = path.delete_prefix(File.join(evaluation, "review-policy-method") + "/").gsub("/bin/", "/commands/")
         copy.call(path, "timing-audit/review-policy-method/#{relative}")
       end
       summary = JSON.parse(File.read(File.join(batch, "summary.json")))
       summary["timing_audit_final_verdicts"] = counts
-      %w[qtclustering qtclustering-sol61].each do |suffix|
+      %w[qtclustering qtclustering-sol61 mpi-split-supplemental].each do |suffix|
         summary.fetch("timing_audit_records")[suffix] = report.fetch("reviews")
           .find { |row| row.fetch("root") == "#{audit}-#{suffix}" }.fetch("responses")
       end
       summary["timing_audit_selection"] = "timing-audit/resolved-selection.json"
       summary["unique_timing_audited_programs"] = decisions.size
       json.call("summary.json", summary)
-      puts "Retained five audit stages, #{decisions.size} resolved programs, #{correction_ids.size} timing corrections."
+      puts "Retained six audit stages, #{decisions.size} resolved programs, #{correction_ids.size} timing corrections."
       return
     end
 
@@ -218,7 +230,8 @@ module Sonnet55Supplement
       commit-corrections.rb benchmark-driver.rb canary-driver.rb correction-pilot-driver.rb correction-full-driver.rb
       revalidation-driver.rb record-stage-launch.rb validation-launch.json correction-pilot-launch.json
       correction-full-launch.json revalidation-launch.json canary-launch.json benchmark-launch.json
-      benchmark-driver-template-reuse.json prepare-benchmark-drivers.rb prepare-corrected-checkout.rb corrected-checkout.json])
+      benchmark-driver-template-reuse.json prepare-benchmark-drivers.rb prepare-corrected-checkout.rb corrected-checkout.json
+      benchmark-export-template-reuse.json prepare-benchmark-export.rb export-completed-batch.rb])
     selected.call(File.join(home, "llm_timing_fixes/20261015-sonnet55-review"),
       "timing-corrections/postfix-review", %w[reused-reviews.json])
     summary = JSON.parse(File.read(File.join(batch, "summary.json")))

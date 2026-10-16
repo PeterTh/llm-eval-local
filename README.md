@@ -22,11 +22,11 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 6,820 initial validation outcomes and scoped revalidations, including exact execution output;
-- all 5,953 current benchmark outcomes (5,580 successful), measured values and wall times;
+- all 7,040 initial validation outcomes and scoped revalidations, including exact execution output;
+- all 6,168 current benchmark outcomes (5,795 successful), measured values and wall times;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
-- static MPI/hybrid timing audits covering 2,671 programs, all-backend QT audits
-  of 505 validated programs, 957 timing-fixed implementations, and scoped rerun comparisons;
+- static MPI/hybrid timing audits covering 2,776 programs, all-backend QT audits
+  of 525 validated programs, 1,028 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
 - compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 440 GPT-6.1 runs;
 - request-context pricing evidence for all 220 Haiku 5.5 runs;
@@ -52,9 +52,9 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 6,820 scored
-programs across 31 model/effort profiles, using the same scoring procedure applied jointly to six
-campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1 and Haiku 5.5, with timing-corrected measurements and
+The current combined release is under [`release/`](release/README.md): 7,040 scored
+programs across 32 model/effort profiles, using the same scoring procedure applied jointly to seven
+campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Haiku 5.5 and Sonnet 5.5, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
 analyses; superseded reviews are retained too (93 notes in total).
 
@@ -77,6 +77,7 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | [Opus 5.5 Medium](batches/20261002-142720/README.md) | 220 | 219 | 219 |
 | [Sol 6.1 Medium and XHigh](batches/20261006-204623/README.md) | 440 | 439 | 439 |
 | [Haiku 5.5 Medium](batches/20261012-111947/README.md) | 220 | 219 | 219 |
+| [Sonnet 5.5 Medium](batches/20261014-212207/README.md) | 220 | 215 | 215 |
 
 All campaigns use the same reviewed benchmark sizes, iterations, timeouts and
 resource profiles, with one warm-up and five measurements. Campaign records and

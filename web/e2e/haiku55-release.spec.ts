@@ -39,7 +39,7 @@ test("Haiku context pricing and shared Claude harness are visible", async ({ pag
   await page.goto(basePath + "#/methodology");
   await expect(page.getByRole("heading", { name: /^Claude Code/ })).toHaveCount(1);
   const harness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Claude Code", exact: true }) });
-  await expect(harness.locator(".harness-models > span")).toHaveCount(5);
+  await expect(harness.locator(".harness-models > span")).toHaveCount(6);
   await expect(harness.getByText("Haiku 5.5 Medium", { exact: true })).toHaveAttribute("title", /invoked model claude-haiku-5-5; reasoning effort medium/);
   await expect(page.getByText(/Haiku 5.5 uses request-length-dependent rates/)).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("haiku55-methodology.png"), fullPage: true });

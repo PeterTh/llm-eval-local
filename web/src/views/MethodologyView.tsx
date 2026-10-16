@@ -217,10 +217,11 @@ export function MethodologyView() {
             <p className="eyebrow">Time efficiency</p>
             <h2 id="method-time">Agent generation time</h2>
             <p>
-              Generation time is the total elapsed time for the agent invocation, including tool execution,
+              Generation time is the total elapsed time for the agent invocation, including tool execution and excluding documented provider retry waits,
               as recorded in seconds in the release’s <code>total_time</code> field.
               It measures the time spent producing the program, separately from the later validation and
               benchmark measurements used to evaluate the result.
+              {" "}Explicitly labeled recovered durations use the native harness measurement and exclude wrapper setup and teardown.
             </p>
             <p>
               These observations reflect the combined effects of the LLM, its agent harness, the provider’s
