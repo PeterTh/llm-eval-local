@@ -72,7 +72,7 @@ export function MethodologyView() {
               are retained for later evaluation.
             </p>
             <p>
-              The current snapshot contains {manifest.counts.runs.toLocaleString()} records across {manifest.counts.models} models,
+              The current snapshot contains {manifest.counts.runs.toLocaleString()} records across {manifest.counts.models} model/effort/harness profiles,
               {` ${manifest.counts.benchmarks} benchmarks, and ${manifest.counts.backends} backends: ${backendLabels}.`}
               {" "}For each model, benchmark, and backend combination, five independent agent invocations were performed
               to characterize result variability under otherwise identical experimental conditions.
@@ -83,8 +83,8 @@ export function MethodologyView() {
             <p className="eyebrow">Program generation</p>
             <h2 id="method-harnesses">Agent harnesses</h2>
             <p>
-              The assigned harness and invoked provider model are recorded per model below. Where a Codex invocation
-              used an explicit reasoning level, that setting is also retained in the model metadata. Command templates
+              The assigned harness and invoked provider model are recorded per profile below. Explicit reasoning
+              levels are retained in the model metadata. Command templates
               and the exact additional parameters are shown for each harness.
             </p>
             <div className="harness-list">
@@ -116,6 +116,12 @@ export function MethodologyView() {
             </div>
             <p>
               Per-run transcripts and invocation metadata are retained alongside the generated source.
+              {" "}OpenCode uses its stock build agent and model adapters in fresh isolated configuration, with local
+              shell/build/test access but no web tools, subagents, MCP servers or external plugins.
+            </p>
+            <p>
+              Cross-harness comparisons measure the complete agent setup. Campaigns run at different dates,
+              and provider model aliases are not pinned weight snapshots.
             </p>
           </section>
 
@@ -239,7 +245,8 @@ export function MethodologyView() {
               each token class is priced separately. Copilot and the normalized Claude Code metadata include
               cache-read tokens in their input count, while
               Pi reports uncached input and cache reads separately; the calculation follows the recorded convention.
-              Codex token counts come from retained session records.
+              Codex token counts come from retained session records; OpenCode counts are cross-checked between
+              native request-accounting events and session records, including compaction.
               Cached input is included in input;
               reasoning tokens are included in output and are not charged twice.
             </p>
@@ -266,6 +273,9 @@ export function MethodologyView() {
             <div className="reference-links">
               <a href={`${artifactRoot}/method`} target="_blank" rel="noreferrer"><span>Pipeline source snapshot</span><strong>GitHub ↗</strong></a>
               <a href={experimentUrl} target="_blank" rel="noreferrer"><span>Experiment harness configuration</span><strong>GitHub ↗</strong></a>
+              {harnesses.filter((harness) => harness.configurationSource).map((harness) => (
+                <a key={harness.id} href={harness.configurationSource!.url} target="_blank" rel="noreferrer"><span>{harness.configurationSource!.label}</span><strong>GitHub ↗</strong></a>
+              ))}
               <a href={`${artifactBlob}/data/provenance/system.md`} target="_blank" rel="noreferrer"><span>Execution-system record</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/data/calibration/benchmark_config.yaml`} target="_blank" rel="noreferrer"><span>Benchmark configuration</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactRoot}/release`} target="_blank" rel="noreferrer"><span>Combined release and campaign catalog</span><strong>GitHub ↗</strong></a>
@@ -273,6 +283,7 @@ export function MethodologyView() {
               <a href={`${artifactBlob}/release/scoring_metadata.yaml`} target="_blank" rel="noreferrer"><span>Scoring metadata</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/release/scored_results.csv`} target="_blank" rel="noreferrer"><span>Scores and generation times</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/analysis/src/all_models_score_vs_cost.py`} target="_blank" rel="noreferrer"><span>Cost estimation generator</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/analysis/notes/2026-10-18-sol61-harness-comparison.md`} target="_blank" rel="noreferrer"><span>Sol 6.1 harness comparison</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/${manifest.cost.sourcePath}`} target="_blank" rel="noreferrer"><span>Frozen pricing profiles</span><strong>GitHub ↗</strong></a>
               <a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer"><span>Generated programs</span><strong>GitHub ↗</strong></a>
             </div>

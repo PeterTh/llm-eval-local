@@ -1,5 +1,5 @@
 const ANCHORS = ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"];
-const OFFSETS = [9, 18, 30, 45, 65, 90, 120, 160];
+const OFFSETS = [9, 18, 30, 45, 65, 90, 120, 160, 210, 270];
 
 /** Reserve the font's full line box for collision detection without enlarging visible text. */
 export function scatterLabels({ name, points, font, fontSize, color, guideColor, padding }: {

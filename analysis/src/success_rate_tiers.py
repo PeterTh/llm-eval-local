@@ -23,6 +23,7 @@ DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "8_success_rate_tier
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "8_success_rate_tiers.csv"
 
 MODEL_LABELS = {
+    "gpt-6.1-sol-oc-medium": "GPT-6.1 Sol Medium (OpenCode)",
     "claude-sonnet-5.5-cc-medium": "Sonnet 5.5 Medium",
     "claude-haiku-5.5-cc-medium": "Haiku 5.5 Medium",
     "gpt-6.1-sol-medium": "GPT-6.1 Sol Medium",

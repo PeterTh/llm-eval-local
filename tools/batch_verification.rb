@@ -104,6 +104,35 @@ module BatchVerification
         { 'token_usage_source' => record.fetch('source'), 'token_usage_session_id' => record.fetch('session_id') }.each do |key, value|
           raise "generation usage provenance differs #{id}/#{key}" unless row.fetch(key) == value
         end
+      elsif campaign['generation_harness'] == 'opencode'
+        raise "OpenCode generation identity differs #{id}" unless observation.fetch('model').start_with?('openai/') &&
+          row.fetch('model') == "#{observation.fetch('model').delete_prefix('openai/')}-oc-#{observation.fetch('reasoning_effort')}" &&
+          observation.fetch('outcome') == 'completed' && observation.fetch('usage_available') == true &&
+          observation.fetch('usage_complete') == true && observation.fetch('usage_source') == 'opencode_native_step_finish'
+        counters = observation.fetch('token_counts')
+        names = %w[input_tokens cached_input_tokens cache_write_input_tokens output_tokens reasoning_output_tokens total_tokens]
+        raise "OpenCode counters invalid #{id}" unless names.all? { |key| counters.fetch(key).is_a?(Integer) && counters.fetch(key) >= 0 } &&
+          counters.fetch('input_tokens') >= counters.values_at('cached_input_tokens', 'cache_write_input_tokens').sum &&
+          counters.fetch('output_tokens') >= counters.fetch('reasoning_output_tokens') &&
+          counters.fetch('total_tokens') == counters.values_at('input_tokens', 'output_tokens').sum &&
+          counters.fetch('total_tokens').positive? && counters.fetch('total_tokens') == observation.fetch('total_tokens')
+        raw = observation.fetch('raw_total_seconds')
+        retry_seconds = observation.fetch('retry_backoff_seconds')
+        adjusted = observation.fetch('total_seconds')
+        raise "OpenCode elapsed accounting differs #{id}" unless [raw, retry_seconds, adjusted].all? { |value| value.is_a?(Numeric) && value.finite? && value >= 0 } &&
+          adjusted.positive? && (raw - retry_seconds - adjusted).abs < 0.000001 &&
+          observation.fetch('retry_count').is_a?(Integer) && observation.fetch('retry_count') >= 0
+        %w[output.txt timing.txt instruction.txt process-status.txt opencode-config.txt opencode-session.txt opencode-events.txt opencode-process.txt].each do |name|
+          raise "OpenCode native metadata digest invalid #{id}/#{name}" unless observation.fetch('sha256').fetch(name).match?(/\A[0-9a-f]{64}\z/)
+        end
+        expected = { 'input_tokens' => counters.fetch('input_tokens'), 'cached_tokens' => counters.fetch('cached_input_tokens'),
+          'output_tokens' => counters.fetch('output_tokens'), 'total_tokens' => counters.fetch('total_tokens'),
+          'reasoning_output_tokens' => counters.fetch('reasoning_output_tokens'), 'cache_write_input_tokens' => counters.fetch('cache_write_input_tokens'),
+          'legacy_reported_tokens' => nil, 'raw_total_time' => raw, 'total_time' => adjusted,
+          'agent_retry_backoff_seconds' => retry_seconds, 'agent_retry_count' => observation.fetch('retry_count'), 'api_time' => nil }
+        { 'token_usage_source' => observation.fetch('usage_source'), 'token_usage_session_id' => observation.fetch('session_id') }.each do |key, value|
+          raise "OpenCode usage provenance differs #{id}/#{key}" unless row.fetch(key) == value
+        end
       else
         expected = { 'input_tokens' => observation.fetch('inclusive_input_tokens'),
           'cached_tokens' => observation.dig('token_counts', 'cache_read_input_tokens'),
@@ -117,6 +146,29 @@ module BatchVerification
       end
       verify_generation_recovery!(campaign, observation, row)
     end
+  end
+
+  def verify_opencode_context!(campaign, observations, context)
+    by_id = observations.to_h { |row| [row.fetch('id'), row] }
+    records = context.fetch('records')
+    raise 'OpenCode context identity differs' unless context.fetch('schema_version') == 1 &&
+      context.fetch('source_batch') == campaign.fetch('id') && context.fetch('source_commit') == campaign.fetch('source_commit') &&
+      context.fetch('programs') == by_id.size && records.size == by_id.size && records.map { |row| row.fetch('id') }.sort == by_id.keys.sort
+    records.each do |record|
+      observation = by_id.fetch(record.fetch('id'))
+      raise 'OpenCode context provenance differs' unless record.fetch('session_id') == observation.fetch('session_id') &&
+        record.fetch('native_session_sha256') == observation.fetch('sha256').fetch('opencode-session.txt') &&
+        record.fetch('token_counts') == observation.fetch('token_counts')
+      requests, maximum = record.values_at('request_count', 'maximum_request_input_tokens')
+      input = observation.fetch('token_counts').fetch('input_tokens')
+      raise 'OpenCode context length differs' unless requests.is_a?(Integer) && requests.positive? && maximum.is_a?(Integer) &&
+        maximum.positive? && maximum <= input && input <= maximum * requests && maximum <= 272000 &&
+        record.fetch('requests_above_272000_tokens') == 0 && record.fetch('cache_write_input_tokens') == 0 &&
+        observation.fetch('token_counts').fetch('cache_write_input_tokens') == 0
+    end
+    raise 'OpenCode context summary differs' unless context.fetch('requests') == records.sum { |row| row.fetch('request_count') } &&
+      context.fetch('maximum_request_input_tokens') == records.map { |row| row.fetch('maximum_request_input_tokens') }.max &&
+      context.fetch('requests_above_272000_tokens') == 0 && context.fetch('cache_write_input_tokens') == 0
   end
 
   def verify_batch_audit_selection!(campaign, original, corrections, summary)
@@ -265,6 +317,21 @@ module BatchVerification
           recovery.fetch('records') == usage.size && recovery.fetch('unavailable').empty?
       end
       verify_generation_observations!(campaign, observations, rows, usage: usage)
+      if campaign['generation_harness'] == 'opencode'
+        raise 'OpenCode generation harness differs' unless generation.fetch('harness') == 'opencode' && usage.nil?
+        common_path = path("#{base}/generation/common-configuration.json")
+        common = JSON.parse(File.read(common_path))
+        observations.each do |observation|
+          profile = rows.fetch(observation.fetch('id')).fetch('model')
+          declared = generation.fetch('models').fetch(profile)
+          raise 'OpenCode generation profile differs' unless observation.fetch('model') == declared.fetch('model') &&
+            observation.fetch('reasoning_effort') == declared.fetch('reasoning_effort') &&
+            observation.fetch('version') == generation.fetch('opencode_version') &&
+            observation.fetch('common_configuration_sha256') == sha256(common_path) &&
+            common.fetch('resolved_model').fetch('id') == observation.fetch('model').delete_prefix('openai/')
+        end
+        verify_opencode_context!(campaign, observations, read_json.call('generation/pricing/request-context-summary.json'))
+      end
       if campaign['context_token_usage']
         context_path = path(campaign.fetch('context_token_usage'))
         context_records = LocalEvalArtifact.read_jsonl(context_path)

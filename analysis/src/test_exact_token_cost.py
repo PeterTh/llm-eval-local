@@ -47,6 +47,9 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertEqual("$0.005", combined._format_cost(0.005, 1))
         self.assertEqual("$0.01", combined._format_cost(0.01, 2))
 
+    def test_every_priced_profile_has_an_explicit_figure_label_position(self):
+        self.assertEqual(set(combined.MODELS), set(combined.LABEL_OFFSETS))
+
     def test_sol61_profiles_share_rates_but_retain_both_efforts(self):
         for effort in ("medium", "xhigh"):
             with self.subTest(effort=effort):
@@ -65,6 +68,15 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertEqual("2026-10-06", row.pricing_as_of)
         self.assertEqual(110, row.mean_total_tokens)
         self.assertEqual(0.2, row.cached_input_price_usd_per_million)
+
+    def test_opencode_sol61_uses_same_model_rates_with_distinct_harness_label(self):
+        native = combined.aggregate(self.frame.assign(model="gpt-6.1-sol-medium")).iloc[0]
+        alternate = combined.aggregate(self.frame.assign(model="gpt-6.1-sol-oc-medium")).iloc[0]
+        self.assertEqual(native.estimated_cost_usd_per_run, alternate.estimated_cost_usd_per_run)
+        self.assertEqual(110, alternate.mean_total_tokens)
+        self.assertEqual("2026-10-18", alternate.pricing_as_of)
+        self.assertIn("OpenCode", alternate.model_label)
+        self.assertIn("OpenCode", alternate.cost_method)
 
 
 if __name__ == "__main__":

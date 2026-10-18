@@ -7,6 +7,20 @@
   },
   "harnesses": [
     {
+      "id": "opencode",
+      "label": "OpenCode",
+      "configurationSource": {
+        "label": "Retained OpenCode harness configuration",
+        "url": "https://github.com/PeterTh/llm-eval-local/blob/main/batches/20261017-192226/method/validation/lib/opencode_harness.rb",
+        "artifactPath": "batches/20261017-192226/method/validation/lib/opencode_harness.rb",
+        "sha256": "9303954c0fa9283b69f8d91f8ccb7fd9b0d231cd5b65a8677dcde8acaa3fdac8"
+      },
+      "commandTemplate": "opencode run [parameters] --model <provider/model> --variant <effort> <instruction>",
+      "parameters": [
+        "--attach <isolated-local-server>", "--format json", "--thinking", "--auto", "--agent build"
+      ]
+    },
+    {
       "id": "claude-code",
       "label": "Claude Code",
       "configurationSource": {
@@ -78,6 +92,7 @@
     }
   ],
   "models": {
+    "gpt-6.1-sol-oc-medium": { "harnessId": "opencode", "invokedModelId": "openai/gpt-6.1-sol", "reasoningEffort": "medium" },
     "claude-sonnet-5.5-cc-medium": { "harnessId": "claude-code", "invokedModelId": "claude-sonnet-5-5", "reasoningEffort": "medium" },
     "claude-haiku-5.5-cc-medium": { "harnessId": "claude-code", "invokedModelId": "claude-haiku-5-5", "reasoningEffort": "medium" },
     "gpt-6.1-sol-medium": { "harnessId": "codex-cli", "invokedModelId": "gpt-6.1-sol", "reasoningEffort": "medium" },

@@ -39,6 +39,18 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "gpt-6.1-sol-oc-medium": {
+        "label": "GPT-6.1 Sol Medium (OpenCode)", "color": "#19856f", "marker": "^",
+        "pricing_as_of": "2026-10-18", "pricing_model_id": "openai/gpt-6.1-sol",
+        "input_price": 1.0, "cached_input_price": 0.05, "output_price": 5.0,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model pricing",
+        "pricing_selection_policy": "lowest published non-batch OpenAI processing tier (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "cost_method": "Exact native OpenCode request counters; cache is included in input and reasoning in output. All requests below the long-context threshold.",
+    },
     "claude-sonnet-5.5-cc-medium": {
         "label": "Sonnet 5.5 Medium", "color": "#c97342", "marker": "s",
         "pricing_as_of": "2026-10-15", "pricing_model_id": "anthropic/claude-sonnet-5.5",
@@ -371,6 +383,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "gpt-6.1-sol-oc-medium": (-20, 29),
     "claude-sonnet-5.5-cc-medium": (35, 27),
     "claude-haiku-5.5-cc-medium": (-7, 8),
     "gpt-6.1-sol-medium": (-7, 10),
@@ -461,13 +474,13 @@ def load_and_validate(path: Path) -> pd.DataFrame:
         raise ValueError("cached_tokens must be a subset of input_tokens")
 
     selected[split_columns] = numeric_splits
-    gpt56 = selected[selected["model"].isin(GPT56_MODELS) | selected["model"].str.startswith("gpt-6-")]
-    if gpt56[split_columns].isna().any().any():
-        raise ValueError("GPT-5.6 requires recovered complete token breakdowns")
-    if not (gpt56["total_tokens"] == gpt56["input_tokens"] + gpt56["output_tokens"]).all():
-        raise ValueError("GPT-5.6 inclusive token totals disagree")
-    if gpt56["total_tokens"].isna().any() or not (gpt56["total_tokens"] > 0).all():
-        raise ValueError("GPT-5.6 total-token values must be complete and positive")
+    exact = selected[selected["model"].isin(GPT56_MODELS) | selected["model"].str.startswith(("gpt-6-", "gpt-6."))]
+    if exact[split_columns].isna().any().any():
+        raise ValueError("GPT-5.6 and GPT-6 profiles require complete native token breakdowns")
+    if not (exact["total_tokens"] == exact["input_tokens"] + exact["output_tokens"]).all():
+        raise ValueError("Inclusive native token totals disagree")
+    if exact["total_tokens"].isna().any() or not (exact["total_tokens"] > 0).all():
+        raise ValueError("Native total-token values must be complete and positive")
     return selected
 
 
@@ -634,7 +647,7 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             va="center",
             fontsize=8.5,
             arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
-            if row.model == "claude-sonnet-5.5-cc-medium" else None,
+            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium"} else None,
             zorder=4,
         )
 

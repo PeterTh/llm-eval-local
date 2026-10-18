@@ -26,6 +26,10 @@ published program sources, benchmark sources, pipeline source, and documented sy
 - Compact exact reported Codex usage with session/run identity, cumulative counters,
   original terminal counter, and transcript/session hashes; recovery code is retained
   separately from the immutable measurement pipeline snapshot.
+- Compact exact OpenCode request/session accounting, retry-excluded elapsed time,
+  metadata hashes and pricing-context checks. Identical effective configuration is
+  retained once and hash-linked from each observation; original transcripts and
+  native event/session exports remain in the generated-program repository.
 - Analysis code, environment locks, final tables, and one canonical representation of
   each final figure.
 

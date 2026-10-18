@@ -58,6 +58,64 @@ class BatchGenerationTest < Minitest::Test
     }.message)
   end
 
+  def opencode_fixture
+    campaign = { 'id' => '20261017-192226', 'generation_harness' => 'opencode', 'source_commit' => 'b' * 40 }
+    counts = { 'input_tokens' => 100, 'cached_input_tokens' => 80, 'cache_write_input_tokens' => 0,
+      'output_tokens' => 10, 'reasoning_output_tokens' => 7, 'total_tokens' => 110 }
+    observation = { 'id' => 'example', 'model' => 'openai/gpt-6.1-sol', 'reasoning_effort' => 'medium',
+      'session_id' => 'session', 'outcome' => 'completed', 'usage_available' => true, 'usage_complete' => true,
+      'usage_source' => 'opencode_native_step_finish', 'token_counts' => counts, 'total_tokens' => 110,
+      'raw_total_seconds' => 44.5, 'total_seconds' => 42.5, 'retry_backoff_seconds' => 2.0, 'retry_count' => 1,
+      'sha256' => %w[output.txt timing.txt instruction.txt process-status.txt opencode-config.txt opencode-session.txt opencode-events.txt opencode-process.txt].to_h { |name| [name, 'a' * 64] } }
+    row = @row.merge('model' => 'gpt-6.1-sol-oc-medium', 'token_usage_source' => 'opencode_native_step_finish',
+      'cache_write_input_tokens' => '0', 'legacy_reported_tokens' => nil,
+      'raw_total_time' => '44.5', 'agent_retry_backoff_seconds' => '2.0', 'agent_retry_count' => '1')
+    [campaign, observation, row]
+  end
+
+  def test_opencode_exact_usage_retry_subtraction_and_unknown_api_time
+    campaign, observation, row = opencode_fixture
+    check = ->(candidate) { @release.verify_generation_observations!(campaign, [observation], { 'example' => candidate }) }
+    check.call(row)
+    %w[input_tokens cached_tokens output_tokens reasoning_output_tokens cache_write_input_tokens raw_total_time agent_retry_backoff_seconds agent_retry_count].each do |field|
+      assert_raises(RuntimeError, field) { check.call(row.merge(field => (Float(row.fetch(field)) + 1).to_s)) }
+    end
+    assert_raises(RuntimeError) { check.call(row.merge('api_time' => '0')) }
+    assert_raises(RuntimeError) { check.call(row.merge('token_usage_session_id' => 'another')) }
+    observation['usage_complete'] = false
+    assert_raises(RuntimeError) { check.call(row) }
+  end
+
+  def test_opencode_rejects_inconsistent_inclusive_counts_and_retry_clock
+    campaign, observation, row = opencode_fixture
+    check = -> { @release.verify_generation_observations!(campaign, [observation], { 'example' => row }) }
+    observation.fetch('token_counts')['cached_input_tokens'] = 101
+    assert_raises(RuntimeError) { check.call }
+    observation.fetch('token_counts')['cached_input_tokens'] = 80
+    observation['total_seconds'] = 44.5
+    assert_raises(RuntimeError) { check.call }
+  end
+
+  def test_opencode_context_is_bound_to_sessions_and_exact_usage
+    campaign, observation, = opencode_fixture
+    record = { 'id' => 'example', 'session_id' => 'session', 'native_session_sha256' => 'a' * 64,
+      'token_counts' => observation.fetch('token_counts').dup, 'request_count' => 2,
+      'maximum_request_input_tokens' => 60, 'requests_above_272000_tokens' => 0, 'cache_write_input_tokens' => 0 }
+    context = { 'schema_version' => 1, 'source_batch' => campaign.fetch('id'), 'source_commit' => campaign.fetch('source_commit'),
+      'programs' => 1, 'requests' => 2, 'maximum_request_input_tokens' => 60,
+      'requests_above_272000_tokens' => 0, 'cache_write_input_tokens' => 0, 'records' => [record] }
+    check = -> { @release.verify_opencode_context!(campaign, [observation], context) }
+    check.call
+    record['native_session_sha256'] = 'c' * 64
+    assert_raises(RuntimeError) { check.call }
+    record['native_session_sha256'] = 'a' * 64
+    record['maximum_request_input_tokens'] = 49
+    assert_raises(RuntimeError) { check.call }
+    record['maximum_request_input_tokens'] = 60
+    context['requests'] = 3
+    assert_raises(RuntimeError) { check.call }
+  end
+
   def test_context_usage_binds_original_observation_and_counter_totals
     counts = { 'input_tokens' => 20, 'cache_read_input_tokens' => 80,
       'cache_creation_input_tokens' => 10, 'output_tokens' => 10 }
