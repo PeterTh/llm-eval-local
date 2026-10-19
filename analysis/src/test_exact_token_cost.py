@@ -78,6 +78,15 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertIn("OpenCode", alternate.model_label)
         self.assertIn("OpenCode", alternate.cost_method)
 
+    def test_opencode_luna6_uses_same_model_rates_with_distinct_harness_label(self):
+        native = combined.aggregate(self.frame.assign(model="gpt-6-luna-medium")).iloc[0]
+        alternate = combined.aggregate(self.frame.assign(model="gpt-6-luna-oc-medium")).iloc[0]
+        self.assertEqual(native.estimated_cost_usd_per_run, alternate.estimated_cost_usd_per_run)
+        self.assertEqual(110, alternate.mean_total_tokens)
+        self.assertEqual("2026-10-19", alternate.pricing_as_of)
+        self.assertIn("OpenCode", alternate.model_label)
+        self.assertIn("OpenCode", alternate.cost_method)
+
 
 if __name__ == "__main__":
     unittest.main()

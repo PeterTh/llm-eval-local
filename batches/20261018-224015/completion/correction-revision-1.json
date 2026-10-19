@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "completed_at": "2026-10-19T05:43:42.474560Z",
+  "passed": true,
+  "program_id": "cholesky_gpt-6-luna-oc-medium_mpi_r4",
+  "prior_roots": {
+    "proposals": "/home/petert/llm_timing_fixes/20261019-luna6-opencode-proposals",
+    "review": "/home/petert/llm_timing_fixes/20261019-luna6-opencode-review",
+    "adjudication": "/home/petert/llm_timing_fixes/20261019-luna6-opencode-review-sol61"
+  },
+  "evidence_roots": {
+    "proposals": "/home/petert/llm_timing_fixes/20261019-luna6-opencode-proposals-revision1",
+    "review": "/home/petert/llm_timing_fixes/20261019-luna6-opencode-review-revision1",
+    "adjudication": "/home/petert/llm_timing_fixes/20261019-luna6-opencode-review-revision1-sol61"
+  },
+  "prior_proposal_sha256": "0359b9cf5dee3735e4e5ea08f22f011c9af38a3f816ef81bc254498b0036bc87",
+  "prior_proposal": {
+    "program_id": "cholesky_gpt-6-luna-oc-medium_mpi_r4",
+    "status": "proposed",
+    "summary": "Add a completion barrier before the stop timestamp so rank 0 reports a global makespan.",
+    "expected_timing_semantics": "For the supplied n=3072, 128-rank configuration, rank 0 starts timing before its first-pivot computation, whose broadcasts gate other ranks' numerical work. The added barrier ensures every rank completes distributedCholesky, including upper-triangle zeroing, before rank 0 stops. Computation time and derived GFLOPS therefore use the corrected global interval in milliseconds.",
+    "edits": [
+      {
+        "path": "cholesky/cholesky.cpp",
+        "old_text": "    bool success = distributedCholesky(A, n, rank, world);",
+        "new_text": "    bool success = distributedCholesky(A, n, rank, world);\n    MPI_Barrier(MPI_COMM_WORLD);",
+        "rationale": "Establish global completion before the existing stop timestamp with a single timing-only insertion."
+      }
+    ],
+    "non_timing_changes": [
+
+    ],
+    "notes": "The existing timer and output at source lines 217–233 are retained. The supplied target-platform evidence establishes that duration.count() is long, matching %ld. The makespan justification uses the supplied first-pivot dependency for n=3072 and 128 ranks. Static proposal only; no tools or execution used."
+  },
+  "prior_independent_review_sha256": "0f523e9071b6bc6a38018452c17e9609b494e530c176f9be855063f9f25bdfc9",
+  "prior_independent_review": {
+    "program_id": "cholesky_gpt-6-luna-oc-medium_mpi_r4",
+    "verdict": "reject",
+    "issue_categories": [
+      "missing_rank_aggregation",
+      "non_maximum_aggregation",
+      "asymmetric_timed_region"
+    ],
+    "confidence": "high",
+    "timing_contract_satisfied": false,
+    "timing_only_scope_satisfied": true,
+    "device_completion": "not_applicable",
+    "timed_region": "cholesky/cholesky.cpp:216-223; each rank times distributedCholesky, then enters a completion barrier before stopping.",
+    "rank_aggregation": "None. Rank 0 prints its own duration at cholesky/cholesky.cpp:230; no MPI_MAX reduction exists.",
+    "collective_safety": "The added MPI_Barrier is matched by all ranks and is collectively safe, but it does not aggregate durations.",
+    "canonical_output": "Computation time at cholesky/cholesky.cpp:230 uses rank 0's local duration, not the global maximum or a proven global envelope.",
+    "scope_assessment": "The proposed edit is timing-only and does not alter algorithmic results or validation.",
+    "evidence": [
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "216-223",
+        "finding": "Ranks pass the initial barrier and take local start timestamps independently; the final barrier only ensures completion before each local stop."
+      },
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "54-57",
+        "finding": "Each rank performs timed setup, including pivot-vector allocation, after its local start. Rank 0's timestamp can occur after another rank has begun this timed work, so the root interval is not proven to start no later than all relevant work."
+      },
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "230-235",
+        "finding": "Rank 0 prints duration.count() and derives GFLOPS from that same rank-local value; there is no MPI reduction."
+      },
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "223-224",
+        "finding": "The supplied target-platform evidence establishes duration.count() is long and the millisecond unit is consistent, but this does not repair the missing rank aggregation."
+      }
+    ],
+    "minimal_correction": "Measure the complete local duration on every rank and reduce it with MPI_Reduce using MPI_MAX and MPI_LONG on MPI_COMM_WORLD to root 0; print the reduced root value and use it for GFLOPS.",
+    "notes": "The completion barrier proves that rank 0 stops after all ranks finish, but it does not make independently started local durations simultaneous or equal to their maximum. The first-pivot dependency does not cover timed per-rank setup before the first collective."
+  },
+  "prior_adjudication_sha256": "39f3cfde6e59467f3112aa9361d6b656b759b81bf41cd4c9e0ad08499f462ded",
+  "prior_adjudication": {
+    "program_id": "cholesky_gpt-6-luna-oc-medium_mpi_r4",
+    "final_verdict": "reject",
+    "prior_rejection_upheld": true,
+    "confidence": "high",
+    "issue_categories": [
+      "missing_rank_aggregation",
+      "rank_local_timing"
+    ],
+    "timing_contract_satisfied": false,
+    "timing_only_scope_satisfied": true,
+    "environment_evidence_assessment": "The supplied compilation evidence does not establish timing correctness. The pinned ABI establishes that duration.count() is long and matches %ld; MPI datatype aliases and CUDA event semantics do not affect this program's missing aggregation.",
+    "rationale": "Rank 0 reports its own elapsed duration without MPI_MAX. The completion barrier establishes global completion before its stop, but the initial barrier does not establish that its timestamp precedes other ranks' timed setup and entry into the first algorithmic collective. The first-pivot dependency therefore does not prove a global envelope, even for n=3072 and 128 ranks. The prior rejection's substantive reason is correct, although all ranks execute symmetric timing code.",
+    "evidence": [
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "216-223",
+        "finding": "Ranks timestamp independently after the initial barrier. The completion barrier precedes every stop, but no maximum-duration reduction follows."
+      },
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "54-65",
+        "finding": "Each rank initializes its pivot workspace and performs loop setup before the first broadcast. Another rank can execute this timed setup and enter the broadcast before rank 0 takes its start timestamp; rank 0's first-pivot computation does not order that preceding work."
+      },
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "86-88",
+        "finding": "Upper-triangle zeroing completes before distributedCholesky returns, so the added completion barrier covers this final work."
+      },
+      {
+        "path": "cholesky/cholesky.cpp",
+        "lines": "230-235",
+        "finding": "The canonical Computation time output and printed GFLOPS both use rank 0's local duration."
+      }
+    ],
+    "minimal_correction": "After every rank stops timing, store duration.count() in a long and collectively reduce it with MPI_Reduce using MPI_LONG, MPI_MAX, root 0, and MPI_COMM_WORLD. Use the reduced value for rank 0's Computation time and GFLOPS.",
+    "notes": "The sole proposed insertion is a matched completion barrier and satisfies timing-only scope. That barrier is valid conservative synchronization; the defect is the unaggregated reported interval. Review used only the supplied source and platform evidence."
+  },
+  "feedback": [
+    {
+      "program_id": "cholesky_gpt-6-luna-oc-medium_mpi_r4",
+      "prior_proposal_sha256": "0359b9cf5dee3735e4e5ea08f22f011c9af38a3f816ef81bc254498b0036bc87",
+      "feedback": "The independent Luna rejection was upheld by Sol 6.1/xhigh. Rank 0 reports its own elapsed duration without MPI_MAX. The completion barrier establishes global completion before its stop, but the initial barrier does not establish that its timestamp precedes other ranks' timed setup and entry into the first algorithmic collective. The first-pivot dependency therefore does not prove a global envelope, even for n=3072 and 128 ranks. The prior rejection's substantive reason is correct, although all ranks execute symmetric timing code.\nRequired minimal correction: After every rank stops timing, store duration.count() in a long and collectively reduce it with MPI_Reduce using MPI_LONG, MPI_MAX, root 0, and MPI_COMM_WORLD. Use the reduced value for rank 0's Computation time and GFLOPS.\nKeep the algorithm, arithmetic, workload, result output and validation unchanged. Return a complete timing-only replacement proposal against the original source."
+    }
+  ],
+  "feedback_sha256": "6270344102df265d67bb7ed0f6e61a2fa1c9911f9fbd308b7f3809986c9505e3",
+  "revised_proposal_sha256": "7ad6fca3e90e2e245947c658485ce8a1880f194987abbb7664ea8d6e2c8e7f13",
+  "accepted_review_sha256": "67555607e3a0f004528bd741e92ec2105f21668852baf5e5f0026e3db2a996ed",
+  "prior_evidence_files": 522,
+  "prior_evidence_unchanged": true,
+  "prior_evidence_tree_sha256": "c7a886da884e9a53152f3847a805f5ad120649a8c44dd2788de8b648e141766d",
+  "unchanged_proposals": 38,
+  "reused_independent_reviews": 38,
+  "new_independent_reviews": 1,
+  "new_adjudications": 0,
+  "accepted_corrections": 39,
+  "reuse_receipt_sha256": "6590ac7b1d5bc00bc889500519ec1db994ab3146572b7b955291fdc72cf0fd1a",
+  "driver_sha256": "4c86f73c0915aa54e1f4f879121bbab6a0b7d3b3056a449d60a957f0610a22dd",
+  "reuse_helper_sha256": "8116335106951e12480aa8bfeb97b212737e04971ab9e15358af5827925e6226",
+  "policy": "Only the rejected timing proposal is revised and freshly reviewed. The other 38 proposals and literal-prompt-bound accepted reviews are reused unchanged. Every earlier attempt and decision remains intact; no program execution or scientific observation was repeated."
+}

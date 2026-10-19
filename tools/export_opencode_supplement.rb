@@ -6,17 +6,40 @@
 require_relative "artifact_common"
 
 module OpenCodeSupplement
-  BATCH = "20261017-192226"
-  ORIGINAL = "352c09d57e14ef93744aa8cc741ff52884079e5f"
+  DEFAULT_BATCH = "20261017-192226"
+  CAMPAIGNS = {
+    DEFAULT_BATCH => {
+      "suffix" => "sol61-opencode-medium", "audit_id" => "20261018-sol61-opencode",
+      "original" => "352c09d57e14ef93744aa8cc741ff52884079e5f"
+    }.freeze,
+    "20261018-224015" => {
+      "suffix" => "luna6-opencode-medium", "audit_id" => "20261019-luna6-opencode",
+      "original" => "fd64978a13b9a4f3ac6a5e368972316d0c159aa1"
+    }.freeze
+  }.freeze
   POLICY = "luna_first_uncertainty_or_disagreement_v1"
   module_function
 
-  def run(root:, home:, phase:)
+  def configuration(batch_id)
+    CAMPAIGNS.fetch(batch_id) { raise "Unknown OpenCode campaign: #{batch_id}" }
+  end
+
+  def audit_scope(records)
+    records.select do |row|
+      info = row.fetch("metadata")
+      LocalEvalArtifact::VALIDATION_STAGES.all? { |stage| info.fetch("stages").fetch(stage) == true } &&
+        (%w[mpi hybrid].include?(info.fetch("par_type")) || info.fetch("benchmark") == "qtclustering")
+    end.map { |row| row.fetch("id") }.sort
+  end
+
+  def run(root:, home:, phase:, batch_id: DEFAULT_BATCH)
     raise "Unknown supplement phase" unless %w[audit complete].include?(phase)
-    batch = File.join(root, "batches", BATCH)
-    campaign = File.join(home, "llm_para_campaigns/#{BATCH}-sol61-opencode-medium")
+    config = configuration(batch_id)
+    original = config.fetch("original")
+    batch = File.join(root, "batches", batch_id)
+    campaign = File.join(home, "llm_para_campaigns/#{batch_id}-#{config.fetch('suffix')}")
     evaluation = File.join(campaign, "evaluation")
-    audit = File.join(home, "llm_timing_audit/20261018-sol61-opencode")
+    audit = File.join(home, "llm_timing_audit", config.fetch("audit_id"))
     raise "Export native validation first" unless File.file?(File.join(batch, "validation/records.jsonl"))
     write = lambda do |relative, bytes|
       target = File.join(batch, relative)
@@ -33,7 +56,8 @@ module OpenCodeSupplement
       end
     end
     report = JSON.parse(File.read(File.join(evaluation, "audit-completion-review.json")))
-    raise "Audit unresolved" unless report.fetch("passed") && report.fetch("unique_programs") == 119 && report.fetch("unresolved").empty?
+    expected_ids = audit_scope(LocalEvalArtifact.read_jsonl(File.join(batch, "validation/records.jsonl")))
+    raise "Audit unresolved" unless report.fetch("passed") && report.fetch("unique_programs") == expected_ids.size && report.fetch("unresolved").empty?
     report.fetch("input_sha256").each do |path, digest|
       raise "Audit input changed" unless LocalEvalArtifact.sha256(path) == digest
     end
@@ -87,25 +111,21 @@ module OpenCodeSupplement
         end
         { "path" => relative, "sha256" => LocalEvalArtifact.sha256(File.join(batch, relative)) }
       end
-      expected_ids = LocalEvalArtifact.read_jsonl(File.join(batch, "validation/records.jsonl")).select do |row|
-        info = row.fetch("metadata")
-        LocalEvalArtifact::VALIDATION_STAGES.all? { |stage| info.fetch("stages").fetch(stage) == true } &&
-          (%w[mpi hybrid].include?(info.fetch("par_type")) || info.fetch("benchmark") == "qtclustering")
-      end.map { |row| row.fetch("id") }.sort
       raise "Audit coverage differs" unless decisions.keys.sort == expected_ids
       counts = decisions.values.group_by { |row| row.fetch("final_verdict") }.transform_values(&:size)
       raise "Audit counts differ" unless counts == report.fetch("verdicts")
       correction_ids = decisions.values.select { |row| row.fetch("timing_fix_required") }.map { |row| row.fetch("program_id") }.sort
       raise "Unresolved audit conditions" unless decisions.values.all? { |row| row.fetch("timing_review_required") == false }
       json.call("timing-audit/resolved-selection.json", {
-        "schema_version" => 1, "source_commit" => ORIGINAL, "record_count" => decisions.size,
+        "schema_version" => 1, "source_commit" => original, "record_count" => decisions.size,
         "ordered_decisions" => inputs, "verdict_counts" => counts, "correction_ids" => correction_ids,
         "policy" => "Same-source all-backend QT boundary decisions overlay the general MPI/hybrid audit; all review evidence is retained."
       })
       write.call("timing-audit/conditional-decisions.jsonl", "")
       selected.call(evaluation, "completion", %w[audit-completion-review.json verify-audit-completion.rb review-policy.json
         prepare-review-policy.rb verify-primary-pilot.rb audit-pilot-driver.rb audit-full-driver-policy.rb
-        audit-pilot-launch.json audit-full-launch.json timing-platform-context.txt])
+        audit-pilot-launch.json audit-full-launch.json timing-platform-context.txt
+        audit-pilot-resume-1.json audit-pilot-resume-2.json resume-audit-pilot.rb resume-audit-pilot-2.rb])
       summary = JSON.parse(File.read(File.join(batch, "summary.json")))
       summary["timing_audit_final_verdicts"] = counts
       %w[qtclustering qtclustering-sol61].each do |suffix|
@@ -121,7 +141,8 @@ module OpenCodeSupplement
 
     raise "Export native aggregate first" unless File.file?(File.join(batch, "aggregate/export.json"))
     selected.call(campaign, "generation", %w[campaign.json run-ids.txt preflight-ids.txt preflight-gate.json
-      preflight-review.json completion.json completion-audit.json launch.json source-retention-push.json access-review.json])
+      preflight-review.json completion.json completion-audit.json launch.json source-retention-push.json
+      access-review.json access-review-completed.json])
     selected.call(campaign, "generation/supervision", %w[run.rb monitor.rb launch-full.rb review-preflight.rb
       verify-access-preserved.rb audit-completion.rb])
     reusable = {}
@@ -131,6 +152,7 @@ module OpenCodeSupplement
       reusable[LocalEvalArtifact.sha256(path)] ||= relative
     end
     manifest = JSON.parse(File.read(File.join(campaign, "campaign.json")))
+    raise "Generation campaign identity differs" unless manifest.fetch("campaign_id") == batch_id
     layout = manifest.fetch("files").to_h do |name, digest|
       source = File.join(campaign, "method", name)
       raise "Generation method changed: #{name}" unless LocalEvalArtifact.sha256(source) == digest
@@ -138,7 +160,7 @@ module OpenCodeSupplement
       unless relative
         stored = "generation/method/#{name.gsub('/bin/', '/commands/')}"
         copy.call(source, stored)
-        relative = "batches/#{BATCH}/#{stored}"
+        relative = "batches/#{batch_id}/#{stored}"
         reusable[digest] = relative
       end
       [name, relative]
@@ -151,7 +173,7 @@ module OpenCodeSupplement
     raise "Generation scope differs" unless observations.size == 220 && observations.map { |row| row.fetch("id") }.sort == rows.keys.sort
     require_relative "current_release"
     verifier = CurrentRelease.allocate
-    verifier.verify_generation_observations!({ "id" => BATCH, "generation_harness" => "opencode" }, observations, rows)
+    verifier.verify_generation_observations!({ "id" => batch_id, "generation_harness" => "opencode" }, observations, rows)
     shared = observations.map { |row| row.slice("resolved_model", "tools") }.uniq
     raise "Multiple effective OpenCode configurations" unless shared.size == 1
     json.call("generation/common-configuration.json", shared.first)
@@ -165,18 +187,24 @@ module OpenCodeSupplement
     end
     pricing = File.join(campaign, "pricing")
     context = JSON.parse(File.read(File.join(pricing, "request-context-summary.json")))
-    verifier.verify_opencode_context!({ "id" => BATCH, "source_commit" => ORIGINAL }, observations, context)
+    verifier.verify_opencode_context!({ "id" => batch_id, "source_commit" => original }, observations, context)
     selected.call(pricing, "generation/pricing", %w[pricing-reference.json request-context-summary.json retain-pricing-context.rb])
     selected.call(evaluation, "completion", %w[campaign.json validation-launch-gate.json validation-completion-review.json
       correction-pilot-gate.json correction-commit.json source-correction-push.json revalidation-completion-review.json
+      revalidation-output-order-review.json record-revalidation-output-order.rb
       benchmark-canary-gate.json benchmark-completion-review.json benchmark-progress.json
       verify-validation-completion.rb verify-correction-pilot.rb verify-revalidation-completion.rb verify-benchmark-records.rb
       commit-corrections.rb benchmark-driver.rb canary-driver.rb correction-pilot-driver.rb correction-full-driver.rb
       revalidation-driver.rb validation-launch.json correction-pilot-launch.json correction-full-launch.json
       revalidation-launch.json canary-launch.json benchmark-launch.json benchmark-driver-template-reuse.json
-      prepare-benchmark-drivers.rb prepare-corrected-checkout.rb corrected-checkout.json correction-driver-template-reuse.json
-      benchmark-export-template-reuse.json prepare-release-export.rb export-completed-batch.rb])
-    selected.call(File.join(home, "llm_timing_fixes/20261018-sol61-opencode-review"),
+      prepare-benchmark-drivers.rb prepare-corrected-checkout.rb corrected-checkout.json correction-driver-template-reuse.json correction-template-context.json
+      benchmark-export-template-reuse.json prepare-release-export.rb export-completed-batch.rb
+      correction-revision-1.json correction-revision-feedback.json correction-revision-launch.json
+      correction-revision-driver.rb reuse-unchanged-correction-reviews.rb
+      correction-followup-rebinding.json prepare-revised-correction-followup.rb])
+    final_review = LocalEvalArtifact.load_yaml(File.join(batch, "timing-corrections/adjudication/manifest.yaml")).fetch("review_root")
+    raise "Unexpected correction review root" unless File.realpath(final_review).start_with?(File.join(home, "llm_timing_fixes", config.fetch("audit_id")) + "-review")
+    selected.call(final_review,
       "timing-corrections/postfix-review", %w[reused-reviews.json])
     summary = JSON.parse(File.read(File.join(batch, "summary.json")))
     summary["benchmarking_performed"] = true
@@ -194,6 +222,7 @@ module OpenCodeSupplement
 end
 
 if $PROGRAM_NAME == __FILE__
-  abort "Usage: #{$PROGRAM_NAME} audit|complete HOME" unless ARGV.size == 2
-  OpenCodeSupplement.run(root: File.expand_path("..", __dir__), home: File.expand_path(ARGV.last), phase: ARGV.first)
+  abort "Usage: #{$PROGRAM_NAME} audit|complete HOME [BATCH]" unless (2..3).cover?(ARGV.size)
+  OpenCodeSupplement.run(root: File.expand_path("..", __dir__), home: File.expand_path(ARGV[1]), phase: ARGV.first,
+    batch_id: ARGV.fetch(2, OpenCodeSupplement::DEFAULT_BATCH))
 end

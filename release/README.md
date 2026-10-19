@@ -1,13 +1,14 @@
-# Combined release: 2026-10-18
+# Combined release: 2026-10-19
 
-This is a reproducible view over eight retained campaigns, not a second raw-data archive.
+This is a reproducible view over nine retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
 `batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`;
 Opus 5.5 is under `batches/20261002-142720/`; Sol 6.1 medium and xhigh are under
 `batches/20261006-204623/`; Haiku 5.5 is under `batches/20261012-111947/`;
 Sonnet 5.5 is under `batches/20261014-212207/`; Sol 6.1 Medium in OpenCode is under
-`batches/20261017-192226/`.
+`batches/20261017-192226/`; Luna 6 Medium in OpenCode is under
+`batches/20261018-224015/`.
 
 The catalog's
 `codex_usage_overlays` joins exact reported counters for all 1,980 GPT-5.6 runs from
@@ -15,7 +16,7 @@ The catalog's
 counter and session provenance. The GPT-6 and Sol 6.1 native aggregates use the
 same exact usage evidence directly; all 1,100 rows are verified against their
 recovered counters.
-OpenCode's 220 observations use exact native request/session counters, including
+OpenCode's 440 observations use exact native request/session counters, including
 compaction, and a deduplicated effective-configuration record. Pricing-context
 checks bind to the native session exports; provider retry waits are excluded from
 generation duration.
@@ -34,18 +35,20 @@ This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 7,260 programs, 33 model/effort/harness profiles, 220 programs each.
-- 6,387 effectively validated programs and benchmark attempts; 6,014 successful measurements.
-- 1,042 timing-fixed programs (including two failed revalidations), with source history.
+- 7,480 programs, 34 model/effort/harness profiles, 220 programs each.
+- 6,568 effectively validated programs and benchmark attempts; 6,163 successful measurements.
+- 1,081 timing-fixed programs (including two failed revalidations), with source history.
 - 44 benchmark/backend cells, all with reviewed winners; 93 retained reviews total.
 
-Sol 6.1 Medium in OpenCode contributes 219 successful benchmarks and preserves its
-one validation failure. Its 14 timing-only corrections passed revalidation before
-measurement. All 7,040 prior observations are unchanged; 57 prior scores change
-through joint thresholds. The [comparison snapshot](../analysis/notes/2026-10-18-sol61-opencode-winner-context.json)
-pins the preceding release and confirms that OpenCode introduces no new cell winners.
-The [harness comparison](../analysis/notes/2026-10-18-sol61-harness-comparison.md)
-separates all-program outcomes from successful-only runtime comparisons.
+Luna 6 Medium in OpenCode contributes 181 validation passes and 149 successful
+benchmarks. Its 39 timing-only corrections passed revalidation before measurement;
+39 validation failures and 32 benchmark failures remain in the dataset. All 7,260
+prior observations are unchanged; 222 prior scores change through joint thresholds.
+The [comparison snapshot](../analysis/notes/2026-10-19-luna6-opencode-winner-context.json)
+pins the preceding release and confirms that this batch introduces no new cell winners.
+The [Luna 6](../analysis/notes/2026-10-19-luna6-harness-comparison.md) and
+[Sol 6.1 harness comparisons](../analysis/notes/2026-10-18-sol61-harness-comparison.md)
+separate all-program outcomes from successful-only runtime comparisons.
 
 `scored_results.csv` is the current analysis and website input. The unchanged historic
 log-natural-break threshold procedure is applied to the joint successful-measurement

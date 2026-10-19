@@ -12,7 +12,7 @@ provide one command that rebuilds its tables and figures.
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
-`release/catalog.json` identifies eight campaigns, the scoped QT overlay and generated-source commits.
+`release/catalog.json` identifies nine campaigns, the scoped QT overlay and generated-source commits.
 Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
@@ -27,7 +27,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 33 profile names and tier percentages legible at the paper's
+intentional: it keeps all 34 profile names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -126,20 +126,21 @@ all rates, selected providers and routing tags, model matches, source URLs, and 
 per-model pricing date: 2026-08-22 for existing profiles, 2026-09-29 for the three
 Claude 5 additions, 2026-10-02 for GPT-6, 2026-10-06 for Opus 5.5, 2026-10-11
 for Sol 6.1, 2026-10-14 for Haiku 5.5, 2026-10-15 for Sonnet 5.5 and 2026-10-18
-for Sol 6.1 in OpenCode. The GPT-6 and GPT-6.1 profiles use officially
+for Sol 6.1 in OpenCode, and 2026-10-19 for Luna 6 in OpenCode. The GPT-6 and GPT-6.1 profiles use officially
 published non-batch OpenAI Flex prices. Rates are frozen per model.
 See [Claude pricing](notes/2026-09-29-claude5-pricing.md) and
 [GPT-6 pricing and limitations](notes/2026-10-02-gpt6-pricing.md),
 [Opus 5.5 pricing](notes/2026-10-06-opus55-pricing.md) and
 [Sol 6.1 pricing](notes/2026-10-11-sol61-pricing.md),
 [Haiku 5.5 request-context pricing](notes/2026-10-14-haiku55-pricing.md), and
-[Sonnet 5.5 pricing](notes/2026-10-15-sonnet55-pricing.md), and
-[OpenCode native accounting and pricing](notes/2026-10-18-sol61-opencode-pricing.md).
+[Sonnet 5.5 pricing](notes/2026-10-15-sonnet55-pricing.md), and OpenCode native
+accounting and pricing for [Sol 6.1](notes/2026-10-18-sol61-opencode-pricing.md)
+and [Luna 6](notes/2026-10-19-luna6-opencode-pricing.md).
 Haiku 5.5 uses retained per-run token totals grouped by each request's context tier;
 mixed-tier output splits are derived from native output and list-price totals.
 Cache creation uses ordinary input rates for all Claude profiles. Other profiles
-do not model long-context surcharges; the OpenCode campaign explicitly verifies
-that all native requests are below its long-context threshold. Storage, tools, future provider routing
+do not model long-context surcharges; both OpenCode campaigns explicitly verify
+that all native requests are below their long-context thresholds. Storage, tools, future provider routing
 changes, and batch discounts are not modeled.
 
 Rebuild with:
@@ -159,23 +160,26 @@ Focused follow-up notes:
   invalid segment for GPT-5.6 Sol xhigh is primarily an MPI/OpenMP-SIMD classification
   boundary rather than a general increase in later-stage validation failures.
 
-## Sol 6.1 harness comparison
+## Codex/OpenCode harness comparisons
 
-The [Codex versus OpenCode comparison](notes/2026-10-18-sol61-harness-comparison.md)
-uses all 220 programs per profile for validation, score, generation time and cost.
-Its runtime comparison uses each cell's median successful program and reports both
-success-conditional and all-programs-successful cell selections. It is descriptive,
-not an estimate of a pure causal harness effect.
+The [Sol 6.1](notes/2026-10-18-sol61-harness-comparison.md) and
+[Luna 6 comparisons](notes/2026-10-19-luna6-harness-comparison.md) use all 220
+programs per profile for validation, score, generation time and cost. Runtime
+comparisons use each cell's median successful program and report both
+success-conditional and all-programs-successful cell selections. They are
+descriptive, not estimates of a pure causal harness effect.
 
 ```bash
-python analysis/src/sol61_harness_comparison.py
+python analysis/src/harness_comparison.py --comparison sol61
+python analysis/src/harness_comparison.py --comparison luna6
 ```
 
-Canonical outputs are `tables/sol61_harness_summary.csv`,
-`tables/sol61_harness_cells.csv` and `tables/sol61_harness_context.json`; the last
-pins the exact scored input and aggregation rules. Exact OpenCode accounting,
-session hashes, shared configuration and pricing checks are retained under
-`batches/20261017-192226/generation/`, without duplicating raw transcripts.
+Each pair writes `tables/<pair>_harness_summary.csv`,
+`tables/<pair>_harness_cells.csv` and `tables/<pair>_harness_context.json`; the last
+pins the exact scored input and aggregation rules. The original
+`src/sol61_harness_comparison.py` command remains supported. Exact OpenCode
+accounting, session hashes, shared configuration and pricing checks are retained
+under each batch's `generation/`, without duplicating raw transcripts.
 
 ## Timing-correction impact
 
@@ -183,12 +187,13 @@ This historical analysis remains scoped to the original 4,620-program campaign a
 its 587 corrections; it consumes `data/`, not the jointly rescored `release/` view.
 The additional 174 corrections were made before benchmarking, so no comparable
 uncorrected performance measurements exist for those runs. The current combined
-dataset carries the timing-fix flag for 1,042 distinct corrected programs, including
+dataset carries the timing-fix flag for 1,081 distinct corrected programs, including
 two failed revalidations. The 81 newer corrections include 12 previously retimed
 historical QT programs. Their 32 scoped historical reruns are retained separately
 under `corrections/20261001-gpt6-qt/`, not folded into this older 587-case analysis.
-The 83 Opus 5.5, 11 native Sol 6.1, 33 Haiku 5.5, 71 Sonnet 5.5 and 14 OpenCode
-corrections likewise precede those campaigns' first benchmarks.
+The 83 Opus 5.5, 11 native Sol 6.1, 33 Haiku 5.5, 71 Sonnet 5.5, 14 Sol 6.1
+OpenCode and 39 Luna 6 OpenCode corrections likewise precede those campaigns'
+first benchmarks.
 
 The retained historical analysis joins the original static-audit score, corrected scoped-rerun
 measurements, final scores, issue categories, and original/corrected source links:
@@ -212,6 +217,13 @@ canonical format unless the publication toolchain requires another.
 
 Published run reviews live in `notes/individual/` and are embedded by the website.
 All 44 current cell winners have reviews; 93 notes are retained, including superseded winners.
+Luna 6 Medium in OpenCode introduces no new cell winners. Its
+[comparison snapshot](notes/2026-10-19-luna6-opencode-winner-context.json) verifies
+that all 7,260 prior observations are unchanged against the preceding release;
+222 prior scores change solely through joint thresholds.
+The [release check record](notes/2026-10-19-luna6-opencode-release-checks.json)
+retains accounting, preservation, test, retention and visual-inspection results.
+
 Sol 6.1 Medium in OpenCode introduces no new cell winners. Its
 [comparison snapshot](notes/2026-10-18-sol61-opencode-winner-context.json) verifies
 that all 7,040 prior observations are unchanged against the preceding release;

@@ -1,0 +1,7 @@
+[
+  {
+    "program_id": "cholesky_gpt-6-luna-oc-medium_mpi_r4",
+    "prior_proposal_sha256": "0359b9cf5dee3735e4e5ea08f22f011c9af38a3f816ef81bc254498b0036bc87",
+    "feedback": "The independent Luna rejection was upheld by Sol 6.1/xhigh. Rank 0 reports its own elapsed duration without MPI_MAX. The completion barrier establishes global completion before its stop, but the initial barrier does not establish that its timestamp precedes other ranks' timed setup and entry into the first algorithmic collective. The first-pivot dependency therefore does not prove a global envelope, even for n=3072 and 128 ranks. The prior rejection's substantive reason is correct, although all ranks execute symmetric timing code.\nRequired minimal correction: After every rank stops timing, store duration.count() in a long and collectively reduce it with MPI_Reduce using MPI_LONG, MPI_MAX, root 0, and MPI_COMM_WORLD. Use the reduced value for rank 0's Computation time and GFLOPS.\nKeep the algorithm, arithmetic, workload, result output and validation unchanged. Return a complete timing-only replacement proposal against the original source."
+  }
+]

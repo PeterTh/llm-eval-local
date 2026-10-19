@@ -284,6 +284,7 @@ export function MethodologyView() {
               <a href={`${artifactBlob}/release/scored_results.csv`} target="_blank" rel="noreferrer"><span>Scores and generation times</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/analysis/src/all_models_score_vs_cost.py`} target="_blank" rel="noreferrer"><span>Cost estimation generator</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/analysis/notes/2026-10-18-sol61-harness-comparison.md`} target="_blank" rel="noreferrer"><span>Sol 6.1 harness comparison</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/analysis/notes/2026-10-19-luna6-harness-comparison.md`} target="_blank" rel="noreferrer"><span>Luna 6 harness comparison</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/${manifest.cost.sourcePath}`} target="_blank" rel="noreferrer"><span>Frozen pricing profiles</span><strong>GitHub ↗</strong></a>
               <a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer"><span>Generated programs</span><strong>GitHub ↗</strong></a>
             </div>

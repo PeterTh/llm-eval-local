@@ -13,7 +13,7 @@ so this compares complete setups, not a separately identified causal harness eff
 | All-program measure | Codex | OpenCode |
 | --- | ---: | ---: |
 | Validated and successfully benchmarked | 219/220 | 219/220 |
-| Mean joint score | 8.109 | 8.014 |
+| Mean joint score | 8.150 | 8.055 |
 | Mean generation time | 5.16 min | 5.75 min |
 | Mean total tokens | 491,436 | 310,757 |
 | Mean API-rate cost | $0.1092 | $0.0914 |
@@ -57,8 +57,8 @@ and reasoning output counted once. They are API-rate estimates, not subscription
 charges. Generation time excludes recorded provider retry waits. OpenCode has no
 separate API-only duration. See the [pricing evidence](2026-10-18-sol61-opencode-pricing.md).
 
-Data: the combined 2026-10-18 release, built on artifact commit
-`659b18e1be23fb0caea978082731104b205f46d3` plus batch `20261017-192226`.
+Data: the combined 2026-10-19 release, built on artifact commit
+`8beae1d8eaa403d7eaaef7f2d439c6e05e53731f` plus batch `20261018-224015`.
 The [context record](../tables/sol61_harness_context.json) pins the scored CSV,
 source batches and aggregation rules; the [summary](../tables/sol61_harness_summary.csv)
 and [44-cell table](../tables/sol61_harness_cells.csv) retain unrounded results.

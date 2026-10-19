@@ -39,6 +39,18 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "gpt-6-luna-oc-medium": {
+        "label": "GPT-6 Luna Medium (OpenCode)", "color": "#73a942", "marker": "^",
+        "pricing_as_of": "2026-10-19", "pricing_model_id": "openai/gpt-6-luna",
+        "input_price": 0.05, "cached_input_price": 0.005, "output_price": 0.25,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model pricing",
+        "pricing_selection_policy": "lowest published non-batch OpenAI processing tier (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+        "cost_method": "Exact native OpenCode request counters; cache is included in input and reasoning in output. All requests below the long-context threshold.",
+    },
     "gpt-6.1-sol-oc-medium": {
         "label": "GPT-6.1 Sol Medium (OpenCode)", "color": "#19856f", "marker": "^",
         "pricing_as_of": "2026-10-18", "pricing_model_id": "openai/gpt-6.1-sol",
@@ -383,6 +395,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "gpt-6-luna-oc-medium": (8, 12),
     "gpt-6.1-sol-oc-medium": (-20, 29),
     "claude-sonnet-5.5-cc-medium": (35, 27),
     "claude-haiku-5.5-cc-medium": (-7, 8),

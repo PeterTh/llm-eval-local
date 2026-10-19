@@ -1,13 +1,18 @@
 """Runtime conditioning must not hide failed programs in all-run outcomes."""
 
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 
-from sol61_harness_comparison import NATIVE, OPENCODE, compare
+from harness_comparison import COMPARISONS, MODELS, NATIVE, OPENCODE, compare
+from success_rate_tiers import MODEL_LABELS
 
 
 class HarnessComparisonTest(unittest.TestCase):
+    def test_all_cost_profiles_have_tier_display_names(self):
+        self.assertEqual(set(MODELS) - set(MODEL_LABELS), set())
+
     def fixture(self):
         rows = []
         for model in (NATIVE, OPENCODE):
@@ -56,6 +61,39 @@ class HarnessComparisonTest(unittest.TestCase):
         frame.loc[0, "benchmark_median_time"] = 0
         with self.assertRaisesRegex(ValueError, "positive finite"):
             compare(frame)
+
+    def test_luna_pair_excludes_other_model_profiles(self):
+        native, opencode = COMPARISONS["luna6"]["profiles"]
+        original = self.fixture()
+        luna = original.replace({"model": {NATIVE: native, OPENCODE: opencode}})
+        summary, cells, runtime = compare(pd.concat([original, luna]), comparison="luna6")
+        self.assertEqual(set(summary.model), {native, opencode})
+        self.assertEqual(list(cells.opencode_over_codex_runtime), [0.5, 2.0])
+        self.assertEqual(runtime["all"]["both_have_success"]["cells"], 2)
+        self.assertEqual(list(summary[summary.backend == "all"].programs), [4, 4])
+
+    def test_luna_common_price_guard(self):
+        native, opencode = COMPARISONS["luna6"]["profiles"]
+        luna = self.fixture().replace({"model": {NATIVE: native, OPENCODE: opencode}})
+        with patch.dict(MODELS[opencode], input_price=99):
+            with self.assertRaisesRegex(ValueError, "common frozen rates"):
+                compare(luna, comparison="luna6")
+
+    def test_no_successful_cell_has_no_runtime_estimate(self):
+        frame = self.fixture()
+        frame[["benchmark_success", "benchmark_median_time"]] = [False, None]
+        summary, _, runtime = compare(frame)
+        self.assertEqual(list(summary[summary.backend == "all"].programs), [4, 4])
+        self.assertEqual(runtime["all"]["both_have_success"]["cells"], 0)
+        self.assertIsNone(runtime["all"]["both_have_success"]["geometric_mean_opencode_over_codex_runtime"])
+
+    def test_original_entry_point_preserves_default(self):
+        from sol61_harness_comparison import compare as original_compare
+        expected = compare(self.fixture())
+        actual = original_compare(self.fixture())
+        pd.testing.assert_frame_equal(expected[0], actual[0])
+        pd.testing.assert_frame_equal(expected[1], actual[1])
+        self.assertEqual(expected[2], actual[2])
 
 
 if __name__ == "__main__":
