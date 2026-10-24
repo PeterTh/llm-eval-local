@@ -4,6 +4,14 @@ import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture, tim
 import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema, timeDatasetSchema } from "./schema";
 
 describe("runtime dataset validation", () => {
+  it("preserves partial usage without changing scientific outcomes", () => {
+    const run = structuredClone(runsFixture[0]!);
+    run.generationTermination = { outcome: "generation_model_terminated", usageComplete: false,
+      partialTotalTokens: 110, evidenceSha256: "b".repeat(64), evidenceUrl: "https://example.test/termination.json" };
+    expect(runShardSchema.parse([run])[0]).toEqual(run);
+    expect(() => runShardSchema.parse([{ ...run, generationTermination: { ...run.generationTermination, usageComplete: true } }])).toThrow();
+    expect(() => runShardSchema.parse([{ ...run, generationTermination: { ...run.generationTermination, partialTotalTokens: -1 } }])).toThrow();
+  });
   it("preserves generation recovery without treating unknown wrapper status as success", () => {
     const run = structuredClone(runsFixture[0]!);
     run.generationTimeRecovery = { source: "claude_result_duration_ms", wrapperExitStatusAvailable: false,

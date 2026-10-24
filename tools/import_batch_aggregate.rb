@@ -8,10 +8,13 @@ if $PROGRAM_NAME == __FILE__
   OptionParser.new do |p|
     p.on("--native-run=PATH") { |v| options[:native] = File.expand_path(v) }
     p.on("--batch=ID") { |v| options[:batch] = v }
+    p.on("--evidence-root=RELATIVE") { |v| options[:evidence_root] = v }
   end.parse!
   abort "--native-run and --batch are required" unless options[:native] && options[:batch]&.match?(/\A\d{8}-\d{6}\z/)
   root = File.expand_path("..", __dir__)
-  batch = File.join(root, "batches", options.fetch(:batch))
+  relative = options.fetch(:evidence_root, "batches/#{options.fetch(:batch)}")
+  raise 'unsafe evidence root' if Pathname.new(relative).absolute? || relative.split('/').include?('..')
+  batch = File.join(root, relative)
   raise "batch has not been exported" unless File.directory?(batch)
   native = options.fetch(:native)
   metadata = LocalEvalArtifact.load_yaml(File.join(native, "aggregate_metadata.yaml"))

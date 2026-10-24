@@ -3,6 +3,7 @@
 require_relative "artifact_common"
 require_relative "batch_verification"
 require_relative "shared_corrections"
+require_relative "observation_replacements"
 require_relative "../method/timing-audit/scoring_threshold_review"
 require_relative "../method/codex-usage/codex_usage"
 
@@ -14,6 +15,7 @@ class CurrentRelease
     @root = File.expand_path(root)
     @catalog = JSON.parse(File.read(path("release/catalog.json")))
     @shared = SharedCorrections.new(@root, @catalog.fetch("correction_campaign")) if @catalog["correction_campaign"]
+    @replacements = ObservationReplacements.new(self, @catalog.fetch("observation_replacements", []))
   end
 
   def path(relative)
@@ -60,6 +62,7 @@ class CurrentRelease
 
   def build
     @shared&.verify!(@catalog, method(:load_records))
+    @replacements.verify!
     inputs = {}
     headers = []
     campaigns = @catalog.fetch("campaigns")
@@ -83,6 +86,8 @@ class CurrentRelease
       verify_batch(campaign, original_validations, corrections, records) if campaign.fetch("validation_format") == "batch"
       native = table.map(&:to_h)
       @shared&.apply!(validations, records, native)
+      @replacements.apply!(campaign, validations, records, native)
+      headers |= native.flat_map(&:keys)
       raise "overlapping campaign benchmark IDs" unless (benchmarks.keys & records.keys).empty?
       benchmarks.merge!(records)
       raise "aggregate/validation IDs differ" unless table.map { |r| self.class.id(r) }.sort == validations.keys.sort
@@ -99,6 +104,7 @@ class CurrentRelease
         if record
           current_config = @shared&.benchmarks&.key?(id) ? @shared.historical_config : config
           current_digest = @shared&.benchmarks&.key?(id) ? @shared.historical_config_digest : config_digest
+          current_config, current_digest = @replacements.configuration(id) || [current_config, current_digest]
           raise "benchmark success mismatch #{id}" unless record.fetch("success").to_s == row["benchmark_success"]
           raise "timing-fix mismatch #{id}" unless record.fetch("timing_fixed").to_s == row["timing_fixed"]
           raise "configuration mismatch #{id}" unless record.fetch("configuration_sha256") == row["benchmark_config_sha256"]
@@ -200,7 +206,7 @@ class CurrentRelease
     if @shared
       Dir.glob(path("#{@shared.base}/**/*")).sort.select { |p| File.file?(p) && File.basename(p) != "checksums.sha256" }.each { |p| inputs[relative_path(@root, p)] = sha256(p) }
     end
-    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb tools/shared_corrections.rb method/timing-audit/scoring_threshold_review.rb method/codex-usage/codex_usage.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
+    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb tools/shared_corrections.rb tools/observation_replacements.rb method/timing-audit/scoring_threshold_review.rb method/codex-usage/codex_usage.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
     metadata = {
       "schema_version" => 1, "generated_at" => @catalog.fetch("generated_at"), "counts" => actual,
       "scored_csv_sha256" => Digest::SHA256.hexdigest(scored), "thresholds_sha256" => Digest::SHA256.hexdigest(thresholds),

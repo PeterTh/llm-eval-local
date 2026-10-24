@@ -3,6 +3,38 @@ require_relative "artifact_common"
 
 # Checks retained batch evidence without needing the native workspace or Git sources.
 module BatchVerification
+  def evidence_base(campaign)
+    base = campaign.fetch('evidence_root', "batches/#{campaign.fetch('id')}")
+    path(base) # Apply the release-relative path safety check.
+    base
+  end
+
+  def verify_opencode_termination!(campaign, observation, row)
+    id = observation.fetch('id')
+    raise "unsafe termination identity #{id}" unless id.match?(/\A[a-zA-Z0-9_.-]+\z/) && campaign.fetch('id').match?(/\A\d{8}-\d{6}\z/)
+    digest = observation.fetch('termination_record_sha256')
+    file = path("#{evidence_base(campaign)}/generation/terminations/#{id}.json")
+    raise "termination receipt changed #{id}" unless digest.match?(/\A[0-9a-f]{64}\z/) && sha256(file) == digest &&
+      observation.fetch('sha256').fetch('generation-termination.txt') == digest
+    receipt = JSON.parse(File.read(file))
+    raise "termination receipt identity differs #{id}" unless receipt.fetch('schema_version') == 1 &&
+      receipt.fetch('run_id') == id && receipt.fetch('session_id') == observation.fetch('session_id') &&
+      receipt.fetch('reason') == 'model_caused_termination' && receipt.fetch('approved_by') == 'user' &&
+      receipt.fetch('decision') == 'retain_original_without_restart' && receipt.fetch('usage_complete') == false &&
+      receipt.fetch('native_process_receipt_available') == false && !observation.fetch('sha256').key?('opencode-process.txt')
+    names = %w[output.txt timing.txt instruction.txt process-status.txt opencode-config.txt opencode-session.txt opencode-events.txt]
+    raise "termination metadata differs #{id}" unless receipt.fetch('metadata_sha256') == observation.fetch('sha256').slice(*names)
+    %w[incident_sha256 native_export_sha256].each do |key|
+      raise "termination evidence missing #{id}" unless receipt.fetch(key).match?(/\A[0-9a-f]{64}\z/)
+    end
+    raise "partial usage differs #{id}" unless row.fetch('token_usage_complete') == 'false' &&
+      row.fetch('generation_outcome') == 'generation_model_terminated' &&
+      row.fetch('generation_failure_reason') == 'model_caused_termination' &&
+      observation.fetch('generation_failure_reason') == 'model_caused_termination' &&
+      row.fetch('termination_record_sha256') == digest &&
+      JSON.parse(row.fetch('partial_token_counts')) == observation.fetch('token_counts')
+  end
+
   def verify_generation_recovery!(campaign, observation, row)
     id = observation.fetch('id')
     recovered = observation.fetch('generation_time_recovered', false)
@@ -21,7 +53,7 @@ module BatchVerification
       raise "generation recovery provenance differs #{id}/#{key}" unless row.fetch(key) == observation.fetch(key).to_s
     end
     digest = observation.fetch('generation_recovery_sha256')
-    file = path("batches/#{campaign.fetch('id')}/generation/recoveries/#{id}.json")
+    file = path("#{evidence_base(campaign)}/generation/recoveries/#{id}.json")
     raise "generation recovery receipt changed #{id}" unless digest.match?(/\A[0-9a-f]{64}\z/) && sha256(file) == digest &&
       observation.fetch('sha256').fetch('generation-recovery.txt') == digest
     receipt = JSON.parse(File.read(file))
@@ -105,10 +137,23 @@ module BatchVerification
           raise "generation usage provenance differs #{id}/#{key}" unless row.fetch(key) == value
         end
       elsif campaign['generation_harness'] == 'opencode'
-        raise "OpenCode generation identity differs #{id}" unless observation.fetch('model').start_with?('openai/') &&
-          row.fetch('model') == "#{observation.fetch('model').delete_prefix('openai/')}-oc-#{observation.fetch('reasoning_effort')}" &&
-          observation.fetch('outcome') == 'completed' && observation.fetch('usage_available') == true &&
-          observation.fetch('usage_complete') == true && observation.fetch('usage_source') == 'opencode_native_step_finish'
+        provider, model = observation.fetch('model').split('/', 2)
+        complete = observation.fetch('usage_complete')
+        raise "OpenCode generation identity differs #{id}" unless %w[openai opencode-go].include?(provider) &&
+          model && !model.empty? && !model.include?('/') &&
+          row.fetch('model') == "#{model}-oc-#{observation.fetch('reasoning_effort')}" &&
+          [true, false].include?(complete) && observation.fetch('usage_available') == true &&
+          observation.fetch('outcome') == (complete ? 'completed' : 'generation_model_terminated') &&
+          observation.fetch('usage_source') == 'opencode_native_step_finish'
+        if complete
+          raise "unexpected incomplete usage metadata #{id}" unless
+            ['', 'true'].include?(row['token_usage_complete'].to_s) &&
+            ['', 'completed'].include?(row['generation_outcome'].to_s) &&
+            %w[partial_token_counts generation_failure_reason termination_record_sha256].all? { |key| row[key].to_s.empty? } &&
+            %w[generation_failure_reason termination_record_sha256].all? { |key| observation[key].nil? }
+        else
+          verify_opencode_termination!(campaign, observation, row)
+        end
         counters = observation.fetch('token_counts')
         names = %w[input_tokens cached_input_tokens cache_write_input_tokens output_tokens reasoning_output_tokens total_tokens]
         raise "OpenCode counters invalid #{id}" unless names.all? { |key| counters.fetch(key).is_a?(Integer) && counters.fetch(key) >= 0 } &&
@@ -122,12 +167,15 @@ module BatchVerification
         raise "OpenCode elapsed accounting differs #{id}" unless [raw, retry_seconds, adjusted].all? { |value| value.is_a?(Numeric) && value.finite? && value >= 0 } &&
           adjusted.positive? && (raw - retry_seconds - adjusted).abs < 0.000001 &&
           observation.fetch('retry_count').is_a?(Integer) && observation.fetch('retry_count') >= 0
-        %w[output.txt timing.txt instruction.txt process-status.txt opencode-config.txt opencode-session.txt opencode-events.txt opencode-process.txt].each do |name|
+        names = %w[output.txt timing.txt instruction.txt process-status.txt opencode-config.txt opencode-session.txt opencode-events.txt]
+        names << (complete ? 'opencode-process.txt' : 'generation-termination.txt')
+        names.each do |name|
           raise "OpenCode native metadata digest invalid #{id}/#{name}" unless observation.fetch('sha256').fetch(name).match?(/\A[0-9a-f]{64}\z/)
         end
-        expected = { 'input_tokens' => counters.fetch('input_tokens'), 'cached_tokens' => counters.fetch('cached_input_tokens'),
-          'output_tokens' => counters.fetch('output_tokens'), 'total_tokens' => counters.fetch('total_tokens'),
-          'reasoning_output_tokens' => counters.fetch('reasoning_output_tokens'), 'cache_write_input_tokens' => counters.fetch('cache_write_input_tokens'),
+        full_counts = complete ? counters : Hash.new(nil)
+        expected = { 'input_tokens' => full_counts['input_tokens'], 'cached_tokens' => full_counts['cached_input_tokens'],
+          'output_tokens' => full_counts['output_tokens'], 'total_tokens' => full_counts['total_tokens'],
+          'reasoning_output_tokens' => full_counts['reasoning_output_tokens'], 'cache_write_input_tokens' => full_counts['cache_write_input_tokens'],
           'legacy_reported_tokens' => nil, 'raw_total_time' => raw, 'total_time' => adjusted,
           'agent_retry_backoff_seconds' => retry_seconds, 'agent_retry_count' => observation.fetch('retry_count'), 'api_time' => nil }
         { 'token_usage_source' => observation.fetch('usage_source'), 'token_usage_session_id' => observation.fetch('session_id') }.each do |key, value|
@@ -151,7 +199,10 @@ module BatchVerification
   def verify_opencode_context!(campaign, observations, context)
     by_id = observations.to_h { |row| [row.fetch('id'), row] }
     records = context.fetch('records')
-    raise 'OpenCode context identity differs' unless context.fetch('schema_version') == 1 &&
+    flat = context.fetch('schema_version') == 2
+    raise 'OpenCode flat-context pricing policy differs' if flat && !(context.fetch('pricing_context_policy') == 'flat_context' &&
+      context.fetch('input_limit_tokens') == 1_000_000 && observations.all? { |row| row.fetch('model') == 'opencode-go/deepseek-v4.1-flash' })
+    raise 'OpenCode context identity differs' unless [1, 2].include?(context.fetch('schema_version')) &&
       context.fetch('source_batch') == campaign.fetch('id') && context.fetch('source_commit') == campaign.fetch('source_commit') &&
       context.fetch('programs') == by_id.size && records.size == by_id.size && records.map { |row| row.fetch('id') }.sort == by_id.keys.sort
     records.each do |record|
@@ -161,20 +212,27 @@ module BatchVerification
         record.fetch('token_counts') == observation.fetch('token_counts')
       requests, maximum = record.values_at('request_count', 'maximum_request_input_tokens')
       input = observation.fetch('token_counts').fetch('input_tokens')
+      above = record.fetch('requests_above_272000_tokens')
       raise 'OpenCode context length differs' unless requests.is_a?(Integer) && requests.positive? && maximum.is_a?(Integer) &&
-        maximum.positive? && maximum <= input && input <= maximum * requests && maximum <= 272000 &&
-        record.fetch('requests_above_272000_tokens') == 0 && record.fetch('cache_write_input_tokens') == 0 &&
+        maximum.positive? && maximum <= input && input <= maximum * requests && maximum <= (flat ? context.fetch('input_limit_tokens') : 272000) &&
+        above.is_a?(Integer) && above.between?(0, requests) && (above.positive? == (maximum > 272000)) &&
+        record.fetch('cache_write_input_tokens') == 0 &&
         observation.fetch('token_counts').fetch('cache_write_input_tokens') == 0
+      raise 'OpenCode context completeness differs' if flat && record.fetch('usage_complete') != observation.fetch('usage_complete')
     end
     raise 'OpenCode context summary differs' unless context.fetch('requests') == records.sum { |row| row.fetch('request_count') } &&
       context.fetch('maximum_request_input_tokens') == records.map { |row| row.fetch('maximum_request_input_tokens') }.max &&
-      context.fetch('requests_above_272000_tokens') == 0 && context.fetch('cache_write_input_tokens') == 0
+      context.fetch('requests_above_272000_tokens') == records.sum { |row| row.fetch('requests_above_272000_tokens') } && context.fetch('cache_write_input_tokens') == 0
+    if flat
+      raise 'OpenCode incomplete context totals differ' unless context.fetch('complete_programs') == observations.count { |row| row.fetch('usage_complete') } &&
+        context.fetch('incomplete_programs') == observations.count { |row| !row.fetch('usage_complete') }
+    end
   end
 
   def verify_batch_audit_selection!(campaign, original, corrections, summary)
     relative = summary['timing_audit_selection']
     return unless relative
-    base = "batches/#{campaign.fetch('id')}"
+    base = evidence_base(campaign)
     selection = JSON.parse(File.read(path("#{base}/#{relative}")))
     raise 'resolved audit source differs' unless selection.fetch('schema_version') == 1 && selection.fetch('source_commit') == campaign.fetch('source_commit')
     resolved = {}
@@ -229,7 +287,7 @@ module BatchVerification
   end
 
   def verify_batch(campaign, original, corrected, records)
-    base = "batches/#{campaign.fetch('id')}"
+    base = evidence_base(campaign)
     read_json = ->(relative) { JSON.parse(File.read(path("#{base}/#{relative}"))) }
     read_yaml = ->(relative) { LocalEvalArtifact.load_yaml(path("#{base}/#{relative}")) }
     summary = read_json.call("summary.json")
@@ -305,6 +363,45 @@ module BatchVerification
       generation.fetch('files').each do |name, digest|
         raise "generation method changed #{name}" unless sha256(path(generation_layout.fetch(name))) == digest
       end
+      if generation['runtime_amendment']
+        runtime = read_json.call('generation/runtime-method-layout.json')
+        amendment = read_json.call('generation/output-limit-amendment/amendment.json')
+        output_limit_revision = runtime.fetch('source_commit')
+        if generation['filesystem_amendment']
+          previous = read_json.call('generation/filesystem-amendment/before-campaign.json')
+          previous_layout = read_json.call('generation/pre-isolation-method-layout.json')
+          binding = read_json.call('generation/filesystem-amendment/binding.json')
+          output_limit_revision = previous.fetch('runtime_source_commit')
+          raise 'filesystem amendment identity differs' unless binding.fetch('ids') == campaign.fetch('ids') &&
+            binding.fetch('ids') == generation.fetch('filesystem_amendment').fetch('affected_observations').sort &&
+            binding.fetch('source_commit') == runtime.fetch('source_commit') &&
+            binding.fetch('previous_source_commit') == output_limit_revision &&
+            binding.fetch('policy') == generation.fetch('generation_filesystem_policy') &&
+            binding.fetch('before_campaign_sha256') == sha256(path("#{base}/generation/filesystem-amendment/before-campaign.json")) &&
+            previous_layout.fetch('source_commit') == output_limit_revision &&
+            previous_layout.fetch('files').keys.sort == previous.fetch('files').keys.sort
+          previous_layout.fetch('files').each do |name, relative|
+            raise "pre-isolation method changed #{name}" unless sha256(path(relative)) == previous.fetch('files').fetch(name)
+          end
+        end
+        raise 'generation runtime identity differs' unless runtime.fetch('source_commit') == generation.fetch('runtime_source_commit') &&
+          amendment.fetch('source_commit') == output_limit_revision && amendment.fetch('replacement_batch') == campaign.fetch('id') &&
+          runtime.fetch('files').keys.sort == generation.fetch('files').keys.sort &&
+          amendment.fetch('affected_observations').sort == generation.fetch('runtime_amendment').fetch('affected_observations').sort
+        runtime.fetch('files').each do |name, binding|
+          raise "generation runtime source changed #{name}" unless binding.fetch('path').start_with?('method/', 'batches/') &&
+            !binding.fetch('path').split('/').include?('..') && sha256(path(binding.fetch('path'))) == binding.fetch('sha256') &&
+            binding.fetch('sha256') == generation.fetch('files').fetch(name) && binding.fetch('path') == generation_layout.fetch(name)
+        end
+        initial = read_json.call('generation/output-limit-amendment/campaign-0-before.json')
+        original_layout = read_json.call('generation/original-method-layout.json')
+        raise 'original generation method identity differs' unless initial.fetch('campaign_id') == campaign.fetch('id') &&
+          initial.fetch('source_commit') == generation.fetch('source_commit') && original_layout.fetch('source_commit') == initial.fetch('source_commit') &&
+          original_layout.fetch('files').keys.sort == initial.fetch('files').keys.sort
+        original_layout.fetch('files').each do |name, relative|
+          raise "original generation method changed #{name}" unless sha256(path(relative)) == initial.fetch('files').fetch(name)
+        end
+      end
       observations = LocalEvalArtifact.read_jsonl(path("#{base}/generation/observations.jsonl"))
       rows = CSV.read(path(campaign.fetch('aggregate_csv')), headers: true).to_h { |r| [self.class.id(r), r] }
       usage = nil
@@ -328,7 +425,17 @@ module BatchVerification
             observation.fetch('reasoning_effort') == declared.fetch('reasoning_effort') &&
             observation.fetch('version') == generation.fetch('opencode_version') &&
             observation.fetch('common_configuration_sha256') == sha256(common_path) &&
-            common.fetch('resolved_model').fetch('id') == observation.fetch('model').delete_prefix('openai/')
+            common.fetch('resolved_model').fetch('id') == observation.fetch('model').split('/', 2).last &&
+            common.fetch('resolved_model').fetch('providerID') == observation.fetch('model').split('/', 2).first
+          if generation['filesystem_amendment']
+            isolation = observation.fetch('filesystem_isolation')
+            raise 'generation filesystem isolation differs' unless isolation.fetch('policy') == generation.fetch('generation_filesystem_policy') &&
+              isolation.fetch('implementation_sha256') == generation.fetch('files').fetch('lib/generation_filesystem.rb') &&
+              isolation.fetch('bubblewrap_sha256').match?(/\A[0-9a-f]{64}\z/) &&
+              isolation.fetch('workspace') == "#{generation.fetch('workspace')}/#{observation.fetch('id')}" &&
+              isolation.fetch('preflight') == { 'passed' => true, 'operator_home_visible' => false, 'other_observations_visible' => false } &&
+              isolation.fetch('network') == 'unchanged' && isolation.fetch('hardware_devices') == 'unchanged'
+          end
         end
         verify_opencode_context!(campaign, observations, read_json.call('generation/pricing/request-context-summary.json'))
       end

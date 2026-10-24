@@ -87,6 +87,23 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertIn("OpenCode", alternate.model_label)
         self.assertIn("OpenCode", alternate.cost_method)
 
+    def test_deepseek_partial_usage_is_not_a_complete_cost_observation(self):
+        model = "deepseek-v4.1-flash-oc-high"
+        complete = self.frame.assign(model=model, token_usage_complete=True)
+        incomplete = self.frame.assign(model=model, overall_score=0, token_usage_complete=False,
+            input_tokens=float("nan"), cached_tokens=float("nan"), output_tokens=float("nan"), total_tokens=float("nan"),
+            partial_token_counts='{"total_tokens":110}')
+        row = combined.aggregate(pd.concat([complete, incomplete], ignore_index=True)).iloc[0]
+        self.assertEqual(2, row.score_run_count)
+        self.assertEqual(1, row.cost_run_count)
+        self.assertEqual(3.5, row.mean_overall_score)
+        self.assertAlmostEqual((20 * 0.0537 + 80 * 0.001074 + 10 * 0.2148) / 1_000_000,
+                               row.estimated_cost_usd_per_run)
+        self.assertEqual("2026-10-24", row.pricing_as_of)
+        self.assertEqual("baidu/fp8", row.pricing_provider_tag)
+        with self.assertRaisesRegex(ValueError, "Incomplete usage"):
+            combined.aggregate(complete.assign(token_usage_complete=False))
+
 
 if __name__ == "__main__":
     unittest.main()

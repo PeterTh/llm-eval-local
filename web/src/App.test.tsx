@@ -100,6 +100,20 @@ async function renderApp(initial = "/tiers", options: { runs?: unknown[]; runErr
 }
 
 describe("explorer routing", () => {
+  it("labels model-caused termination independently of scientific validation", async () => {
+    const { runsFixture, costDatasetFixture } = await import("./test/fixtures");
+    const runs = structuredClone(runsFixture);
+    const costDataset = structuredClone(costDatasetFixture);
+    const costRun = costDataset.runs.find((run) => run.id === runs[0]!.id)!;
+    Object.assign(costRun, { inputTokens: null, cachedInputTokens: null, outputTokens: null, totalTokens: null, estimatedCostUsd: null });
+    runs[0]!.generationTermination = { outcome: "generation_model_terminated", usageComplete: false,
+      partialTotalTokens: 2330386, evidenceSha256: "b".repeat(64), evidenceUrl: "https://example.test/termination.json" };
+    await renderApp(`/run/${encodeURIComponent(runs[0]!.id)}`, { runs, costDataset });
+    expect(await screen.findByText("Model-caused termination.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Estimated API cost unavailable" })).toBeInTheDocument();
+    expect(screen.getByText(/Usage is incomplete/)).toHaveTextContent("lower bound is not used as a full-task cost estimate");
+    expect(screen.getByRole("link", { name: /Termination evidence/ })).toHaveAttribute("href", "https://example.test/termination.json");
+  });
   it("labels a recovered generation duration separately from benchmark timing", async () => {
     const { runsFixture } = await import("./test/fixtures");
     const runs = structuredClone(runsFixture);
@@ -470,12 +484,12 @@ describe("explorer routing", () => {
     const menu = container.querySelector<HTMLDetailsElement>(".filter-menu")!;
     const summary = menu.querySelector<HTMLElement>("summary")!;
 
-    fireEvent.click(summary);
+    await userEvent.click(summary);
     expect(menu.open).toBe(true);
     fireEvent.pointerDown(container.querySelector(".view-summary")!);
     expect(menu.open).toBe(false);
 
-    fireEvent.click(summary);
+    await userEvent.click(summary);
     expect(menu.open).toBe(true);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(menu.open).toBe(false);
@@ -487,12 +501,12 @@ describe("explorer routing", () => {
     const menu = container.querySelector<HTMLDetailsElement>(".about-menu")!;
     const summary = menu.querySelector<HTMLElement>("summary")!;
 
-    fireEvent.click(summary);
+    await userEvent.click(summary);
     expect(menu.open).toBe(true);
     fireEvent.pointerDown(container.querySelector(".view-summary")!);
     expect(menu.open).toBe(false);
 
-    fireEvent.click(summary);
+    await userEvent.click(summary);
     expect(menu.open).toBe(true);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(menu.open).toBe(false);

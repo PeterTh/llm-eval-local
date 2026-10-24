@@ -1,0 +1,48 @@
+{
+  "prepared_at": "2026-10-24T04:17:30Z",
+  "valid_programs": 23,
+  "timing_corrections": 6,
+  "orchestration_source_sha256": "833d5d89b8a329a7e9828c19e957ad7f8edeb39494ec6a13774402eaaca64993",
+  "execution_snapshot_sha256": "f47d3c35edee2f22611df8d27059d8a2b17a58b4747634dbc20048377b50b53d",
+  "changes": {
+    "require_relative \"../../../lib/local_evaluation\"": "require \"/tmp/deepseek41-isolated-evaluation-20261023-20261024-3604972-wirb3m/experiment/lib/local_evaluation\"",
+    "require_relative \"../lib/timing_audit\"": "require \"/tmp/deepseek41-isolated-evaluation-20261023-20261024-3604972-wirb3m/experiment/tools/timing_audit/lib/timing_audit\"",
+    "    LocalEvaluation::PAR_TYPES.map do |backend|": "    LocalEvaluation::PAR_TYPES.filter_map do |backend|",
+    "      raise \"No unchanged valid canary for #{model}/#{backend} among #{([\"black-scholes\"] + fallback_benchmarks).join(', ')}\" unless selected": "      next unless selected # Scoped rerun: never add unrelated observations to fill a canary backend.",
+    "Lowest unchanged valid repetition per backend, preferring black-scholes, then explicitly ordered fallbacks. All canary measurements are reused; measurement settings and benchmark eligibility are unchanged.": "Lowest unchanged valid repetition per available backend in this affected-only set, preferring black-scholes, then explicitly ordered fallbacks. A backend containing only timing-corrected candidates has no unchanged canary; no unrelated observations are added. All canaries are reused; measurement settings and eligibility are unchanged."
+  },
+  "templates": [
+    {
+      "name": "local-evaluation-driver.rb",
+      "template": "/tmp/deepseek41-opencode-evaluation-20261023.71Tq7a/local-evaluation-driver.rb",
+      "template_sha256": "2e82e1e6358a4b1691d86bea25cf09be5bf3855030699249c0b572db32bdc980",
+      "adapted_sha256": "e178150bfdde5344210ab20ec221fa246e37b623164fcbc5e476ad8ed3810fed"
+    },
+    {
+      "name": "canary-driver.rb",
+      "template": "/tmp/deepseek41-opencode-evaluation-20261023.71Tq7a/canary-driver.rb",
+      "template_sha256": "91de307bb56475dfb805844935e0ca192dc5e1777ca4474bb46c871c157636a1",
+      "adapted_sha256": "6e80ba34756d5ace435d739baa78affe61f4a8a89be8e85ec551cd766557a64e"
+    },
+    {
+      "name": "benchmark-driver.rb",
+      "template": "/tmp/deepseek41-opencode-evaluation-20261023.71Tq7a/benchmark-driver.rb",
+      "template_sha256": "3c598ee1911292cee3db5a312e6f0d8702d753cd85a9ac72f6bc9a176078733e",
+      "adapted_sha256": "3d9350b26f35422b8e928dc63656d57ccf425ebeeab5dc0587db15356ec24876"
+    },
+    {
+      "name": "verify-benchmark-records.rb",
+      "template": "/tmp/deepseek41-opencode-evaluation-20261023.71Tq7a/verify-benchmark-records.rb",
+      "template_sha256": "7de5006a40cb6f52c12b542b22ba05b94e336049a385f629a04418d3781e748c",
+      "adapted_sha256": "77cfce5f2e62aa11474fdf2d13bec11eb801cbd926e002ed1ecc604dba0f302c"
+    },
+    {
+      "name": "benchmark-eta.rb",
+      "template": "/tmp/deepseek41-opencode-evaluation-20261023.71Tq7a/benchmark-eta.rb",
+      "template_sha256": "393af7355d0c0e9ed4036620511ab1858c9bddd4a82a09074452e0df3475b547",
+      "adapted_sha256": "393af7355d0c0e9ed4036620511ab1858c9bddd4a82a09074452e0df3475b547"
+    }
+  ],
+  "canary_tests": "Full four-backend selection unchanged; scoped three-backend selection passes and adds no unrelated IDs.",
+  "policy": "Only selection/orchestration bindings change. Scientific validation, all 44 benchmark cells, sizes, iterations, timeouts, resources, one warmup and five measurements remain unchanged. Reuse canaries, never rerun the 196 retained observations."
+}

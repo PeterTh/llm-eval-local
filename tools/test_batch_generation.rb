@@ -96,6 +96,99 @@ class BatchGenerationTest < Minitest::Test
     assert_raises(RuntimeError) { check.call }
   end
 
+  def test_go_provider_identity_and_complete_usage_flags
+    campaign, observation, row = opencode_fixture
+    observation['model'] = 'opencode-go/deepseek-v4.1-flash'
+    observation['reasoning_effort'] = 'high'
+    row.merge!('model' => 'deepseek-v4.1-flash-oc-high', 'token_usage_complete' => 'true', 'generation_outcome' => 'completed')
+    check = -> { @release.verify_generation_observations!(campaign, [observation], { 'example' => row }) }
+    check.call
+    row['token_usage_complete'] = 'false'
+    assert_raises(RuntimeError) { check.call }
+    row['token_usage_complete'] = 'true'
+    row['partial_token_counts'] = JSON.generate(observation.fetch('token_counts'))
+    assert_raises(RuntimeError) { check.call }
+    row.delete('partial_token_counts')
+    observation['model'] = 'unrecognized/deepseek-v4.1-flash'
+    assert_raises(RuntimeError) { check.call }
+  end
+
+  def test_retained_model_termination_is_partial_and_hash_bound
+    Dir.mktmpdir('opencode-termination-test-') do |root|
+      @release.instance_variable_set(:@root, root)
+      campaign, observation, row = opencode_fixture
+      observation.merge!('outcome' => 'generation_model_terminated', 'usage_complete' => false,
+        'generation_failure_reason' => 'model_caused_termination')
+      observation.fetch('sha256').delete('opencode-process.txt')
+      receipt = { 'schema_version' => 1, 'run_id' => 'example', 'session_id' => 'session',
+        'reason' => 'model_caused_termination', 'approved_by' => 'user', 'decision' => 'retain_original_without_restart',
+        'usage_complete' => false, 'native_process_receipt_available' => false,
+        'incident_sha256' => 'b' * 64, 'native_export_sha256' => 'c' * 64,
+        'metadata_sha256' => observation.fetch('sha256').dup }
+      row.merge!('token_usage_complete' => 'false', 'generation_outcome' => 'generation_model_terminated',
+        'generation_failure_reason' => 'model_caused_termination', 'partial_token_counts' => JSON.generate(observation.fetch('token_counts')))
+      full_fields = %w[input_tokens cached_tokens output_tokens total_tokens reasoning_output_tokens cache_write_input_tokens]
+      full_fields.each { |field| row[field] = nil }
+      file = File.join(root, "batches/#{campaign.fetch('id')}/generation/terminations/example.json")
+      FileUtils.mkdir_p(File.dirname(file))
+      retain = lambda do |candidate|
+        File.write(file, JSON.generate(candidate))
+        digest = Digest::SHA256.file(file).hexdigest
+        observation['termination_record_sha256'] = digest
+        observation.fetch('sha256')['generation-termination.txt'] = digest
+        row['termination_record_sha256'] = digest
+      end
+      check = -> { @release.verify_generation_observations!(campaign, [observation], { 'example' => row }) }
+      retain.call(receipt)
+      check.call
+      full_fields.each do |field|
+        row[field] = '0'
+        assert_raises(RuntimeError, field) { check.call }
+        row[field] = nil
+      end
+      partial = row.fetch('partial_token_counts')
+      row['partial_token_counts'] = JSON.generate(observation.fetch('token_counts').merge('total_tokens' => 111))
+      assert_raises(RuntimeError) { check.call }
+      row['partial_token_counts'] = partial
+      [receipt.merge('approved_by' => 'automatic'), receipt.merge('usage_complete' => true),
+       receipt.merge('session_id' => 'another'), receipt.merge('native_process_receipt_available' => true),
+       receipt.merge('metadata_sha256' => receipt.fetch('metadata_sha256').merge('output.txt' => 'f' * 64))].each do |changed|
+        retain.call(changed)
+        assert_raises(RuntimeError) { check.call }
+      end
+      retain.call(receipt)
+      File.write(file, File.read(file) + "\n")
+      assert_raises(RuntimeError) { check.call }
+    end
+  end
+
+  def test_flat_context_support_preserves_legacy_long_context_guard
+    campaign, observation, = opencode_fixture
+    observation.merge!('model' => 'opencode-go/deepseek-v4.1-flash', 'usage_complete' => false)
+    counts = observation.fetch('token_counts').merge('input_tokens' => 600000, 'total_tokens' => 600010)
+    observation['token_counts'] = counts
+    record = { 'id' => 'example', 'session_id' => 'session', 'native_session_sha256' => 'a' * 64,
+      'token_counts' => counts, 'request_count' => 2, 'maximum_request_input_tokens' => 400000,
+      'requests_above_272000_tokens' => 1, 'cache_write_input_tokens' => 0, 'usage_complete' => false }
+    context = { 'schema_version' => 2, 'source_batch' => campaign.fetch('id'), 'source_commit' => campaign.fetch('source_commit'),
+      'programs' => 1, 'requests' => 2, 'maximum_request_input_tokens' => 400000,
+      'requests_above_272000_tokens' => 1, 'cache_write_input_tokens' => 0, 'records' => [record],
+      'pricing_context_policy' => 'flat_context', 'input_limit_tokens' => 1000000, 'complete_programs' => 0, 'incomplete_programs' => 1 }
+    check = -> { @release.verify_opencode_context!(campaign, [observation], context) }
+    check.call
+    context['schema_version'] = 1
+    assert_raises(RuntimeError) { check.call }
+    context['schema_version'] = 2
+    context['complete_programs'] = 1
+    assert_raises(RuntimeError) { check.call }
+    context['complete_programs'] = 0
+    record['usage_complete'] = true
+    assert_raises(RuntimeError) { check.call }
+    record['usage_complete'] = false
+    record['requests_above_272000_tokens'] = 0
+    assert_raises(RuntimeError) { check.call }
+  end
+
   def test_opencode_context_is_bound_to_sessions_and_exact_usage
     campaign, observation, = opencode_fixture
     record = { 'id' => 'example', 'session_id' => 'session', 'native_session_sha256' => 'a' * 64,

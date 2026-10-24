@@ -44,9 +44,9 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   const selectionSummary = page.getByLabel("Current selection summary");
   const modelMenu = page.locator(".filter-menu").first();
   await expect(modelMenu.locator("summary strong")).toHaveText("Default");
-  await expect(selectionSummary.getByText("27", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText(/5[,.]940/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("6.92", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("28", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(/6[,.]160/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("6.98", { exact: true })).toBeVisible();
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
@@ -70,9 +70,9 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await expect(page).toHaveURL(/model-set=all/);
   await expect(modelMenu.locator("summary strong")).toHaveText("All models");
-  await expect(selectionSummary.getByText("34", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText(/7[,.]480/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("6.87", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("35", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(/7[,.]700/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("6.93", { exact: true })).toBeVisible();
   await expect(page.locator(".chart svg.marks")).toBeVisible();
   await expect(page.locator(".mark-rect path").first()).toBeVisible();
 
@@ -110,12 +110,12 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   }
 
   await modelMenu.getByRole("button", { name: "Select all" }).click();
-  await expect(modelMenu.locator("summary strong")).toHaveText("34 models");
-  expect(await page.evaluate(() => new URLSearchParams(location.hash.split("?")[1] ?? "").getAll("model"))).toHaveLength(34);
+  await expect(modelMenu.locator("summary strong")).toHaveText("35 models");
+  expect(await page.evaluate(() => new URLSearchParams(location.hash.split("?")[1] ?? "").getAll("model"))).toHaveLength(35);
   await modelMenu.getByRole("button", { name: "Default" }).click();
   await expect(page).toHaveURL(/#\/tiers$/);
   await expect(modelMenu.locator("summary strong")).toHaveText("Default");
-  await expect(selectionSummary.getByText(/5[,.]940/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(/6[,.]160/, { exact: true })).toBeVisible();
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await expect(modelMenu.locator("summary strong")).toHaveText("All models");
 
@@ -187,11 +187,11 @@ test("model scores filters distributions and opens individual runs", async ({ pa
   const scoresLink = page.getByRole("link", { name: "Model Scores" });
   await expect(scoresLink).toHaveClass(/active/);
   await expect(page.getByRole("heading", { name: "Model Scores" })).toBeVisible();
-  await expect(page.getByLabel("Current score selection summary").getByText(/5[,.]940/, { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Current score selection summary").getByText(/6[,.]160/, { exact: true })).toBeVisible();
   await expect(page.locator(".score-analysis .chart svg.marks")).toBeVisible();
   await expect(page.locator(".score-analysis .mark-rect path").first()).toBeVisible();
   const scoreRowBands = page.locator(".score-analysis .score_row_bands_marks path");
-  await expect(scoreRowBands).toHaveCount(13);
+  await expect(scoreRowBands).toHaveCount(14);
 
   const modelMenu = page.locator(".filter-menu").first();
   await modelMenu.locator("summary").click();
@@ -264,8 +264,8 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await expect(page.getByRole("heading", { name: "Floyd–Warshall · OpenMP" })).toBeVisible();
 
   const selectionSummary = page.getByLabel("Current performance selection summary");
-  await expect(selectionSummary.getByText("27", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("119", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("28", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("124", { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText("16", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Benchmark" })).toHaveValue("floydwarshall");
   await expect(page.getByRole("combobox", { name: "Target" })).toHaveValue("omp");
@@ -277,7 +277,7 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   const chart = page.locator(".performance-analysis .chart");
   await expect(chart.locator("svg.marks")).toBeVisible();
   const runPoints = chart.locator('svg [role="button"][aria-label^="Run "]');
-  await expect(runPoints).toHaveCount(119);
+  await expect(runPoints).toHaveCount(124);
   await expect(page.locator(".performance-analysis + .accessible-data tbody tr").first().locator("th")).toHaveText("Opus 5.5 Medium");
 
   const pointRows = await runPoints.evaluateAll((marks) => {
@@ -323,14 +323,15 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   expect(pointSizes.diamond).toBeGreaterThan(pointSizes.square!);
 
   const rowBands = chart.locator(".performance_row_bands_marks path");
-  await expect(rowBands).toHaveCount(13);
+  await expect(rowBands).toHaveCount(14);
   const medianRules = chart.locator(".performance_model_medians_marks path");
-  await expect(medianRules).toHaveCount(27);
+  await expect(medianRules).toHaveCount(28);
   const medianBounds = await medianRules.first().boundingBox();
   expect(medianBounds).not.toBeNull();
   expect(medianBounds!.height).toBeGreaterThan(pointSpread + 4);
 
-  await runPoints.first().hover({ force: true });
+  await runPoints.first().evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await runPoints.first().hover();
   const tooltip = page.locator("#vg-tooltip-element");
   await expect(tooltip).toBeVisible();
   await expect(tooltip).toContainText("Median");
@@ -341,7 +342,8 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await page.mouse.move(1, 1);
 
   const modelLabel = chart.locator(".mark-text.role-mark text").filter({ hasText: /^GPT-5\.6 Sol Medium$/ });
-  await modelLabel.hover({ force: true });
+  await modelLabel.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await modelLabel.hover();
   await expect(tooltip).toContainText("Agent harness");
   await expect(tooltip).toContainText("Codex CLI");
   await expect(tooltip).toContainText("Invocation");
@@ -352,7 +354,7 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await page.getByRole("checkbox", { name: "Show measurement ranges" }).click();
   await expect(page.getByRole("checkbox", { name: "Show measurement ranges" })).toBeChecked();
   await expect(page).toHaveURL(/ranges=shown/);
-  await expect(rangeRules).toHaveCount(119);
+  await expect(rangeRules).toHaveCount(124);
   await page.getByRole("combobox", { name: "Values" }).selectOption("relative");
   await page.getByRole("combobox", { name: "Scale" }).selectOption("linear");
   await page.getByRole("combobox", { name: "Order" }).selectOption("slowest");
@@ -417,17 +419,17 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   await expect(costLink).toHaveClass(/active/);
   await expect(page.getByRole("heading", { name: "Cost Efficiency" })).toBeAttached();
   const summary = page.getByLabel("Current cost efficiency selection summary");
-  await expect(summary.getByText("27", { exact: true })).toBeVisible();
-  await expect(summary.getByText(/5[,.]940/, { exact: true })).toBeVisible();
-  await expect(summary.getByText(/5[,.]937/, { exact: true })).toBeVisible();
+  await expect(summary.getByText("28", { exact: true })).toBeVisible();
+  await expect(summary.getByText(/6[,.]160/, { exact: true })).toBeVisible();
+  await expect(summary.getByText(/6[,.]154/, { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
 
   const chart = page.locator(".cost-analysis .chart");
   await expect(chart.locator("svg.marks")).toBeVisible();
   const points = chart.locator(".cost_points path");
-  await expect(points).toHaveCount(27);
+  await expect(points).toHaveCount(28);
   const labels = chart.locator(".cost_labels text");
-  await expect(labels).toHaveCount(27);
+  await expect(labels).toHaveCount(28);
   await expect(labels.filter({ hasText: "GPT-5.6 Luna Medium" })).toHaveCount(1);
   await expect(labels.filter({ hasText: /GPT-5\.6 Luna (Low|XHigh)/ })).toHaveCount(0);
 
@@ -436,7 +438,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
     const bounds = element.getBoundingClientRect();
     return style.opacity !== "0" && style.visibility !== "hidden" && bounds.width > 0 && bounds.height > 0;
   }).length);
-  expect(visibleLabelCount).toBe(27);
+  expect(visibleLabelCount).toBe(28);
 
   await points.first().hover({ force: true });
   const tooltip = page.locator("#vg-tooltip-element");
@@ -484,7 +486,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   await backendMenu.getByRole("checkbox", { name: "OpenMP" }).click();
   await expect(page).toHaveURL(/benchmark=black-scholes/);
   await expect(page).toHaveURL(/backend=omp/);
-  await expect(summary.getByText("135", { exact: true })).toHaveCount(2);
+  await expect(summary.getByText("140", { exact: true })).toHaveCount(2);
   await page.getByRole("button", { name: /Reset/ }).click();
   await expect(page).toHaveURL(/#\/cost$/);
   await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
@@ -493,11 +495,11 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   await modelMenu.locator("summary").click();
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await expect(page).toHaveURL(/model-set=all/);
-  await expect(summary.getByText("34", { exact: true })).toBeVisible();
-  await expect(summary.getByText(/7[,.]480/, { exact: true })).toBeVisible();
-  await expect(summary.getByText(/7[,.]477/, { exact: true })).toBeVisible();
-  await expect(points).toHaveCount(34);
-  await expect(labels).toHaveCount(34);
+  await expect(summary.getByText("35", { exact: true })).toBeVisible();
+  await expect(summary.getByText(/7[,.]700/, { exact: true })).toBeVisible();
+  await expect(summary.getByText(/7[,.]694/, { exact: true })).toBeVisible();
+  await expect(points).toHaveCount(35);
+  await expect(labels).toHaveCount(35);
   await expect(labels.filter({ hasText: /Qwen 3\.6 .*Pi-T/ })).toHaveCount(1);
 
   const allLabelLayout = await labels.evaluateAll((elements) => {
@@ -524,7 +526,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
     }
     return { visibleCount: visible.length, materialOverlaps };
   });
-  expect(allLabelLayout).toEqual({ visibleCount: 34, materialOverlaps: [] });
+  expect(allLabelLayout).toEqual({ visibleCount: 35, materialOverlaps: [] });
 
   const exportPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -630,7 +632,7 @@ test("run detail keeps all models and highlights its model in the performance ce
   expect(performanceParams.benchmark).toBeTruthy();
   expect(performanceParams.backend).toBeTruthy();
   const selectionSummary = page.getByLabel("Current performance selection summary");
-  await expect(selectionSummary.getByText("34", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("35", { exact: true })).toBeVisible();
 
   const chart = page.locator(".performance-analysis .chart");
   const focusedRow = chart.locator(".performance_focused_row_marks path");
@@ -649,7 +651,7 @@ test("run detail keeps all models and highlights its model in the performance ce
   await modelMenu.locator("summary").click();
   await modelMenu.getByRole("button", { name: "Default" }).click();
   await expect(page).not.toHaveURL(/focus=/);
-  await expect(selectionSummary.getByText("27", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("28", { exact: true })).toBeVisible();
   await expect(focusedRow).toHaveCount(0);
   expect(problems).toEqual([]);
 });
@@ -778,8 +780,8 @@ test("complexity recomputes benchmark and target distributions and opens their r
   await expect(complexityLink).toHaveClass(/active/);
   await expect(page.getByRole("heading", { name: "Benchmark / Target complexity" })).toBeVisible();
   const selectionSummary = page.getByLabel("Current complexity selection summary");
-  await expect(selectionSummary.getByText(/5[,.]940/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("6.92", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(/6[,.]160/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("6.98", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Export chart")).toHaveCount(2);
 
   const benchmarkCategories = page.locator('.benchmark-complexity svg [role="button"][aria-label^="Benchmark "]');
@@ -863,7 +865,7 @@ test("complexity recomputes benchmark and target distributions and opens their r
   await page.locator(".brand-name").click();
   await expect(modelMenu).not.toHaveAttribute("open", "");
   await expect(selectionSummary.getByText("220", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("5.46", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText("5.48", { exact: true })).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -961,8 +963,8 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(snapshot).toHaveAttribute("href", /\/tree\/[0-9a-f]{40}$/);
   const snapshotCommit = (await snapshot.getAttribute("href"))!.split("/").at(-1)!;
   await expect(snapshot.locator("code")).toHaveText(snapshotCommit.slice(0, 9));
-  await expect(snapshot.locator("time")).toHaveText("2026-10-19 09:35:25 UTC");
-  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-10-19T09:35:25Z");
+  await expect(snapshot.locator("time")).toHaveText("2026-10-24 04:52:44 UTC");
+  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-10-24T04:52:44Z");
   await expect(page.locator(".primary-nav")).not.toContainText("Snapshot");
   await goto(page, "/methodology");
   await expect(page.getByRole("heading", { name: "Background & Methodology", exact: true })).toBeVisible();

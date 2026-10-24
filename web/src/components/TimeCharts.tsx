@@ -43,7 +43,12 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick, high
   const dark = useMediaQuery("(prefers-color-scheme: dark)");
   const spec = useMemo<VisualizationSpec>(() => {
     const paretoModels = new Set(analysis.paretoModelIds);
-    // Place labels for the most constrained (leftmost) points first.
+    // Both plot edges constrain label placement, especially on a log axis.
+    // Reserve those slots before placing labels for the flexible central points.
+    const domain = timeDomain(analysis.plottedModels.map((model) => model.meanGenerationTimeSeconds!), scale);
+    const project = scale === "log" ? Math.log : (value: number) => value;
+    const midpoint = (project(domain[0]) + project(domain[1])) / 2;
+    const edgePriority = (seconds: number) => Math.abs(project(seconds) - midpoint);
     const points = [...analysis.plottedModels].sort((left, right) =>
       left.meanGenerationTimeSeconds! - right.meanGenerationTimeSeconds!
       || left.modelLabel.localeCompare(right.modelLabel, "en")).map((model) => {
@@ -54,6 +59,7 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick, high
         modelId: model.modelId,
         modelLabel: model.modelLabel,
         pointLabel: narrow && model.modelLabel.length > 19 ? `${model.modelLabel.slice(0, 11)}…${model.modelLabel.slice(-7)}` : model.modelLabel,
+        labelPriority: edgePriority(model.meanGenerationTimeSeconds!),
         minutes: model.meanGenerationTimeSeconds! / 60,
         meanScore: model.meanScore,
         isPareto,
@@ -93,7 +99,7 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick, high
         },
       ],
       scales: [
-        { name: "time_x", type: scale, domain: timeDomain(analysis.plottedModels.map((model) => model.meanGenerationTimeSeconds!), scale).map((seconds) => seconds / 60), range: "width", nice: false, zero: scale === "linear" },
+        { name: "time_x", type: scale, domain: domain.map((seconds) => seconds / 60), range: "width", nice: false, zero: scale === "linear" },
         { name: "score_y", type: "linear", domain: adaptiveScoreDomain(points.map((point) => point.meanScore), manifest.scoreScale.minimum, manifest.scoreScale.maximum), range: "height", nice: false, zero: false },
       ],
       axes: [
@@ -134,6 +140,7 @@ export function TimeScatterChart({ analysis, manifest, scale, onDatumClick, high
         },
         ...scatterLabels({
           name: "time_labels", points: "time_points", font: theme(dark).font,
+          priorityField: "labelPriority",
           fontSize: narrow ? (points.length > 20 ? 11 : 12) : 14,
           color: dark ? "#edf0eb" : "#303941", guideColor: dark ? "#91afd0" : "#526f91", padding: 0,
         }),

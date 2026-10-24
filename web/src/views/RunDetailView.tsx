@@ -156,6 +156,11 @@ export function RunDetailView() {
             <strong>Recovered generation duration.</strong> This uses the native Claude Code duration because the wrapper measurement is unavailable.
             It excludes wrapper setup and teardown; the wrapper exit status is unknown. <a href={run.generationTimeRecovery.evidenceUrl} target="_blank" rel="noreferrer">Recovery evidence ↗</a>
           </p>}
+          {run.generationTermination && <p>
+            <strong>Model-caused termination.</strong> A generated shell command terminated the agent process.
+            The original output was retained without restarting; validation and benchmarking evaluate that program independently.
+            {" "}<a href={run.generationTermination.evidenceUrl} target="_blank" rel="noreferrer">Termination evidence ↗</a>
+          </p>}
         </section>
 
         <section className="detail-card cost-card" aria-labelledby="run-cost-heading">
@@ -194,6 +199,10 @@ export function RunDetailView() {
               )}
             </div>
           )}
+          {run.generationTermination && <p>
+            Usage is incomplete: at least {formatCount(run.generationTermination.partialTotalTokens)} tokens are recorded from completed requests.
+            This lower bound is not used as a full-task cost estimate.
+          </p>}
         </section>
 
         <section className="detail-card provenance-card">

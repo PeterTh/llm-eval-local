@@ -1,8 +1,11 @@
 const ANCHORS = ["top", "bottom", "right", "left", "top-right", "top-left", "bottom-right", "bottom-left"];
-const OFFSETS = [9, 18, 30, 45, 65, 90, 120, 160, 210, 270];
+// Try the usual short guides first. Dense mobile clusters also need intermediate
+// positions: a coarse distance grid can miss a free slot between nearby labels.
+const OFFSETS = [...new Set([9, 18, 30, 45, 65, 90, 120, 160, 210, 270,
+  ...Array.from({ length: 54 }, (_, index) => (index + 1) * 10)])];
 
 /** Reserve the font's full line box for collision detection without enlarging visible text. */
-export function scatterLabels({ name, points, font, fontSize, color, guideColor, padding }: {
+export function scatterLabels({ name, points, font, fontSize, color, guideColor, padding, priorityField }: {
   name: string;
   points: string;
   font: string;
@@ -10,6 +13,7 @@ export function scatterLabels({ name, points, font, fontSize, color, guideColor,
   color: string;
   guideColor: string;
   padding: number;
+  priorityField?: string;
 }) {
   const layout = `${name}_layout`;
   return [
@@ -23,6 +27,8 @@ export function scatterLabels({ name, points, font, fontSize, color, guideColor,
       transform: [{
         type: "label", anchor: OFFSETS.flatMap(() => ANCHORS),
         offset: OFFSETS.flatMap((distance) => ANCHORS.map(() => distance)),
+        // Sort label placement only; point order stays stable for keyboard use.
+        ...(priorityField ? { sort: { field: `datum.datum.${priorityField}`, order: "descending" } } : {}),
         padding, size: { signal: "[width, height]" },
       }],
     },

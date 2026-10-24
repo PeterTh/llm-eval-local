@@ -8,7 +8,7 @@ Status: static performance explanation; no validation, measurement, or scoring c
 
 This is the first-place CUDA result in the `spmv` cell of data release
 `local-eval-2026-08-25` at data commit `f83773e`. The benchmark used a 10,000-row
-matrix with 40 nonzeros per row and 50,000 repetitions. Its times are 1594.536,
+matrix with density 1/40 (250 nonzeros per row on average) and 50,000 repetitions. Its times are 1594.536,
 1601.226, 1596.834, 1653.179, and 1635.565 ms, giving a 1601.226 ms median. The
 runner-up median is 1666.574 ms.
 

@@ -202,6 +202,13 @@ export const runRecordSchema = z.object({
   overallScore: z.number().int(),
   generationTimeSeconds: z.number().positive().nullable(),
   generationTimeRecovery: generationTimeRecoverySchema.nullable().optional(),
+  generationTermination: z.object({
+    outcome: z.literal("generation_model_terminated"),
+    usageComplete: z.literal(false),
+    partialTotalTokens: z.number().int().positive(),
+    evidenceSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    evidenceUrl: z.string().url(),
+  }).nullable().optional(),
   scoreBandId: z.string().min(1),
   validationStatus: z.number().int().nonnegative(),
   validationMessage: z.string(),

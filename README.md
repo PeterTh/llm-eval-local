@@ -22,14 +22,15 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 7,480 initial validation outcomes and scoped revalidations, including exact execution output;
-- all 6,568 current benchmark outcomes (6,163 successful), measured values and wall times;
+- all 7,700 current validation outcomes and scoped revalidations, including exact execution output;
+- all 6,785 current benchmark outcomes (6,380 successful), measured values and wall times;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
-- static MPI/hybrid timing audits covering 2,970 programs, all-backend QT audits
-  of 557 validated programs, 1,081 timing-fixed implementations, and scoped rerun comparisons;
+- static MPI/hybrid timing audits, all-backend QT boundary audits,
+  1,137 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
 - compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 440 GPT-6.1 runs;
-- exact native OpenCode usage, shared effective configuration and request-context evidence for 440 runs;
+- native OpenCode usage, shared effective configuration and request-context evidence for 660 runs
+  (657 complete usage records and three explicit partial records);
 - request-context pricing evidence for all 220 Haiku 5.5 runs;
 - the exact final local-evaluation pipeline source snapshot; and
 - reproducible analysis source and final publication tables/figures as they are added.
@@ -53,11 +54,11 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 7,480 scored
-programs across 34 model/effort/harness profiles, using the same scoring procedure applied jointly to nine
-campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1 and Luna 6 in OpenCode, with timing-corrected measurements and
+The current combined release is under [`release/`](release/README.md): 7,700 scored
+programs across 35 model/effort/harness profiles, using the same scoring procedure applied jointly to ten
+campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6 and DeepSeek V4.1 Flash in OpenCode, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
-analyses; superseded reviews are retained too (93 notes in total).
+analyses; superseded reviews are retained too (94 notes in total).
 
 Codex cost estimates use exact reported token counts from retained
 Codex session records.
@@ -84,6 +85,7 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | [Sonnet 5.5 Medium](batches/20261014-212207/README.md) | 220 | 215 | 215 |
 | [Sol 6.1 Medium in OpenCode](batches/20261017-192226/README.md) | 220 | 219 | 219 |
 | [Luna 6 Medium in OpenCode](batches/20261018-224015/README.md) | 220 | 181 | 149 |
+| [DeepSeek V4.1 Flash High in OpenCode](batches/20261019-134042/README.md) | 220 | 217 | 217 |
 
 All campaigns use the same reviewed benchmark sizes, iterations, timeouts and
 resource profiles, with one warm-up and five measurements. Campaign records and

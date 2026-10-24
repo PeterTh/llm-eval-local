@@ -24,6 +24,7 @@ import type {
 } from "../src/data/types";
 import { parseGenerationTime } from "./time-data";
 import { generationRecoveryPath, parseGenerationRecovery } from "./generation-recovery-data";
+import { generationTerminationPath, parseGenerationTermination } from "./generation-termination-data";
 import {
   costRunFromScoredRow,
   parseCostPricingProfiles,
@@ -397,6 +398,7 @@ export async function buildData(): Promise<void> {
 
   const catalog = JSON.parse(await readFile(resolve(repositoryRoot, "release", "catalog.json"), "utf8")) as {
     campaigns: Array<{ validation_records: string; corrected_validation_records?: string; validation_format: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
+    observation_replacements?: Array<{ ids: string[]; validation_records: string; corrected_validation_records: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
     correction_campaign?: { root: string; validation_records: string; benchmark_records: string; source_history: string };
   };
   const validationRecords = new Map<string, LocatedRecord<ValidationRecord>>();
@@ -419,6 +421,24 @@ export async function buildData(): Promise<void> {
     }
     for (const [id, located] of await readJsonlRecords<BenchmarkRecord>(recordRoot(campaign.benchmark_records))) {
       invariant(!benchmarkRecords.has(id), `duplicate cross-campaign benchmark ID: ${id}`);
+      benchmarkRecords.set(id, located);
+    }
+  }
+  for (const replacement of catalog.observation_replacements ?? []) {
+    const recordRoot = (pattern: string) => resolve(repositoryRoot, pattern.replace(/\/\*\/\*\.jsonl$/, ""));
+    const original = await readJsonlRecords<Record<string, any>>(recordRoot(replacement.validation_records));
+    invariant(JSON.stringify([...original.keys()].sort()) === JSON.stringify(replacement.ids), "replacement validation scope differs");
+    for (const [id, located] of await readJsonlRecords<Record<string, any>>(recordRoot(replacement.corrected_validation_records))) {
+      invariant(original.has(id), `corrected replacement outside scope: ${id}`);
+      original.set(id, located);
+    }
+    for (const [id, located] of original) {
+      invariant(validationRecords.has(id), `replacement outside existing release: ${id}`);
+      validationRecords.set(id, { ...located, record: normalizeValidation(located.record, replacement.source_commit) });
+      benchmarkRecords.delete(id); // A replacement may fail scientific validation.
+    }
+    for (const [id, located] of await readJsonlRecords<BenchmarkRecord>(recordRoot(replacement.benchmark_records))) {
+      invariant(original.has(id), `replacement benchmark outside scope: ${id}`);
       benchmarkRecords.set(id, located);
     }
   }
@@ -467,7 +487,7 @@ export async function buildData(): Promise<void> {
 
   const generatedSourceRepository = generatedPrograms.repository.replace(/\.git$/, "");
   // This repository-level link is the latest snapshot; measured per-run revisions are joined above.
-  const generatedSourceCommit = catalog.campaigns.at(-1)!.corrected_source_commit;
+  const generatedSourceCommit = catalog.observation_replacements?.at(-1)?.corrected_source_commit ?? catalog.campaigns.at(-1)!.corrected_source_commit;
   const scoringDigest = scoringMetadata.scored_csv_sha256;
   const dataGeneratedAt = scoringMetadata.generated_at;
   invariant(typeof scoringDigest === "string", "scored CSV digest is missing");
@@ -484,6 +504,15 @@ export async function buildData(): Promise<void> {
 
   const runIds = new Set<string>();
   const generationRecoveries = new Map<string, NonNullable<RunRecord["generationTimeRecovery"]>>();
+  const generationTerminations = new Map<string, NonNullable<RunRecord["generationTermination"]>>();
+  for (const row of scoredRows) {
+    const id = recordId(row);
+    const evidencePath = generationTerminationPath(row, id);
+    if (evidencePath === null) continue;
+    const evidence = await readFile(resolve(repositoryRoot, evidencePath), "utf8");
+    const url = `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(evidencePath)}`;
+    generationTerminations.set(id, parseGenerationTermination(row, id, evidence, url));
+  }
   for (const row of scoredRows) {
     const id = recordId(row);
     const evidencePath = generationRecoveryPath(row, id);
@@ -585,6 +614,7 @@ export async function buildData(): Promise<void> {
       overallScore: score,
       generationTimeSeconds: parseGenerationTime(row.total_time, id),
       generationTimeRecovery: generationRecoveries.get(id) ?? null,
+      generationTermination: generationTerminations.get(id) ?? null,
       scoreBandId: bandFor(score, config.scoreScale.bands).id,
       validationStatus,
       validationMessage: row.validation_err_string ?? "",

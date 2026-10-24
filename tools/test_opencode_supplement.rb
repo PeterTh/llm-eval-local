@@ -3,6 +3,22 @@ require "minitest/autorun"
 require_relative "export_opencode_supplement"
 
 class OpenCodeSupplementTest < Minitest::Test
+  def test_original_and_amended_method_manifests_bind_their_own_bytes
+    initial = { "README.md" => "initial method", "same.rb" => "unchanged" }
+    amended = initial.merge("README.md" => "advertised output limits", "new.rb" => "new helper")
+    original_manifest = initial.transform_values { |bytes| Digest::SHA256.hexdigest(bytes) }
+    current_manifest = amended.transform_values { |bytes| Digest::SHA256.hexdigest(bytes) }
+    assert_equal initial, OpenCodeSupplement.checked_method_bytes(original_manifest) { |name| initial.fetch(name) }
+    assert_equal amended, OpenCodeSupplement.checked_method_bytes(current_manifest) { |name| amended.fetch(name) }
+    assert_raises(RuntimeError) { OpenCodeSupplement.checked_method_bytes(current_manifest) { |name| initial.fetch(name, "") } }
+  end
+
+  def test_generation_method_paths_must_stay_relative
+    ["../secret", "/absolute"].each do |name|
+      assert_raises(RuntimeError) { OpenCodeSupplement.checked_method_bytes({ name => Digest::SHA256.hexdigest("bytes") }) { "bytes" } }
+    end
+  end
+
   def record(id, benchmark, backend, valid: true)
     stages = LocalEvalArtifact::VALIDATION_STAGES.to_h { |stage| [stage, true] }
     stages["output_comparison"] = valid
@@ -16,6 +32,9 @@ class OpenCodeSupplementTest < Minitest::Test
     assert_equal "fd64978a13b9a4f3ac6a5e368972316d0c159aa1", luna.fetch("original")
     assert_equal "20261019-luna6-opencode", luna.fetch("audit_id")
     assert_equal "luna6-opencode-medium", luna.fetch("suffix")
+    deepseek = OpenCodeSupplement.configuration("20261019-134042")
+    assert_equal "40ad0bc6da259d4584e75b8f23f43c77e9751b24", deepseek.fetch("original")
+    assert_equal "20261023-deepseek41-opencode", deepseek.fetch("audit_id")
     assert_raises(RuntimeError) { OpenCodeSupplement.configuration("../unknown") }
   end
 

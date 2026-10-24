@@ -39,6 +39,17 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "deepseek-v4.1-flash-oc-high": {
+        "label": "DeepSeek V4.1 Flash High (OpenCode)", "color": "#4265c4", "marker": "^",
+        "pricing_as_of": "2026-10-24", "pricing_model_id": "deepseek/deepseek-v4.1-flash",
+        "input_price": 0.0537, "cached_input_price": 0.001074, "output_price": 0.2148,
+        "pricing_provider": "Baidu", "pricing_provider_tag": "baidu/fp8", "pricing_quantization": "fp8",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/deepseek/deepseek-v4.1-flash/endpoints",
+        "pricing_source_url": "https://openrouter.ai/deepseek/deepseek-v4.1-flash",
+        "secondary_pricing_source_url": "https://api-docs.deepseek.com/quick_start/pricing/",
+        "pricing_match_note": "V4.1 Flash family; pricing endpoint declares 20260910/FP8, while the evaluated Go alias is not an immutable weight snapshot. Different serving configuration, not observed Go billing.",
+        "cost_method": "Exact native OpenCode request counters; cache is included in input and reasoning in output. Three model-terminated sessions have incomplete usage and are excluded from full-task costs, but retained in scores.",
+    },
     "gpt-6-luna-oc-medium": {
         "label": "GPT-6 Luna Medium (OpenCode)", "color": "#73a942", "marker": "^",
         "pricing_as_of": "2026-10-19", "pricing_model_id": "openai/gpt-6-luna",
@@ -395,6 +406,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "deepseek-v4.1-flash-oc-high": (-8, 23),
     "gpt-6-luna-oc-medium": (8, 12),
     "gpt-6.1-sol-oc-medium": (-20, 29),
     "claude-sonnet-5.5-cc-medium": (35, 27),
@@ -503,6 +515,11 @@ def aggregate(frame: pd.DataFrame, context_usage: dict | None = None) -> pd.Data
         config = MODELS[model]
         score_run_count = len(group)
         mean_score = group["overall_score"].mean()
+
+        if "token_usage_complete" in group:
+            partial = group["token_usage_complete"].astype(str).str.lower().eq("false")
+            if group.loc[partial, ["input_tokens", "output_tokens", "cached_tokens", "total_tokens"]].notna().any().any():
+                raise ValueError("Incomplete usage must not supply full-task token or cost fields")
 
         cost_rows = group.dropna(
             subset=["input_tokens", "output_tokens", "cached_tokens"]
@@ -660,7 +677,7 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             va="center",
             fontsize=8.5,
             arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
-            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium"} else None,
+            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high"} else None,
             zorder=4,
         )
 

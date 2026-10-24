@@ -1,0 +1,54 @@
+{
+  "reviewed_at": "2026-10-23T03:31:52Z",
+  "source_commit": "40ad0bc6da259d4584e75b8f23f43c77e9751b24",
+  "validation_report_sha256": "ef2fabc926af1dbd2f2b494d6495996269b5973b566da8611badbd7dd08fd183",
+  "scientific_validation_unchanged": true,
+  "new_eligibility_rule": false,
+  "generation_termination_not_automatic_validation_failure": true,
+  "self_terminated_programs_passing_native_validation": [
+    "qtclustering_deepseek-v4.1-flash-oc-high_mpi_r2",
+    "qtclustering_deepseek-v4.1-flash-oc-high_hybrid_r4",
+    "qtclustering_deepseek-v4.1-flash-oc-high_hybrid_r5"
+  ],
+  "failures": [
+    {
+      "program_id": "cholesky_deepseek-v4.1-flash-oc-high_hybrid_r3",
+      "classification": "ordinary_generated_program_validation_failure",
+      "disposition": "Retain the unchanged native failure; no repair or retry-until-pass; exclude from timing-review and benchmark candidates.",
+      "evidence_sha256": {
+        "validation_metadata.yaml": "1524599d9a66052f1621c3d42b60a78f5d9236a4c317f83cffcc4b59f861d072",
+        "validation_out_command.log": "88192e23cdcc2a5f742024a6212931475d457eb159d372ca5a6b6ed8c5ea711e",
+        "validation_out_stdout.log": "4540164bb997c7744af646c1c7c01ab79138c97f5441cc8a2acce1b613d7bd75",
+        "validation_out_stderr.log": "4844277810475c23a871a950436464d7615307b4793c5fbe6572c83f59486bb1",
+        "validation_out_exitcode.log": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+      },
+      "native_failure": "libgomp: Thread creation failed: Resource temporarily unavailable",
+      "source_sha256": "04ecc779df737b9f8fae2b561eec454f9d09c1bf5d49c2a67519560fd126f6a1",
+      "source_ranges": [
+        "478-516",
+        "531-548",
+        "624-627"
+      ],
+      "static_diagnosis": "The program replaces launcher affinity with its own online-CPU partition and overrides OMP_NUM_THREADS=8. On the recorded 256-online-CPU host with four local ranks, it requests 64 OpenMP threads per rank, leaving no headroom under the unchanged TasksMax=256 limit for MPI/CUDA support threads. This is consistent with the observed libgomp failure, not evidence of provider or harness unavailability.",
+      "host_online_cpus_read_only_check": 256,
+      "configured_threads_per_rank": 8,
+      "generated_override_threads_per_rank": 64,
+      "existing_tasks_max": 256,
+      "limits_changed": false,
+      "diagnostic_program_runs": 0
+    },
+    {
+      "program_id": "roomsim_deepseek-v4.1-flash-oc-high_omp_r2",
+      "classification": "ordinary_generated_program_validation_failure",
+      "disposition": "Retain the unchanged native failure; no repair or retry-until-pass; exclude from timing-review and benchmark candidates.",
+      "evidence_sha256": {
+        "validation_metadata.yaml": "d55d295314152c357d78527430e3c7204a6067b366f7e0fd27e21793ae4bfeed",
+        "validation_out_command.log": "57a6845b2b32bd6648befb8e1414f82c890f8a57048bc7eff2dee9025c2a4326",
+        "validation_out_stdout.log": "6118d1d2260a04aa6a1e1991dc1fc15284ec218538c2b83a5530f6571969d912",
+        "validation_out_stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation_out_exitcode.log": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+      },
+      "native_failure": "Output comparison FAILED:\nNumeric value mismatch for object Distances: 'Sum: 5.69950000000000000e+03' vs 'Sum: 5.63750000000000000e+03'"
+    }
+  ]
+}

@@ -225,6 +225,14 @@ export interface GenerationTimeRecovery {
   evidenceUrl: string;
 }
 
+export interface GenerationTermination {
+  outcome: "generation_model_terminated";
+  usageComplete: false;
+  partialTotalTokens: number;
+  evidenceSha256: string;
+  evidenceUrl: string;
+}
+
 export interface RunRecord {
   id: string;
   modelId: string;
@@ -234,6 +242,7 @@ export interface RunRecord {
   overallScore: number;
   generationTimeSeconds: number | null;
   generationTimeRecovery?: GenerationTimeRecovery | null;
+  generationTermination?: GenerationTermination | null;
   scoreBandId: string;
   validationStatus: number;
   validationMessage: string;
