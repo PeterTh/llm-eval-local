@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const basePath = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";
@@ -963,8 +964,10 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   await expect(snapshot).toHaveAttribute("href", /\/tree\/[0-9a-f]{40}$/);
   const snapshotCommit = (await snapshot.getAttribute("href"))!.split("/").at(-1)!;
   await expect(snapshot.locator("code")).toHaveText(snapshotCommit.slice(0, 9));
-  await expect(snapshot.locator("time")).toHaveText("2026-10-24 04:52:44 UTC");
-  await expect(snapshot.locator("time")).toHaveAttribute("datetime", "2026-10-24T04:52:44Z");
+  const catalog = JSON.parse(await readFile(new URL("../../release/catalog.json", import.meta.url), "utf8")) as { generated_at: string };
+  const snapshotTime = new Date(catalog.generated_at).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
+  await expect(snapshot.locator("time")).toHaveText(snapshotTime);
+  await expect(snapshot.locator("time")).toHaveAttribute("datetime", catalog.generated_at);
   await expect(page.locator(".primary-nav")).not.toContainText("Snapshot");
   await goto(page, "/methodology");
   await expect(page.getByRole("heading", { name: "Background & Methodology", exact: true })).toBeVisible();

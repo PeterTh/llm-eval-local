@@ -1,4 +1,4 @@
-# Combined release: 2026-10-24
+# Combined release: 2026-10-25
 
 This is a reproducible view over ten retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
@@ -41,9 +41,15 @@ from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
 - 7,700 programs, 35 model/effort/harness profiles, 220 programs each.
-- 6,785 effectively validated programs and benchmark attempts; 6,380 successful measurements.
-- 1,137 timing-fixed programs (including two failed revalidations), with source history.
+- 6,784 effectively validated programs and benchmark attempts; 6,379 successful measurements.
+- 1,134 timing-fixed programs (including two failed revalidations), with source history.
 - 44 benchmark/backend cells, all with reviewed winners; 94 retained reviews total.
+
+The [seven Sonnet 5 replacements](../batches/20260901-162328/replacements/20261025-isolated-sonnet5/README.md)
+include six successful benchmarks and one retained numerical validation failure.
+Two needed timing-only corrections. All other observations and scores, and all
+cell winners, are unchanged; the [comparison snapshot](../analysis/notes/2026-10-25-sonnet5-replacement-context.json)
+binds the replaced records and their source revisions.
 
 DeepSeek V4.1 Flash High in OpenCode contributes 217 validated and successfully
 benchmarked programs, including 56 timing-only corrections. Three validation

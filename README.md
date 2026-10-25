@@ -23,10 +23,10 @@ SHA-256 digest.
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
 - all 7,700 current validation outcomes and scoped revalidations, including exact execution output;
-- all 6,785 current benchmark outcomes (6,380 successful), measured values and wall times;
+- all 6,784 current benchmark outcomes (6,379 successful), measured values and wall times;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
 - static MPI/hybrid timing audits, all-backend QT boundary audits,
-  1,137 timing-fixed implementations, and scoped rerun comparisons;
+  1,134 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
 - compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 440 GPT-6.1 runs;
 - native OpenCode usage, shared effective configuration and request-context evidence for 660 runs
@@ -77,7 +77,7 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | Campaign | Programs | Fully validated | Successful benchmarks |
 | --- | ---: | ---: | ---: |
 | [Original model set](data/release_summary.yaml) | 4,620 | 3,825 | 3,488 |
-| [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 642 | 627 |
+| [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 641 | 626 |
 | [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 609 | 588 |
 | [Opus 5.5 Medium](batches/20261002-142720/README.md) | 220 | 219 | 219 |
 | [Sol 6.1 Medium and XHigh](batches/20261006-204623/README.md) | 440 | 439 | 439 |

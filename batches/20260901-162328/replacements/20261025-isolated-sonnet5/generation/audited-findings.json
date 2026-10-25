@@ -1,0 +1,369 @@
+[
+  {
+    "batch": "20260901-162328",
+    "id": "black-scholes_claude-sonnet-5-cc-medium_mpi_r2",
+    "category": "prior_generated_source",
+    "reason": "Read a previous GPT-4.1 MPI SpMV CMakeLists and complete implementation as an MPI example.",
+    "transcript_path": "/home/petert/llm_para_experiments/20260901-162328/black-scholes_claude-sonnet-5-cc-medium_mpi_r2/output.txt",
+    "transcript_sha256": "4a92dc718ce62e9644435093356e6605d2841b7ff6c920b3bc1b5919e2b43042",
+    "evidence": [
+      {
+        "call_line": 23,
+        "result_line": 24,
+        "tool": "Read",
+        "status": "completed",
+        "input_sha256": "573599f9544e5bc738eb6c29b9ada32ea6aeaad2b03dd639b2dc897db6221bc0",
+        "output_sha256": "d395deee8ae9f8aa5c053d8ec973ad3ab387bfe45114ce28e0cebb6e1753d704",
+        "output_bytes": 386,
+        "input": "{\"file_path\":\"/tmp/llm-eval-generated-inspect-20260822/20260215-162417/spmv_gpt-4.1_mpi_r4/spmv/CMakeLists.txt\"}",
+        "output_excerpt": "1\tcmake_minimum_required(VERSION 3.10)\n2\tproject(spmv_benchmark)\n3\t\n4\tset(CMAKE_CXX_STANDARD 20)\n5\tset(CMAKE_CXX_STANDARD_REQUIRED ON)\n6\t\n7\tfind_package(MPI REQUIRED)\n8\tadd_executable(spmv spmv.cpp)\n9\t\n10\t# Enable optimizations\n11\ttarget_compile_options(spmv PRIVATE -O3 -march=native -Wall -Wextra)\n12\t\n13\t# Link math and MPI libraries\n14\ttarget_link_libraries(spmv m MPI::MPI_CXX)\n15\t"
+      },
+      {
+        "call_line": 25,
+        "result_line": 26,
+        "tool": "Read",
+        "status": "completed",
+        "input_sha256": "adf8d08e624c06de7d7c39e8c5795fa851e28c6f6e3136d9583d21bd7fd1189c",
+        "output_sha256": "9a9398f11931f812e7e8fca7ec7def0694d49ec290ac3ea5a137a299b0605254",
+        "output_bytes": 12710,
+        "input": "{\"file_path\":\"/tmp/llm-eval-generated-inspect-20260822/20260215-162417/spmv_gpt-4.1_mpi_r4/spmv/spmv.cpp\"}",
+        "output_excerpt": "1\t#include <chrono>\n2\t#include <cmath>\n3\t#include <cstdio>\n4\t#include <cstdlib>\n5\t#include <cstring>\n6\t#include <vector>\n7\t#include <mpi.h>\n8\t\n9\t#include \"../common/results_output.hpp\"\n10\t\n11\tusing index_t = uint32_t;\n12\t\n13\t// Constants\n14\tconstexpr double MAX_RELATIVE_ERROR = 0.02;\n15\t\n16\t// ****************************************************************************\n17\t// Function: fill\n18\t//\n19\t// Purpose:\n20\t//   Initialize array with random values\n21\t//\n22\t// Arguments:\n23\t//   A: pointer to the array to initialize\n24\t//   n: number of elements in the array\n25\t//   maxVal: specifies range of random values [0, maxVal]\n26\t//\n27\t// ****************************************************************************\n28\tvoid fill(double* A, const index_t n, const double maxVal) {\n29\t    for (index_t i = 0; i < n; ++i) {\n30\t        A[i] = maxVal * (rand() / (static_cast<double>(RAND_MAX) + 1.0));\n31\t    }\n32\t}\n33\t\n34\t// ****************************************************************************\n35\t// Function: initRandomMatrix\n36\t//\n37\t// Purpose:\n38\t//   Assigns random positions to a given number of elements in a square\n39\t//   matrix. The function encodes these positions in compressed sparse\n40\t//   row (CSR) format.\n41\t//\n42\t// Arguments:\n43\t//   cols:          array for column indexes of elements (size should be = n)\n44\t//   rowDelimiters: array of size dim+1 holding indices to rows;\n45\t//                  last element is the index one past the last element\n46\t//   n:             number of nonzero elements\n47\t//   dim:           number of rows/columns in the matrix\n48\t//\n49\t// ****************************************************************************\n50\tvoid initRandomMatrix(index_t* cols, index_t* rowDelimiters, const index_t n, const index_t dim) {\n51\t    index_t nnzAssigned = 0;\n52\t\n53\t    // Figure out the probability that a nonzero should be assigned\n54\t    double prob = static_cast<double>(n) / (static_cast<double>(dim) * static_cast<double>(dim));\n55\t\n56\t    // Seed random number generator\n57\t    srand(8675309);\n58\t\n59\t    // Randomly decide whether entry i,j gets a value, but ensure n values are assigned\n60\t    bool fillRemaining = false;\n61\t    for (index_t i = 0; i < dim; ++i) {\n62\t        rowDelimiters[i] = nnzAssigned;\n63\t        for (index_t j = 0; j < dim; ++j) {\n64\t            index_t numEntriesLeft = (dim * dim) - ((i * dim) + j);\n65\t         ",
+        "output_tail": " double avgTime = duration.count() / static_cast<double>(iterations);\n276\t        printf(\"Average time per iteration: %.3f ms\\n\", avgTime);\n277\t        printf(\"Performance: %.3f GFLOPS\\n\", gflops);\n278\t        // Print results for external validation\n279\t        if (printResults) {\n280\t            print_results(h_out, \"OutputVector\");\n281\t        }\n282\t        // Validation\n283\t        if (validate) {\n284\t            printf(\"Validating result...\\n\");\n285\t            const bool valid = verifyResults(h_reference.data(), h_out.data(), numRows);\n286\t            if (valid) {\n287\t                printf(\"Validation: PASSED\\n\");\n288\t            } else {\n289\t                printf(\"Validation: FAILED\\n\");\n290\t            }\n291\t        }\n292\t    }\n293\t    MPI_Finalize();\n294\t    return 0;\n295\t}\n296\t"
+      }
+    ],
+    "recommendation": "replace_this_generation_observation_only_then_validate_timing_review_and_benchmark",
+    "intent": "No inference about deliberate exploitation; finding concerns exposure/independence.",
+    "release_impact": {
+      "validation_status": "5",
+      "benchmark_success": "true",
+      "benchmark_median_time": "9.813",
+      "timing_fixed": "true",
+      "source_batch": "20260901-162328",
+      "cell_rank": 57,
+      "overall_cell_winner": "black-scholes_gpt-6.1-sol-xhigh_mpi_r5",
+      "own_model_cell_rank": 1,
+      "own_model_cell_best": "black-scholes_claude-sonnet-5-cc-medium_mpi_r2",
+      "overall_winner_affected": false
+    }
+  },
+  {
+    "batch": "20260901-162328",
+    "id": "floydwarshall_claude-sonnet-5-cc-medium_hybrid_r5",
+    "category": "prior_benchmark_commands_and_results",
+    "reason": "Read prior GPT-5.2, GPT-5.2-Codex and Opus 4.6 benchmark command lines, sizes, resource allocations and timing/results.",
+    "transcript_path": "/home/petert/llm_para_experiments/20260901-162328/floydwarshall_claude-sonnet-5-cc-medium_hybrid_r5/output.txt",
+    "transcript_sha256": "eb869e5bd9df5abd019382a5d0f12030c0a9e75b65227dea2004b4194a809e83",
+    "evidence": [
+      {
+        "call_line": 126,
+        "result_line": 127,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "5a95bfb0487cd296b4bfd8d34ddeb36f25a8d6b9108d30600cde8411231a792c",
+        "output_sha256": "e3a0d3eead7fc7da23811ccc28784afb2a2feafa1d6837d4939732cab89d62ab",
+        "output_bytes": 557,
+        "input": "{\"command\":\"for f in /tmp/llm-eval-bench-results-inspect-20260822/floydwarshall_gpt-5.2_hybrid_r3/benchmark_0_command.log; do echo \\\"== $f ==\\\"; cat \\\"$f\\\"; done\\necho \\\"--- stdout ---\\\"\\ncat /tmp/llm-eval-bench-results-inspect-20260822/floydwarshall_gpt-5.2_hybrid_r3/benchmark_0_stdout.log\\necho \\\"--- exitcode ---\\\"\\ncat /tmp/llm-eval-bench-results-inspect-20260822/floydwarshall_gpt-5.2_hybrid_r3/benchmark_0_exitcode.log\\n\",\"description\":\"Check command used for benchmark run and its output\"}",
+        "output_excerpt": "== /tmp/llm-eval-bench-results-inspect-20260822/floydwarshall_gpt-5.2_hybrid_r3/benchmark_0_command.log ==\nsrun --jobid=35222503 --nodes=4 --ntasks-per-node=4 --cpus-per-task=8 --gpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm-eval/validation_results/floydwarshall_gpt-5.2_hybrid_r3/floydwarshall  -n 10240--- stdout ---\nFloyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 10240\nValidation: disabled\nMPI ranks: 16\nInitializing graph...\nComputing shortest paths...\nComputation time: 1599 ms\nPerformance: 671.325 GOPS\n--- exitcode ---\n0"
+      },
+      {
+        "call_line": 175,
+        "result_line": 176,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "d85322e6846018af0184d4b4646cb4ca5f3866202be46a54583b0ab592f24ba2",
+        "output_sha256": "767b89829256692b6690456fcbd93273d40d3df8eb59f0d91a784019698fc844",
+        "output_bytes": 1432,
+        "input": "{\"command\":\"for d in floydwarshall_gpt-5.2-codex_hybrid_r2 floydwarshall_claude-opus-4.6_cuda_r2 floydwarshall_gpt-5.2_mpi_r1; do\\necho \\\"=== $d ===\\\"\\ncat \\\"/tmp/llm-eval-bench-results-inspect-20260822/$d/benchmark_0_command.log\\\" 2>/dev/null\\necho\\ncat \\\"/tmp/llm-eval-bench-results-inspect-20260822/$d/benchmark_0_stdout.log\\\" 2>/dev/null\\necho\\ndone\",\"description\":\"Check other hybrid/mpi/cuda reference outputs for format style\"}",
+        "output_excerpt": "=== floydwarshall_gpt-5.2-codex_hybrid_r2 ===\nsrun --jobid=34728434 --nodes=4 --ntasks-per-node=4 --cpus-per-task=8 --gpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/floydwarshall_gpt-5.2-codex_hybrid_r2/floydwarshall  -n 10240\nFloyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 10240\nMPI ranks: 16\nOpenMP max threads: 8\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 1738.850 ms\nPerformance: 617.501 GOPS\n\n=== floydwarshall_claude-opus-4.6_cuda_r2 ===\nsrun --jobid=34704943 --ntasks=1 --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --gres=gpu:4 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/floydwarshall_claude-opus-4.6_cuda_r2/floydwarshall  -n 8192\nFloyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8192\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 677 ms\nPerformance: 812.047 GOPS\n\n=== floydwarshall_gpt-5.2_mpi_r1 ===\nsrun --jobid=34716983 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/floydwarshall_gpt-5.2_mpi_r1/floydwarshall  -n 8192\nFloyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8192\nMPI ranks: 128\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 2575.777 ms\nPerformance: 213.433 GOPS"
+      }
+    ],
+    "recommendation": "replace_this_generation_observation_only_then_validate_timing_review_and_benchmark",
+    "intent": "No inference about deliberate exploitation; finding concerns exposure/independence.",
+    "release_impact": {
+      "validation_status": "5",
+      "benchmark_success": "true",
+      "benchmark_median_time": "3522.0",
+      "timing_fixed": "false",
+      "source_batch": "20260901-162328",
+      "cell_rank": 114,
+      "overall_cell_winner": "floydwarshall_claude-opus-5.5-cc-medium_hybrid_r3",
+      "own_model_cell_rank": 4,
+      "own_model_cell_best": "floydwarshall_claude-sonnet-5-cc-medium_hybrid_r3",
+      "overall_winner_affected": false
+    }
+  },
+  {
+    "batch": "20260901-162328",
+    "id": "nbody_claude-sonnet-5-cc-medium_mpi_r3",
+    "category": "prior_generated_build_configuration",
+    "reason": "Read a previous Opus 4.6 MPI Roomsim CMakeLists, including generated MPI configuration.",
+    "transcript_path": "/home/petert/llm_para_experiments/20260901-162328/nbody_claude-sonnet-5-cc-medium_mpi_r3/output.txt",
+    "transcript_sha256": "72559d874bbf048a2a02a03c1b9916ce0fb1a69cfbb15dcb6a0816896e4fb134",
+    "evidence": [
+      {
+        "call_line": 20,
+        "result_line": 21,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "475ee8ef59ce7e4eda310f8f4b93be994f9b53421479c715010cbc6d35337a46",
+        "output_sha256": "14afdf3b9fd90237de64c3ae841ecf72dee27b428596f0a239226263bdc41ca4",
+        "output_bytes": 387,
+        "input": "{\"command\":\"cat /tmp/llm-eval-generated-inspect-20260822/20260215-162417/roomsim_claude-opus-4.6_mpi_r4/*/CMakeLists.txt 2>/dev/null | head -50\"}",
+        "output_excerpt": "cmake_minimum_required(VERSION 3.10)\nproject(roomsim_benchmark)\n\nset(CMAKE_CXX_STANDARD 20)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\nfind_package(MPI REQUIRED)\n\nadd_executable(roomsim roomsim.cpp)\n\n# Enable optimizations and warnings\ntarget_compile_options(roomsim PRIVATE -O3 -march=native -Wall -Wextra -Wpedantic)\n\n# Link math library and MPI\ntarget_link_libraries(roomsim m MPI::MPI_CXX)"
+      }
+    ],
+    "recommendation": "replace_this_generation_observation_only_then_validate_timing_review_and_benchmark",
+    "intent": "No inference about deliberate exploitation; finding concerns exposure/independence.",
+    "release_impact": {
+      "validation_status": "5",
+      "benchmark_success": "true",
+      "benchmark_median_time": "9691.0",
+      "timing_fixed": "true",
+      "source_batch": "20260901-162328",
+      "cell_rank": 89,
+      "overall_cell_winner": "nbody_claude-opus-5-cc-medium_mpi_r1",
+      "own_model_cell_rank": 2,
+      "own_model_cell_best": "nbody_claude-sonnet-5-cc-medium_mpi_r1",
+      "overall_winner_affected": false
+    }
+  },
+  {
+    "batch": "20260901-162328",
+    "id": "roomsim_claude-sonnet-5-cc-medium_hybrid_r3",
+    "category": "prior_benchmark_commands_and_results",
+    "reason": "Read Opus 4.6 hybrid benchmark commands and stdout, including timings and result hash.",
+    "transcript_path": "/home/petert/llm_para_experiments/20260901-162328/roomsim_claude-sonnet-5-cc-medium_hybrid_r3/output.txt",
+    "transcript_sha256": "d8e114c4b1047f5382c1a270cd17a227fb4f14e2645b2b2ca7390cba9c73975c",
+    "evidence": [
+      {
+        "call_line": 99,
+        "result_line": 100,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "23db86d32bfd85046f5a5be94fc82ae0e8eb27d25eab6b6731a41e13262e2481",
+        "output_sha256": "93a1c942b9af20e738ab7e8dae45f24389c956465976eb78be9b581a498ca582",
+        "output_bytes": 1595,
+        "input": "{\"command\":\"for f in /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_*_command.log; do echo \\\"== $f ==\\\"; cat \\\"$f\\\"; done\"}",
+        "output_excerpt": "== /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_0_command.log ==\nsrun --jobid=37333146 --nodes=4 --ntasks-per-node=4 --cpus-per-task=8 --gpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm-eval/validation_results/roomsim_claude-opus-4.6_hybrid_r1/roomsim -n 5120 -t 2000== /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_1_command.log ==\nsrun --jobid=37333146 --nodes=4 --ntasks-per-node=4 --cpus-per-task=8 --gpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm-eval/validation_results/roomsim_claude-opus-4.6_hybrid_r1/roomsim -n 5120 -t 2000== /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_2_command.log ==\nsrun --jobid=37333146 --nodes=4 --ntasks-per-node=4 --cpus-per-task=8 --gpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm-eval/validation_results/roomsim_claude-opus-4.6_hybrid_r1/roomsim -n 5120 -t 2000== /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_3_command.log ==\nsrun --jobid=37333146 --nodes=4 --ntasks-per-node=4 --cpus-per-task=8 --gpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm-eval/validation_results/roomsim_claude-opus-4.6_hybrid_r1/roomsim -n 5120 -t 2000== /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_4_command.log ==\nsrun --jobid=37333146 --nodes=4 --ntasks-per-node=4 --cpus-per-task=8 --gpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm-eval/validation_results/roomsim_claude-opus-4.6_hybrid_r1/roomsim -n 5120 -t 2000"
+      },
+      {
+        "call_line": 106,
+        "result_line": 107,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "839da473800d6cb7b911f653251936213260a193d8341a75c2ea806affdc3844",
+        "output_sha256": "8155aad0b0e9dacfa665b84741e6bc60421fdd23a2aa620f26dacdcc262ecc57",
+        "output_bytes": 1157,
+        "input": "{\"command\":\"tail -40 /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_0_stdout.log; echo \\\"EXIT:\\\"; cat /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_hybrid_r1/benchmark_0_exitcode.log\"}",
+        "output_excerpt": "Distance computation time: 136 ms\n\nTotal computation time: 8006 ms\n\nPerformance:\n  Triangles: 5120\n  Timesteps: 2000\n  Form factor computations: 2.62e+07\n  Simulation operations: 5.24e+10\n  Distance computations: 2.05e+10\n  Total time per triangle: 1.5637 ms\n  Memory usage: 278.12 MB\n  Result hash: 8E1D65035206F000\n\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nGenerated icosphere mesh with 5120 triangles\nBuilding octree...\nEXIT:\n0"
+      }
+    ],
+    "recommendation": "replace_this_generation_observation_only_then_validate_timing_review_and_benchmark",
+    "intent": "No inference about deliberate exploitation; finding concerns exposure/independence.",
+    "release_impact": {
+      "validation_status": "5",
+      "benchmark_success": "true",
+      "benchmark_median_time": "5198.0",
+      "timing_fixed": "true",
+      "source_batch": "20260901-162328",
+      "cell_rank": 41,
+      "overall_cell_winner": "roomsim_gpt-5.6-sol-xhigh_hybrid_r3",
+      "own_model_cell_rank": 3,
+      "own_model_cell_best": "roomsim_claude-sonnet-5-cc-medium_hybrid_r2",
+      "overall_winner_affected": false
+    }
+  },
+  {
+    "batch": "20260901-162328",
+    "id": "roomsim_claude-sonnet-5-cc-medium_mpi_r3",
+    "category": "prior_benchmark_commands_and_results",
+    "reason": "Read prior MPI benchmark commands, result hashes, timings and aggregate benchmark/scoring files.",
+    "transcript_path": "/home/petert/llm_para_experiments/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3/output.txt",
+    "transcript_sha256": "194964380bf554534426aec2b18c1aad998b16da25f3c9724ae14b8326591775",
+    "evidence": [
+      {
+        "call_line": 55,
+        "result_line": 56,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "9dff6610b93451357bab8b63e88b0607f8c10d11cca084aad7cbedc6b292e157",
+        "output_sha256": "7c86eb36e0e5e586bc2a010638d10b4a12c00b94d279a6113619f842185fe00e",
+        "output_bytes": 1310,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_mpi_r1/; for f in benchmark_*_command.log; do echo \\\"== $f ==\\\"; cat \\\"$f\\\"; done\"}",
+        "output_excerpt": "== benchmark_0_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_claude-opus-4.6_mpi_r1/roomsim  -n 5120 -t 1000== benchmark_1_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_claude-opus-4.6_mpi_r1/roomsim  -n 5120 -t 1000== benchmark_2_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_claude-opus-4.6_mpi_r1/roomsim  -n 5120 -t 1000== benchmark_3_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_claude-opus-4.6_mpi_r1/roomsim  -n 5120 -t 1000== benchmark_4_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_claude-opus-4.6_mpi_r1/roomsim  -n 5120 -t 1000\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3"
+      },
+      {
+        "call_line": 66,
+        "result_line": 67,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "112a3e6cb04b5d0ecae0215ca290f78c0c852ebfb64d6a288589c7f028162ec5",
+        "output_sha256": "228d6499f7fed40e3ecda35b8e99618cf02b439e3c72d37728bb48a8dc10631f",
+        "output_bytes": 247,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_mpi_r1/; grep -E \\\"hash|Result hash|Total time|Simulation time|Precomputation\\\" -i benchmark_0_stdout.log | head -30; echo ---STDERR---; cat benchmark_0_stderr.log | head -30; echo ---EXIT---; cat benchmark_0_exitcode.log\"}",
+        "output_excerpt": "Precomputation time: 5306 ms\nSimulation time: 529 ms\n  Total time per triangle: 1.1914 ms\n  Result hash: 8C31AC11AB9CF000\n---STDERR---\n---EXIT---\n0\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3"
+      },
+      {
+        "call_line": 71,
+        "result_line": 72,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "108136b52eca8d0dfd3872500590539f6c9a32587b393329d32089ebc59ba56f",
+        "output_sha256": "7c6781a43a2397b9462a0788dd2ceb36bd48ca046cbc948b10d8e798c70b4d06",
+        "output_bytes": 259,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/roomsim_claude-opus-4.6_mpi_r1/; for i in 0 1 2 3 4; do grep \\\"Result hash\\\" benchmark_${i}_stdout.log; done\"}",
+        "output_excerpt": "  Result hash: 8C31AC11AB9CF000\n  Result hash: 8C31AC11AB9CF000\n  Result hash: 8C31AC11AB9CF000\n  Result hash: 8C31AC11AB9CF000\n  Result hash: 8C31AC11AB9CF000\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3"
+      },
+      {
+        "call_line": 77,
+        "result_line": 78,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "267bbb5283388360c6a9dcd7ad6221a5c4af9a42fc5244755b9ab43bbab9df75",
+        "output_sha256": "8f5a2d6a9247d447dd9bf3616cf78a9ae848e1d8b3a0694ecd647d87792f6670",
+        "output_bytes": 285,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/; for d in roomsim_*_mpi_r1; do h=$(grep \\\"Result hash\\\" \\\"$d/benchmark_0_stdout.log\\\" 2>/dev/null); echo \\\"$d: $h\\\"; done\"}",
+        "output_excerpt": "roomsim_claude-opus-4.6_mpi_r1:   Result hash: 8C31AC11AB9CF000\nroomsim_claude-sonnet-4.5_mpi_r1:   Result hash: 47ADABDED544F000\nroomsim_gpt-5.2_mpi_r1:   Result hash: 8C31AC11AB9CF000\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3"
+      },
+      {
+        "call_line": 86,
+        "result_line": 87,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "6519d88c61976aa0e7864bac44dc182aa3975dfbd358e6bbf529ab80cfb740ba",
+        "output_sha256": "851106759ed0c812e01fd74253ed52917c152ad3c2456e01493aa936fdc76d07",
+        "output_bytes": 2100,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/; wc -l benchmark_results.yaml bench_scoring.csv; head -100 bench_scoring.csv\"}",
+        "output_excerpt": " 1326 benchmark_results.yaml\n   45 bench_scoring.csv\n 1371 total\nbench        , type  , top  , great, good\r\nblack-scholes, omp   , 240  , 300  , 400\r\nblack-scholes, cuda  , 6    , 10   , 1000\r\nblack-scholes, mpi   , 70   , 100  , 1000\r\nblack-scholes, hybrid, 2    , 10   , 1000\r\ncahn-hilliard, omp   , 4200 , 4600 , 4800\r\ncahn-hilliard, cuda  , 1200 , 1500 , 1700\r\ncahn-hilliard, mpi   , 8100 , 8500 , 9000\r\ncahn-hilliard, hybrid, 1500 , 2000 , 2300\r\ncholesky     , omp   , 100  , 200  , 1000\r\ncholesky     , cuda  , 100  , 210  , 1000\r\ncholesky     , mpi   , 300  , 400  , 1000\r\ncholesky     , hybrid, 200  , 500  , 2000\r\nfloydwarshall, omp   , 2650 , 3000 , 3400\r\nfloydwarshall, cuda  , 400  , 1000 , 3000\r\nfloydwarshall, mpi   , 2700 , 3000 , 6000\r\nfloydwarshall, hybrid, 1000 , 1500 , 2000\r\nmatmul       , omp   , 350  , 1000 , 2000\r\nmatmul       , cuda  , 350  , 600  , 700\r\nmatmul       , mpi   , 1000 , 3000 , 5000\r\nmatmul       , hybrid, 100  , 400  , 1000\r\nnbody        , omp   , 4300 , 4450 , 4550\r\nnbody        , cuda  , 1800 , 2500 , 2800\r\nnbody        , mpi   , 4500 , 5000 , 7000\r\nnbody        , hybrid, 1800 , 2000 , 3000\r\nqtclustering , omp   , 300  , 1000 , 3000\r\nqtclustering , cuda  , 500  , 1000 , 6000\r\nqtclustering , mpi   , 1000 , 5000 , 10000\r\nqtclustering , hybrid, 3000 , 5000 , 18000\r\nroomsim      , omp   , 10800, 11000, 13000\r\nroomsim      , cuda  , 5000 , 12000, 20000\r\nroomsim      , mpi   , 3500 , 4300 , 5000\r\nroomsim      , hybrid, 4000 , 8500 , 10000\r\nspmv         , omp   , 670  , 680  , 690\r\nspmv         , cuda  , 2900 , 6000 , 6200\r\nspmv         , mpi   , 550  , 590  , 1000\r\nspmv         , hybrid, 400  , 1000 , 10000\r\nstencil3d    , omp   , 4320 , 4400 , 4700\r\nstencil3d    , cuda  , 750  , 820  , 910\r\nstencil3d    , mpi   , 3000 , 4000 , 5000\r\nstencil3d    , hybrid, 900  , 1300 , 1500\r\nunstructured , omp   , 3110 , 3125 , 3130\r\nunstructured , cuda  , 300  , 1000 , 2000\r\nunstructured , mpi   , 300  , 1070 , 2000\r\nunstructured , hybrid, 50   , 100  , 1000\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3"
+      },
+      {
+        "call_line": 93,
+        "result_line": 94,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "625a9e06b75b764fee3fff855966ac6bf3714372f77d59d54a41d562c15461c6",
+        "output_sha256": "59e5beb9f4223d80ae2d5a8b9ceb24ef28c09a99fa454bb5b6ef2c03fca75874",
+        "output_bytes": 837,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/; grep -n \\\"roomsim\\\" benchmark_results.yaml | head -20\"}",
+        "output_excerpt": "167:roomsim_gpt-4.1_omp_r4: false\n168:roomsim_gpt-5.2-codex_omp_r3: true\n169:roomsim_gpt-5.2_omp_r2: true\n170:roomsim_gpt-5.2_omp_r3: true\n385:roomsim_claude-opus-4.6_cuda_r3: true\n386:roomsim_gpt-4.1_cuda_r5: false\n387:roomsim_gpt-5-mini_cuda_r4: false\n388:roomsim_gpt-5-mini_cuda_r5: false\n389:roomsim_gpt-5.2-codex_cuda_r1: false\n390:roomsim_gpt-5.2-codex_cuda_r2: false\n391:roomsim_gpt-5.2-codex_cuda_r3: false\n392:roomsim_gpt-5.2_cuda_r2: false\n393:roomsim_gpt-5.2_cuda_r3: false\n612:roomsim_claude-opus-4.6_mpi_r1: true\n613:roomsim_gpt-4.1_mpi_r2: false\n614:roomsim_gpt-4.1_mpi_r5: false\n615:roomsim_gpt-5.2_mpi_r1: true\n895:roomsim_gpt-5.2_omp_r5: true\n1017:roomsim_gpt-5.2-codex_cuda_r4: false\n1018:roomsim_gpt-5.2_cuda_r4: false\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3"
+      },
+      {
+        "call_line": 98,
+        "result_line": 99,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "09a938afd7f1838c8efdd38c62f0e1d9614e6a8b441f5bca20667f04f5c2f0e3",
+        "output_sha256": "3c4b621861770371c515cc24460bf39ec466f28d3ac97c9a1163aee880465f59",
+        "output_bytes": 842,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/; grep -n \\\"roomsim.*mpi\\\" benchmark_results.yaml\"}",
+        "output_excerpt": "612:roomsim_claude-opus-4.6_mpi_r1: true\n613:roomsim_gpt-4.1_mpi_r2: false\n614:roomsim_gpt-4.1_mpi_r5: false\n615:roomsim_gpt-5.2_mpi_r1: true\n1137:roomsim_claude-opus-4.6_mpi_r5: true\n1272:roomsim_claude-opus-4.6_mpi_r3: true\n1301:roomsim_claude-haiku-4.5_mpi_r2: true\n1302:roomsim_claude-haiku-4.5_mpi_r3: true\n1303:roomsim_claude-opus-4.6_mpi_r2: true\n1304:roomsim_claude-opus-4.6_mpi_r4: true\n1305:roomsim_claude-sonnet-4.5_mpi_r1: true\n1306:roomsim_claude-sonnet-4.5_mpi_r2: true\n1307:roomsim_gpt-5-mini_mpi_r2: true\n1308:roomsim_gpt-5.2-codex_mpi_r3: true\n1309:roomsim_gpt-5.2-codex_mpi_r4: true\n1310:roomsim_gpt-5.2-codex_mpi_r5: true\n1311:roomsim_gpt-5.2_mpi_r3: true\n1312:roomsim_gpt-5.2_mpi_r4: true\n1313:roomsim_gpt-5.2_mpi_r5: true\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r3"
+      }
+    ],
+    "recommendation": "replace_this_generation_observation_only_then_validate_timing_review_and_benchmark",
+    "intent": "No inference about deliberate exploitation; finding concerns exposure/independence.",
+    "release_impact": {
+      "validation_status": "5",
+      "benchmark_success": "true",
+      "benchmark_median_time": "4558.0",
+      "timing_fixed": "true",
+      "source_batch": "20260901-162328",
+      "cell_rank": 8,
+      "overall_cell_winner": "roomsim_claude-opus-5.5-cc-medium_mpi_r1",
+      "own_model_cell_rank": 2,
+      "own_model_cell_best": "roomsim_claude-sonnet-5-cc-medium_mpi_r5",
+      "overall_winner_affected": false
+    }
+  },
+  {
+    "batch": "20260901-162328",
+    "id": "roomsim_claude-sonnet-5-cc-medium_mpi_r5",
+    "category": "prior_benchmark_commands_and_results",
+    "reason": "Read prior GPT-5.2 and other MPI benchmark commands, resource counts and results.",
+    "transcript_path": "/home/petert/llm_para_experiments/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r5/output.txt",
+    "transcript_sha256": "f4c5f378364ea8cb82ed31c292d957825398f1edf86e18cc086bd8076ddb6d1e",
+    "evidence": [
+      {
+        "call_line": 100,
+        "result_line": 101,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "18b78d09a9afa628f1cf7efc4bd964dcc04ddf3b6a175e84d7d40762cff52fc4",
+        "output_sha256": "26f439cd08c6cc9fec4be31a087af1135f150ac20cd56f22464f029f406548eb",
+        "output_bytes": 1771,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/roomsim_gpt-5.2_mpi_r1; cat benchmark_0_command.log; echo ---; cat benchmark_1_command.log; echo ---; cat benchmark_0_stdout.log | head -60\"}",
+        "output_excerpt": "srun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_gpt-5.2_mpi_r1/roomsim  -n 5120 -t 1000---\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_gpt-5.2_mpi_r1/roomsim  -n 5120 -t 1000---\nRoom Response Simulation Benchmark\n===================================\nTarget triangles: 5120 (using 4 subdivisions)\nTimesteps: 1000\nSource triangle: 0\nReflectivity: 0.80\nValidation: disabled\n\nGenerated icosphere mesh with 5120 triangles\nMPI ranks: 128\nBuilding octree...\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\nPrecomputation time: 2799 ms\n\nRunning wave propagation simulation...\n  Timestep 10/1000\n  Timestep 20/1000\n  Timestep 30/1000\n  Timestep 40/1000\n  Timestep 50/1000\n  Timestep 60/1000\n  Timestep 70/1000\n  Timestep 80/1000\n  Timestep 90/1000\n  Timestep 100/1000\n  Timestep 110/1000\n  Timestep 120/1000\n  Timestep 130/1000\n  Timestep 140/1000\n  Timestep 150/1000\n  Timestep 160/1000\n  Timestep 170/1000\n  Timestep 180/1000\n  Timestep 190/1000\n  Timestep 200/1000\n  Timestep 210/1000\n  Timestep 220/1000\n  Timestep 230/1000\n  Timestep 240/1000\n  Timestep 250/1000\n  Timestep 260/1000\n  Timestep 270/1000\n  Timestep 280/1000\n  Timestep 290/1000\n  Timestep 300/1000\n  Timestep 310/1000\n  Timestep 320/1000\n  Timestep 330/1000\n  Timestep 340/1000\n  Timestep 350/1000\n  Timestep 360/1000\n  Timestep 370/1000\n  Timestep 380/1000\n  Timestep 390/1000\n  Timestep 400/1000\n  Timestep 410/1000\n  Timestep 420/1000\n  Timestep 430/1000\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r5"
+      },
+      {
+        "call_line": 105,
+        "result_line": 106,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "33c42ab08c5d4bbf1a0dd7f2925f32c102f374c4329c9933f879138716b3a1da",
+        "output_sha256": "3e28abcb23a60a93f23ea3ba84f3c61a5f76205daba964c38b4da9fab145aa88",
+        "output_bytes": 1865,
+        "input": "{\"command\":\"cd /tmp/llm-eval-bench-results-inspect-20260822/roomsim_gpt-5.2_mpi_r1; for f in benchmark_*_command.log; do echo \\\"== $f ==\\\"; cat \\\"$f\\\"; echo; done; echo; for f in benchmark_*_stdout.log; do echo \\\"== $f hash ==\\\"; grep -E \\\"hash|MPI ranks|Total time\\\" -i \\\"$f\\\" | tail -5; done\"}",
+        "output_excerpt": "== benchmark_0_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_gpt-5.2_mpi_r1/roomsim  -n 5120 -t 1000\n== benchmark_1_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_gpt-5.2_mpi_r1/roomsim  -n 5120 -t 1000\n== benchmark_2_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_gpt-5.2_mpi_r1/roomsim  -n 5120 -t 1000\n== benchmark_3_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_gpt-5.2_mpi_r1/roomsim  -n 5120 -t 1000\n== benchmark_4_command.log ==\nsrun --jobid=34718408 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/roomsim_gpt-5.2_mpi_r1/roomsim  -n 5120 -t 1000\n\n== benchmark_0_stdout.log hash ==\nMPI ranks: 128\n  Total time per triangle: 0.6965 ms\n  Result hash: 8C31AC11AB9CF000\n== benchmark_1_stdout.log hash ==\nMPI ranks: 128\n  Total time per triangle: 0.6975 ms\n  Result hash: 8C31AC11AB9CF000\n== benchmark_2_stdout.log hash ==\nMPI ranks: 128\n  Total time per triangle: 0.6969 ms\n  Result hash: 8C31AC11AB9CF000\n== benchmark_3_stdout.log hash ==\nMPI ranks: 128\n  Total time per triangle: 0.7049 ms\n  Result hash: 8C31AC11AB9CF000\n== benchmark_4_stdout.log hash ==\nMPI ranks: 128\n  Total time per triangle: 0.6957 ms\n  Result hash: 8C31AC11AB9CF000\nShell cwd was reset to /home/llmtest/evals/20260901-162328/roomsim_claude-sonnet-5-cc-medium_mpi_r5"
+      },
+      {
+        "call_line": 115,
+        "result_line": 116,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "e66079069728d0dcf7723510fb26f00f4919df4770cb7a94ff9ba193a3ef2953",
+        "output_sha256": "12ff3aae8111ad84fe79f4765014812d66757716e22bcc2d43b48936ecc67004",
+        "output_bytes": 1670,
+        "input": "{\"command\":\"for d in /tmp/llm-eval-bench-results-inspect-20260822/roomsim_*_mpi_r*; do\\n  cmd=$(cat \\\"$d/benchmark_0_command.log\\\" 2>/dev/null)\\n  hash=$(grep \\\"Result hash\\\" \\\"$d/benchmark_0_stdout.log\\\" 2>/dev/null | tail -1)\\n  ntasks=$(echo \\\"$cmd\\\" | grep -oE 'ntasks=[0-9]+')\\n  nt=$(echo \\\"$cmd\\\" | grep -oE '\\\\-n [0-9]+')\\n  ts=$(echo \\\"$cmd\\\" | grep -oE '\\\\-t [0-9]+')\\n  echo \\\"$(basename $d) | $ntasks $nt $ts | $hash\\\"\\ndone\"}",
+        "output_excerpt": "roomsim_claude-haiku-4.5_mpi_r2 | ntasks=128 -n 5120 -t 1000 |   Result hash: 6E7B0D4F779AF000\nroomsim_claude-haiku-4.5_mpi_r3 | ntasks=128 -n 5120 -t 1000 |   Result hash: 6E7B0D4F779AF000\nroomsim_claude-opus-4.6_mpi_r1 | ntasks=128 -n 5120 -t 1000 |   Result hash: 8C31AC11AB9CF000\nroomsim_claude-opus-4.6_mpi_r2 | ntasks=128 -n 5120 -t 1000 |   Result hash: 47ADABDED544F000\nroomsim_claude-opus-4.6_mpi_r3 | ntasks=128 -n 5120 -t 1000 |   Result hash: 8C31AC11AB9CF000\nroomsim_claude-opus-4.6_mpi_r4 | ntasks=128 -n 5120 -t 1000 |   Result hash: 37899E14DF50F000\nroomsim_claude-opus-4.6_mpi_r5 | ntasks=128 -n 5120 -t 1000 |   Result hash: 8C31AC11AB9CF000\nroomsim_claude-sonnet-4.5_mpi_r1 | ntasks=128 -n 5120 -t 1000 |   Result hash: 47ADABDED544F000\nroomsim_claude-sonnet-4.5_mpi_r2 | ntasks=128 -n 5120 -t 1000 |   Result hash: 90D16C782E04F000\nroomsim_gpt-4.1_mpi_r2 | ntasks=128 -n 5120 -t 1000 | \nroomsim_gpt-4.1_mpi_r5 | ntasks=128 -n 5120 -t 1000 | \nroomsim_gpt-5.2-codex_mpi_r3 | ntasks=128 -n 5120 -t 1000 |   Result hash: CD6C88DD5412F000\nroomsim_gpt-5.2-codex_mpi_r4 | ntasks=128 -n 5120 -t 1000 |   Result hash: 404C2C970A8EF000\nroomsim_gpt-5.2-codex_mpi_r5 | ntasks=128 -n 5120 -t 1000 |   Result hash: 52359603853CF000\nroomsim_gpt-5.2_mpi_r1 | ntasks=128 -n 5120 -t 1000 |   Result hash: 8C31AC11AB9CF000\nroomsim_gpt-5.2_mpi_r3 | ntasks=128 -n 5120 -t 1000 |   Result hash: CD6C88DD5412F000\nroomsim_gpt-5.2_mpi_r4 | ntasks=128 -n 5120 -t 1000 |   Result hash: E0E29EE355EEF000\nroomsim_gpt-5.2_mpi_r5 | ntasks=128 -n 5120 -t 1000 |   Result hash: CD6C88DD5412F000\nroomsim_gpt-5-mini_mpi_r2 | ntasks=128 -n 5120 -t 1000 |   Result hash: BE8A9350ADA6F000"
+      }
+    ],
+    "recommendation": "replace_this_generation_observation_only_then_validate_timing_review_and_benchmark",
+    "intent": "No inference about deliberate exploitation; finding concerns exposure/independence.",
+    "release_impact": {
+      "validation_status": "5",
+      "benchmark_success": "true",
+      "benchmark_median_time": "4474.0",
+      "timing_fixed": "true",
+      "source_batch": "20260901-162328",
+      "cell_rank": 5,
+      "overall_cell_winner": "roomsim_claude-opus-5.5-cc-medium_mpi_r1",
+      "own_model_cell_rank": 1,
+      "own_model_cell_best": "roomsim_claude-sonnet-5-cc-medium_mpi_r5",
+      "overall_winner_affected": false
+    }
+  },
+  {
+    "batch": "20260901-162328",
+    "id": "unstructured_claude-sonnet-5-cc-medium_mpi_r3",
+    "category": "prior_benchmark_command",
+    "reason": "Read a previous GPT-4.1 MPI benchmark command, revealing resource allocation and benchmark size.",
+    "transcript_path": "/home/petert/llm_para_experiments/20260901-162328/unstructured_claude-sonnet-5-cc-medium_mpi_r3/output.txt",
+    "transcript_sha256": "a20f844d79382f05c52b6ee2c4d1519a37bc07a2a89cab6ab3053199d9d46290",
+    "evidence": [
+      {
+        "call_line": 30,
+        "result_line": 31,
+        "tool": "Bash",
+        "status": "completed",
+        "input_sha256": "f21cb91cf4669ffa836083c0d88af940d63e47bf118d4ed4d4ccf5e8c1ac05a5",
+        "output_sha256": "a053bc6e5c7bb276071df3e986cd3b4ab5c13d423652a51654e16d679d6670d1",
+        "output_bytes": 212,
+        "input": "{\"command\":\"cat /tmp/llm-eval-bench-results-inspect-20260822/unstructured_gpt-4.1_mpi_r1/benchmark_0_command.log 2>/dev/null\"}",
+        "output_excerpt": "srun --jobid=34722161 --ntasks=128 --nodes=4 --ntasks-per-node=32 --cpus-per-task=1 /leonardo/home/userexternal/pthoman0/llm_para_validation/20260221-203414/unstructured_gpt-4.1_mpi_r1/unstructured  -n 8000 -i 50"
+      }
+    ],
+    "recommendation": "replace_this_generation_observation_only_then_validate_timing_review_and_benchmark",
+    "intent": "No inference about deliberate exploitation; finding concerns exposure/independence.",
+    "release_impact": {
+      "validation_status": "5",
+      "benchmark_success": "true",
+      "benchmark_median_time": "5188.0",
+      "timing_fixed": "false",
+      "source_batch": "20260901-162328",
+      "cell_rank": 112,
+      "overall_cell_winner": "unstructured_gpt-5.6-sol-xhigh_mpi_r1",
+      "own_model_cell_rank": 2,
+      "own_model_cell_best": "unstructured_claude-sonnet-5-cc-medium_mpi_r4",
+      "overall_winner_affected": false
+    }
+  }
+]

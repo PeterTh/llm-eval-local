@@ -1,12 +1,13 @@
 # Supplementary validation, timing audit and benchmarks: 20260901-162328
 
-This batch retains validation, static timing-audit, timing-correction and benchmark
-evidence. Benchmarking completed on 2026-09-29: 627/642 successful. It is included in
-the combined release and website performance views. Historical raw data is preserved.
-See the [benchmark report](benchmark/README.md) for unchanged settings and failures.
+The current release contains 660 programs from this batch: 641 pass validation and
+626 have successful benchmarks. It combines the retained base evidence here with
+[seven Sonnet 5 replacements](replacements/20261025-isolated-sonnet5/README.md)
+and the shared QT timing corrections. Historical raw data is preserved.
+The [benchmark report](benchmark/README.md) describes the base snapshot and settings.
 
 Generated-source commit: `db27e2872a28b900024d318f6a3004a3a7fddfa7`.
-Validation: 660 records, 642 passing all five stages.
+Base-snapshot validation: 660 records, 642 passing all five stages.
 See `summary.json` for backend counts and completed audit stages.
 The human-readable findings and proposed next steps from the static audit are in
 [the audit report](timing-audit/primary/final/report.md), and machine-readable
@@ -27,7 +28,7 @@ code merely to accommodate the artifact repository's flat snapshot layout.
 
 ## Timing-only corrections
 
-174 programs now have accepted, revalidated timing-only corrections.
+The base snapshot has 174 accepted, revalidated timing-only corrections.
 Both original and corrected Git revisions are retained in the
 [correction registry and report](timing-corrections/README.md).
 The correction/audit reports are snapshots of their earlier, pre-benchmark phases.
