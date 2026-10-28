@@ -21,6 +21,14 @@ const campaigns = [
     correctedRun: "black-scholes_gpt-6-luna-oc-medium_mpi_r1", failedRun: "qtclustering_gpt-6-luna-oc-medium_cuda_r1",
     pricingSource: "https://developers.openai.com/api/docs/models/gpt-6-luna",
   },
+  {
+    name: "Haiku 5.5", model: "claude-haiku-5.5-oc-medium", nativeModel: "claude-haiku-5.5-cc-medium",
+    label: "Haiku 5.5 Medium (OpenCode)", batch: "20261025-170040", totalSeconds: 207393.963,
+    originalCommit: "24648e59045c3e8d7280119627a7bccde1da4f2f",
+    correctedCommit: "beb7571b6687c47a3989b0632f1e7e164e848f65",
+    correctedRun: "black-scholes_claude-haiku-5.5-oc-medium_mpi_r2", failedRun: "roomsim_claude-haiku-5.5-oc-medium_omp_r2",
+    pricingSource: "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+  },
 ];
 
 for (const campaign of campaigns) {
@@ -80,13 +88,33 @@ test("OpenCode has one explicit stock-harness methodology record", async ({ page
   await expect(page.getByRole("heading", { name: "Codex CLI", exact: true })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Claude Code", exact: true })).toHaveCount(1);
   const harness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "OpenCode", exact: true }) });
-  await expect(harness.locator(".harness-models > span")).toHaveCount(3);
+  await expect(harness.locator(".harness-models > span")).toHaveCount(4);
   await expect(harness.getByText("GPT-6.1 Sol Medium (OpenCode)", { exact: true })).toHaveAttribute("title", /invoked model openai\/gpt-6.1-sol; reasoning effort medium/);
   await expect(harness.getByText("GPT-6 Luna Medium (OpenCode)", { exact: true })).toHaveAttribute("title", /invoked model openai\/gpt-6-luna; reasoning effort medium/);
   await expect(harness.getByText("DeepSeek V4.1 Flash High (OpenCode)", { exact: true })).toHaveAttribute("title", /invoked model opencode-go\/deepseek-v4.1-flash; reasoning effort high/);
-  await expect(page.getByRole("link", { name: /Retained OpenCode harness configuration/ })).toHaveAttribute("href", /batches\/20261019-134042\/method\/validation\/lib\/opencode_harness.rb$/);
+  await expect(harness.getByText("Haiku 5.5 Medium (OpenCode)", { exact: true })).toHaveAttribute("title", /invoked model opencode-go\/claude-haiku-5-5; reasoning effort medium/);
+  await expect(page.getByRole("link", { name: /Retained OpenCode harness configuration/ })).toHaveAttribute("href", /batches\/20261025-170040\/method\/validation\/lib\/opencode_harness.rb$/);
   await expect(page.getByRole("link", { name: /Luna 6 harness comparison/ })).toHaveAttribute("href", /analysis\/notes\/2026-10-19-luna6-harness-comparison.md$/);
-  await expect(page.getByText(/Cross-harness comparisons measure the complete agent setup/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Haiku 5.5 harness comparison/ })).toHaveAttribute("href", /analysis\/notes\/2026-10-28-haiku55-harness-comparison.md$/);
+  await expect(page.getByText(/Cross-harness comparisons measure the complete agent and provider setup/)).toBeVisible();
+  await expect(page.getByText(/Haiku uses the Anthropic adapter's adaptive thinking at medium effort through OpenCode Go/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.screenshot({ path: testInfo.outputPath("opencode-methodology.png"), fullPage: true });
+});
+
+test("Haiku OpenCode request-tier cost uses native per-request output", async ({ page }) => {
+  await page.goto(basePath + "#/cost?model=claude-haiku-5.5-oc-medium");
+  await page.getByText("Accessible cost efficiency table", { exact: true }).click();
+  const row = page.locator(".cost-data tbody tr");
+  await expect(row).toHaveCount(1);
+  await expect(row.getByRole("cell", { name: "$0.1246", exact: true })).toBeVisible();
+  await expect(row).not.toContainText("Mixed-tier output splits derived");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  const download = await downloadPromise;
+  const rows = parse(await readFile((await download.path())!, "utf8"), { columns: true }) as Record<string, string>[];
+  expect(rows).toHaveLength(1);
+  expect(Number(rows[0]!.estimated_mean_cost_usd)).toBeCloseTo(27.421071570 / 220, 9);
+  await page.goto(basePath + "#/methodology");
+  await expect(page.getByText(/OpenCode records output per request directly/)).toBeVisible();
 });

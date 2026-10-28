@@ -39,6 +39,21 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "claude-haiku-5.5-oc-medium": {
+        "label": "Haiku 5.5 Medium (OpenCode)", "color": "#dd9b45", "marker": "^",
+        "pricing_as_of": "2026-10-28", "pricing_model_id": "anthropic/claude-haiku-5.5",
+        "input_price": 0.1, "cached_input_price": 0.01, "output_price": 0.5,
+        "context_threshold_tokens": 100_000,
+        "long_input_price": 0.5, "long_cached_input_price": 0.05, "long_output_price": 2.5,
+        "context_usage_path": "batches/20261025-170040/generation/pricing/context-usage.jsonl",
+        "context_source_commit": "24648e59045c3e8d7280119627a7bccde1da4f2f",
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_selection_policy": "lowest live non-batch rates in both request-context tiers; historical profiles unchanged",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-haiku-5.5/endpoints",
+        "pricing_source_url": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+        "secondary_pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing",
+        "cost_method": "Exact native OpenCode per-request input/output counters priced by request-context band; cache creation at ordinary input rates. API-rate comparison, not subscription billing.",
+    },
     "deepseek-v4.1-flash-oc-high": {
         "label": "DeepSeek V4.1 Flash High (OpenCode)", "color": "#4265c4", "marker": "^",
         "pricing_as_of": "2026-10-24", "pricing_model_id": "deepseek/deepseek-v4.1-flash",
@@ -406,6 +421,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "claude-haiku-5.5-oc-medium": (-85, -22),
     "deepseek-v4.1-flash-oc-high": (-8, 23),
     "gpt-6-luna-oc-medium": (8, 12),
     "gpt-6.1-sol-oc-medium": (-20, 29),
@@ -420,9 +436,9 @@ LABEL_OFFSETS = {
     "claude-fable-5-cc-medium": (-7, -8),
     "claude-opus-5-cc-medium": (-7, -6),
     "claude-sonnet-5-cc-medium": (7, -9),
-    "deepseek-v4-flash": (-7, 4),
+    "deepseek-v4-flash": (-7, 2),
     "gpt-5-mini": (7, 0),
-    "gpt-5.6-luna-xhigh": (-7, -3),
+    "gpt-5.6-luna-xhigh": (-7, -2),
     "qwen3.7-plus": (-7, 0),
     "claude-haiku-4.5": (-7, 0),
     "gpt-4.1": (7, 0),
@@ -677,7 +693,7 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             va="center",
             fontsize=8.5,
             arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
-            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high"} else None,
+            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium"} else None,
             zorder=4,
         )
 

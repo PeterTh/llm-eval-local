@@ -14,7 +14,7 @@ const contextBandSchema = z.object({
   max_request_input_tokens: z.number().int().nonnegative(),
   streamed_output_lower_bound: z.number().int().nonnegative(),
 });
-const contextUsageSchema = z.object({
+const derivedContextUsageSchema = z.object({
   schema_version: z.literal(1),
   id: z.string().min(1),
   source_commit: z.string().regex(/^[0-9a-f]{40}$/),
@@ -28,6 +28,28 @@ const contextUsageSchema = z.object({
   cache_write_surcharge_nanodollars: z.number().int().nonnegative(),
   native_list_cost_nanodollars: z.number().int().nonnegative(),
 });
+const nativeContextBandSchema = contextBandSchema.omit({
+  cache_creation_5m_tokens: true, cache_creation_1h_tokens: true, streamed_output_lower_bound: true,
+}).extend({
+  cache_write_input_tokens: z.number().int().nonnegative(),
+  reasoning_output_tokens: z.number().int().nonnegative(),
+});
+const nativeContextUsageSchema = derivedContextUsageSchema.omit({
+  cache_write_surcharge_nanodollars: true, native_list_cost_nanodollars: true,
+}).extend({
+  schema_version: z.literal(2),
+  bands: z.object({ short: nativeContextBandSchema, long: nativeContextBandSchema }),
+  per_request_output_available: z.literal(true),
+  output_band_evidence: z.literal("native_step_finish_per_request"),
+  usage_complete: z.literal(true),
+  native_session_sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  token_counts: z.object({
+    input_tokens: z.number().int().nonnegative(), cached_input_tokens: z.number().int().nonnegative(),
+    cache_write_input_tokens: z.number().int().nonnegative(), output_tokens: z.number().int().nonnegative(),
+    reasoning_output_tokens: z.number().int().nonnegative(), total_tokens: z.number().int().nonnegative(),
+  }),
+});
+const contextUsageSchema = z.discriminatedUnion("schema_version", [derivedContextUsageSchema, nativeContextUsageSchema]);
 export type ContextUsageRecord = z.infer<typeof contextUsageSchema>;
 
 export function parseContextUsageRecords(content: string): Map<string, ContextUsageRecord> {
@@ -254,10 +276,20 @@ export function estimateContextRunCost(
     `${evidence.id} context source revision or pricing date mismatch`);
   invariant(evidence.request_input_threshold_tokens === long.requestInputThresholdTokens, `${evidence.id} context threshold mismatch`);
   let input = 0, cached = 0, output = 0, requests = 0, costNanos = 0;
+  let written = 0, reasoning = 0;
   for (const [name, band] of Object.entries(evidence.bands)) {
-    const uncached = band.input_tokens + band.cache_creation_5m_tokens + band.cache_creation_1h_tokens;
+    const direct = "cache_write_input_tokens" in band;
+    invariant(direct === (evidence.schema_version === 2), `${evidence.id} context band schema mismatch`);
+    const cacheWrite = direct ? band.cache_write_input_tokens : band.cache_creation_5m_tokens + band.cache_creation_1h_tokens;
+    const uncached = band.input_tokens + cacheWrite;
     invariant(band.inclusive_input_tokens === uncached + band.cache_read_input_tokens, `${evidence.id} band input total mismatch`);
-    invariant(band.output_tokens >= band.streamed_output_lower_bound, `${evidence.id} output below retained lower bound`);
+    if (direct) {
+      invariant(band.reasoning_output_tokens <= band.output_tokens, `${evidence.id} reasoning exceeds inclusive output`);
+      written += cacheWrite;
+      reasoning += band.reasoning_output_tokens;
+    } else {
+      invariant(band.output_tokens >= band.streamed_output_lower_bound, `${evidence.id} output below retained lower bound`);
+    }
     if (band.requests === 0) {
       invariant(uncached + band.cache_read_input_tokens + band.output_tokens + band.max_request_input_tokens === 0,
         `${evidence.id} tokens assigned to unused band`);
@@ -265,6 +297,10 @@ export function estimateContextRunCost(
       invariant((band.max_request_input_tokens > long.requestInputThresholdTokens) === (name === "long"), `${evidence.id} request in wrong context band`);
       invariant(band.max_request_input_tokens <= band.inclusive_input_tokens
         && band.inclusive_input_tokens <= band.max_request_input_tokens * band.requests, `${evidence.id} request lengths disagree with band total`);
+      if (direct && name === "long") {
+        invariant(band.inclusive_input_tokens >= (long.requestInputThresholdTokens + 1) * band.requests,
+          `${evidence.id} long-band requests below threshold`);
+      }
     }
     const rate = name === "long" ? long : profile;
     const prices = [rate.inputPriceUsdPerMillion, rate.cachedInputPriceUsdPerMillion, rate.outputPriceUsdPerMillion];
@@ -280,11 +316,21 @@ export function estimateContextRunCost(
     && input + output === tokens.totalTokens, `${evidence.id} context totals disagree with scored tokens`);
   invariant(requests === evidence.requests, `${evidence.id} request count mismatch`);
   const mixed = Object.values(evidence.bands).every((band) => band.requests > 0);
-  invariant(evidence.output_band_evidence === (mixed ? "derived_from_reported_list_cost_and_native_output_total" : "native_total_in_single_observed_band"),
+  const outputEvidence = evidence.schema_version === 2 ? "native_step_finish_per_request"
+    : mixed ? "derived_from_reported_list_cost_and_native_output_total" : "native_total_in_single_observed_band";
+  invariant(evidence.output_band_evidence === outputEvidence,
     `${evidence.id} output provenance mismatch`);
-  invariant(costNanos === evidence.comparison_cost_nanodollars
-    && costNanos + evidence.cache_write_surcharge_nanodollars === evidence.native_list_cost_nanodollars,
-    `${evidence.id} recomputed context cost mismatch`);
+  invariant(costNanos === evidence.comparison_cost_nanodollars, `${evidence.id} recomputed context cost mismatch`);
+  if (evidence.schema_version === 2) {
+    const native = evidence.token_counts;
+    invariant(native.input_tokens === input && native.cached_input_tokens === cached
+      && native.cache_write_input_tokens === written && native.output_tokens === output
+      && native.reasoning_output_tokens === reasoning && native.total_tokens === input + output,
+    `${evidence.id} native token totals disagree with bands`);
+  } else {
+    invariant(costNanos + evidence.cache_write_surcharge_nanodollars === evidence.native_list_cost_nanodollars,
+      `${evidence.id} native list cost does not reconcile`);
+  }
   return costNanos / 1_000_000_000;
 }
 

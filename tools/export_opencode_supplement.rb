@@ -20,6 +20,10 @@ module OpenCodeSupplement
     "20261019-134042" => {
       "suffix" => "deepseek41-flash-opencode-high", "audit_id" => "20261023-deepseek41-opencode",
       "original" => "40ad0bc6da259d4584e75b8f23f43c77e9751b24"
+    }.freeze,
+    "20261025-170040" => {
+      "suffix" => "haiku55-opencode-medium", "audit_id" => "20261028-haiku55-opencode",
+      "original" => "24648e59045c3e8d7280119627a7bccde1da4f2f"
     }.freeze
   }.freeze
   POLICY = "luna_first_uncertainty_or_disagreement_v1"
@@ -299,8 +303,14 @@ module OpenCodeSupplement
     end
     pricing = selection ? selection.fetch('pricing') : File.join(campaign, "pricing")
     context = JSON.parse(File.read(File.join(pricing, "request-context-summary.json")))
-    verifier.verify_opencode_context!({ "id" => batch_id, "source_commit" => original }, observations, context)
-    selected.call(pricing, "generation/pricing", %w[pricing-reference.json request-context-summary.json retain-pricing-context.rb retain-pricing-reference.rb
+    context_records = nil
+    if context['pricing_context_policy'] == 'request_input_above_100000'
+      context_path = File.join(pricing, 'context-usage.jsonl')
+      raise 'OpenCode request-context evidence changed' unless LocalEvalArtifact.sha256(context_path) == context.fetch('context_usage_sha256')
+      context_records = LocalEvalArtifact.read_jsonl(context_path)
+    end
+    verifier.verify_opencode_context!({ "id" => batch_id, "source_commit" => original }, observations, context, context_records: context_records)
+    selected.call(pricing, "generation/pricing", %w[pricing-reference.json request-context-summary.json context-usage.jsonl retain-pricing-context.rb retain-pricing-reference.rb
       pricing-refresh.json deepseek-refresh-current-pricing-20261024.rb current-context-review.json deepseek-bind-current-context-20261024.rb])
     selected.call(evaluation, "completion", %w[campaign.json validation-launch-gate.json validation-completion-review.json
       correction-pilot-gate.json correction-commit.json source-correction-push.json revalidation-completion-review.json
@@ -311,6 +321,12 @@ module OpenCodeSupplement
       verify-validation-completion.rb verify-correction-pilot.rb verify-revalidation-completion.rb verify-benchmark-records.rb
       commit-corrections.rb benchmark-driver.rb canary-driver.rb correction-pilot-driver.rb correction-full-driver.rb
       revalidation-driver.rb validation-launch.json correction-pilot-launch.json correction-full-launch.json
+      correction-pilot-recovery-launch.json correction-pilot-recovery-progress.json
+      resume-correction-pilot-driver.rb launch-correction-pilot-recovery.rb
+      paced-correction-driver.rb launch-paced-corrections.rb
+      correction-pilot-paced-launch.json correction-pilot-paced-activation.json correction-pilot-paced-progress.json
+      correction-full-paced-launch.json correction-full-paced-activation.json correction-full-paced-progress.json
+      correction-pilot-paced-startup-recovery.json retry-paced-startup.rb launch-paced-corrections-current.rb
       revalidation-launch.json canary-launch.json benchmark-launch.json benchmark-driver-template-reuse.json
       prepare-benchmark-drivers.rb prepare-corrected-checkout.rb corrected-checkout.json correction-driver-template-reuse.json correction-template-context.json
       benchmark-export-template-reuse.json prepare-release-export.rb export-completed-batch.rb

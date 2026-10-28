@@ -35,6 +35,10 @@ class OpenCodeSupplementTest < Minitest::Test
     deepseek = OpenCodeSupplement.configuration("20261019-134042")
     assert_equal "40ad0bc6da259d4584e75b8f23f43c77e9751b24", deepseek.fetch("original")
     assert_equal "20261023-deepseek41-opencode", deepseek.fetch("audit_id")
+    haiku = OpenCodeSupplement.configuration("20261025-170040")
+    assert_equal "24648e59045c3e8d7280119627a7bccde1da4f2f", haiku.fetch("original")
+    assert_equal "20261028-haiku55-opencode", haiku.fetch("audit_id")
+    assert_equal "haiku55-opencode-medium", haiku.fetch("suffix")
     assert_raises(RuntimeError) { OpenCodeSupplement.configuration("../unknown") }
   end
 

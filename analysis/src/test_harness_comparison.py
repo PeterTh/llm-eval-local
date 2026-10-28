@@ -79,6 +79,62 @@ class HarnessComparisonTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "common frozen rates"):
                 compare(luna, comparison="luna6")
 
+    def haiku_fixture(self):
+        native, opencode = COMPARISONS["haiku55"]["profiles"]
+        frame = self.fixture().replace({"model": {NATIVE: native, OPENCODE: opencode}})
+        records = {}
+        for row in frame.to_dict("records"):
+            model = row["model"]
+            direct = model == opencode
+            record = {
+                "schema_version": 2 if direct else 1,
+                "id": f"{row['benchmark']}_{model}_{row['par_type']}_r{row['run']}",
+                "pricing_as_of": MODELS[model]["pricing_as_of"],
+                "request_input_threshold_tokens": 100000,
+                "source_commit": MODELS[model]["context_source_commit"],
+                "requests": 1, "per_request_output_available": direct,
+                "output_band_evidence": "native_step_finish_per_request" if direct else "native_total_in_single_observed_band",
+                "comparison_cost_nanodollars": 12800, "bands": {},
+            }
+            for band in ("short", "long"):
+                used = int(band == "short")
+                record["bands"][band] = dict(input_tokens=20 * used,
+                    cache_read_input_tokens=80 * used, output_tokens=20 * used,
+                    inclusive_input_tokens=100 * used, requests=used,
+                    max_request_input_tokens=100 * used)
+                record["bands"][band].update(
+                    dict(cache_write_input_tokens=0, reasoning_output_tokens=0) if direct else
+                    dict(cache_creation_5m_tokens=0, cache_creation_1h_tokens=0, streamed_output_lower_bound=0))
+            if direct:
+                record.update(usage_complete=True, native_session_sha256="a" * 64,
+                    token_counts=dict(input_tokens=100, cached_input_tokens=80,
+                        cache_write_input_tokens=0, output_tokens=20, reasoning_output_tokens=0, total_tokens=120))
+            else:
+                record.update(native_list_cost_nanodollars=12800, cache_write_surcharge_nanodollars=0)
+            records[record["id"]] = record
+        return frame, records
+
+    def test_haiku_uses_claude_code_labels_and_both_context_evidence_schemas(self):
+        frame, records = self.haiku_fixture()
+        summary, cells, runtime = compare(pd.concat([self.fixture(), frame]), "haiku55", records)
+        self.assertEqual(set(summary.model), set(COMPARISONS["haiku55"]["profiles"]))
+        self.assertEqual(list(cells.opencode_over_claude_code_runtime), [0.5, 2.0])
+        self.assertNotIn("codex_median_ms", cells)
+        self.assertEqual(runtime["all"]["both_have_success"]["geometric_mean_opencode_over_claude_code_runtime"], 1)
+        self.assertEqual(runtime["all"]["both_have_success"]["claude_code_faster_cells"], 1)
+        self.assertEqual(list(summary[summary.backend == "all"].estimated_cost_usd_per_run), [0.0000128] * 2)
+        with self.assertRaisesRegex(ValueError, "missing request-context"):
+            compare(frame, "haiku55", {})
+
+    def test_haiku_requires_common_rates_and_threshold_in_both_bands(self):
+        frame, records = self.haiku_fixture()
+        opencode = COMPARISONS["haiku55"]["profiles"][1]
+        for key in ("input_price", "cached_input_price", "output_price", "long_input_price",
+                    "long_cached_input_price", "long_output_price", "context_threshold_tokens"):
+            with self.subTest(key=key), patch.dict(MODELS[opencode], {key: 99}):
+                with self.assertRaisesRegex(ValueError, "common frozen rates"):
+                    compare(frame, "haiku55", records)
+
     def test_no_successful_cell_has_no_runtime_estimate(self):
         frame = self.fixture()
         frame[["benchmark_success", "benchmark_median_time"]] = [False, None]

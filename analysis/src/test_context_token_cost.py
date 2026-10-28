@@ -48,6 +48,49 @@ class ContextTokenCostTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "wrong context band"):
             context_run_cost(self.row, self.profile, record)
 
+    def native_record(self):
+        record = deepcopy(self.record)
+        record.update(schema_version=2, per_request_output_available=True,
+                      output_band_evidence="native_step_finish_per_request", usage_complete=True,
+                      native_session_sha256="a" * 64,
+                      token_counts=dict(input_tokens=200001, cached_input_tokens=180000,
+                                        cache_write_input_tokens=300, output_tokens=50,
+                                        reasoning_output_tokens=5, total_tokens=200051))
+        record.pop("native_list_cost_nanodollars")
+        record.pop("cache_write_surcharge_nanodollars")
+        for name, band in record["bands"].items():
+            band["cache_write_input_tokens"] = band.pop("cache_creation_5m_tokens") + band.pop("cache_creation_1h_tokens")
+            band.pop("streamed_output_lower_bound")
+            band["reasoning_output_tokens"] = 2 if name == "short" else 3
+        return record
+
+    def test_exact_native_request_outputs_need_no_list_cost_inference(self):
+        self.assertEqual(0.0114855, context_run_cost(self.row, self.profile, self.native_record()))
+
+    def test_native_evidence_rejects_incomplete_misbound_and_inconsistent_counts(self):
+        for field, value, message in (
+            ("usage_complete", False, "incomplete"),
+            ("native_session_sha256", "", "session binding"),
+            ("output_band_evidence", "derived_from_reported_list_cost_and_native_output_total", "provenance"),
+            ("per_request_output_available", False, "output evidence"),
+        ):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, message):
+                context_run_cost(self.row, self.profile, {**self.native_record(), field: value})
+        record = self.native_record()
+        record["token_counts"]["output_tokens"] += 1
+        with self.assertRaisesRegex(ValueError, "native token totals"):
+            context_run_cost(self.row, self.profile, record)
+        record = self.native_record()
+        record["bands"]["short"]["reasoning_output_tokens"] = 21
+        with self.assertRaisesRegex(ValueError, "reasoning exceeds"):
+            context_run_cost(self.row, self.profile, record)
+
+    def test_opencode_and_native_haiku_use_common_prices_in_both_bands(self):
+        other = combined.MODELS["claude-haiku-5.5-oc-medium"]
+        for key in ("input_price", "cached_input_price", "output_price", "long_input_price",
+                    "long_cached_input_price", "long_output_price", "context_threshold_tokens"):
+            self.assertEqual(self.profile[key], other[key])
+
     def test_rejects_missing_usage_and_token_or_provenance_disagreement(self):
         with self.assertRaisesRegex(ValueError, "missing request-context"):
             combined.aggregate(pd.DataFrame([self.row]), {})

@@ -119,9 +119,10 @@ export function MethodologyView() {
               Per-run transcripts and invocation metadata are retained alongside the generated source.
               {" "}OpenCode uses its stock build agent and model adapters in fresh isolated configuration, with local
               shell/build/test access but no web tools, subagents, MCP servers or external plugins.
+              Haiku uses the Anthropic adapter's adaptive thinking at medium effort through OpenCode Go.
             </p>
             <p>
-              Cross-harness comparisons measure the complete agent setup. Campaigns run at different dates,
+              Cross-harness comparisons measure the complete agent and provider setup. Campaigns run at different dates,
               and provider model aliases are not pinned weight snapshots.
             </p>
           </section>
@@ -255,8 +256,10 @@ export function MethodologyView() {
             <p>
               Haiku 5.5 uses request-length-dependent rates: requests above 100,000 input tokens, including cache reads and writes,
               use the long-context tier. Costs sum the two context bands, not a tier selected from the cumulative session length.
-              Mixed-tier output totals are derived from native output and list-price totals. Claude cache writes are priced as ordinary input.
-              {" "}<a href={`${artifactBlob}/analysis/notes/2026-10-14-haiku55-pricing.md`} target="_blank" rel="noreferrer">Context-pricing evidence and limits</a>.
+              OpenCode records output per request directly; Claude Code mixed-tier output totals are derived from native output and list-price totals.
+              Claude cache writes are priced as ordinary input.
+              {" "}Context-pricing evidence: <a href={`${artifactBlob}/analysis/notes/2026-10-14-haiku55-pricing.md`} target="_blank" rel="noreferrer">Claude Code</a>
+              {" "}and <a href={`${artifactBlob}/analysis/notes/2026-10-28-haiku55-opencode-pricing.md`} target="_blank" rel="noreferrer">OpenCode</a>.
             </p>
             <p>
               Rates are frozen per model, with snapshot dates shown in the cost details. OpenRouter profiles use the lowest
@@ -287,6 +290,7 @@ export function MethodologyView() {
               <a href={`${artifactBlob}/analysis/src/all_models_score_vs_cost.py`} target="_blank" rel="noreferrer"><span>Cost estimation generator</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/analysis/notes/2026-10-18-sol61-harness-comparison.md`} target="_blank" rel="noreferrer"><span>Sol 6.1 harness comparison</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/analysis/notes/2026-10-19-luna6-harness-comparison.md`} target="_blank" rel="noreferrer"><span>Luna 6 harness comparison</span><strong>GitHub ↗</strong></a>
+              <a href={`${artifactBlob}/analysis/notes/2026-10-28-haiku55-harness-comparison.md`} target="_blank" rel="noreferrer"><span>Haiku 5.5 harness comparison</span><strong>GitHub ↗</strong></a>
               <a href={`${artifactBlob}/${manifest.cost.sourcePath}`} target="_blank" rel="noreferrer"><span>Frozen pricing profiles</span><strong>GitHub ↗</strong></a>
               <a href={`${manifest.generatedSourceRepository}/tree/${manifest.generatedSourceCommit}`} target="_blank" rel="noreferrer"><span>Generated programs</span><strong>GitHub ↗</strong></a>
             </div>

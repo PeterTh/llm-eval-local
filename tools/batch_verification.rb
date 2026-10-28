@@ -138,10 +138,11 @@ module BatchVerification
         end
       elsif campaign['generation_harness'] == 'opencode'
         provider, model = observation.fetch('model').split('/', 2)
+        profile_model = { 'opencode-go/claude-haiku-5-5' => 'claude-haiku-5.5' }.fetch(observation.fetch('model'), model)
         complete = observation.fetch('usage_complete')
         raise "OpenCode generation identity differs #{id}" unless %w[openai opencode-go].include?(provider) &&
           model && !model.empty? && !model.include?('/') &&
-          row.fetch('model') == "#{model}-oc-#{observation.fetch('reasoning_effort')}" &&
+          row.fetch('model') == "#{profile_model}-oc-#{observation.fetch('reasoning_effort')}" &&
           [true, false].include?(complete) && observation.fetch('usage_available') == true &&
           observation.fetch('outcome') == (complete ? 'completed' : 'generation_model_terminated') &&
           observation.fetch('usage_source') == 'opencode_native_step_finish'
@@ -196,7 +197,11 @@ module BatchVerification
     end
   end
 
-  def verify_opencode_context!(campaign, observations, context)
+  def verify_opencode_context!(campaign, observations, context, context_records: nil)
+    if context['pricing_context_policy'] == 'request_input_above_100000'
+      return verify_opencode_context_bands!(campaign, observations, context, context_records)
+    end
+    raise 'Unexpected separate context records' unless context_records.nil?
     by_id = observations.to_h { |row| [row.fetch('id'), row] }
     records = context.fetch('records')
     flat = context.fetch('schema_version') == 2
@@ -227,6 +232,60 @@ module BatchVerification
       raise 'OpenCode incomplete context totals differ' unless context.fetch('complete_programs') == observations.count { |row| row.fetch('usage_complete') } &&
         context.fetch('incomplete_programs') == observations.count { |row| !row.fetch('usage_complete') }
     end
+  end
+
+  def verify_opencode_context_bands!(campaign, observations, context, records)
+    by_id = observations.to_h { |row| [row.fetch('id'), row] }
+    raise 'OpenCode tiered-context scope differs' unless context.fetch('schema_version') == 2 && records.is_a?(Array) &&
+      records.size == observations.size && by_id.size == observations.size &&
+      records.map { |row| row.fetch('id') }.sort == by_id.keys.sort &&
+      context.fetch('source_batch') == campaign.fetch('id') && context.fetch('source_commit') == campaign.fetch('source_commit') &&
+      context.fetch('programs') == records.size && context.fetch('complete_programs') == records.size &&
+      context.fetch('incomplete_programs') == 0 && context.fetch('usage_complete') == true
+    records.each do |record|
+      observation = by_id.fetch(record.fetch('id'))
+      raise 'OpenCode tiered-context provenance differs' unless record.fetch('schema_version') == 2 &&
+        record.fetch('batch') == campaign.fetch('id') && record.fetch('source_commit') == campaign.fetch('source_commit') &&
+        record.fetch('profile') == 'claude-haiku-5.5-oc-medium' && observation.fetch('model') == 'opencode-go/claude-haiku-5-5' &&
+        observation.fetch('reasoning_effort') == 'medium' &&
+        record.fetch('session_id') == observation.fetch('session_id') &&
+        record.fetch('native_session_sha256') == observation.fetch('sha256').fetch('opencode-session.txt') &&
+        record.fetch('token_counts') == observation.fetch('token_counts') &&
+        record.fetch('usage_complete') == true && observation.fetch('usage_complete') == true &&
+        record.fetch('per_request_output_available') == true && record.fetch('output_band_evidence') == 'native_step_finish_per_request' &&
+        record.fetch('request_input_threshold_tokens') == 100000
+      bands = record.fetch('bands')
+      raise 'OpenCode context bands differ' unless bands.keys.sort == %w[long short]
+      bands.each do |name, band|
+        fields = %w[requests input_tokens cache_read_input_tokens cache_write_input_tokens inclusive_input_tokens
+          output_tokens reasoning_output_tokens max_request_input_tokens]
+        raise 'Invalid OpenCode context counter' unless fields.all? { |key| band.fetch(key).is_a?(Integer) && band.fetch(key) >= 0 }
+        requests, maximum, input, output = band.values_at('requests', 'max_request_input_tokens', 'inclusive_input_tokens', 'output_tokens')
+        raise 'OpenCode context band totals differ' unless
+          input == band.values_at('input_tokens', 'cache_read_input_tokens', 'cache_write_input_tokens').sum &&
+          output >= band.fetch('reasoning_output_tokens')
+        if requests.zero?
+          raise 'OpenCode unused context band has tokens' unless input + output + maximum == 0
+        else
+          raise 'OpenCode context band lengths differ' unless maximum <= input && input <= maximum * requests &&
+            maximum <= 1_000_000 && (maximum > 100000) == (name == 'long') &&
+            (name != 'long' || input >= 100001 * requests)
+        end
+      end
+      expected = { 'input_tokens' => 'inclusive_input_tokens', 'cached_input_tokens' => 'cache_read_input_tokens',
+        'cache_write_input_tokens' => 'cache_write_input_tokens', 'output_tokens' => 'output_tokens',
+        'reasoning_output_tokens' => 'reasoning_output_tokens' }.transform_values { |key| bands.values.sum { |band| band.fetch(key) } }
+      expected['total_tokens'] = expected.values_at('input_tokens', 'output_tokens').sum
+      raise 'OpenCode context counters differ' unless expected == observation.fetch('token_counts') &&
+        record.fetch('requests') == bands.values.sum { |band| band.fetch('requests') } && record.fetch('requests').positive?
+      raise 'Invalid OpenCode context cost' unless record.fetch('comparison_cost_nanodollars').is_a?(Integer) && record.fetch('comparison_cost_nanodollars') >= 0
+    end
+    raise 'OpenCode tiered-context summary differs' unless
+      context.fetch('requests') == records.sum { |row| row.fetch('requests') } &&
+      context.fetch('maximum_request_input_tokens') == records.flat_map { |row| row.fetch('bands').values.map { |band| band.fetch('max_request_input_tokens') } }.max &&
+      context.fetch('requests_above_100000_tokens') == records.sum { |row| row.dig('bands', 'long', 'requests') } &&
+      context.fetch('observations_with_long_requests') == records.count { |row| row.dig('bands', 'long', 'requests').positive? } &&
+      context.fetch('comparison_cost_nanodollars') == records.sum { |row| row.fetch('comparison_cost_nanodollars') }
   end
 
   def verify_batch_audit_selection!(campaign, original, corrections, summary)
@@ -437,7 +496,15 @@ module BatchVerification
               isolation.fetch('network') == 'unchanged' && isolation.fetch('hardware_devices') == 'unchanged'
           end
         end
-        verify_opencode_context!(campaign, observations, read_json.call('generation/pricing/request-context-summary.json'))
+        context = read_json.call('generation/pricing/request-context-summary.json')
+        context_records = nil
+        if context['pricing_context_policy'] == 'request_input_above_100000'
+          relative = "#{base}/generation/pricing/context-usage.jsonl"
+          raise 'OpenCode request-context binding differs' unless campaign.fetch('opencode_context_usage') == relative &&
+            sha256(path(relative)) == context.fetch('context_usage_sha256')
+          context_records = LocalEvalArtifact.read_jsonl(path(relative))
+        end
+        verify_opencode_context!(campaign, observations, context, context_records: context_records)
       end
       if campaign['context_token_usage']
         context_path = path(campaign.fetch('context_token_usage'))

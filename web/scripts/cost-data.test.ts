@@ -74,7 +74,47 @@ function contextFixture() {
   return { id, profile, evidence: parsed, tokens };
 }
 
+function nativeContextFixture() {
+  const fixture = contextFixture();
+  const old = fixture.evidence;
+  if (old.schema_version !== 1) throw new Error("wrong legacy fixture");
+  const bands = Object.fromEntries(Object.entries(old.bands).map(([name, band]) => [name, {
+    input_tokens: band.input_tokens, cache_read_input_tokens: band.cache_read_input_tokens,
+    cache_write_input_tokens: band.cache_creation_5m_tokens + band.cache_creation_1h_tokens,
+    output_tokens: band.output_tokens, inclusive_input_tokens: band.inclusive_input_tokens,
+    requests: band.requests, max_request_input_tokens: band.max_request_input_tokens,
+    reasoning_output_tokens: name === "short" ? 2 : 3,
+  }]));
+  const record = {
+    schema_version: 2, id: old.id, source_commit: old.source_commit, pricing_as_of: old.pricing_as_of,
+    request_input_threshold_tokens: 100000, requests: 2, per_request_output_available: true,
+    output_band_evidence: "native_step_finish_per_request", usage_complete: true,
+    native_session_sha256: "a".repeat(64), comparison_cost_nanodollars: old.comparison_cost_nanodollars,
+    bands, token_counts: { input_tokens: 200001, cached_input_tokens: 180000, cache_write_input_tokens: 300,
+      output_tokens: 50, reasoning_output_tokens: 5, total_tokens: 200051 },
+  };
+  const evidence = parseContextUsageRecords(JSON.stringify(record)).get(old.id)!;
+  if (evidence.schema_version !== 2) throw new Error("wrong native fixture");
+  return { ...fixture, evidence };
+}
+
 describe("cost data generation", () => {
+  it("prices exact native request outputs without inferring list-cost splits", () => {
+    const { profile, evidence, tokens } = nativeContextFixture();
+    expect(estimateContextRunCost(tokens, profile, evidence)).toBe(0.0114855);
+    expect(() => parseContextUsageRecords(JSON.stringify({ ...evidence, usage_complete: false }))).toThrow();
+    expect(() => parseContextUsageRecords(JSON.stringify({ ...evidence, native_session_sha256: "" }))).toThrow();
+    expect(() => parseContextUsageRecords(JSON.stringify({ ...evidence, per_request_output_available: false }))).toThrow();
+    expect(() => parseContextUsageRecords(JSON.stringify({ ...evidence, output_band_evidence: "derived_from_reported_list_cost_and_native_output_total" }))).toThrow();
+    expect(() => estimateContextRunCost(tokens, profile, { ...evidence,
+      token_counts: { ...evidence.token_counts, output_tokens: 51 } })).toThrow(/native token totals/);
+    const incorrect = structuredClone(evidence);
+    incorrect.bands.short.reasoning_output_tokens = 21;
+    expect(() => estimateContextRunCost(tokens, profile, incorrect)).toThrow(/reasoning exceeds/);
+    incorrect.bands.short.reasoning_output_tokens = 2;
+    incorrect.bands.long.max_request_input_tokens = 100000;
+    expect(() => estimateContextRunCost(tokens, profile, incorrect)).toThrow(/wrong context band/);
+  });
   it("prices context bands separately and never silently falls back to flat rates", () => {
     const { id, profile, evidence, tokens } = contextFixture();
     expect(estimateContextRunCost(tokens, profile, evidence)).toBe(0.0114855);

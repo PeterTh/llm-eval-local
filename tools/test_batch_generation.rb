@@ -113,6 +113,79 @@ class BatchGenerationTest < Minitest::Test
     assert_raises(RuntimeError) { check.call }
   end
 
+  def test_haiku_go_alias_maps_only_to_its_explicit_profile
+    campaign, observation, row = opencode_fixture
+    observation['model'] = 'opencode-go/claude-haiku-5-5'
+    row['model'] = 'claude-haiku-5.5-oc-medium'
+    check = -> { @release.verify_generation_observations!(campaign, [observation], { 'example' => row }) }
+    check.call
+    observation['model'] = 'openai/claude-haiku-5-5'
+    assert_raises(RuntimeError) { check.call }
+    observation['model'] = 'opencode-go/claude-haiku-5-5'
+    row['model'] = 'claude-haiku-5.5-oc-high'
+    assert_raises(RuntimeError) { check.call }
+  end
+
+  def haiku_context_fixture
+    campaign, observation, = opencode_fixture
+    counts = { 'input_tokens' => 200001, 'cached_input_tokens' => 180000, 'cache_write_input_tokens' => 300,
+      'output_tokens' => 50, 'reasoning_output_tokens' => 5, 'total_tokens' => 200051 }
+    observation.merge!('model' => 'opencode-go/claude-haiku-5-5', 'token_counts' => counts, 'total_tokens' => counts.fetch('total_tokens'))
+    record = { 'id' => 'example', 'schema_version' => 2, 'batch' => campaign.fetch('id'),
+      'source_commit' => campaign.fetch('source_commit'), 'profile' => 'claude-haiku-5.5-oc-medium',
+      'session_id' => 'session', 'native_session_sha256' => 'a' * 64, 'token_counts' => counts.dup,
+      'usage_complete' => true, 'per_request_output_available' => true, 'output_band_evidence' => 'native_step_finish_per_request',
+      'request_input_threshold_tokens' => 100000, 'requests' => 2, 'comparison_cost_nanodollars' => 11485500,
+      'bands' => {
+        'short' => { 'requests' => 1, 'input_tokens' => 9900, 'cache_read_input_tokens' => 90000,
+          'cache_write_input_tokens' => 100, 'inclusive_input_tokens' => 100000, 'output_tokens' => 20,
+          'reasoning_output_tokens' => 2, 'max_request_input_tokens' => 100000 },
+        'long' => { 'requests' => 1, 'input_tokens' => 9801, 'cache_read_input_tokens' => 90000,
+          'cache_write_input_tokens' => 200, 'inclusive_input_tokens' => 100001, 'output_tokens' => 30,
+          'reasoning_output_tokens' => 3, 'max_request_input_tokens' => 100001 }
+      } }
+    context = { 'schema_version' => 2, 'source_batch' => campaign.fetch('id'), 'source_commit' => campaign.fetch('source_commit'),
+      'pricing_context_policy' => 'request_input_above_100000', 'programs' => 1, 'complete_programs' => 1,
+      'incomplete_programs' => 0, 'usage_complete' => true, 'requests' => 2, 'maximum_request_input_tokens' => 100001,
+      'requests_above_100000_tokens' => 1, 'observations_with_long_requests' => 1, 'comparison_cost_nanodollars' => 11485500 }
+    [campaign, observation, context, [record]]
+  end
+
+  def test_haiku_context_binds_exact_bands_and_observations_without_duplication
+    campaign, observation, context, records = haiku_context_fixture
+    @release.verify_opencode_context!(campaign, [observation], context, context_records: records)
+    assert_raises(RuntimeError) { @release.verify_opencode_context!(campaign, [observation], context) }
+    assert_raises(RuntimeError) { @release.verify_opencode_context!(campaign, [observation], context, context_records: records * 2) }
+  end
+
+  def test_haiku_context_rejects_changed_provenance_and_summary
+    {
+      'source_commit' => 'c' * 40, 'native_session_sha256' => 'c' * 64,
+      'session_id' => 'other', 'usage_complete' => false,
+      'profile' => 'claude-haiku-5.5-cc-medium', 'output_band_evidence' => 'derived',
+      'per_request_output_available' => false, 'request_input_threshold_tokens' => 99999
+    }.each do |key, value|
+      campaign, observation, context, records = haiku_context_fixture
+      records.first[key] = value
+      assert_raises(RuntimeError, key) { @release.verify_opencode_context!(campaign, [observation], context, context_records: records) }
+    end
+    %w[requests maximum_request_input_tokens requests_above_100000_tokens observations_with_long_requests comparison_cost_nanodollars].each do |key|
+      campaign, observation, context, records = haiku_context_fixture
+      context[key] += 1
+      assert_raises(RuntimeError, key) { @release.verify_opencode_context!(campaign, [observation], context, context_records: records) }
+    end
+  end
+
+  def test_haiku_context_rejects_wrong_band_and_inclusive_counts
+    [ ['short', 'max_request_input_tokens', 100001], ['long', 'max_request_input_tokens', 100000],
+      ['long', 'requests', 2], ['short', 'output_tokens', 21], ['short', 'cache_write_input_tokens', 99],
+      ['short', 'reasoning_output_tokens', 21], ['long', 'input_tokens', -1] ].each do |name, key, value|
+      campaign, observation, context, records = haiku_context_fixture
+      records.first.fetch('bands').fetch(name)[key] = value
+      assert_raises(RuntimeError, "#{name}/#{key}") { @release.verify_opencode_context!(campaign, [observation], context, context_records: records) }
+    end
+  end
+
   def test_retained_model_termination_is_partial_and_hash_bound
     Dir.mktmpdir('opencode-termination-test-') do |root|
       @release.instance_variable_set(:@root, root)
