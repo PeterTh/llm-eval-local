@@ -1,0 +1,55 @@
+{
+  "checked_at": "2026-10-29T02:27:26Z",
+  "passed": true,
+  "scope": "Representative source-grounded usability spot-check, not blanket scientific adjudication; the established independent review and uncertainty-only Sol stages remain required.",
+  "source_commit": "c94e9a7be1efbb0235af8cd31fdb9f5c7b994a36",
+  "checks": [
+    {
+      "program_id": "roomsim_gpt-6.1-terra-medium_mpi_r4",
+      "review_root": "/home/petert/llm_timing_audit/20261029-terra61-codex",
+      "path": "roomsim/roomsim.cpp",
+      "lines": "36-40, 911-949, 987-993",
+      "finding": "Root-only printf macro and three local phase durations; canonical sum lacks timing aggregation.",
+      "source_sha256": "5b538a82891d836bab8b249b83deeca19aa1269792a15ff4967f63c33fa89f53",
+      "response_sha256": "e545f1e62def8db329a9653ac25a85a3f8d770c902f65b2d3133bf3aea444822"
+    },
+    {
+      "program_id": "nbody_gpt-6.1-terra-medium_hybrid_r3",
+      "review_root": "/home/petert/llm_timing_audit/20261029-terra61-codex",
+      "path": "nbody/nbody.cpp",
+      "lines": "205-223",
+      "finding": "Complete GPU work is synchronized; MPI_MAX combines local durations and the reduced value is printed.",
+      "source_sha256": "b11fb0aadba78795359439c0938c8ce35fc31763d6c3da09f07c035925b89327",
+      "response_sha256": "c814fed2e1fa0c222cf8c2ec300dff0e05f3b62982c6b820c7275e6c361e11ad"
+    },
+    {
+      "program_id": "cholesky_gpt-6.1-terra-medium_hybrid_r3",
+      "review_root": "/home/petert/llm_timing_audit/20261029-terra61-codex",
+      "path": "cholesky/cholesky.cpp",
+      "lines": "68-104",
+      "finding": "Start/end barriers and final device synchronization exist, but the canonical interval is root-local, as the established contract explicitly distinguishes from MPI_MAX.",
+      "source_sha256": "b99062502c30ef0b20fd92b4f98c314a903e3d8f917d4d8a441b1a1222576765",
+      "response_sha256": "74a8fe5a13895433100d0647ed6e470b089f32dca89800708024185657cac6de"
+    },
+    {
+      "program_id": "qtclustering_gpt-6.1-terra-medium_cuda_r3",
+      "review_root": "/home/petert/llm_timing_audit/20261029-terra61-codex-qtclustering",
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "107-202, 313-326",
+      "finding": "On-demand distances and clustering are inside the timed call, with blocking GPU transfers before return; no excluded distance preprocessing.",
+      "source_sha256": "6296506b14611bcc8720651c9fbecb7e836db97699cb5f86d393003e6f421837",
+      "response_sha256": "2e6527371283773999bdae12585ee9e3900223740edd627aaff05d79832d0447"
+    },
+    {
+      "program_id": "qtclustering_gpt-6.1-terra-medium_mpi_r4",
+      "review_root": "/home/petert/llm_timing_audit/20261029-terra61-codex-qtclustering",
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "270-292",
+      "finding": "The full clustering call is locally timed, but nonroots finalize without a duration reduction and root prints its own time.",
+      "source_sha256": "e58669a79b14728d72e7cf8a5b7dc3e7c2e886afb54478c8a553456fffc4600d",
+      "response_sha256": "32ef23843f3a8c556fc509067e635356d1e451de804052c13710327a845b894c"
+    }
+  ],
+  "pilot_retry": "One primary response was rejected for an invalid evidence line range, retained, and retried by the existing bounded schema verifier. No generated program was rerun.",
+  "review_cli_diagnostic": "The code-mode-host-disabled diagnostic is expected for intentionally tool-disabled static workers; event verification confirms zero tool executions. Do not enable execution tools to remove this diagnostic."
+}

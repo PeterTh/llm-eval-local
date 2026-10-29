@@ -1,6 +1,6 @@
-# Combined release: 2026-10-28
+# Combined release: 2026-10-29
 
-This is a reproducible view over eleven retained campaigns, not a second raw-data archive.
+This is a reproducible view over twelve retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
 `batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`;
@@ -10,15 +10,16 @@ Sonnet 5.5 is under `batches/20261014-212207/`; Sol 6.1 Medium in OpenCode is un
 `batches/20261017-192226/`; Luna 6 Medium in OpenCode is under
 `batches/20261018-224015/`; DeepSeek V4.1 Flash High in OpenCode is under
 `batches/20261019-134042/`; Haiku 5.5 Medium in OpenCode is under
-`batches/20261025-170040/`. Catalog-declared observation replacements join their
+`batches/20261025-170040/`; Terra 6.1 Medium in Codex is under
+`batches/20261028-200951/`. Catalog-declared observation replacements join their
 own validation, benchmark and generation evidence by exact run ID; untouched
 observations retain their original records and source revisions.
 
 The catalog's
 `codex_usage_overlays` joins exact reported counters for all 1,980 GPT-5.6 runs from
 `metadata/codex-usage/20260805-120633.jsonl`, preserving the original terminal
-counter and session provenance. The GPT-6 and Sol 6.1 native aggregates use the
-same exact usage evidence directly; all 1,100 rows are verified against their
+counter and session provenance. The GPT-6, Sol 6.1 and Terra 6.1 native aggregates use the
+same exact usage evidence directly; all 1,320 rows are verified against their
 recovered counters.
 OpenCode's 880 observations retain native request/session counters, including
 compaction, and deduplicated effective-configuration records. Usage is complete
@@ -41,9 +42,9 @@ This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 7,920 programs, 36 model/effort/harness profiles, 220 programs each.
-- 7,003 effectively validated programs and benchmark attempts; 6,596 successful measurements.
-- 1,170 timing-fixed programs (including two failed revalidations), with source history.
+- 8,140 programs, 37 model/effort/harness profiles, 220 programs each.
+- 7,223 effectively validated programs and benchmark attempts; 6,816 successful measurements.
+- 1,196 timing-fixed programs (including two failed revalidations), with source history.
 - 44 benchmark/backend cells, all with reviewed winners; 94 retained reviews total.
 
 The [seven Sonnet 5 replacements](../batches/20260901-162328/replacements/20261025-isolated-sonnet5/README.md)
@@ -65,6 +66,14 @@ benchmarks, including 36 timing-only corrections. One numerical validation failu
 and two benchmark warm-up timeouts remain in the dataset. It introduces no new
 cell winners. The [Haiku harness comparison](../analysis/notes/2026-10-28-haiku55-harness-comparison.md)
 compares its outcomes, generation cost and runtime distribution with Claude Code.
+
+Terra 6.1 Medium in Codex contributes 220 validation passes and 220 successful
+benchmarks, including 26 timing-only corrections. It introduces no new cell winners.
+The [comparison snapshot](../analysis/notes/2026-10-29-terra61-codex-winner-context.json)
+verifies unchanged evidence for all 7,920 prior observations; 153 prior scores
+change only through joint thresholds. The
+[pricing note](../analysis/notes/2026-10-29-terra61-pricing.md) binds its API-equivalent
+cost to exact native counters and request-context evidence.
 
 `scored_results.csv` is the current analysis and website input. The unchanged historic
 log-natural-break threshold procedure is applied to the joint successful-measurement

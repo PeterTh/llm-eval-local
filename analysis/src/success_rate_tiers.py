@@ -23,6 +23,7 @@ DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "8_success_rate_tier
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "8_success_rate_tiers.csv"
 
 MODEL_LABELS = {
+    "gpt-6.1-terra-medium": "GPT-6.1 Terra Medium",
     "claude-haiku-5.5-oc-medium": "Haiku 5.5 Medium (OpenCode)",
     "deepseek-v4.1-flash-oc-high": "DeepSeek V4.1 Flash High (OpenCode)",
     "gpt-6-luna-oc-medium": "GPT-6 Luna Medium (OpenCode)",

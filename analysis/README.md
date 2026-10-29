@@ -12,7 +12,7 @@ provide one command that rebuilds its tables and figures.
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
-`release/catalog.json` identifies eleven campaigns, scoped evidence overlays and generated-source commits.
+`release/catalog.json` identifies twelve campaigns, scoped evidence overlays and generated-source commits.
 Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
@@ -27,7 +27,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 36 profile names and tier percentages legible at the paper's
+intentional: it keeps all 37 profile names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -60,10 +60,12 @@ added twice. This remains an API-rate comparison, not a ChatGPT subscription bil
 The backing CSV records counts, frozen prices, pricing date, and source URLs.
 
 The evidence lives in `metadata/codex-usage/<source-batch>.jsonl`. All 1,980
-GPT-5.6, 660 GPT-6 and 440 GPT-6.1 records matched a unique session, completed task,
+GPT-5.6, 660 GPT-6 and 660 GPT-6.1 records matched a unique session, completed task,
 transcript hash, and consistent final cumulative counters. The release uses these
 counters for all three families.
-The compact evidence totals 2,664,786 bytes; complete session logs are not duplicated.
+The compact usage records total 2,855,653 bytes; complete session logs are not duplicated.
+Terra 6.1 additionally retains a compact request-level proof that all 2,583 requests
+fall below its long-context pricing threshold.
 
 Recover a completed batch from the original locally retained sessions with:
 
@@ -127,7 +129,8 @@ per-model pricing date: 2026-08-22 for existing profiles, 2026-09-29 for the thr
 Claude 5 additions, 2026-10-02 for GPT-6, 2026-10-06 for Opus 5.5, 2026-10-11
 for Sol 6.1, 2026-10-14 for Haiku 5.5, 2026-10-15 for Sonnet 5.5 and 2026-10-18
 for Sol 6.1 in OpenCode, 2026-10-19 for Luna 6 in OpenCode, 2026-10-24
-for DeepSeek V4.1 Flash in OpenCode, and 2026-10-28 for Haiku 5.5 in OpenCode.
+for DeepSeek V4.1 Flash in OpenCode, and 2026-10-28 for Haiku 5.5 in OpenCode
+and Terra 6.1 in Codex.
 The GPT-6 and GPT-6.1 profiles use officially
 published non-batch OpenAI Flex prices. Rates are frozen per model.
 See [Claude pricing](notes/2026-09-29-claude5-pricing.md) and
@@ -139,12 +142,13 @@ See [Claude pricing](notes/2026-09-29-claude5-pricing.md) and
 accounting and pricing for [Sol 6.1](notes/2026-10-18-sol61-opencode-pricing.md)
 and [Luna 6](notes/2026-10-19-luna6-opencode-pricing.md), plus
 [DeepSeek V4.1 Flash pricing and partial accounting](notes/2026-10-23-deepseek41-opencode-pricing.md)
-and [Haiku 5.5 OpenCode pricing](notes/2026-10-28-haiku55-opencode-pricing.md).
+and [Haiku 5.5 OpenCode pricing](notes/2026-10-28-haiku55-opencode-pricing.md),
+and [Terra 6.1 pricing](notes/2026-10-29-terra61-pricing.md).
 Haiku 5.5 uses retained per-run token totals grouped by each request's context tier;
 OpenCode provides per-request output directly, while Claude Code mixed-tier
 output splits are derived from native output and list-price totals.
 Cache creation uses ordinary input rates for all Claude profiles. Other profiles
-do not model long-context surcharges. The Sol and Luna OpenCode campaigns
+do not model long-context surcharges. Terra 6.1 in Codex and the Sol and Luna OpenCode campaigns
 verify that all native requests are below their long-context thresholds;
 DeepSeek's selected endpoint has flat context pricing. Three model-terminated
 DeepSeek sessions have only partial usage counters and are excluded from
@@ -198,12 +202,13 @@ This historical analysis remains scoped to the original 4,620-program campaign a
 its 587 corrections; it consumes `data/`, not the jointly rescored `release/` view.
 The additional 174 corrections were made before benchmarking, so no comparable
 uncorrected performance measurements exist for those runs. The current combined
-dataset carries the timing-fix flag for 1,170 distinct corrected programs, including
+dataset carries the timing-fix flag for 1,196 distinct corrected programs, including
 two failed revalidations. The 81 newer corrections include 12 previously retimed
 historical QT programs. Their 32 scoped historical reruns are retained separately
 under `corrections/20261001-gpt6-qt/`, not folded into this older 587-case analysis.
 The 83 Opus 5.5, 11 native Sol 6.1, 33 Haiku 5.5, 71 Sonnet 5.5, 14 Sol 6.1
-OpenCode, 39 Luna 6 OpenCode, 56 current DeepSeek OpenCode and 36 Haiku 5.5 OpenCode corrections likewise
+OpenCode, 39 Luna 6 OpenCode, 56 current DeepSeek OpenCode, 36 Haiku 5.5 OpenCode
+and 26 Terra 6.1 Codex corrections likewise
 precede those programs' benchmarks.
 
 The retained historical analysis joins the original static-audit score, corrected scoped-rerun
@@ -228,6 +233,12 @@ canonical format unless the publication toolchain requires another.
 
 Published run reviews live in `notes/individual/` and are embedded by the website.
 All 44 current cell winners have reviews; 94 notes are retained, including superseded winners.
+Terra 6.1 Medium in Codex introduces no new cell winners. Its
+[comparison snapshot](notes/2026-10-29-terra61-codex-winner-context.json) verifies
+that all 7,920 prior observations are unchanged against the preceding release;
+153 prior scores change solely through joint thresholds.
+Check it with `ruby analysis/src/check_terra61_reviews.rb`.
+
 DeepSeek V4.1 Flash High in OpenCode introduces one new winner:
 [CUDA SpMV](notes/individual/spmv_deepseek-v4.1-flash-oc-high_cuda_r2.md), a practical
 tie with Luna's existing fused-kernel implementation. Its

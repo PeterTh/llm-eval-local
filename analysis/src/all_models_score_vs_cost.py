@@ -39,6 +39,19 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "gpt-6.1-terra-medium": {
+        "label": "GPT-6.1 Terra Medium", "color": "#579c82", "marker": "s",
+        "pricing_as_of": "2026-10-28", "pricing_model_id": "openai/gpt-6.1-terra",
+        "input_price": 0.5, "cached_input_price": 0.025, "output_price": 2.5,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI pricing and live OpenRouter endpoint comparison",
+        "pricing_selection_policy": "componentwise lowest live non-batch rates in both request-context tiers (Flex); historical profiles unchanged",
+        "pricing_catalog_url": "https://openrouter.ai/api/v1/models/openai/gpt-6.1-terra/endpoints",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "secondary_pricing_source_url": "https://developers.openai.com/api/docs/pricing",
+        "cost_method": "Exact native Codex counters; cache is included in input and reasoning in output. All 2,583 requests below the 272,000-input-token long-context threshold; cache writes explicitly zero. API-rate comparison, not subscription billing.",
+    },
     "claude-haiku-5.5-oc-medium": {
         "label": "Haiku 5.5 Medium (OpenCode)", "color": "#dd9b45", "marker": "^",
         "pricing_as_of": "2026-10-28", "pricing_model_id": "anthropic/claude-haiku-5.5",
@@ -421,6 +434,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "gpt-6.1-terra-medium": (-20, 0),
     "claude-haiku-5.5-oc-medium": (-85, -22),
     "deepseek-v4.1-flash-oc-high": (-8, 23),
     "gpt-6-luna-oc-medium": (8, 12),

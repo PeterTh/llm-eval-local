@@ -60,6 +60,25 @@ class ExactTokenCostTest(unittest.TestCase):
                 self.assertEqual(0.05, row.cached_input_price_usd_per_million)
                 self.assertEqual("https://developers.openai.com/api/docs/models/gpt-6.1-sol", row.pricing_source_url)
 
+    def test_terra61_uses_its_own_frozen_flex_rates(self):
+        row = combined.aggregate(self.frame.assign(model="gpt-6.1-terra-medium")).iloc[0]
+        self.assertAlmostEqual((20 * 0.5 + 80 * 0.025 + 10 * 2.5) / 1_000_000,
+                               row.estimated_cost_usd_per_run)
+        self.assertEqual("2026-10-28", row.pricing_as_of)
+        self.assertEqual("openai/flex", row.pricing_provider_tag)
+        self.assertEqual("https://developers.openai.com/api/docs/models/gpt-6.1-terra", row.pricing_source_url)
+        self.assertIn("2,583 requests", row.cost_method)
+
+    def test_terra61_campaign_cost_matches_independent_per_request_audit(self):
+        totals = self.frame.assign(model="gpt-6.1-terra-medium",
+            input_tokens=42_257_780, cached_tokens=38_479_232,
+            output_tokens=769_669, total_tokens=43_027_449)
+        row = combined.aggregate(totals).iloc[0]
+        self.assertAlmostEqual(4.7754273, row.estimated_cost_usd_per_run, places=10)
+        self.assertAlmostEqual(0.021706487727272727, row.estimated_cost_usd_per_run / 220,
+                               places=12)
+        self.assertEqual(43_027_449, row.mean_total_tokens)
+
     def test_opus55_exact_tokens_use_dated_cache_discount(self):
         frame = self.frame.assign(model="claude-opus-5.5-cc-medium")
         row = combined.aggregate(frame).iloc[0]

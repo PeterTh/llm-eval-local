@@ -30,6 +30,22 @@ class BatchGenerationTest < Minitest::Test
     assert_match(/counter differs/, assert_raises(RuntimeError) { verify }.message)
   end
 
+  def test_terra_native_profile_retains_explicit_zero_cache_writes
+    @campaign['id'] = '20261028-200951'
+    @record['batch'] = @campaign.fetch('id')
+    @record.fetch('usage')['cache_write_input_tokens'] = 0
+    @observation['model'] = 'gpt-6.1-terra'
+    @row.merge!('model' => 'gpt-6.1-terra-medium', 'cache_write_input_tokens' => '0')
+    verify
+    @row['cache_write_input_tokens'] = nil
+    assert_raises(TypeError) { verify }
+    @row['cache_write_input_tokens'] = '1'
+    assert_match(/counter differs/, assert_raises(RuntimeError) { verify }.message)
+    @row['cache_write_input_tokens'] = '0'
+    @row['model'] = 'gpt-6.1-terra-xhigh'
+    assert_match(/identity differs/, assert_raises(RuntimeError) { verify }.message)
+  end
+
   def test_rejects_counter_and_transcript_changes
     @row["cached_tokens"] = "79"
     assert_match(/counter differs/, assert_raises(RuntimeError) { verify }.message)
