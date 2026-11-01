@@ -15,7 +15,7 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
     "validation_evidence_url", "benchmark_evidence_url",
     "generation_time_seconds", "generation_time_recovered", "generation_time_source",
     "wrapper_exit_status_available", "generation_recovery_sha256", "generation_recovery_evidence_url",
-    "generation_outcome", "token_usage_complete", "partial_total_tokens",
+    "generation_outcome", "generation_failure_reason", "token_usage_complete", "partial_total_tokens",
     "generation_termination_sha256", "generation_termination_evidence_url",
   ];
   const rows = runs.map((run) => [
@@ -42,6 +42,7 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
     run.generationTimeRecovery?.evidenceSha256 ?? "",
     run.generationTimeRecovery?.evidenceUrl ?? "",
     run.generationTermination?.outcome ?? "",
+    run.generationTermination?.reason ?? "",
     run.generationTermination?.usageComplete ?? "",
     run.generationTermination?.partialTotalTokens ?? "",
     run.generationTermination?.evidenceSha256 ?? "",

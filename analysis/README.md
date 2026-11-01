@@ -10,6 +10,11 @@ tables in `tables/`, and final figures in `figures/`.
 Every completed analysis should document the Git data release/tag it consumed and
 provide one command that rebuilds its tables and figures.
 
+Targeted scientific follow-ups are retained in research notes, including the
+[Unstructured boundary-sensitive validation check](notes/2026-11-01-unstructured-boundary-validation.md).
+Its source-pinned failures affect release eligibility; original validation and
+measurement records remain archival evidence.
+
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
 `release/catalog.json` identifies twelve campaigns, scoped evidence overlays and generated-source commits.

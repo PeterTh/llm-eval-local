@@ -157,8 +157,10 @@ export function RunDetailView() {
             It excludes wrapper setup and teardown; the wrapper exit status is unknown. <a href={run.generationTimeRecovery.evidenceUrl} target="_blank" rel="noreferrer">Recovery evidence ↗</a>
           </p>}
           {run.generationTermination && <p>
-            <strong>Model-caused termination.</strong> A generated shell command terminated the agent process.
-            The original output was retained without restarting; validation and benchmarking evaluate that program independently.
+            {run.generationTermination.reason === "model_protocol_failure"
+              ? <><strong>Model-caused protocol failure.</strong> The session ended with a provider prompt-rendering error after malformed model-generated tool arguments.</>
+              : <><strong>Model-caused termination.</strong> A generated shell command terminated the agent process.</>}
+            {" "}The original output was retained without restarting; validation and benchmarking evaluate that program independently.
             {" "}<a href={run.generationTermination.evidenceUrl} target="_blank" rel="noreferrer">Termination evidence ↗</a>
           </p>}
         </section>
@@ -208,7 +210,9 @@ export function RunDetailView() {
         <section className="detail-card provenance-card">
           <p className="eyebrow">Primary evidence</p>
           <h2>Commit-pinned provenance</h2>
-          <p>{run.timingFixed
+          <p>{run.validationDisposition?.classification === "supplemental_external_validation_failure"
+            ? "The supplemental external-validation result determines current eligibility. Earlier validation, source history and any archived timings remain accessible below."
+            : run.timingFixed
             ? (run.benchmarkSuccess === null
               ? "This program received a timing-only correction, but failed revalidation and was not benchmarked. Both source versions and validation observations are retained below."
               : "This benchmark used a timing-only source correction. Both the measured correction and the original generated program are retained below.")
@@ -223,6 +227,7 @@ export function RunDetailView() {
             <a href={run.validationEvidenceUrl} target="_blank" rel="noreferrer"><span>Validation JSONL evidence</span><strong>Open exact line ↗</strong></a>
             {run.originalValidationEvidenceUrl && <a href={run.originalValidationEvidenceUrl} target="_blank" rel="noreferrer"><span>Earlier validation JSONL evidence</span><strong>Open exact line ↗</strong></a>}
             {run.benchmarkEvidenceUrl && <a href={run.benchmarkEvidenceUrl} target="_blank" rel="noreferrer"><span>Benchmark JSONL evidence</span><strong>Open exact line ↗</strong></a>}
+            {run.archivedBenchmarkEvidenceUrl && <a href={run.archivedBenchmarkEvidenceUrl} target="_blank" rel="noreferrer"><span>Archived benchmark evidence (excluded)</span><strong>Open exact line ↗</strong></a>}
           </div>
           <dl className="provenance-list">
             {run.timingCorrection && <>

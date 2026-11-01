@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require_relative "artifact_common"
+require_relative "../method/external-validation/tools/timing_audit/lib/external_validation_exclusions"
 
 # Checks retained batch evidence without needing the native workspace or Git sources.
 module BatchVerification
@@ -17,20 +18,38 @@ module BatchVerification
     raise "termination receipt changed #{id}" unless digest.match?(/\A[0-9a-f]{64}\z/) && sha256(file) == digest &&
       observation.fetch('sha256').fetch('generation-termination.txt') == digest
     receipt = JSON.parse(File.read(file))
-    raise "termination receipt identity differs #{id}" unless receipt.fetch('schema_version') == 1 &&
+    reason = receipt.fetch('reason')
+    raise "termination receipt identity differs #{id}" unless
       receipt.fetch('run_id') == id && receipt.fetch('session_id') == observation.fetch('session_id') &&
-      receipt.fetch('reason') == 'model_caused_termination' && receipt.fetch('approved_by') == 'user' &&
-      receipt.fetch('decision') == 'retain_original_without_restart' && receipt.fetch('usage_complete') == false &&
-      receipt.fetch('native_process_receipt_available') == false && !observation.fetch('sha256').key?('opencode-process.txt')
+      receipt.fetch('approved_by') == 'user' && receipt.fetch('decision') == 'retain_original_without_restart' &&
+      receipt.fetch('usage_complete') == false
     names = %w[output.txt timing.txt instruction.txt process-status.txt opencode-config.txt opencode-session.txt opencode-events.txt]
+    evidence_keys = %w[incident_sha256]
+    case [receipt.fetch('schema_version'), reason]
+    when [1, 'model_caused_termination']
+      raise "termination process receipt differs #{id}" unless receipt.fetch('native_process_receipt_available') == false &&
+        !observation.fetch('sha256').key?('opencode-process.txt')
+      evidence_keys << 'native_export_sha256'
+    when [2, 'model_protocol_failure']
+      error = receipt.fetch('terminal_error')
+      raise "protocol termination evidence differs #{id}" unless observation.fetch('model') == 'opencode-go/beam-free' &&
+        observation.fetch('reasoning_effort') == 'medium' && receipt.fetch('native_process_receipt_available') == true &&
+        observation.fetch('sha256').fetch('opencode-process.txt').match?(/\A[0-9a-f]{64}\z/) &&
+        receipt.fetch('terminal_message_id').match?(/\Amsg_[A-Za-z0-9]+\z/) &&
+        receipt.fetch('protocol_tool_part_id').match?(/\Aprt_[A-Za-z0-9]+\z/) &&
+        error.fetch('name') == 'APIError' && error.dig('data', 'statusCode') == 400 &&
+        error.dig('data', 'isRetryable') == false && error.dig('data', 'message').to_s.include?('[prompt_rendering_failed]')
+      names << 'opencode-process.txt'
+    else
+      raise "unsupported termination receipt #{id}"
+    end
     raise "termination metadata differs #{id}" unless receipt.fetch('metadata_sha256') == observation.fetch('sha256').slice(*names)
-    %w[incident_sha256 native_export_sha256].each do |key|
+    evidence_keys.each do |key|
       raise "termination evidence missing #{id}" unless receipt.fetch(key).match?(/\A[0-9a-f]{64}\z/)
     end
     raise "partial usage differs #{id}" unless row.fetch('token_usage_complete') == 'false' &&
       row.fetch('generation_outcome') == 'generation_model_terminated' &&
-      row.fetch('generation_failure_reason') == 'model_caused_termination' &&
-      observation.fetch('generation_failure_reason') == 'model_caused_termination' &&
+      row.fetch('generation_failure_reason') == reason && observation.fetch('generation_failure_reason') == reason &&
       row.fetch('termination_record_sha256') == digest &&
       JSON.parse(row.fetch('partial_token_counts')) == observation.fetch('token_counts')
   end
@@ -138,7 +157,8 @@ module BatchVerification
         end
       elsif campaign['generation_harness'] == 'opencode'
         provider, model = observation.fetch('model').split('/', 2)
-        profile_model = { 'opencode-go/claude-haiku-5-5' => 'claude-haiku-5.5' }.fetch(observation.fetch('model'), model)
+        profile_model = { 'opencode-go/claude-haiku-5-5' => 'claude-haiku-5.5',
+          'opencode-go/beam-free' => 'beam-1.0' }.fetch(observation.fetch('model'), model)
         complete = observation.fetch('usage_complete')
         raise "OpenCode generation identity differs #{id}" unless %w[openai opencode-go].include?(provider) &&
           model && !model.empty? && !model.include?('/') &&
@@ -205,8 +225,10 @@ module BatchVerification
     by_id = observations.to_h { |row| [row.fetch('id'), row] }
     records = context.fetch('records')
     flat = context.fetch('schema_version') == 2
+    flat_limits = { 'opencode-go/deepseek-v4.1-flash' => 1_000_000, 'opencode-go/beam-free' => 1_048_576 }
     raise 'OpenCode flat-context pricing policy differs' if flat && !(context.fetch('pricing_context_policy') == 'flat_context' &&
-      context.fetch('input_limit_tokens') == 1_000_000 && observations.all? { |row| row.fetch('model') == 'opencode-go/deepseek-v4.1-flash' })
+      observations.map { |row| row.fetch('model') }.uniq.size == 1 &&
+      observations.all? { |row| flat_limits.key?(row.fetch('model')) && flat_limits[row.fetch('model')] == context.fetch('input_limit_tokens') })
     raise 'OpenCode context identity differs' unless [1, 2].include?(context.fetch('schema_version')) &&
       context.fetch('source_batch') == campaign.fetch('id') && context.fetch('source_commit') == campaign.fetch('source_commit') &&
       context.fetch('programs') == by_id.size && records.size == by_id.size && records.map { |row| row.fetch('id') }.sort == by_id.keys.sort
@@ -326,6 +348,13 @@ module BatchVerification
         record.fetch('timing_review_required') == false && record.fetch('timing_fix_required') == (verdict == 'invalid')
     end
     ids = resolved.values.select { |r| r.fetch('timing_fix_required') }.map { |r| r.fetch('program_id') }.sort
+    if (external = selection['external_validation_exclusions'])
+      registry = ExternalValidationExclusions.new(path("#{base}/#{external.fetch('path')}"))
+      raise 'resolved external-validation evidence differs' unless registry.digest == external.fetch('sha256')
+      excluded = registry.ids_for(source_commit: campaign.fetch('source_commit'), ids: ids)
+      raise 'resolved external-validation scope differs' unless excluded == external.fetch('excluded_ids')
+      ids -= excluded
+    end
     raise 'resolved audit correction scope differs' unless ids == corrections.keys.sort && ids == selection.fetch('correction_ids')
     corrections.each do |id, correction|
       raise "resolved audit correction source differs #{id}" unless correction.fetch('original_source').fetch('digest') == resolved.fetch(id).fetch('source_digest')
@@ -345,6 +374,41 @@ module BatchVerification
     # including result Hash fields ignored by that validator, is not a new gate.
   end
 
+  def verify_external_revalidation!(campaign, corrected)
+    relative = campaign.fetch("external_revalidation_report")
+    report = JSON.parse(File.read(path(relative)))
+    ids = corrected.keys.grep(/\Aunstructured_.+_(mpi|hybrid)_r[1-5]\z/).sort
+    unless report.fetch("passed") && report.fetch("ids") == ids &&
+        report.fetch("source_commit") == campaign.fetch("corrected_source_commit") &&
+        report.fetch("case").values_at("id", "benchmark", "args") ==
+          [ExternalValidationExclusions::CASE_ID, "unstructured", ExternalValidationExclusions::ARGS]
+      raise "Corrected supplemental validation coverage differs"
+    end
+    reference = @external.registry.data.fetch("reference").fetch("stdout")
+    ids.each do |id|
+      directory = File.join(File.dirname(relative), ExternalValidationExclusions::CASE_ID, id)
+      result_path = path(File.join(directory, "result.json"))
+      result = JSON.parse(File.read(result_path))
+      unless sha256(result_path) == report.fetch("result_sha256").fetch(id) && result.fetch("id") == id &&
+          result.fetch("source_commit") == campaign.fetch("corrected_source_commit") &&
+          result.fetch("source_path") == "#{campaign.fetch('id')}/#{id}" &&
+          result.fetch("manifest_sha256") == corrected.fetch(id).dig("metadata", "manifest_sha256") &&
+          result.fetch("reference_sha256") == Digest::SHA256.hexdigest(reference) && result.fetch("args") == ExternalValidationExclusions::ARGS
+        raise "Corrected supplemental provenance differs: #{id}"
+      end
+      result.fetch("logs").each do |name, digest|
+        raise "Unsafe supplemental log name" unless File.basename(name) == name
+        raise "Corrected supplemental log differs" unless sha256(path(File.join(directory, name))) == digest
+      end
+      output = File.read(path(File.join(directory, "validation_out_stdout.log")))
+      unless result.fetch("passed") && result.dig("execution", "success") && !result.dig("execution", "timed_out") &&
+          output.include?("Validation: PASSED") && !output.include?("Validation: FAILED") && !output.include?("Validation fail") &&
+          validate(reference, output, "unstructured") == result.fetch("comparison") && result.fetch("comparison").first
+        raise "Corrected supplemental comparison failed: #{id}"
+      end
+    end
+  end
+
   def verify_batch(campaign, original, corrected, records)
     base = evidence_base(campaign)
     read_json = ->(relative) { JSON.parse(File.read(path("#{base}/#{relative}"))) }
@@ -358,7 +422,10 @@ module BatchVerification
                "timing_fixed_successful" => records.values.count { |r| r.fetch("timing_fixed") && r.fetch("success") } }
     raise "batch benchmark counts differ" unless counts.all? { |k, v| benchmark_summary.fetch(k) == v }
     raise "batch validation count differs" unless summary.fetch("validation_records") == original.size
-    raise "batch validation pass count differs" unless summary.fetch("validation_passed") == records.size
+    missing_external = (@external&.excluded_ids(campaign) || []) - records.keys
+    raise "batch validation pass count differs" unless summary.fetch("validation_passed") == records.size + missing_external.size
+    raise "Missing corrected supplemental validation" if !missing_external.empty? && !campaign["external_revalidation_report"]
+    verify_external_revalidation!(campaign, corrected) if campaign["external_revalidation_report"]
     raise "batch correction count differs" unless summary.fetch("timing_corrections").fetch("benchmark_successful") == counts.fetch("timing_fixed_successful")
     manifest_digest = sha256(path(campaign.fetch("manifest")))
     corrected_manifest_digest = sha256(path("#{base}/timing-corrections/revalidation/provenance/evaluation_manifest.yaml"))

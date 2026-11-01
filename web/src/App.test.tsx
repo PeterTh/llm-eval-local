@@ -106,13 +106,28 @@ describe("explorer routing", () => {
     const costDataset = structuredClone(costDatasetFixture);
     const costRun = costDataset.runs.find((run) => run.id === runs[0]!.id)!;
     Object.assign(costRun, { inputTokens: null, cachedInputTokens: null, outputTokens: null, totalTokens: null, estimatedCostUsd: null });
-    runs[0]!.generationTermination = { outcome: "generation_model_terminated", usageComplete: false,
+    runs[0]!.generationTermination = { outcome: "generation_model_terminated", reason: "model_caused_termination", usageComplete: false,
       partialTotalTokens: 2330386, evidenceSha256: "b".repeat(64), evidenceUrl: "https://example.test/termination.json" };
     await renderApp(`/run/${encodeURIComponent(runs[0]!.id)}`, { runs, costDataset });
     expect(await screen.findByText("Model-caused termination.")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Estimated API cost unavailable" })).toBeInTheDocument();
     expect(screen.getByText(/Usage is incomplete/)).toHaveTextContent("lower bound is not used as a full-task cost estimate");
     expect(screen.getByRole("link", { name: /Termination evidence/ })).toHaveAttribute("href", "https://example.test/termination.json");
+  });
+  it("distinguishes a protocol failure from a command terminating the process", async () => {
+    const { runsFixture, costDatasetFixture } = await import("./test/fixtures");
+    const runs = structuredClone(runsFixture);
+    const costDataset = structuredClone(costDatasetFixture);
+    const costRun = costDataset.runs.find((run) => run.id === runs[0]!.id)!;
+    Object.assign(costRun, { inputTokens: null, cachedInputTokens: null, outputTokens: null, totalTokens: null, estimatedCostUsd: null });
+    runs[0]!.generationTermination = { outcome: "generation_model_terminated", reason: "model_protocol_failure", usageComplete: false,
+      partialTotalTokens: 72920, evidenceSha256: "b".repeat(64), evidenceUrl: "https://example.test/protocol.json" };
+    await renderApp(`/run/${encodeURIComponent(runs[0]!.id)}`, { runs, costDataset });
+    expect(await screen.findByText("Model-caused protocol failure.")).toBeInTheDocument();
+    expect(screen.getByText(/provider prompt-rendering error/)).toHaveTextContent("malformed model-generated tool arguments");
+    expect(screen.queryByText(/A generated shell command terminated/)).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Estimated API cost unavailable" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Termination evidence/ })).toHaveAttribute("href", "https://example.test/protocol.json");
   });
   it("labels a recovered generation duration separately from benchmark timing", async () => {
     const { runsFixture } = await import("./test/fixtures");

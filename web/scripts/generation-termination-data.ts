@@ -4,6 +4,7 @@ import type { GenerationTermination } from "../src/data/types";
 type Row = Record<string, string | undefined>;
 const fullFields = ["input_tokens", "cached_tokens", "output_tokens", "total_tokens", "reasoning_output_tokens", "cache_write_input_tokens"];
 const partialFields = ["input_tokens", "cached_input_tokens", "cache_write_input_tokens", "output_tokens", "reasoning_output_tokens", "total_tokens"];
+const terminationReasons = ["model_caused_termination", "model_protocol_failure"];
 
 export function generationTerminationPath(row: Row, runId: string): string | null {
   const flag = row.token_usage_complete ?? "";
@@ -18,7 +19,7 @@ export function generationTerminationPath(row: Row, runId: string): string | nul
   if (!/^\d{8}-\d{6}$/.test(row.source_batch ?? "") || !/^[a-zA-Z0-9_.-]+$/.test(runId)) {
     throw new Error(`Unsafe generation termination identity: ${runId}`);
   }
-  if (row.generation_outcome !== "generation_model_terminated" || row.generation_failure_reason !== "model_caused_termination"
+  if (row.generation_outcome !== "generation_model_terminated" || !terminationReasons.includes(row.generation_failure_reason ?? "")
     || row.token_usage_source !== "opencode_native_step_finish" || fullFields.some((field) => Boolean(row[field]))) {
     throw new Error(`Incomplete generation usage presented as complete: ${runId}`);
   }
@@ -32,10 +33,21 @@ export function parseGenerationTermination(row: Row, runId: string, bytes: strin
     throw new Error(`Generation termination provenance mismatch: ${runId}`);
   }
   const receipt = JSON.parse(bytes);
-  if (receipt.schema_version !== 1 || receipt.run_id !== runId || receipt.session_id !== row.token_usage_session_id
+  const legacyTermination = receipt.schema_version === 1 && receipt.reason === "model_caused_termination"
+    && receipt.native_process_receipt_available === false;
+  const protocolFailure = receipt.schema_version === 2 && receipt.reason === "model_protocol_failure"
+    && row.model === "beam-1.0-oc-medium" && receipt.native_process_receipt_available === true
+    && /^[0-9a-f]{64}$/.test(receipt.metadata_sha256?.["opencode-process.txt"] ?? "")
+    && /^[0-9a-f]{64}$/.test(receipt.incident_sha256 ?? "")
+    && /^msg_[A-Za-z0-9]+$/.test(receipt.terminal_message_id ?? "")
+    && /^prt_[A-Za-z0-9]+$/.test(receipt.protocol_tool_part_id ?? "")
+    && receipt.terminal_error?.name === "APIError" && receipt.terminal_error?.data?.statusCode === 400
+    && receipt.terminal_error?.data?.isRetryable === false
+    && String(receipt.terminal_error?.data?.message ?? "").includes("[prompt_rendering_failed]");
+  if (receipt.run_id !== runId || receipt.session_id !== row.token_usage_session_id
     || receipt.approved_by !== "user" || receipt.decision !== "retain_original_without_restart"
-    || receipt.reason !== "model_caused_termination" || receipt.usage_complete !== false
-    || receipt.native_process_receipt_available !== false) {
+    || receipt.reason !== row.generation_failure_reason || receipt.usage_complete !== false
+    || (!legacyTermination && !protocolFailure)) {
     throw new Error(`Generation termination receipt mismatch: ${runId}`);
   }
   const counts: Record<string, number> = JSON.parse(row.partial_token_counts ?? "null");
@@ -45,6 +57,6 @@ export function parseGenerationTermination(row: Row, runId: string, bytes: strin
     || counts.total_tokens! !== counts.input_tokens! + counts.output_tokens! || counts.total_tokens! <= 0) {
     throw new Error(`Invalid partial generation counters: ${runId}`);
   }
-  return { outcome: "generation_model_terminated", usageComplete: false, partialTotalTokens: counts.total_tokens!,
+  return { outcome: "generation_model_terminated", reason: receipt.reason, usageComplete: false, partialTotalTokens: counts.total_tokens!,
     evidenceSha256: sha256, evidenceUrl };
 }

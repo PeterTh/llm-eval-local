@@ -204,6 +204,7 @@ export const runRecordSchema = z.object({
   generationTimeRecovery: generationTimeRecoverySchema.nullable().optional(),
   generationTermination: z.object({
     outcome: z.literal("generation_model_terminated"),
+    reason: z.enum(["model_caused_termination", "model_protocol_failure"]),
     usageComplete: z.literal(false),
     partialTotalTokens: z.number().int().positive(),
     evidenceSha256: z.string().regex(/^[0-9a-f]{64}$/),
@@ -229,6 +230,7 @@ export const runRecordSchema = z.object({
   }).nullable(),
   validationEvidenceUrl: z.string().url(),
   originalValidationEvidenceUrl: z.string().url().nullable().optional(),
+  archivedBenchmarkEvidenceUrl: z.string().url().nullable().optional(),
   validationDisposition: z.object({ classification: z.string().min(1), reason: z.string().min(1) }).nullable().optional(),
   benchmarkEvidenceUrl: z.string().url().nullable(),
 }).superRefine((run, context) => {
@@ -241,8 +243,13 @@ export const runRecordSchema = z.object({
   if (run.timingCorrection !== null && run.sourceUrl !== run.timingCorrection.correctedSource.url) {
     context.addIssue({ code: "custom", message: "effective source URL is not the corrected source", path: ["sourceUrl"] });
   }
-  if (run.validationDisposition && (run.validationStatus >= 5 || run.benchmarkSuccess !== null || !run.timingFixed)) {
-    context.addIssue({ code: "custom", message: "failed revalidation is not an eligible benchmark", path: ["validationDisposition"] });
+  if (run.validationDisposition && (run.validationStatus >= 5 || run.benchmarkSuccess !== null ||
+      (!run.timingFixed && run.validationDisposition.classification !== "supplemental_external_validation_failure"))) {
+    context.addIssue({ code: "custom", message: "failed validation is not an eligible benchmark", path: ["validationDisposition"] });
+  }
+  if (run.archivedBenchmarkEvidenceUrl && (run.validationDisposition?.classification !== "supplemental_external_validation_failure" ||
+      run.validationStatus !== 4 || run.benchmarkSuccess !== null)) {
+    context.addIssue({ code: "custom", message: "archived benchmark is not an eligible measurement", path: ["archivedBenchmarkEvidenceUrl"] });
   }
 });
 

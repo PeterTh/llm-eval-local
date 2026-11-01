@@ -4,6 +4,7 @@ require_relative "artifact_common"
 require_relative "batch_verification"
 require_relative "shared_corrections"
 require_relative "observation_replacements"
+require_relative "external_validation_overlay"
 require_relative "../method/timing-audit/scoring_threshold_review"
 require_relative "../method/codex-usage/codex_usage"
 
@@ -16,6 +17,7 @@ class CurrentRelease
     @catalog = JSON.parse(File.read(path("release/catalog.json")))
     @shared = SharedCorrections.new(@root, @catalog.fetch("correction_campaign")) if @catalog["correction_campaign"]
     @replacements = ObservationReplacements.new(self, @catalog.fetch("observation_replacements", []))
+    @external = ExternalValidationOverlay.new(self, @catalog.fetch("external_validation")) if @catalog["external_validation"]
   end
 
   def path(relative)
@@ -67,6 +69,7 @@ class CurrentRelease
     headers = []
     campaigns = @catalog.fetch("campaigns")
     benchmarks = {}
+    sources = {}
     rows = campaigns.flat_map do |campaign|
       relative = campaign.fetch("aggregate_csv")
       inputs[relative] = sha256(path(relative))
@@ -101,7 +104,8 @@ class CurrentRelease
         passed = LocalEvalArtifact::VALIDATION_STAGES.take_while { |stage| stages[stage] == true }.size
         raise "validation score mismatch #{id}" unless passed == Integer(row.fetch("validation_status"))
         record = records[id]
-        raise "benchmark eligibility mismatch #{id}" unless (passed == 5) == !record.nil?
+        raise "benchmark eligibility mismatch #{id}" unless (passed == 5) == !record.nil? ||
+          (passed == 5 && record.nil? && @external&.excluded_ids(campaign)&.include?(id))
         if record
           current_config = @shared&.benchmarks&.key?(id) ? @shared.historical_config : config
           current_digest = @shared&.benchmarks&.key?(id) ? @shared.historical_config_digest : config_digest
@@ -124,10 +128,13 @@ class CurrentRelease
         end
         # Source paths in the release are repository relative; raw campaign records retain native paths.
         row["source_path"] = "#{row.fetch('source_batch')}/#{id}"
+        sources[id] = row["timing_fixed"] == "true" ? row.fetch("corrected_source_commit") :
+          (validation["source_commit"] || validation.dig("source", "commit") || campaign.fetch("source_commit"))
       end
       native
     end
     apply_codex_usage!(rows, headers, inputs)
+    @external&.apply!(rows, benchmarks, sources, headers, inputs)
     ids = rows.map { |row| self.class.id(row) }
     raise "overlapping campaign IDs" unless ids.uniq.size == ids.size
     rows.sort_by! { |row| self.class.id(row) }
@@ -178,7 +185,13 @@ class CurrentRelease
         id = self.class.id(row)
         old = old_by_id[id]
         next unless old && Integer(old["overall_score"]) != row["overall_score"]
-        reason = @shared&.benchmarks&.key?(id) ? "scoped QT timing-boundary correction and joint distribution rescore" : "joint distribution rescore; measurements unchanged"
+        reason = if @external&.excluded?(id)
+          "supplemental external-validation failure; historical measurements retained, excluded from performance comparison"
+        elsif @shared&.benchmarks&.key?(id)
+          "scoped QT timing-boundary correction and joint distribution rescore"
+        else
+          "joint distribution rescore; measurements unchanged"
+        end
         csv << [id, old["overall_score"], row["overall_score"], reason]
       end
     end

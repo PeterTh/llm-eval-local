@@ -1,0 +1,236 @@
+{
+  "recorded_at": "2026-11-01T18:01:25Z",
+  "review_type": "operator targeted static inspection of only the failed cases",
+  "verification_sha256": "8c37391f1226f611af3ff2ad51fda23b2c8c0b399d24d24ab6432b99d7b35aa6",
+  "scope": "Explain observed numerical failures, not a general correctness proof for passing programs.",
+  "original_case_blind_spot": "Corner-only forcing with nearest-neighbor propagation: the original 256x256,20-iteration test on four ranks cannot carry nonzero state to the nearest subdomain boundary in either a four-way row split or a 2x2 split. The fixed supplemental 32x32,512-iteration case exercises those boundaries.",
+  "records": [
+    {
+      "category": "incomplete_aos_halo_transfer",
+      "explanation": "ElementDynamic contains two doubles, but each halo Sendrecv transfers only n contiguous MPI_DOUBLE values. This updates only the first n/2 ElementDynamic entries in each ghost row, leaving its latter half stale.",
+      "source_lines": [
+        [
+          32,
+          35
+        ],
+        [
+          180,
+          192
+        ]
+      ],
+      "prior_confirmation": "/home/petert/llm_para_campaigns/20261025-170121-beam10-opencode-medium/evaluation/scientific-followup-hold.json",
+      "id": "unstructured_beam-1.0-oc-medium_mpi_r2",
+      "source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+      "source_path": "20261025-170121/unstructured_beam-1.0-oc-medium_mpi_r2/unstructured/unstructured.cpp",
+      "source_file_sha256": "4e2c8ba3f5cd02d6c7fc4271e570d5851dcce98f842850283086a89f11d7cfc5",
+      "result_sha256": "d2a66356894b8887f0bfb774a89266ececa786be93b93f4df46c391bdd982dc4",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Min: -4.78052051445350035e+00' vs 'Min: -4.79365165242046309e+00'"
+      ],
+      "prior_backend_rank": null,
+      "prior_backend_successes": 152,
+      "prior_median_ms": null,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    },
+    {
+      "category": "reversed_halo_destinations",
+      "explanation": "The first vertical Sendrecv receives from down_rank into h_recv_up, which is copied to the top ghost row; the second receives from up_rank into h_recv_down, copied to the bottom ghost row. The left/right exchanges have the same reversal. Thus the received neighbor data is installed on the opposite side. Receives from MPI_PROC_NULL also leave host buffers unchanged, while those buffers are copied without a neighbor guard.",
+      "source_lines": [
+        [
+          366,
+          392
+        ],
+        [
+          409,
+          424
+        ]
+      ],
+      "id": "unstructured_deepseek-v4-flash_hybrid_r5",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260616-150949/unstructured_deepseek-v4-flash_hybrid_r5/unstructured/unstructured.cpp",
+      "source_file_sha256": "8f77108785d6e69b9cbc735036700fdd55b1832cb6f8b8d2c51b6ad363ce67e8",
+      "result_sha256": "679269da3e72abbae9271e74e7492def07dbda6f965df6480fa93394c3bd2e8d",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Min: -4.78052051445350035e+00' vs 'Min: -4.79436565212419818e+00'"
+      ],
+      "prior_backend_rank": 103,
+      "prior_backend_successes": 125,
+      "prior_median_ms": 7147.0,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    },
+    {
+      "category": "aos_halo_sent_as_scalar_energies",
+      "explanation": "cur holds ElementDynamic pairs (current_energy,total_flux), but sends use n MPI_DOUBLE from cur.data(). Receivers store these n alternating energy/flux scalars in flat energy arrays and index them as one energy per column. Only half the source row is transmitted and accumulated flux is consumed as neighbor energy.",
+      "source_lines": [
+        [
+          13,
+          17
+        ],
+        [
+          47,
+          62
+        ]
+      ],
+      "id": "unstructured_gpt-5.6-luna-low_mpi_r3",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/unstructured_gpt-5.6-luna-low_mpi_r3/unstructured/unstructured.cpp",
+      "source_file_sha256": "e7e2eefcb3edb437f69652a1c9bcac0e7da2669ee35e132619668fd1630a6d9e",
+      "result_sha256": "3fd0a08b1e4c9acc03e143140a14aeb4b3772d2eee44175452a721d1ef1936c6",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Sum: 0.00000000000000000e+00' vs 'Sum: 6.13284425395481776e+02'"
+      ],
+      "prior_backend_rank": 74,
+      "prior_backend_successes": 152,
+      "prior_median_ms": 4985.721,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    },
+    {
+      "category": "incomplete_aos_halo_transfer",
+      "explanation": "Device state is an array of two-double ElementDynamic structs, explicitly size-asserted as such. Boundary copies nevertheless copy n_root*sizeof(val_t), then MPI transfers n_root doubles and the receive copies write the same half-row extent back into struct arrays. Only the first half of each ghost row is refreshed.",
+      "source_lines": [
+        [
+          38,
+          46
+        ],
+        [
+          343,
+          407
+        ]
+      ],
+      "timing_correction_provenance": "Inspected the e8d10c43d7fcdca42862537b0eb7d0d5fab6da66..e897bbe48e877ecbd8873ee1c666b6f394c0344b diff for this file: only the timing synchronization/reduction block changes; the defective halo-transfer code is identical to the original.",
+      "id": "unstructured_gpt-5.6-luna-xhigh_hybrid_r1",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260805-120633/unstructured_gpt-5.6-luna-xhigh_hybrid_r1/unstructured/unstructured.cpp",
+      "source_file_sha256": "e60e809e065658590f62f36c218c9443e1af77c6e02d4f723a83a2e83d7d87e2",
+      "result_sha256": "0e9d1b2d13c8539c223aa00ef0e86471eaf5d4a2d25c59d7677e7fde6d9ec10d",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Min: -4.78052051445350035e+00' vs 'Min: -4.79365165242046309e+00'"
+      ],
+      "prior_backend_rank": 115,
+      "prior_backend_successes": 125,
+      "prior_median_ms": 13219.0,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    },
+    {
+      "category": "wrong_device_row_staged_for_halo",
+      "explanation": "Owned device rows are 1 through localRows, but the second device-to-host copy in exchangeHalos stages row localRows+1 (the bottom ghost row) instead of row localRows (the last owned row). The following downward MPI_Sendrecv sends host row localRows, which is never refreshed after zero initialization for this decomposition. Thus ranks receive stale zero data from the neighbor above.",
+      "source_lines": [
+        [
+          37,
+          50
+        ],
+        [
+          77,
+          106
+        ]
+      ],
+      "id": "unstructured_gpt-5.6-terra-medium_hybrid_r5",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/unstructured_gpt-5.6-terra-medium_hybrid_r5/unstructured/unstructured.cpp",
+      "source_file_sha256": "a02fa9b92bbc6fa395a17a0e9fa96ef2d20ec3353bba313f21de417dccf0e32b",
+      "result_sha256": "3f7faad637f5ad126299cdae2675d80aa22103cfa9a9a7994ebdba26ca0766a7",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Min: -4.78052051445350035e+00' vs 'Min: -4.28136937781590721e+00'"
+      ],
+      "prior_backend_rank": 9,
+      "prior_backend_successes": 125,
+      "prior_median_ms": 2663.693,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    },
+    {
+      "category": "element_count_used_as_byte_count",
+      "explanation": "Each halo row contains n two-double ElementDynamic structs, but MPI_Sendrecv uses MPI_BYTE with count n, not n*sizeof(ElementDynamic). Only one sixteenth of the row's bytes is transferred. The remaining halo entries stay at their initial values and are nevertheless read as neighbors.",
+      "source_lines": [
+        [
+          35,
+          39
+        ],
+        [
+          148,
+          183
+        ]
+      ],
+      "id": "unstructured_gpt-6-luna-medium_mpi_r5",
+      "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+      "source_path": "20260929-135931/unstructured_gpt-6-luna-medium_mpi_r5/unstructured/unstructured.cpp",
+      "source_file_sha256": "7bde641a9c3a426fea01d3d29c95ad86c849b69dc71668b9ba3b076e97a76cc3",
+      "result_sha256": "2f2ff5463634ee10c5b8f22aa680ebc14d658abd92ee2e5b56e8b15a02a79ba8",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Min: -4.78052051445350035e+00' vs 'Min: -4.34697432095283354e+00'"
+      ],
+      "prior_backend_rank": 65,
+      "prior_backend_successes": 152,
+      "prior_median_ms": 4912.0,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    },
+    {
+      "category": "stale_and_wrong_device_buffer_halos",
+      "explanation": "exchangeGhostCells unpacks recv_* into host ghost cells before issuing this iteration's MPI receives, so the subsequently uploaded ghosts are one exchange old. In addition, the upload always targets world.d_elements_dynamic, while the simulation reads a d_current pointer that swaps with d_swap each iteration. Thus every other iteration reads ghosts from the other device allocation, which is not initialized or refreshed by that upload. The world pointers are only rebound after the entire loop.",
+      "source_lines": [
+        [
+          266,
+          304
+        ],
+        [
+          312,
+          328
+        ],
+        [
+          339,
+          399
+        ]
+      ],
+      "timing_correction_provenance": "Inspected the e8d10c43d7fcdca42862537b0eb7d0d5fab6da66..e897bbe48e877ecbd8873ee1c666b6f394c0344b diff for this file: only the local-duration/MPI_MAX timing reduction changes; the faulty ghost exchange and device-buffer handling are unchanged.",
+      "id": "unstructured_qwen3.7-plus_hybrid_r4",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260618-110425/unstructured_qwen3.7-plus_hybrid_r4/unstructured/unstructured.cpp",
+      "source_file_sha256": "1bf611bb1b798756968e1ace0de7d4bab60f3b7166c95c70ea24fab9dbd5a53d",
+      "result_sha256": "db51c008d1de9beb163c9feb1e4043956f77c323b0ba5cc288260493441ca3a6",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Min: -4.78052051445350035e+00' vs 'Min: -4.78580665498483881e+00'"
+      ],
+      "prior_backend_rank": 122,
+      "prior_backend_successes": 125,
+      "prior_median_ms": 14299.0,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    },
+    {
+      "category": "incomplete_aos_halo_transfer",
+      "explanation": "The state is an array of two-double ElementDynamic structs. Both nonblocking sends and receives start at current_energy but transfer only n_elems_root MPI_DOUBLE values, refreshing only the first half of each ghost row instead of the full row.",
+      "source_lines": [
+        [
+          35,
+          39
+        ],
+        [
+          189,
+          224
+        ]
+      ],
+      "id": "unstructured_qwen3.7-plus_mpi_r1",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260618-110425/unstructured_qwen3.7-plus_mpi_r1/unstructured/unstructured.cpp",
+      "source_file_sha256": "49b8af8dacafd1fdfb6a01d85c117bd5dc521823c286efbc1e9d7fd660688b7e",
+      "result_sha256": "27bad44d9cd6f09dbef1a510f0e9dc91fa6a89f19ae8de3c16c86e7ab72053e6",
+      "observed_comparison_failure": [
+        false,
+        "Numeric value mismatch for object ElementEnergy: 'Min: -4.78052051445350035e+00' vs 'Min: -4.79365165242046309e+00'"
+      ],
+      "prior_backend_rank": 77,
+      "prior_backend_successes": 152,
+      "prior_median_ms": 5001.0,
+      "disposition": "fail_validation; preserve original source and all measurements; no algorithm repair"
+    }
+  ],
+  "model_requests": 0,
+  "extra_program_executions": 0,
+  "source_changes": 0,
+  "performance_reruns": 0
+}

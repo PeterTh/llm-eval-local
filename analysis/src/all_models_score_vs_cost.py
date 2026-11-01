@@ -39,6 +39,17 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "beam-1.0-oc-medium": {
+        "label": "Beam 1.0 Medium (OpenCode)", "color": "#9b64ad", "marker": "^",
+        "pricing_as_of": "2026-10-30", "pricing_model_id": "reflection/beam-1.0-501b-a23b",
+        "input_price": 0.25, "cached_input_price": 0.05, "output_price": 1.0,
+        "pricing_provider": "Nebius", "pricing_provider_tag": "nebius/fp4", "pricing_quantization": "fp4",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/reflection/beam-1.0-501b-a23b/endpoints",
+        "pricing_source_url": "https://openrouter.ai/reflection/beam-1.0-501b-a23b",
+        "secondary_pricing_source_url": "https://reflection.ai/beam-model-card",
+        "pricing_match_note": "Beam 1.0 family; pricing endpoint declares 20261016/FP4, while the evaluated Go alias is unversioned. Serving configurations are not established to be identical. API-rate comparison, not Go promotional billing.",
+        "cost_method": "Exact native OpenCode request counters; cache is included in input and reasoning in output. Flat context pricing. The protocol-terminated session has incomplete usage and is excluded from full-task costs, but retained in scores.",
+    },
     "gpt-6.1-terra-medium": {
         "label": "GPT-6.1 Terra Medium", "color": "#579c82", "marker": "s",
         "pricing_as_of": "2026-10-28", "pricing_model_id": "openai/gpt-6.1-terra",
@@ -434,6 +445,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "beam-1.0-oc-medium": (-7, -10),
     "gpt-6.1-terra-medium": (-20, 0),
     "claude-haiku-5.5-oc-medium": (-85, -22),
     "deepseek-v4.1-flash-oc-high": (-8, 23),

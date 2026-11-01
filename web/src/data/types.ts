@@ -227,6 +227,7 @@ export interface GenerationTimeRecovery {
 
 export interface GenerationTermination {
   outcome: "generation_model_terminated";
+  reason: "model_caused_termination" | "model_protocol_failure";
   usageComplete: false;
   partialTotalTokens: number;
   evidenceSha256: string;
@@ -258,6 +259,7 @@ export interface RunRecord {
   timingCorrection: TimingCorrectionProvenance | null;
   validationEvidenceUrl: string;
   originalValidationEvidenceUrl?: string | null;
+  archivedBenchmarkEvidenceUrl?: string | null;
   validationDisposition?: { classification: string; reason: string } | null;
   benchmarkEvidenceUrl: string | null;
 }

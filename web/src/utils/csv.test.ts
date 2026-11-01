@@ -9,13 +9,13 @@ import { parse } from "csv-parse/sync";
 describe("runsToCsv", () => {
   it("exports model termination and partial accounting without changing results", () => {
     const run = structuredClone(runsFixture[0]!);
-    run.generationTermination = { outcome: "generation_model_terminated", usageComplete: false,
+    run.generationTermination = { outcome: "generation_model_terminated", reason: "model_protocol_failure", usageComplete: false,
       partialTotalTokens: 110, evidenceSha256: "b".repeat(64), evidenceUrl: "https://example.test/termination.json" };
     const rows = parse(runsToCsv([run, runsFixture[1]!]), { columns: true });
-    expect(rows[0]).toMatchObject({ generation_outcome: "generation_model_terminated", token_usage_complete: "false",
+    expect(rows[0]).toMatchObject({ generation_outcome: "generation_model_terminated", generation_failure_reason: "model_protocol_failure", token_usage_complete: "false",
       partial_total_tokens: "110", generation_termination_sha256: "b".repeat(64),
       generation_termination_evidence_url: "https://example.test/termination.json", overall_score: String(run.overallScore) });
-    expect(rows[1]).toMatchObject({ generation_outcome: "", token_usage_complete: "", partial_total_tokens: "" });
+    expect(rows[1]).toMatchObject({ generation_outcome: "", generation_failure_reason: "", token_usage_complete: "", partial_total_tokens: "" });
   });
   it("exports recovered generation provenance without inventing wrapper status", () => {
     const run = structuredClone(runsFixture[0]!);

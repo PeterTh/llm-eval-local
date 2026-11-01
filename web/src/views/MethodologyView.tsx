@@ -138,6 +138,9 @@ export function MethodologyView() {
               <li><strong>Internal validation</strong><span>The benchmark’s own correctness and sanity checks must pass.</span></li>
               <li><strong>Output comparison</strong><span>Exported results are compared with a known-good sequential reference.</span></li>
             </ol>
+            <p>Unstructured MPI and hybrid programs must also pass a boundary-crossing case
+              with a 32×32 grid and 512 iterations on four ranks. Both cases use the unchanged
+              sequential reference and numerical comparison; result hashes are informational.</p>
             <p>Only programs passing output comparison are eligible for performance benchmarking.</p>
           </section>
 

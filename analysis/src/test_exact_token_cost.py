@@ -123,6 +123,33 @@ class ExactTokenCostTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Incomplete usage"):
             combined.aggregate(complete.assign(token_usage_complete=False))
 
+    def test_beam_uses_frozen_comparison_rates_not_the_free_promotion(self):
+        totals = self.frame.assign(model="beam-1.0-oc-medium",
+            input_tokens=39_500_880, cached_tokens=29_452_416,
+            output_tokens=883_833, total_tokens=40_384_713)
+        row = combined.aggregate(totals).iloc[0]
+        self.assertAlmostEqual(4.8685698, row.estimated_cost_usd_per_run, places=10)
+        self.assertAlmostEqual(0.022230912328767123, row.estimated_cost_usd_per_run / 219,
+                               places=12)
+        self.assertEqual("2026-10-30", row.pricing_as_of)
+        self.assertEqual("nebius/fp4", row.pricing_provider_tag)
+        self.assertTrue(pd.isna(row.request_input_threshold_tokens))
+
+    def test_beam_protocol_failure_keeps_its_score_but_not_a_partial_cost(self):
+        complete = self.frame.assign(model="beam-1.0-oc-medium", token_usage_complete=True)
+        incomplete = self.frame.assign(model="beam-1.0-oc-medium", overall_score=1,
+            token_usage_complete=False, input_tokens=float("nan"), cached_tokens=float("nan"),
+            output_tokens=float("nan"), total_tokens=float("nan"),
+            partial_token_counts='{"total_tokens":72920}', generation_failure_reason="model_protocol_failure")
+        row = combined.aggregate(pd.concat([complete, incomplete], ignore_index=True)).iloc[0]
+        self.assertEqual(2, row.score_run_count)
+        self.assertEqual(1, row.cost_run_count)
+        self.assertEqual(4, row.mean_overall_score)
+        self.assertAlmostEqual((20 * 0.25 + 80 * 0.05 + 10 * 1) / 1_000_000,
+                               row.estimated_cost_usd_per_run)
+        with self.assertRaisesRegex(ValueError, "Incomplete usage"):
+            combined.aggregate(complete.assign(token_usage_complete=False))
+
 
 if __name__ == "__main__":
     unittest.main()

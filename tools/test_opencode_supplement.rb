@@ -39,6 +39,16 @@ class OpenCodeSupplementTest < Minitest::Test
     assert_equal "24648e59045c3e8d7280119627a7bccde1da4f2f", haiku.fetch("original")
     assert_equal "20261028-haiku55-opencode", haiku.fetch("audit_id")
     assert_equal "haiku55-opencode-medium", haiku.fetch("suffix")
+    beam = OpenCodeSupplement.configuration("20261025-170121")
+    assert_equal "74652eee82e2473660a7e75f3ad5d77fd0e3759c", beam.fetch("original")
+    assert_equal "20261030-beam10-opencode", beam.fetch("audit_id")
+    assert_equal "beam10-opencode-medium", beam.fetch("suffix")
+    assert_equal "request-context-verification.json", beam.fetch("context_summary")
+    assert_equal "audit-completion-supplemental-review.json", beam.fetch("audit_report")
+    assert_equal %w[supplemental-communication-20261031], beam.fetch("supplemental_audits")
+    assert_nil haiku["context_summary"]
+    assert_nil haiku["audit_report"]
+    assert_nil haiku["supplemental_audits"]
     assert_raises(RuntimeError) { OpenCodeSupplement.configuration("../unknown") }
   end
 

@@ -4,13 +4,31 @@ import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture, tim
 import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema, timeDatasetSchema } from "./schema";
 
 describe("runtime dataset validation", () => {
+  it("retains external-validation exclusions without requiring a timing correction", () => {
+    const run = structuredClone(runsFixture[0]!);
+    run.validationStatus = 4;
+    run.overallScore = 4;
+    run.benchmarkSuccess = null;
+    run.benchmarkMedianMs = null;
+    run.benchmarkMeasurementsMs = [];
+    run.timingFixed = false;
+    run.timingCorrection = null;
+    run.validationDisposition = { classification: "supplemental_external_validation_failure", reason: "Boundary-case numerical comparison failed." };
+    run.archivedBenchmarkEvidenceUrl = "https://example.test/archived.jsonl#L1";
+    expect(runShardSchema.parse([run])[0]).toEqual(run);
+    expect(() => runShardSchema.parse([{ ...run, validationStatus: 5 }])).toThrow();
+    expect(() => runShardSchema.parse([{ ...run, benchmarkSuccess: true }])).toThrow();
+    expect(() => runShardSchema.parse([{ ...run, validationDisposition: null }])).toThrow();
+  });
   it("preserves partial usage without changing scientific outcomes", () => {
     const run = structuredClone(runsFixture[0]!);
-    run.generationTermination = { outcome: "generation_model_terminated", usageComplete: false,
+    run.generationTermination = { outcome: "generation_model_terminated", reason: "model_caused_termination", usageComplete: false,
       partialTotalTokens: 110, evidenceSha256: "b".repeat(64), evidenceUrl: "https://example.test/termination.json" };
     expect(runShardSchema.parse([run])[0]).toEqual(run);
     expect(() => runShardSchema.parse([{ ...run, generationTermination: { ...run.generationTermination, usageComplete: true } }])).toThrow();
     expect(() => runShardSchema.parse([{ ...run, generationTermination: { ...run.generationTermination, partialTotalTokens: -1 } }])).toThrow();
+    expect(runShardSchema.parse([{ ...run, generationTermination: { ...run.generationTermination, reason: "model_protocol_failure" } }])[0]!.generationTermination?.reason).toBe("model_protocol_failure");
+    expect(() => runShardSchema.parse([{ ...run, generationTermination: { ...run.generationTermination, reason: "unknown" } }])).toThrow();
   });
   it("preserves generation recovery without treating unknown wrapper status as success", () => {
     const run = structuredClone(runsFixture[0]!);

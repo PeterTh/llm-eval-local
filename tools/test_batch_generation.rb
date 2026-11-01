@@ -142,6 +142,19 @@ class BatchGenerationTest < Minitest::Test
     assert_raises(RuntimeError) { check.call }
   end
 
+  def test_beam_free_alias_maps_only_to_its_explicit_profile
+    campaign, observation, row = opencode_fixture
+    observation['model'] = 'opencode-go/beam-free'
+    row['model'] = 'beam-1.0-oc-medium'
+    check = -> { @release.verify_generation_observations!(campaign, [observation], { 'example' => row }) }
+    check.call
+    observation['model'] = 'openai/beam-free'
+    assert_raises(RuntimeError) { check.call }
+    observation['model'] = 'opencode-go/beam-free'
+    row['model'] = 'beam-free-oc-medium'
+    assert_raises(RuntimeError) { check.call }
+  end
+
   def haiku_context_fixture
     campaign, observation, = opencode_fixture
     counts = { 'input_tokens' => 200001, 'cached_input_tokens' => 180000, 'cache_write_input_tokens' => 300,
@@ -251,6 +264,63 @@ class BatchGenerationTest < Minitest::Test
     end
   end
 
+  def test_protocol_failure_retains_process_receipt_and_partial_cost_guard
+    Dir.mktmpdir('beam-protocol-termination-test-') do |root|
+      @release.instance_variable_set(:@root, root)
+      campaign, observation, row = opencode_fixture
+      observation.merge!('model' => 'opencode-go/beam-free', 'outcome' => 'generation_model_terminated',
+        'usage_complete' => false, 'generation_failure_reason' => 'model_protocol_failure')
+      row.merge!('model' => 'beam-1.0-oc-medium', 'token_usage_complete' => 'false',
+        'generation_outcome' => 'generation_model_terminated', 'generation_failure_reason' => 'model_protocol_failure',
+        'partial_token_counts' => JSON.generate(observation.fetch('token_counts')))
+      full_fields = %w[input_tokens cached_tokens output_tokens total_tokens reasoning_output_tokens cache_write_input_tokens]
+      full_fields.each { |field| row[field] = nil }
+      receipt = { 'schema_version' => 2, 'run_id' => 'example', 'session_id' => 'session',
+        'reason' => 'model_protocol_failure', 'approved_by' => 'user', 'decision' => 'retain_original_without_restart',
+        'usage_complete' => false, 'native_process_receipt_available' => true, 'incident_sha256' => 'b' * 64,
+        'terminal_message_id' => 'msg_example', 'protocol_tool_part_id' => 'prt_example',
+        'terminal_error' => { 'name' => 'APIError', 'data' => { 'statusCode' => 400, 'isRetryable' => false,
+          'message' => 'Upstream request failed: [prompt_rendering_failed]' } },
+        'metadata_sha256' => observation.fetch('sha256').dup }
+      file = File.join(root, "batches/#{campaign.fetch('id')}/generation/terminations/example.json")
+      FileUtils.mkdir_p(File.dirname(file))
+      retain = lambda do |candidate|
+        File.write(file, JSON.generate(candidate))
+        digest = Digest::SHA256.file(file).hexdigest
+        observation['termination_record_sha256'] = digest
+        observation.fetch('sha256')['generation-termination.txt'] = digest
+        row['termination_record_sha256'] = digest
+      end
+      check = -> { @release.verify_generation_observations!(campaign, [observation], { 'example' => row }) }
+      retain.call(receipt)
+      check.call
+      full_fields.each do |field|
+        row[field] = '0'
+        assert_raises(RuntimeError, field) { check.call }
+        row[field] = nil
+      end
+      error_data = receipt.fetch('terminal_error').fetch('data')
+      invalid = [receipt.merge('schema_version' => 1), receipt.merge('reason' => 'unknown'),
+        receipt.merge('approved_by' => 'automatic'), receipt.merge('usage_complete' => true),
+        receipt.merge('native_process_receipt_available' => false), receipt.merge('terminal_message_id' => ''),
+        receipt.merge('metadata_sha256' => receipt.fetch('metadata_sha256').merge('opencode-process.txt' => 'f' * 64))]
+      [{ 'statusCode' => 500 }, { 'isRetryable' => true }, { 'message' => 'Unrelated provider failure' }].each do |change|
+        invalid << receipt.merge('terminal_error' => receipt.fetch('terminal_error').merge('data' => error_data.merge(change)))
+      end
+      invalid.each do |changed|
+        retain.call(changed)
+        assert_raises(RuntimeError) { check.call }
+      end
+      retain.call(receipt)
+      row['generation_failure_reason'] = 'model_caused_termination'
+      assert_raises(RuntimeError) { check.call }
+      row['generation_failure_reason'] = 'model_protocol_failure'
+      observation['model'] = 'opencode-go/deepseek-v4.1-flash'
+      row['model'] = 'deepseek-v4.1-flash-oc-medium'
+      assert_raises(RuntimeError) { check.call }
+    end
+  end
+
   def test_flat_context_support_preserves_legacy_long_context_guard
     campaign, observation, = opencode_fixture
     observation.merge!('model' => 'opencode-go/deepseek-v4.1-flash', 'usage_complete' => false)
@@ -295,6 +365,32 @@ class BatchGenerationTest < Minitest::Test
     assert_raises(RuntimeError) { check.call }
     record['maximum_request_input_tokens'] = 60
     context['requests'] = 3
+    assert_raises(RuntimeError) { check.call }
+  end
+
+  def test_beam_flat_context_retains_partial_usage_and_its_advertised_limit
+    campaign, observation, = opencode_fixture
+    observation.merge!('model' => 'opencode-go/beam-free', 'usage_complete' => false)
+    record = { 'id' => 'example', 'session_id' => 'session', 'native_session_sha256' => 'a' * 64,
+      'token_counts' => observation.fetch('token_counts').dup, 'request_count' => 2,
+      'maximum_request_input_tokens' => 60, 'requests_above_272000_tokens' => 0,
+      'cache_write_input_tokens' => 0, 'usage_complete' => false }
+    context = { 'schema_version' => 2, 'source_batch' => campaign.fetch('id'), 'source_commit' => campaign.fetch('source_commit'),
+      'programs' => 1, 'requests' => 2, 'maximum_request_input_tokens' => 60, 'requests_above_272000_tokens' => 0,
+      'cache_write_input_tokens' => 0, 'records' => [record], 'pricing_context_policy' => 'flat_context',
+      'input_limit_tokens' => 1_048_576, 'complete_programs' => 0, 'incomplete_programs' => 1 }
+    check = -> { @release.verify_opencode_context!(campaign, [observation], context) }
+    check.call
+    context['input_limit_tokens'] = 1_000_000
+    assert_raises(RuntimeError) { check.call }
+    context['input_limit_tokens'] = 1_048_576
+    context['complete_programs'] = 1
+    assert_raises(RuntimeError) { check.call }
+    context['complete_programs'] = 0
+    record['usage_complete'] = true
+    assert_raises(RuntimeError) { check.call }
+    record['usage_complete'] = false
+    observation['model'] = 'opencode-go/unknown-model'
     assert_raises(RuntimeError) { check.call }
   end
 

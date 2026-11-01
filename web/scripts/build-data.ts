@@ -400,6 +400,7 @@ export async function buildData(): Promise<void> {
     campaigns: Array<{ validation_records: string; corrected_validation_records?: string; validation_format: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
     observation_replacements?: Array<{ ids: string[]; validation_records: string; corrected_validation_records: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
     correction_campaign?: { root: string; validation_records: string; benchmark_records: string; source_history: string };
+    external_validation?: { registry: string; registry_sha256: string; records: string; applied_ids: string[] };
   };
   const validationRecords = new Map<string, LocatedRecord<ValidationRecord>>();
   const benchmarkRecords = new Map<string, LocatedRecord<BenchmarkRecord>>();
@@ -445,6 +446,8 @@ export async function buildData(): Promise<void> {
   const originalValidationRecords = new Map(validationRecords);
   let sourceHistories = new Map<string, LocatedRecord<SourceHistory>>();
   const failureDispositions = new Map<string, { classification: string; reason: string }>();
+  const archivedBenchmarkRecords = new Map<string, LocatedRecord<BenchmarkRecord>>();
+  const supplementalValidationIds = new Set<string>();
   if (catalog.correction_campaign) {
     const overlay = catalog.correction_campaign;
     const recordRoot = (pattern: string) => resolve(repositoryRoot, pattern.replace(/\/\*\/\*\.jsonl$/, ""));
@@ -462,6 +465,41 @@ export async function buildData(): Promise<void> {
       invariant(decision.decision === "fail_validation" && !benchmarkRecords.has(decision.program_id),
         `failed revalidation was restored to benchmarking: ${decision.program_id}`);
       failureDispositions.set(decision.program_id, { classification: decision.classification, reason: decision.reason });
+    }
+  }
+  if (catalog.external_validation) {
+    const overlay = catalog.external_validation;
+    const content = await readFile(resolve(repositoryRoot, overlay.registry), "utf8");
+    invariant(digest(content) === overlay.registry_sha256, "external-validation registry digest differs");
+    const registry = JSON.parse(content) as {
+      case: { id: string }; records: Array<{ id: string; source_commit: string; source_path: string;
+        stages: Record<string, boolean>; result: { comparison: [boolean, string] } }>;
+    };
+    const entries = new Map(registry.records.map((record) => [record.id, record]));
+    invariant(JSON.stringify([...entries.keys()].filter((id) => validationRecords.has(id)).sort()) === JSON.stringify(overlay.applied_ids),
+      "external-validation release scope differs");
+    const evidence = await readJsonlRecords<Record<string, any>>(resolve(repositoryRoot, overlay.records));
+    for (const id of overlay.applied_ids) {
+      const decision = entries.get(id)!;
+      const original = validationRecords.get(id)!;
+      const benchmark = benchmarkRecords.get(id);
+      const effectiveCommit = benchmark?.record.timing_correction?.corrected_source.commit ?? original.record.source.commit;
+      invariant(effectiveCommit === decision.source_commit && original.record.source.path === decision.source_path,
+        `external-validation effective source differs: ${id}`);
+      invariant(Object.values(original.record.stages).every((passed) => passed === true)
+        && decision.stages.output_comparison === false && decision.result.comparison[0] === false,
+        `external-validation stage differs: ${id}`);
+      const located = evidence.get(id)!;
+      invariant(located && located.record.result.source_commit === decision.source_commit
+        && located.record.result.passed === false, `external-validation evidence differs: ${id}`);
+      originalValidationRecords.set(id, original);
+      validationRecords.set(id, { ...located, record: { ...original.record, stages: decision.stages,
+        source: { ...original.record.source, commit: decision.source_commit } } });
+      if (benchmark) archivedBenchmarkRecords.set(id, benchmark);
+      benchmarkRecords.delete(id);
+      supplementalValidationIds.add(id);
+      failureDispositions.set(id, { classification: "supplemental_external_validation_failure",
+        reason: `External validation failed (${registry.case.id}): ${decision.result.comparison[1]}. The earlier validation and any historical timings are retained as evidence, but this program is excluded from performance comparisons.` });
     }
   }
   const implementationAnalyses = await readImplementationAnalyses(implementationAnalysisRoot);
@@ -574,8 +612,9 @@ export async function buildData(): Promise<void> {
     const sourcePath = validation.source.path;
     invariant(sourcePath, `source path is missing for ${id}`);
     const history = sourceHistories.get(id)?.record;
-    const timingFixed = history !== undefined || (locatedBenchmark?.record.timing_fixed ?? false);
-    const rawTimingCorrection = history ?? locatedBenchmark?.record.timing_correction ?? null;
+    const timingEvidence = locatedBenchmark ?? archivedBenchmarkRecords.get(id);
+    const timingFixed = history !== undefined || (timingEvidence?.record.timing_fixed ?? false);
+    const rawTimingCorrection = history ?? timingEvidence?.record.timing_correction ?? null;
     invariant(timingFixed === (row.timing_fixed === "true"), `CSV timing-fix mismatch: ${id}`);
     invariant(typeof timingFixed === "boolean", `timing_fixed must be boolean for ${id}`);
     invariant(timingFixed === (rawTimingCorrection !== null), `timing correction flag/payload mismatch for ${id}`);
@@ -630,11 +669,14 @@ export async function buildData(): Promise<void> {
       timingFixed,
       timingCorrection,
       validationEvidenceUrl,
-      originalValidationEvidenceUrl: sourceHistories.has(id)
+      originalValidationEvidenceUrl: sourceHistories.has(id) || supplementalValidationIds.has(id)
         ? `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(originalValidationRecords.get(id)!.relativePath)}#L${originalValidationRecords.get(id)!.line}`
         : null,
       validationDisposition: failureDispositions.get(id) ?? null,
       benchmarkEvidenceUrl,
+      archivedBenchmarkEvidenceUrl: archivedBenchmarkRecords.has(id)
+        ? `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(archivedBenchmarkRecords.get(id)!.relativePath)}#L${archivedBenchmarkRecords.get(id)!.line}`
+        : null,
     };
   });
 

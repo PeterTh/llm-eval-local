@@ -5,6 +5,7 @@
 # validation, timing corrections and measurements; no generated programs run here.
 require_relative "artifact_common"
 require "open3"
+require_relative "../method/external-validation/tools/timing_audit/lib/external_validation_exclusions"
 
 module OpenCodeSupplement
   DEFAULT_BATCH = "20261017-192226"
@@ -24,6 +25,14 @@ module OpenCodeSupplement
     "20261025-170040" => {
       "suffix" => "haiku55-opencode-medium", "audit_id" => "20261028-haiku55-opencode",
       "original" => "24648e59045c3e8d7280119627a7bccde1da4f2f"
+    }.freeze,
+    "20261025-170121" => {
+      "suffix" => "beam10-opencode-medium", "audit_id" => "20261030-beam10-opencode",
+      "original" => "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+      "context_summary" => "request-context-verification.json",
+      "audit_report" => "audit-completion-supplemental-review.json",
+      "external_validation_registry" => "validation-supplements/20261101-unstructured-boundary/external-validation-exclusions.json",
+      "supplemental_audits" => %w[supplemental-communication-20261031].freeze
     }.freeze
   }.freeze
   POLICY = "luna_first_uncertainty_or_disagreement_v1"
@@ -76,7 +85,8 @@ module OpenCodeSupplement
         copy.call(file, "#{destination}/#{name}") if File.file?(file)
       end
     end
-    report = JSON.parse(File.read(File.join(evaluation, selection ? 'audit-export-binding.json' : 'audit-completion-review.json')))
+    report_name = selection ? 'audit-export-binding.json' : config.fetch('audit_report', 'audit-completion-review.json')
+    report = JSON.parse(File.read(File.join(evaluation, report_name)))
     expected_ids = audit_scope(LocalEvalArtifact.read_jsonl(File.join(batch, "validation/records.jsonl")))
     raise "Audit unresolved" unless report.fetch("passed") && report.fetch("unique_programs") == expected_ids.size && report.fetch("unresolved").empty?
     report.fetch("input_sha256").each do |path, digest|
@@ -89,16 +99,17 @@ module OpenCodeSupplement
           static-evidence-snapshot.rb review-policy-snapshot.rb active-review-policy-full.rb
           adjudication-plan-full.json adjudication-selection.jsonl])
       end
-      %w[qtclustering qtclustering-sol61].each do |suffix|
+      additional_stages = %w[qtclustering qtclustering-sol61] + config.fetch('supplemental_audits', [])
+      additional_stages.each do |suffix|
         source = "#{audit}-#{suffix}"
         destination = "timing-audit/#{suffix}"
         expected = report.fetch("reviews").find { |row| row.fetch("root") == source }
-        raise "Unbound QT manifest" unless expected && LocalEvalArtifact.sha256(File.join(source, "manifest.yaml")) == expected.fetch("manifest_sha256")
+        raise "Unbound additional audit manifest" unless expected && LocalEvalArtifact.sha256(File.join(source, "manifest.yaml")) == expected.fetch("manifest_sha256")
         selected.call(source, destination, %w[manifest.yaml inventory.jsonl excluded.jsonl trial-ids.txt
           prompt-template.txt result-schema.json runner-snapshot.rb static-evidence-snapshot.rb preparer-snapshot.rb
           summary-full.jsonl summary-full.csv summary-trial.jsonl summary-trial.csv review-guidance.txt platform-context.txt
           comparison.jsonl comparison.csv operational-provenance.json review-policy-snapshot.rb active-review-policy-full.rb
-          adjudication-plan-full.json adjudication-selection.jsonl pilot-review.json])
+          adjudication-plan-full.json adjudication-selection.jsonl supplemental-selection.jsonl reused-reviews.json pilot-review.json])
         results = Dir[File.join(source, "results/*.json")].sort.map { |path| JSON.parse(File.read(path)) }
         ids = if suffix == "qtclustering-sol61"
           plan = JSON.parse(File.read(File.join(source, "adjudication-plan-full.json")))
@@ -108,19 +119,23 @@ module OpenCodeSupplement
         else
           LocalEvalArtifact.read_jsonl(File.join(source, "inventory.jsonl")).map { |row| row.fetch("id") }.sort
         end
-        raise "QT result scope differs" unless results.size == expected.fetch("responses") && results.map { |row| row.fetch("program_id") }.sort == ids
+        raise "Additional audit result scope differs" unless results.size == expected.fetch("responses") && results.map { |row| row.fetch("program_id") }.sort == ids
         jsonl.call("#{destination}/results.jsonl", results)
         attempts = Dir[File.join(source, "logs/*/attempt-*/metadata.yaml")].sort.map do |path|
           metadata = LocalEvalArtifact.load_yaml(path)
           events = LocalEvalArtifact.read_jsonl(File.join(File.dirname(path), "events.jsonl"))
-          raise "Non-static QT review event" if events.any? { |event| event["item"] && !%w[agent_message reasoning error].include?(event.fetch("item")["type"]) }
+          raise "Non-static additional audit event" if events.any? { |event| event["item"] && !%w[agent_message reasoning error].include?(event.fetch("item")["type"]) }
           errors = events.filter_map { |event| event["message"] if event["type"] == "error" }.uniq
           metadata["exported_transport_errors"] = errors unless errors.empty?
           metadata
         end
-        raise "QT attempt scope differs" unless attempts.size == expected.fetch("retained_attempts") && expected.fetch("prohibited_tool_events").zero?
+        raise "Additional audit attempt scope differs" unless attempts.size == expected.fetch("retained_attempts") && expected.fetch("prohibited_tool_events").zero?
         jsonl.call("#{destination}/attempts.jsonl", attempts)
         Dir[File.join(source, "final/*")].sort.each { |path| copy.call(path, "#{destination}/final/#{File.basename(path)}") if File.file?(path) }
+        if config.fetch('supplemental_audits', []).include?(suffix)
+          Dir[File.join(source, "prior-final/*")].sort.each { |path| copy.call(path, "#{destination}/prior-final/#{File.basename(path)}") if File.file?(path) }
+          Dir[File.join(source, "reused-parent/*")].sort.each { |path| copy.call(path, "#{destination}/reused-parent/#{File.basename(path)}") if File.file?(path) }
+        end
       end
       decisions = {}
       inputs = %w[primary qtclustering].map do |stage|
@@ -136,27 +151,61 @@ module OpenCodeSupplement
       counts = decisions.values.group_by { |row| row.fetch("final_verdict") }.transform_values(&:size)
       raise "Audit counts differ" unless counts == report.fetch("verdicts")
       correction_ids = decisions.values.select { |row| row.fetch("timing_fix_required") }.map { |row| row.fetch("program_id") }.sort
+      external_selection = nil
+      if config["external_validation_registry"]
+        registry = ExternalValidationExclusions.new(File.join(root, config.fetch("external_validation_registry")))
+        excluded = registry.ids_for(source_commit: original, ids: correction_ids)
+        copy.call(registry.path, "external-validation/exclusions.json")
+        external_selection = { "path" => "external-validation/exclusions.json", "sha256" => registry.digest, "excluded_ids" => excluded }
+        correction_ids -= excluded
+      end
       raise "Unresolved audit conditions" unless decisions.values.all? { |row| row.fetch("timing_review_required") == false }
       json.call("timing-audit/resolved-selection.json", {
         "schema_version" => 1, "source_commit" => original, "record_count" => decisions.size,
         "ordered_decisions" => inputs, "verdict_counts" => counts, "correction_ids" => correction_ids,
+        "external_validation_exclusions" => external_selection,
         "policy" => "Same-source all-backend QT boundary decisions overlay the general MPI/hybrid audit; all review evidence is retained."
       })
       write.call("timing-audit/conditional-decisions.jsonl", "")
       selected.call(evaluation, "completion", %w[audit-completion-review.json verify-audit-completion.rb review-policy.json
         prepare-review-policy.rb verify-primary-pilot.rb audit-pilot-driver.rb audit-full-driver-policy.rb
         audit-pilot-launch.json audit-full-launch.json timing-platform-context.txt
+        paced-audit-driver.rb review-request-pacing.rb test-review-request-pacing.rb launch-paced-audit.rb
+        audit-pilot-paced-launch.json audit-pilot-paced-activation.json audit-pilot-paced-progress.json
+        audit-full-paced-launch.json audit-full-paced-activation.json audit-full-paced-progress.json
+        audit-pilot-paced-launcher.rb audit-full-paced-launcher.rb audit-pacing-tests.json audit-pacing-tests.log
+        audit-pilot-citation-recovery.json audit-pilot-citation-activation.json retry-pilot-citation-syntax.rb
+        audit-fable-yield-20261030.json checkpoint-fable-yield.rb
+        audit-full-resume-20261031-launch.json audit-full-resume-20261031-activation.json
+        audit-full-resume-20261031-progress.json paced-audit-resume-20261031.rb resume-paced-audit-20261031.rb
+        audit-completion-supplemental-review.json verify-audit-supplemental-completion.rb
+        finalize-audit-supplemental-20261031.rb audit-supplemental-20261031.rb
+        audit-supplemental-20261031-launch.json audit-supplemental-20261031-activation.json
+        audit-supplemental-20261031-progress.json audit-supplemental-context-20261031.txt
+        audit-supplemental-focus-20261031.txt audit-supplemental-selection-20261031.jsonl
+        extend-audit-supplemental-20261031.rb audit-supplemental-communication-selection-20261031.jsonl
+        audit-supplemental-communication-20261031-launch.json audit-supplemental-communication-20261031-activation.json
+        audit-supplemental-communication-20261031-progress.json
         audit-pilot-resume-1.json audit-pilot-resume-2.json resume-audit-pilot.rb resume-audit-pilot-2.rb])
+      citation_recovery = File.join(evaluation, 'audit-pilot-citation-recovery.json')
+      if File.file?(citation_recovery)
+        amendment = JSON.parse(File.read(citation_recovery))
+        source = File.join(audit, 'citation-syntax-amendment')
+        selected.call(source, 'timing-audit/primary/citation-syntax-amendment', %w[manifest.yaml result-schema.json audit-pilot-citation-recovery.json])
+        failed_events = File.join(File.dirname(amendment.fetch('formatting_attempt').fetch('metadata_path')), 'events.jsonl')
+        raise 'Rejected citation response changed' unless LocalEvalArtifact.sha256(failed_events) == amendment.dig('formatting_attempt', 'events_sha256')
+        copy.call(failed_events, 'timing-audit/primary/citation-syntax-amendment/rejected-events.jsonl')
+      end
       summary = JSON.parse(File.read(File.join(batch, "summary.json")))
       summary["timing_audit_final_verdicts"] = counts
-      %w[qtclustering qtclustering-sol61].each do |suffix|
+      additional_stages.each do |suffix|
         summary.fetch("timing_audit_records")[suffix] = report.fetch("reviews")
           .find { |row| row.fetch("root") == "#{audit}-#{suffix}" }.fetch("responses")
       end
       summary["timing_audit_selection"] = "timing-audit/resolved-selection.json"
       summary["unique_timing_audited_programs"] = decisions.size
       json.call("summary.json", summary)
-      puts "Retained five audit stages, #{decisions.size} resolved programs, #{correction_ids.size} timing corrections."
+      puts "Retained #{3 + additional_stages.size} audit stages, #{decisions.size} resolved programs, #{correction_ids.size} timing corrections."
       return
     end
 
@@ -301,8 +350,14 @@ module OpenCodeSupplement
           %w[incident.json recovery.json resume.json prepared.json cleanup.json retain.rb resume.rb retain-and-retry.rb])
       end
     end
+    if batch_id == "20261025-170121" && !selection
+      selected.call(File.join(campaign, 'incidents/20261029-prompt-rendering-failure'),
+        'generation/incidents/20261029-prompt-rendering-failure', %w[review.json decision.json retained-observation.json
+          admission-amendment.json regression-tests.log resume.json record-adjudication.rb resume.rb retain_opencode_protocol_failure.rb])
+    end
     pricing = selection ? selection.fetch('pricing') : File.join(campaign, "pricing")
-    context = JSON.parse(File.read(File.join(pricing, "request-context-summary.json")))
+    context_summary = config.fetch("context_summary", "request-context-summary.json")
+    context = JSON.parse(File.read(File.join(pricing, context_summary)))
     context_records = nil
     if context['pricing_context_policy'] == 'request_input_above_100000'
       context_path = File.join(pricing, 'context-usage.jsonl')
@@ -310,9 +365,16 @@ module OpenCodeSupplement
       context_records = LocalEvalArtifact.read_jsonl(context_path)
     end
     verifier.verify_opencode_context!({ "id" => batch_id, "source_commit" => original }, observations, context, context_records: context_records)
-    selected.call(pricing, "generation/pricing", %w[pricing-reference.json request-context-summary.json context-usage.jsonl retain-pricing-context.rb retain-pricing-reference.rb
+    selected.call(pricing, "generation/pricing", %w[pricing-reference.json context-usage.jsonl retain-pricing-context.rb retain-pricing-reference.rb retain-release-context.rb
       pricing-refresh.json deepseek-refresh-current-pricing-20261024.rb current-context-review.json deepseek-bind-current-context-20261024.rb])
+    copy.call(File.join(pricing, context_summary), "generation/pricing/request-context-summary.json")
+    if context_summary != "request-context-summary.json"
+      source_summary = File.join(pricing, "request-context-summary.json")
+      raise 'Original request summary changed' unless LocalEvalArtifact.sha256(source_summary) == context.fetch('source_summary_sha256')
+      copy.call(source_summary, "generation/pricing/source-request-context-summary.json")
+    end
     selected.call(evaluation, "completion", %w[campaign.json validation-launch-gate.json validation-completion-review.json
+      scientific-followup-hold.json scientific-followup-resolution.json record-unstructured-halo-concern.rb verified-external-validation.rb
       correction-pilot-gate.json correction-commit.json source-correction-push.json revalidation-completion-review.json
       revalidation-output-order-review.json record-revalidation-output-order.rb
       validation-failure-review.json record-validation-failure-review.rb aggregate-export-amendment.json
@@ -324,6 +386,7 @@ module OpenCodeSupplement
       correction-pilot-recovery-launch.json correction-pilot-recovery-progress.json
       resume-correction-pilot-driver.rb launch-correction-pilot-recovery.rb
       paced-correction-driver.rb launch-paced-corrections.rb
+      correction-request-pacing.rb test-correction-request-pacing.rb
       correction-pilot-paced-launch.json correction-pilot-paced-activation.json correction-pilot-paced-progress.json
       correction-full-paced-launch.json correction-full-paced-activation.json correction-full-paced-progress.json
       correction-pilot-paced-startup-recovery.json retry-paced-startup.rb launch-paced-corrections-current.rb
@@ -333,6 +396,9 @@ module OpenCodeSupplement
       correction-revision-1.json correction-revision-feedback.json correction-revision-launch.json
       correction-revision-driver.rb reuse-unchanged-correction-reviews.rb
       correction-followup-rebinding.json prepare-revised-correction-followup.rb])
+    selected.call(evaluation, "completion", %w[revalidation-boundary-driver.rb verify-revalidation-boundary.rb
+      launch-measurement-stage-v2.rb external-revalidation-completion.json
+      export-completed-batch-v2.rb prepare-release-export-v2.rb])
     if selection
       selected.call(evaluation, 'completion', %w[audit-export-binding.json citation-syntax-amendment.json
         qt-optional-verification-fix.json retry-citation-syntax.rb finish-timing-verification.rb

@@ -25,7 +25,7 @@ describe("generation termination evidence", () => {
   it("retains a lower bound and the approved original-attempt evidence", () => {
     const { row, bytes } = fixture();
     expect(generationTerminationPath(row, id)).toBe(`batches/${batch}/generation/terminations/${id}.json`);
-    expect(parseGenerationTermination(row, id, bytes, url)).toEqual({ outcome: "generation_model_terminated", usageComplete: false,
+    expect(parseGenerationTermination(row, id, bytes, url)).toEqual({ outcome: "generation_model_terminated", reason: "model_caused_termination", usageComplete: false,
       partialTotalTokens: 110, evidenceSha256: row.termination_record_sha256, evidenceUrl: url });
   });
   it("rejects complete cost fields, missing flags, unsafe paths and changed receipts", () => {
@@ -45,4 +45,32 @@ describe("generation termination evidence", () => {
     const { row, bytes } = fixture(extra);
     expect(() => parseGenerationTermination(row, id, bytes, url)).toThrow(/receipt/);
   });
+
+  const protocolId = "matmul_beam-1.0-oc-medium_mpi_r3";
+  function protocolFixture(extra: Record<string, unknown> = {}) {
+    const { row, bytes } = fixture({ run_id: protocolId, schema_version: 2, reason: "model_protocol_failure", native_process_receipt_available: true,
+      incident_sha256: "b".repeat(64), metadata_sha256: { "opencode-process.txt": "c".repeat(64) },
+      terminal_message_id: "msg_example", protocol_tool_part_id: "prt_example",
+      terminal_error: { name: "APIError", data: { statusCode: 400, isRetryable: false, message: "[prompt_rendering_failed]" } }, ...extra });
+    return { row: { ...row, source_batch: "20261025-170121", model: "beam-1.0-oc-medium", generation_failure_reason: "model_protocol_failure" }, bytes };
+  }
+
+  it("retains an approved protocol failure with its native process receipt", () => {
+    const { row, bytes } = protocolFixture();
+    expect(generationTerminationPath(row, protocolId)).toBe(`batches/20261025-170121/generation/terminations/${protocolId}.json`);
+    expect(parseGenerationTermination(row, protocolId, bytes, url)).toMatchObject({ reason: "model_protocol_failure",
+      outcome: "generation_model_terminated", usageComplete: false, partialTotalTokens: 110 });
+    expect(() => parseGenerationTermination({ ...row, generation_failure_reason: "model_caused_termination" }, protocolId, bytes, url)).toThrow(/receipt/);
+    expect(() => parseGenerationTermination({ ...row, model: "deepseek-v4.1-flash-oc-high" }, protocolId, bytes, url)).toThrow(/receipt/);
+    expect(() => generationTerminationPath({ ...row, generation_failure_reason: "unknown" }, protocolId)).toThrow();
+    expect(() => generationTerminationPath({ ...row, total_tokens: "110" }, protocolId)).toThrow(/presented as complete/);
+  });
+
+  it.each([{ schema_version: 1 }, { native_process_receipt_available: false }, { metadata_sha256: {} },
+    { terminal_message_id: "" }, { protocol_tool_part_id: "" }, { incident_sha256: "invalid" },
+    { terminal_error: { name: "APIError", data: { statusCode: 429, isRetryable: true, message: "[prompt_rendering_failed]" } } }])
+    ("rejects unsupported protocol failure receipts: %j", (extra) => {
+      const { row, bytes } = protocolFixture(extra);
+      expect(() => parseGenerationTermination(row, protocolId, bytes, url)).toThrow(/receipt/);
+    });
 });
