@@ -44,11 +44,14 @@ class OpenCodeSupplementTest < Minitest::Test
     assert_equal "20261030-beam10-opencode", beam.fetch("audit_id")
     assert_equal "beam10-opencode-medium", beam.fetch("suffix")
     assert_equal "request-context-verification.json", beam.fetch("context_summary")
-    assert_equal "audit-completion-supplemental-review.json", beam.fetch("audit_report")
-    assert_equal %w[supplemental-communication-20261031], beam.fetch("supplemental_audits")
+    assert_equal "audit-completion-replicated-work-review.json", beam.fetch("audit_report")
+    assert_equal %w[supplemental-communication-20261031 replicated-work-luna-20261101
+      replicated-work-extra-luna-20261101 replicated-work-sol61-20261101], beam.fetch("supplemental_audits")
+    assert_equal %w[replicated-work-final-20261101], beam.fetch("decision_overlays")
     assert_nil haiku["context_summary"]
     assert_nil haiku["audit_report"]
     assert_nil haiku["supplemental_audits"]
+    assert_nil haiku["decision_overlays"]
     assert_raises(RuntimeError) { OpenCodeSupplement.configuration("../unknown") }
   end
 

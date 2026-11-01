@@ -189,6 +189,12 @@ export function MethodologyView() {
               the median of the five benchmark-reported computation times, expressed in milliseconds. Failed attempts
               remain explicit records and do not receive an imputed time.
             </p>
+            <p>
+              When ranks jointly compute one result, timing must cover the maximum complete per-rank duration
+              or a proven equivalent. A process that independently computes an entire result may report its
+              complete local duration; redundant copies need not finish first. Timing covers the sequential
+              reference's computation boundary, including completed thread and device work.
+            </p>
           </section>
 
           <section className="methodology-section" aria-labelledby="method-scoring">

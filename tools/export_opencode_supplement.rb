@@ -30,9 +30,11 @@ module OpenCodeSupplement
       "suffix" => "beam10-opencode-medium", "audit_id" => "20261030-beam10-opencode",
       "original" => "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
       "context_summary" => "request-context-verification.json",
-      "audit_report" => "audit-completion-supplemental-review.json",
+      "audit_report" => "audit-completion-replicated-work-review.json",
       "external_validation_registry" => "validation-supplements/20261101-unstructured-boundary/external-validation-exclusions.json",
-      "supplemental_audits" => %w[supplemental-communication-20261031].freeze
+      "supplemental_audits" => %w[supplemental-communication-20261031 replicated-work-luna-20261101
+        replicated-work-extra-luna-20261101 replicated-work-sol61-20261101].freeze,
+      "decision_overlays" => %w[replicated-work-final-20261101].freeze
     }.freeze
   }.freeze
   POLICY = "luna_first_uncertainty_or_disagreement_v1"
@@ -109,7 +111,8 @@ module OpenCodeSupplement
           prompt-template.txt result-schema.json runner-snapshot.rb static-evidence-snapshot.rb preparer-snapshot.rb
           summary-full.jsonl summary-full.csv summary-trial.jsonl summary-trial.csv review-guidance.txt platform-context.txt
           comparison.jsonl comparison.csv operational-provenance.json review-policy-snapshot.rb active-review-policy-full.rb
-          adjudication-plan-full.json adjudication-selection.jsonl supplemental-selection.jsonl reused-reviews.json pilot-review.json])
+          adjudication-plan-full.json adjudication-selection.jsonl supplemental-selection.jsonl reused-reviews.json pilot-review.json
+          replicated-work-timing-contract.txt parent-prompt-template.txt sequential-reference.cpp])
         results = Dir[File.join(source, "results/*.json")].sort.map { |path| JSON.parse(File.read(path)) }
         ids = if suffix == "qtclustering-sol61"
           plan = JSON.parse(File.read(File.join(source, "adjudication-plan-full.json")))
@@ -137,8 +140,21 @@ module OpenCodeSupplement
           Dir[File.join(source, "reused-parent/*")].sort.each { |path| copy.call(path, "#{destination}/reused-parent/#{File.basename(path)}") if File.file?(path) }
         end
       end
+      decision_overlays = config.fetch('decision_overlays', [])
+      decision_overlays.each do |stage|
+        source = "#{audit}-#{stage}"
+        destination = "timing-audit/#{stage}"
+        %w[manifest.yaml inventory.jsonl final/metadata.yaml final/decisions.jsonl].each do |name|
+          path = File.join(source, name)
+          raise "Unbound decision overlay: #{name}" unless report.fetch("input_sha256")[path] == LocalEvalArtifact.sha256(path)
+        end
+        manifest = LocalEvalArtifact.load_yaml(File.join(source, "manifest.yaml"))
+        raise "Decision overlay source differs" unless manifest.dig("generated_source", "commit") == original
+        selected.call(source, destination, %w[manifest.yaml inventory.jsonl user-decision.json replicated-work-timing-contract.txt])
+        Dir[File.join(source, "final/*")].sort.each { |path| copy.call(path, "#{destination}/final/#{File.basename(path)}") if File.file?(path) }
+      end
       decisions = {}
-      inputs = %w[primary qtclustering].map do |stage|
+      inputs = (%w[primary qtclustering] + decision_overlays).map do |stage|
         relative = "timing-audit/#{stage}/final/decisions.jsonl"
         LocalEvalArtifact.read_jsonl(File.join(batch, relative)).each do |row|
           id = row.fetch("program_id")
@@ -164,7 +180,7 @@ module OpenCodeSupplement
         "schema_version" => 1, "source_commit" => original, "record_count" => decisions.size,
         "ordered_decisions" => inputs, "verdict_counts" => counts, "correction_ids" => correction_ids,
         "external_validation_exclusions" => external_selection,
-        "policy" => "Same-source all-backend QT boundary decisions overlay the general MPI/hybrid audit; all review evidence is retained."
+        "policy" => "Later source-pinned decisions overlay the general MPI/hybrid audit, including the all-backend QT boundary and any explicit contract adjudications. All prior review evidence is retained."
       })
       write.call("timing-audit/conditional-decisions.jsonl", "")
       selected.call(evaluation, "completion", %w[audit-completion-review.json verify-audit-completion.rb review-policy.json
@@ -187,6 +203,40 @@ module OpenCodeSupplement
         audit-supplemental-communication-20261031-launch.json audit-supplemental-communication-20261031-activation.json
         audit-supplemental-communication-20261031-progress.json
         audit-pilot-resume-1.json audit-pilot-resume-2.json resume-audit-pilot.rb resume-audit-pilot-2.rb])
+      selected.call(evaluation, "completion", %w[replicated-work-user-decision-20261101.json
+        replicated-work-timing-contract-20261101.txt replicated-work-selection-20261101.jsonl
+        replicated-work-review-launch-20261101.json replicated-work-review-progress-20261101.json
+        replicated-work-extra-review-launch-20261101.json replicated-work-extra-review-progress-20261101.json
+        replicated-work-sol61-review-launch-20261101.json replicated-work-sol61-review-progress-20261101.json
+        review-replicated-work-20261101.rb review-replicated-work-extra-20261101.rb review-replicated-work-sol61-20261101.rb
+        audit-completion-replicated-work-review.json replicated-work-correction-selection-20261101.json
+        reconcile-replicated-work-20261101.rb verified-replicated-work.rb correction-build-scope-review-20261101.json])
+      unless decision_overlays.empty?
+        reconciliation = JSON.parse(File.read(File.join(evaluation, "replicated-work-correction-selection-20261101.json")))
+        raise "Reconciled corrections differ" unless reconciliation.fetch("correction_ids") == correction_ids
+        omitted = reconciliation.fetch("accepted_unchanged_replica_ids").sort
+        parent = reconciliation.fetch("prior_proposal_root")
+        expected_parent = File.join(home, "llm_timing_fixes", config.fetch("audit_id") + "-proposals")
+        raise "Unexpected superseded proposal root" unless File.realpath(parent) == File.realpath(expected_parent)
+        retained = omitted.map do |id|
+          path = File.join(parent, "proposals", "#{id}.json")
+          raise "Superseded proposal changed" unless report.fetch("input_sha256")[path] == LocalEvalArtifact.sha256(path)
+          JSON.parse(File.read(path))
+        end
+        jsonl.call("timing-audit/superseded-replica-proposals/proposals.jsonl", retained)
+        inventory = LocalEvalArtifact.read_jsonl(File.join(parent, "inventory.jsonl")).select { |row| omitted.include?(row.fetch("id")) }
+        raise "Superseded proposal coverage differs" unless inventory.map { |row| row.fetch("id") }.sort == omitted
+        jsonl.call("timing-audit/superseded-replica-proposals/inventory.jsonl", inventory)
+        attempts = omitted.flat_map do |id|
+          Dir[File.join(parent, "logs", id, "attempt-*/metadata.yaml")].sort.map { |path| LocalEvalArtifact.load_yaml(path) }
+        end
+        jsonl.call("timing-audit/superseded-replica-proposals/attempts.jsonl", attempts)
+        json.call("timing-audit/superseded-replica-proposals/disposition.json", {
+          "ids" => omitted, "source_commit" => original, "applied" => false,
+          "decision_overlay" => "timing-audit/#{decision_overlays.last}/final/decisions.jsonl",
+          "policy" => "Prior proposals retained as historical evidence only; complete local replica timing was accepted, so these source edits were not applied."
+        })
+      end
       citation_recovery = File.join(evaluation, 'audit-pilot-citation-recovery.json')
       if File.file?(citation_recovery)
         amendment = JSON.parse(File.read(citation_recovery))
@@ -204,6 +254,7 @@ module OpenCodeSupplement
       end
       summary["timing_audit_selection"] = "timing-audit/resolved-selection.json"
       summary["unique_timing_audited_programs"] = decisions.size
+      summary["timing_audit_operator_adjudications"] = report.fetch("operator_adjudications", 0) unless decision_overlays.empty?
       json.call("summary.json", summary)
       puts "Retained #{3 + additional_stages.size} audit stages, #{decisions.size} resolved programs, #{correction_ids.size} timing corrections."
       return
@@ -399,6 +450,15 @@ module OpenCodeSupplement
     selected.call(evaluation, "completion", %w[revalidation-boundary-driver.rb verify-revalidation-boundary.rb
       launch-measurement-stage-v2.rb external-revalidation-completion.json
       export-completed-batch-v2.rb prepare-release-export-v2.rb])
+    selected.call(evaluation, "completion", %w[correction-resumed-launch-20261101.json correction-resumed-progress-20261101.json
+      correction-resumed-paced-progress-20261101.json resume-corrections-20261101.rb
+      timing-fix-proposal-reuse-frozen.rb timing-fix-review-reuse-frozen.rb
+      prepare-corrected-checkout-v2.rb commit-corrections-v2.rb launch-measurement-stage-v3.rb
+      export-completed-batch-v3.rb adapt-reconciled-followup-20261101.rb reconciled-followup-adaptation-20261101.json])
+    if config.fetch('decision_overlays', []).any?
+      reconciliation = JSON.parse(File.read(File.join(evaluation, "replicated-work-correction-selection-20261101.json")))
+      selected.call(reconciliation.fetch("proposal_root"), "timing-corrections/proposals", %w[reused-proposals.json])
+    end
     if selection
       selected.call(evaluation, 'completion', %w[audit-export-binding.json citation-syntax-amendment.json
         qt-optional-verification-fix.json retry-citation-syntax.rb finish-timing-verification.rb

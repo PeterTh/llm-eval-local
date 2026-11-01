@@ -71,9 +71,8 @@ Seven failures were published measurements. Neither overall Unstructured winner
 changes: Sol 5.6 xhigh MPI r1 (323.088 ms) and Sol 5.6 low hybrid r5 (2178.706 ms)
 both pass. The fastest excluded implementation was Terra 5.6 medium hybrid r5,
 previously ninth of 125 hybrid successes. This does not mean per-model summaries
-are unchanged. The Beam failure had not been benchmarked; Beam now has 179
-eligible implementations and 56 eligible timing corrections, from 180 original
-validation passes and 57 timing-invalid audit decisions.
+are unchanged. The Beam failure had not been benchmarked; excluding it leaves
+179 benchmark-eligible implementations from 180 original validation passes.
 
 This targeted check closes the identified boundary-propagation blind spot; it
 does not prove correctness for every input or decomposition. The
