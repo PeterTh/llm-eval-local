@@ -437,6 +437,11 @@ module OpenCodeSupplement
       apply-aggregate-export-amendment.rb
       benchmark-canary-gate.json benchmark-completion-review.json benchmark-progress.json
       canary-program-failure-review.json review-canary-failure.rb verify-benchmark-records-v2.rb launch-measurement-stage-v5.rb
+      benchmark-resume-launch.json benchmark-stopped-before-measurement-progress.json
+      resume-benchmark-after-canary-review.rb benchmark-orchestration-v2.rb benchmark-driver-v3.rb
+      benchmark-resume-launch-v2.json benchmark-stopped-runner-provenance-progress.json
+      canary-runner-amendment.json prepare-canary-runner-amendment.rb verify-canary-runner-amendment.rb
+      resume-benchmark-after-canary-review-v2.rb benchmark-orchestration-v3.rb benchmark-driver-v4.rb
       verify-validation-completion.rb verify-correction-pilot.rb verify-revalidation-completion.rb verify-benchmark-records.rb
       commit-corrections.rb benchmark-driver.rb canary-driver.rb correction-pilot-driver.rb correction-full-driver.rb
       revalidation-driver.rb validation-launch.json correction-pilot-launch.json correction-full-launch.json
