@@ -44,10 +44,11 @@ class OpenCodeSupplementTest < Minitest::Test
     assert_equal "20261030-beam10-opencode", beam.fetch("audit_id")
     assert_equal "beam10-opencode-medium", beam.fetch("suffix")
     assert_equal "request-context-verification.json", beam.fetch("context_summary")
-    assert_equal "audit-completion-replicated-work-review.json", beam.fetch("audit_report")
+    assert_equal "audit-completion-final-replica-review.json", beam.fetch("audit_report")
     assert_equal %w[supplemental-communication-20261031 replicated-work-luna-20261101
-      replicated-work-extra-luna-20261101 replicated-work-sol61-20261101], beam.fetch("supplemental_audits")
-    assert_equal %w[replicated-work-final-20261101], beam.fetch("decision_overlays")
+      replicated-work-extra-luna-20261101 replicated-work-sol61-20261101 replicated-broadcast-luna-20261101], beam.fetch("supplemental_audits")
+    assert_equal %w[replicated-work-final-20261101 replicated-broadcast-final-20261101], beam.fetch("decision_overlays")
+    assert_equal "final-replica-correction-selection-20261101.json", beam.fetch("replica_selection")
     assert_nil haiku["context_summary"]
     assert_nil haiku["audit_report"]
     assert_nil haiku["supplemental_audits"]

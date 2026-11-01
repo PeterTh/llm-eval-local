@@ -30,11 +30,12 @@ module OpenCodeSupplement
       "suffix" => "beam10-opencode-medium", "audit_id" => "20261030-beam10-opencode",
       "original" => "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
       "context_summary" => "request-context-verification.json",
-      "audit_report" => "audit-completion-replicated-work-review.json",
+      "audit_report" => "audit-completion-final-replica-review.json",
       "external_validation_registry" => "validation-supplements/20261101-unstructured-boundary/external-validation-exclusions.json",
       "supplemental_audits" => %w[supplemental-communication-20261031 replicated-work-luna-20261101
-        replicated-work-extra-luna-20261101 replicated-work-sol61-20261101].freeze,
-      "decision_overlays" => %w[replicated-work-final-20261101].freeze
+        replicated-work-extra-luna-20261101 replicated-work-sol61-20261101 replicated-broadcast-luna-20261101].freeze,
+      "decision_overlays" => %w[replicated-work-final-20261101 replicated-broadcast-final-20261101].freeze,
+      "replica_selection" => "final-replica-correction-selection-20261101.json"
     }.freeze
   }.freeze
   POLICY = "luna_first_uncertainty_or_disagreement_v1"
@@ -211,8 +212,12 @@ module OpenCodeSupplement
         review-replicated-work-20261101.rb review-replicated-work-extra-20261101.rb review-replicated-work-sol61-20261101.rb
         audit-completion-replicated-work-review.json replicated-work-correction-selection-20261101.json
         reconcile-replicated-work-20261101.rb verified-replicated-work.rb correction-build-scope-review-20261101.json])
+      selected.call(evaluation, "completion", %w[replicated-broadcast-review-launch-20261101.json
+        replicated-broadcast-review-progress-20261101.json review-replicated-broadcast-20261101.rb
+        audit-completion-final-replica-review.json final-replica-correction-selection-20261101.json
+        finalize-replica-selection-20261101.rb verified-final-replica-selection.rb final-replica-preparation-20261101.json])
       unless decision_overlays.empty?
-        reconciliation = JSON.parse(File.read(File.join(evaluation, "replicated-work-correction-selection-20261101.json")))
+        reconciliation = JSON.parse(File.read(File.join(evaluation, config.fetch("replica_selection"))))
         raise "Reconciled corrections differ" unless reconciliation.fetch("correction_ids") == correction_ids
         omitted = reconciliation.fetch("accepted_unchanged_replica_ids").sort
         parent = reconciliation.fetch("prior_proposal_root")
@@ -455,9 +460,20 @@ module OpenCodeSupplement
       timing-fix-proposal-reuse-frozen.rb timing-fix-review-reuse-frozen.rb
       prepare-corrected-checkout-v2.rb commit-corrections-v2.rb launch-measurement-stage-v3.rb
       export-completed-batch-v3.rb adapt-reconciled-followup-20261101.rb reconciled-followup-adaptation-20261101.json])
+    selected.call(evaluation, "completion", %w[prepare-corrected-checkout-v3.rb commit-corrections-v3.rb
+      launch-measurement-stage-v4.rb export-completed-batch-v4.rb adapt-final-replica-followup-20261101.rb
+      final-replica-followup-adaptation-20261101.json timing-fix-adjudication-reuse-frozen.rb])
     if config.fetch('decision_overlays', []).any?
-      reconciliation = JSON.parse(File.read(File.join(evaluation, "replicated-work-correction-selection-20261101.json")))
+      reconciliation = JSON.parse(File.read(File.join(evaluation, config.fetch("replica_selection"))))
       selected.call(reconciliation.fetch("proposal_root"), "timing-corrections/proposals", %w[reused-proposals.json])
+      parent_proposals = reconciliation.fetch("prior_reconciled_proposal_root")
+      parent_review = File.join(home, "llm_timing_fixes", config.fetch("audit_id") + "-review")
+      parent_adjudication = parent_review + "-sol61"
+      selected.call(parent_proposals, "timing-corrections/selection-history/proposals", %w[manifest.yaml summary-full.jsonl reused-proposals.json])
+      selected.call(File.join(parent_proposals, "materialized"), "timing-corrections/selection-history/compile-superset", %w[summary-full.yaml])
+      selected.call(parent_review, "timing-corrections/selection-history/postfix-review", %w[manifest.yaml summary-full.jsonl reused-reviews.json])
+      selected.call(parent_adjudication, "timing-corrections/selection-history/adjudication", %w[manifest.yaml environment-evidence.yaml summary-full.jsonl])
+      selected.call(reconciliation.fetch("adjudication_root"), "timing-corrections/adjudication", %w[reused-reviews.json])
     end
     if selection
       selected.call(evaluation, 'completion', %w[audit-export-binding.json citation-syntax-amendment.json
