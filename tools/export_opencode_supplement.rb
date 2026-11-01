@@ -436,6 +436,7 @@ module OpenCodeSupplement
       validation-failure-review.json record-validation-failure-review.rb aggregate-export-amendment.json
       apply-aggregate-export-amendment.rb
       benchmark-canary-gate.json benchmark-completion-review.json benchmark-progress.json
+      canary-program-failure-review.json review-canary-failure.rb verify-benchmark-records-v2.rb launch-measurement-stage-v5.rb
       verify-validation-completion.rb verify-correction-pilot.rb verify-revalidation-completion.rb verify-benchmark-records.rb
       commit-corrections.rb benchmark-driver.rb canary-driver.rb correction-pilot-driver.rb correction-full-driver.rb
       revalidation-driver.rb validation-launch.json correction-pilot-launch.json correction-full-launch.json
