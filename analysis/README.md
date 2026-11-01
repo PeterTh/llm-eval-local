@@ -148,7 +148,8 @@ accounting and pricing for [Sol 6.1](notes/2026-10-18-sol61-opencode-pricing.md)
 and [Luna 6](notes/2026-10-19-luna6-opencode-pricing.md), plus
 [DeepSeek V4.1 Flash pricing and partial accounting](notes/2026-10-23-deepseek41-opencode-pricing.md)
 and [Haiku 5.5 OpenCode pricing](notes/2026-10-28-haiku55-opencode-pricing.md),
-and [Terra 6.1 pricing](notes/2026-10-29-terra61-pricing.md).
+and [Terra 6.1 pricing](notes/2026-10-29-terra61-pricing.md), plus
+[Beam 1.0 OpenCode pricing and partial accounting](notes/2026-10-30-beam10-opencode-pricing.md).
 Haiku 5.5 uses retained per-run token totals grouped by each request's context tier;
 OpenCode provides per-request output directly, while Claude Code mixed-tier
 output splits are derived from native output and list-price totals.
