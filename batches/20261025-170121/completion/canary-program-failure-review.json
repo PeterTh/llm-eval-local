@@ -1,0 +1,44 @@
+{
+  "reviewed_at": "2026-11-01T23:11:22Z",
+  "schema_version": 1,
+  "reviewed_failure_ids": [
+    "black-scholes_beam-1.0-oc-medium_hybrid_r3"
+  ],
+  "canary_ids": [
+    "black-scholes_beam-1.0-oc-medium_cuda_r1",
+    "black-scholes_beam-1.0-oc-medium_hybrid_r3",
+    "black-scholes_beam-1.0-oc-medium_mpi_r1",
+    "black-scholes_beam-1.0-oc-medium_omp_r1"
+  ],
+  "successful_canaries": 3,
+  "disposition": "retain ordinary program failure; permit remaining benchmarks",
+  "source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+  "source_path": "20261025-170121/black-scholes_beam-1.0-oc-medium_hybrid_r3/black-scholes/black_scholes.cpp",
+  "source_sha256": "adcfd5c4c553250bad8790822275d141b35c0a9ec9dd3a06046e5e8f19e4fbe4",
+  "diagnosis": "Program narrows byte displacements to signed 32-bit int before MPI_Scatterv. At the inherited 100-million-option workload, 3.6 GB and 5.4 GB offsets overflow. Retained stderr shows the scatter segmentation fault before pricing starts; the remaining MPI job reaches the unchanged 30-second timeout.",
+  "byte_displacements": [
+    0,
+    1800000000,
+    3600000000,
+    5400000000
+  ],
+  "signed_32_bit_maximum": 2147483647,
+  "infrastructure_assessment": "Native preflight passed; CUDA, MPI and OpenMP canaries passed. The failed hybrid source independently explains this size-dependent crash; no setup change is warranted.",
+  "scope": "Only this source-pinned ordinary failure is accepted by the canary gate. No source, validation, configuration, resource or measurement changes; no reruns or substitute observations.",
+  "retries_requested": false,
+  "additional_program_executions": 0,
+  "input_sha256": {
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_cuda_r1/benchmark_metadata.yaml": "4fd5c8b391c0f9d2a702fc8e104a77c8da55fe499c7788e09d0a281c3371ead8",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_hybrid_r3/benchmark_metadata.yaml": "0404341c91adcf1cc72ea4e7d6fe067f2cef58dd3c55da98b2b2ad3cf3f0dcbe",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_mpi_r1/benchmark_metadata.yaml": "2c191dc89bd365e419b8ef514b8f1cf5a662e2f2639dff0e7002ba4b3a84e9e1",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_omp_r1/benchmark_metadata.yaml": "885dbbcec525f879a15bb58b4c44ae825712042f33f0b06744dea553f16dbb8f",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_hybrid_r3/benchmark_warmup_command.log": "371764cfded65c849b51991823348710b93d8fcfeb5ac631b4a5b6d0f04874a9",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_hybrid_r3/benchmark_warmup_exitcode.log": "6affdae3b3c1aa6aa7689e9b6a7b3225a636aa1ac0025f490cca1285ceaf1487",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_hybrid_r3/benchmark_warmup_stderr.log": "587071b166cf1168a46bf55f44d55594a9bdbdc28694c15ab9f8ca08ca0ce779",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_hybrid_r3/benchmark_warmup_stdout.log": "63a60724f40bba752728ce7511ebad9d3f8e660b1f522dd13fca92f139741533",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark/black-scholes_beam-1.0-oc-medium_hybrid_r3/benchmark_warmup_wall_time.log": "59f4e5ed8b191120c72aaed8c217537be33fd82ad52d0601255766b76ccf079a",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/preflight.yaml": "205334702e950945facab176aaddf9a062c57277d04057060a152a403501c97b",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/benchmark_config.yaml": "5196315062c3c41689c1567a5441b251ef4f245cd783c6965d95516bdc308e09",
+    "/tmp/beam10-opencode-evaluation-20261030.pAq8IE/review-canary-failure.rb": "778c2632db278383eca226a27f82a55590f9efee891598390792f80601d4792f"
+  }
+}

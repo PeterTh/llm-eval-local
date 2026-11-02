@@ -17,7 +17,7 @@ measurement records remain archival evidence.
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
-`release/catalog.json` identifies twelve campaigns, scoped evidence overlays and generated-source commits.
+`release/catalog.json` identifies thirteen campaigns, scoped evidence overlays and generated-source commits.
 Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
@@ -32,7 +32,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 37 profile names and tier percentages legible at the paper's
+intentional: it keeps all 38 profile names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -135,7 +135,7 @@ Claude 5 additions, 2026-10-02 for GPT-6, 2026-10-06 for Opus 5.5, 2026-10-11
 for Sol 6.1, 2026-10-14 for Haiku 5.5, 2026-10-15 for Sonnet 5.5 and 2026-10-18
 for Sol 6.1 in OpenCode, 2026-10-19 for Luna 6 in OpenCode, 2026-10-24
 for DeepSeek V4.1 Flash in OpenCode, and 2026-10-28 for Haiku 5.5 in OpenCode
-and Terra 6.1 in Codex.
+and Terra 6.1 in Codex, and 2026-10-30 for Beam 1.0 in OpenCode.
 The GPT-6 and GPT-6.1 profiles use officially
 published non-batch OpenAI Flex prices. Rates are frozen per model.
 See [Claude pricing](notes/2026-09-29-claude5-pricing.md) and
@@ -156,8 +156,8 @@ output splits are derived from native output and list-price totals.
 Cache creation uses ordinary input rates for all Claude profiles. Other profiles
 do not model long-context surcharges. Terra 6.1 in Codex and the Sol and Luna OpenCode campaigns
 verify that all native requests are below their long-context thresholds;
-DeepSeek's selected endpoint has flat context pricing. Three model-terminated
-DeepSeek sessions have only partial usage counters and are excluded from
+DeepSeek's and Beam's selected endpoints have flat context pricing. Three model-terminated
+DeepSeek sessions and one Beam session have only partial usage counters and are excluded from
 full-task cost statistics, while retaining their scientific outcomes and scores.
 Storage, tools, future provider routing changes, and batch discounts are not modeled.
 
@@ -208,13 +208,13 @@ This historical analysis remains scoped to the original 4,620-program campaign a
 its 587 corrections; it consumes `data/`, not the jointly rescored `release/` view.
 The additional 174 corrections were made before benchmarking, so no comparable
 uncorrected performance measurements exist for those runs. The current combined
-dataset carries the timing-fix flag for 1,196 distinct corrected programs, including
+dataset carries the timing-fix flag for 1,241 distinct corrected programs, including
 two failed revalidations. The 81 newer corrections include 12 previously retimed
 historical QT programs. Their 32 scoped historical reruns are retained separately
 under `corrections/20261001-gpt6-qt/`, not folded into this older 587-case analysis.
 The 83 Opus 5.5, 11 native Sol 6.1, 33 Haiku 5.5, 71 Sonnet 5.5, 14 Sol 6.1
 OpenCode, 39 Luna 6 OpenCode, 56 current DeepSeek OpenCode, 36 Haiku 5.5 OpenCode
-and 26 Terra 6.1 Codex corrections likewise
+26 Terra 6.1 Codex and 45 Beam 1.0 OpenCode corrections likewise
 precede those programs' benchmarks.
 
 The retained historical analysis joins the original static-audit score, corrected scoped-rerun
@@ -239,6 +239,12 @@ canonical format unless the publication toolchain requires another.
 
 Published run reviews live in `notes/individual/` and are embedded by the website.
 All 44 current cell winners have reviews; 94 notes are retained, including superseded winners.
+Beam 1.0 Medium in OpenCode introduces no new cell winners. Its
+[comparison snapshot](notes/2026-10-30-beam10-opencode-winner-context.json) verifies
+that 8,133 prior observations are unchanged except for joint scoring; the seven
+approved historical external-validation exclusions are recorded separately.
+Check it with `ruby analysis/src/check_beam10_opencode_reviews.rb`.
+
 Terra 6.1 Medium in Codex introduces no new cell winners. Its
 [comparison snapshot](notes/2026-10-29-terra61-codex-winner-context.json) verifies
 that all 7,920 prior observations are unchanged against the preceding release;

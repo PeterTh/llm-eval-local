@@ -15,13 +15,13 @@ isolating a causal harness effect.
 | --- | ---: | ---: |
 | Passed validation | 219/220 | 219/220 |
 | Successfully benchmarked | 219/220 | 217/220 |
-| Mean joint score | 7.595 | 7.595 |
+| Mean joint score | 7.623 | 7.627 |
 | Mean generation time | 807.9 s | 942.7 s |
 | Mean total tokens | 1,564,282 | 2,085,509 |
 | Mean API-rate cost | $0.090755 | $0.124641 |
 | Timing-corrected programs | 33 | 36 |
 
-The mean score is identical, while OpenCode takes 16.7% longer to generate a
+The mean scores are nearly identical, while OpenCode takes 16.7% longer to generate a
 program, uses 33.3% more tokens and has a 37.3% higher estimated API-rate cost.
 These summaries include all 220 programs, including failures.
 
@@ -71,8 +71,8 @@ time. Costs are API-rate comparisons, not subscription bills; the
 [pricing evidence](2026-10-28-haiku55-opencode-pricing.md) describes the native
 request accounting and the Claude Code mixed-tier output calculation.
 
-Data: the combined 2026-10-28 release, built on artifact commit
-`f37be40ad1926244f94cf0c84cda1eb11001cc8b` plus batch `20261025-170040`.
+Data: the current [combined release](../../release/README.md), including its
+external-validation eligibility decisions and joint scoring.
 The [context record](../tables/haiku55_harness_context.json) pins the exact scored
 input and aggregation rules; the [summary](../tables/haiku55_harness_summary.csv)
 and [44-cell table](../tables/haiku55_harness_cells.csv) retain unrounded values.

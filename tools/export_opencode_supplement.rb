@@ -62,6 +62,18 @@ module OpenCodeSupplement
     end.map { |row| row.fetch("id") }.sort
   end
 
+  def verify_reference_boundary!(source, manifest)
+    path = File.join(source, 'sequential-reference.cpp')
+    return unless File.file?(path)
+    reference = manifest.fetch('reference_boundary')
+    raise 'Unpinned sequential reference revision' unless reference.fetch('commit').match?(/\A[0-9a-f]{40}\z/)
+    relative = reference.fetch('path')
+    raise 'Unsafe sequential reference path' if relative.empty? || Pathname.new(relative).absolute? || relative.split('/').include?('..')
+    raise 'Sequential reference digest changed' unless LocalEvalArtifact.sha256(path) == reference.fetch('sha256')
+    # The exact reference is reconstructable from the retained commit/path/digest;
+    # do not duplicate its source file in the curated scientific artifact.
+  end
+
   def run(root:, home:, phase:, batch_id: DEFAULT_BATCH, selection: nil)
     raise "Unknown supplement phase" unless %w[audit complete].include?(phase)
     config = configuration(batch_id).merge(selection ? selection.slice('original', 'audit_id') : {})
@@ -113,7 +125,8 @@ module OpenCodeSupplement
           summary-full.jsonl summary-full.csv summary-trial.jsonl summary-trial.csv review-guidance.txt platform-context.txt
           comparison.jsonl comparison.csv operational-provenance.json review-policy-snapshot.rb active-review-policy-full.rb
           adjudication-plan-full.json adjudication-selection.jsonl supplemental-selection.jsonl reused-reviews.json pilot-review.json
-          replicated-work-timing-contract.txt parent-prompt-template.txt sequential-reference.cpp])
+          replicated-work-timing-contract.txt parent-prompt-template.txt])
+        verify_reference_boundary!(source, LocalEvalArtifact.load_yaml(File.join(source, 'manifest.yaml')))
         results = Dir[File.join(source, "results/*.json")].sort.map { |path| JSON.parse(File.read(path)) }
         ids = if suffix == "qtclustering-sol61"
           plan = JSON.parse(File.read(File.join(source, "adjudication-plan-full.json")))

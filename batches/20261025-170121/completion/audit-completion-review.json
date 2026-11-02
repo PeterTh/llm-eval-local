@@ -1,0 +1,212 @@
+{
+  "checked_at": "2026-10-31T20:02:43.759898Z",
+  "passed": false,
+  "unique_programs": 88,
+  "reviews": [
+    {
+      "root": "/home/petert/llm_timing_audit/20261030-beam10-opencode",
+      "model": "gpt-5.6-luna",
+      "effort": "high",
+      "responses": 80,
+      "retained_attempts": 114,
+      "nonempty_event_streams": 114,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "ad066b297869b8a89621570be43be361220402b16c1ae69251c9c81c1de620a9"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261030-beam10-opencode-priority",
+      "model": "gpt-5.6-luna",
+      "effort": "high",
+      "responses": 70,
+      "retained_attempts": 70,
+      "nonempty_event_streams": 70,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "3e849a75dfc70125bf3818b7b2dc7f728a44c47339df7db445e33105545fa08c"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261030-beam10-opencode-sol61",
+      "model": "gpt-6.1-sol",
+      "effort": "xhigh",
+      "responses": 55,
+      "retained_attempts": 55,
+      "nonempty_event_streams": 55,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "ff8096a9c6f3d0ba05e0f94842c276939177fbf5edbea4b5ea0bd3f47d04678b"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261030-beam10-opencode-qtclustering",
+      "model": "gpt-5.6-luna",
+      "effort": "high",
+      "responses": 13,
+      "retained_attempts": 13,
+      "nonempty_event_streams": 13,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "7f09270f39e2d866fddb203f34cf91000bb3fc9583a3b7d0f8a7ad6f1616f111"
+    },
+    {
+      "root": "/home/petert/llm_timing_audit/20261030-beam10-opencode-qtclustering-sol61",
+      "model": "gpt-6.1-sol",
+      "effort": "xhigh",
+      "responses": 0,
+      "retained_attempts": 0,
+      "nonempty_event_streams": 0,
+      "prohibited_tool_events": 0,
+      "manifest_sha256": "f68e7e9a310fbd531fcee75d159d1a7ef279b74a241a4cfc51e494657720317c"
+    }
+  ],
+  "input_sha256": {
+    "/home/petert/llm_para_campaigns/20261025-170121-beam10-opencode-medium/evaluation/review-policy.json": "cd4783ea5e23c5f156f5c193aa7ad7b7ec3744f036a519fc6cfe9ef4051c4058",
+    "/home/petert/llm_timing_audit/20261030-beam10-opencode-qtclustering-sol61/adjudication-plan-full.json": "a5c28bd50b8239f65d5176a3a58cfca9513eff7cbc20869ab6f3aad8a8ac2058",
+    "/home/petert/llm_timing_audit/20261030-beam10-opencode/final/decisions.jsonl": "9dc915353f2eea0b964fdba40f8e8133411ef3974b8270a6b3857a6e7c9a5df8",
+    "/home/petert/llm_timing_audit/20261030-beam10-opencode-qtclustering/final/decisions.jsonl": "44b280b0e84d0b0bbb896223a54008f8521c440e714996955979e616122be5c3"
+  },
+  "verdicts": {
+    "invalid": 52,
+    "valid": 36
+  },
+  "corrections_by_benchmark": {
+    "black-scholes": 3,
+    "cahn-hilliard": 6,
+    "cholesky": 1,
+    "floydwarshall": 1,
+    "matmul": 8,
+    "nbody": 7,
+    "qtclustering": 5,
+    "roomsim": 3,
+    "spmv": 8,
+    "stencil3d": 3,
+    "unstructured": 7
+  },
+  "unresolved": [
+    {
+      "program_id": "cahn-hilliard_beam-1.0-oc-medium_mpi_r1",
+      "benchmark": "cahn-hilliard",
+      "model": "beam-1.0-oc-medium",
+      "par_type": "mpi",
+      "run": 1,
+      "overall_score": null,
+      "benchmark_median_time_ms": null,
+      "source_tree_oid": "3e1ba93f2db4896c738404d6de998ea276038f97",
+      "source_digest": "3b944712e5dbb9468923b102269c2337e60f4e6bc76c2bc3ec6e477c2e883ae1",
+      "primary_verdict": "invalid",
+      "priority_verdict": "invalid",
+      "adjudication_verdict": "invalid",
+      "supplemental_verdict": null,
+      "supplemental_reason": null,
+      "final_verdict": "invalid",
+      "decision_basis": "sol_adjudication",
+      "final_issue_categories": [
+        "missing_rank_aggregation",
+        "rank_local_timing"
+      ],
+      "timing_fix_required": true,
+      "timing_review_required": false,
+      "final_confidence": "medium",
+      "timing_only_fix_possible": true,
+      "minimal_fix": "After line 221, set long local_ms = duration.count() and reduce it into a long global_ms with MPI_Reduce using MPI_LONG and MPI_MAX on MPI_COMM_WORLD. Print global_ms at line 239 and use it for the performance calculation. The existing barriers may remain.",
+      "semantic_equivalence_basis": "Rank 0 first copies its lower boundary and then exchanges with rank 1. Every nonroot first enters the lower MPI_Sendrecv, whose outgoing plane is already available. The receive dependency propagates from rank 0 through successive ranks and gates completion of the first exchange and subsequent stencil arithmetic. However, MPI_Sendrecv's outgoing send can begin independently of its incoming receive, so this chain does not establish that root timing precedes all timestep halo communication. The final barrier proves completion, but the root interval does not provably enclose the beginning of the complete parallel computation.",
+      "notes": "For the recorded 128-rank benchmark with -x 256 -i 2000, every rank owns two z planes. Supplied target-platform evidence establishes that the millisecond count has type long, supporting the proposed MPI_LONG reduction and existing %ld format. Millisecond truncation is not itself a defect.",
+      "evidence": [
+        {
+          "path": "cahn-hilliard/cahn_hilliard.cpp",
+          "lines": "191-205",
+          "finding": "Each rank allocates and initializes its own concentration slab and performs an initial halo exchange before timing; outgoing timestep halo data therefore does not depend on input issued by rank 0 after its timestamp."
+        },
+        {
+          "path": "cahn-hilliard/cahn_hilliard.cpp",
+          "lines": "34-49",
+          "finding": "Nonroots enter a lower Sendrecv that sends existing interior data while receiving the lower halo. Lower-before-upper ordering gates subsequent receives and arithmetic through rank 0, but does not gate initiation of the outgoing sends."
+        },
+        {
+          "path": "cahn-hilliard/cahn_hilliard.cpp",
+          "lines": "208-217",
+          "finding": "Each rank independently starts timing after the barrier and immediately begins timestep halo communication, followed by the numerical calculations."
+        },
+        {
+          "path": "cahn-hilliard/cahn_hilliard.cpp",
+          "lines": "219-239",
+          "finding": "All ranks stop after a completion barrier, but their durations are never combined; the subsequent concentration gather is followed by printing only rank 0's duration."
+        },
+        {
+          "path": "cahn-hilliard/cahn_hilliard.cpp",
+          "lines": "244-257",
+          "finding": "Result printing and validation occur after the canonical timing output; validation does not select a different computation or timer."
+        }
+      ],
+      "manual_scope_rationale": null
+    },
+    {
+      "program_id": "unstructured_beam-1.0-oc-medium_mpi_r1",
+      "benchmark": "unstructured",
+      "model": "beam-1.0-oc-medium",
+      "par_type": "mpi",
+      "run": 1,
+      "overall_score": null,
+      "benchmark_median_time_ms": null,
+      "source_tree_oid": "fc665ba204cf4d6675bdadf9979231390f5e9500",
+      "source_digest": "b9bb940247b6a947b0b8f25ce5a6e66aa33ed404a4294102168718e9bdc7c402",
+      "primary_verdict": "invalid",
+      "priority_verdict": "valid",
+      "adjudication_verdict": "invalid",
+      "supplemental_verdict": null,
+      "supplemental_reason": null,
+      "final_verdict": "invalid",
+      "decision_basis": "sol_adjudication",
+      "final_issue_categories": [
+        "other"
+      ],
+      "timing_fix_required": true,
+      "timing_review_required": false,
+      "final_confidence": "high",
+      "timing_only_fix_possible": false,
+      "minimal_fix": "Replace the ceiling partition with balanced boundaries, for example start=rank*n/world_size and end=(rank+1)*n/world_size. For n=2000 and 128 ranks, every rank then owns 15 or 16 rows, making the existing halo chain and root makespan viable.",
+      "semantic_equivalence_basis": "Rank r>0 must finish its receive from rank r-1 at lines 119-122 before issuing its downstream exchange at lines 125-128 or performing numerical updates at lines 131-146. Rank 0 issues the initiating exchange only after its timer starts. Inductively, every numerical update is gated by the root start; the final barrier encloses completion. Thus absence of MPI_MAX is not the defect. The concrete violation is the full-benchmark partition: ceil(2000/128)=16, yielding local_nx values 0, -16, and -32 for ranks 125, 126, and 127. Negative vector counts prevent successful initialization, so no canonical completion time is produced.",
+      "notes": "This verdict concerns the supplied full-benchmark configuration: -n 2000 -i 5000 with 128 MPI ranks. The timer structure would establish a global makespan after correcting partition initialization. Supplied target-platform evidence establishes that duration_ms has type long, so milliseconds and the %ld format are compatible.",
+      "evidence": [
+        {
+          "path": "unstructured/unstructured.cpp",
+          "lines": "198-210",
+          "finding": "The supplied -n and -i arguments follow ordinary option parsing; they do not enter the duplicated computation inside the -h branch."
+        },
+        {
+          "path": "unstructured/unstructured.cpp",
+          "lines": "312-325",
+          "finding": "The actual benchmark path calls buildLocal before reaching its timer."
+        },
+        {
+          "path": "unstructured/unstructured.cpp",
+          "lines": "60-74",
+          "finding": "Ceiling-sized partitions are not clamped to nonnegative lengths. With n=2000 and 128 ranks, ranks 126 and 127 pass -32000 and -64000 element counts to vector::assign. Conversion to size_type exceeds vector capacity limits and causes an uncaught length_error on the supplied platform."
+        },
+        {
+          "path": "unstructured/unstructured.cpp",
+          "lines": "98-105",
+          "finding": "Rank 125 has local_nx=0 and an empty static vector, but local_x_end==n triggers indexing with last=-1, causing an additional out-of-bounds initialization access."
+        },
+        {
+          "path": "unstructured/unstructured.cpp",
+          "lines": "115-149",
+          "finding": "Each rank completes its upstream exchange before its downstream exchange and numerical updates. This propagates the root-start dependency through all ranks; no independent numerical preprocessing precedes it."
+        },
+        {
+          "path": "unstructured/unstructured.cpp",
+          "lines": "338-375",
+          "finding": "The intended root interval surrounds the complete simulation and final barrier. Subsequent collectives gather result data, and line 375 prints the root duration."
+        },
+        {
+          "path": "unstructured/unstructured.cpp",
+          "lines": "391-400",
+          "finding": "Result printing and validation occur after timing; validation does not select a different simulation or timer."
+        }
+      ],
+      "manual_scope_rationale": null
+    }
+  ],
+  "source_only": true,
+  "overlay_verdict_changes": [
+
+  ],
+  "qt_review_policy": "luna_first_uncertainty_or_disagreement_v1",
+  "retained_qt_sol_reviews": 0,
+  "policy": "Reconcile the same-source all-backend QT overlay; retain all original review evidence; no new scientific verdicts in this integrity report."
+}

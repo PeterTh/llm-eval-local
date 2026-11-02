@@ -7,6 +7,32 @@ const basePath = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${r
 const model = "beam-1.0-oc-medium";
 const batch = "20261025-170121";
 const original = "74652eee82e2473660a7e75f3ad5d77fd0e3759c";
+const corrected = "cbe8dcd9a86fdc63b7c5f62980956f015725ccfc";
+
+test("Beam timing corrections retain both source revisions", async ({ page }, testInfo) => {
+  const id = `cahn-hilliard_${model}_hybrid_r3`;
+  await page.goto(`${basePath}#/run/${id}?model-set=all`);
+  await expect(page.getByRole("heading", { name: "Validation passed", exact: true })).toBeVisible();
+  await expect(page.getByText("Successful benchmark execution.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Original generated source directory/ })).toHaveAttribute("href", new RegExp(`${original}/${batch}/${id}$`));
+  await expect(page.getByRole("link", { name: /Timing-corrected source directory/ })).toHaveAttribute("href", new RegExp(`${corrected}/${batch}/${id}$`));
+  await expect(page.getByRole("link", { name: /Benchmark JSONL evidence/ })).toHaveAttribute("href", new RegExp(`batches/${batch}/benchmark/records/`));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.screenshot({ path: testInfo.outputPath("beam-corrected-run.png"), fullPage: true });
+});
+
+test("Beam full-result replicas retain local timing without waiving output rules", async ({ page }, testInfo) => {
+  for (const [repetition, succeeded] of [[1, true], [5, false]] as const) {
+    const id = `cahn-hilliard_${model}_hybrid_r${repetition}`;
+    await page.goto(`${basePath}#/run/${id}?model-set=all`);
+    await expect(page.getByRole("heading", { name: "Validation passed", exact: true })).toBeVisible();
+    await expect(page.getByText(succeeded ? "Successful benchmark execution." : "Benchmark execution failed.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Generated source directory/ })).toHaveAttribute("href", new RegExp(`${original}/${batch}/${id}$`));
+    await expect(page.getByRole("link", { name: /Timing-corrected source directory/ })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await page.screenshot({ path: testInfo.outputPath(`beam-replica-r${repetition}.png`), fullPage: true });
+  }
+});
 
 test("Beam protocol failure retains the original program and partial accounting", async ({ page }, testInfo) => {
   const errors: string[] = [];

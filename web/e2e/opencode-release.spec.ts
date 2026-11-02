@@ -88,7 +88,7 @@ test("OpenCode has one explicit stock-harness methodology record", async ({ page
   await expect(page.getByRole("heading", { name: "Codex CLI", exact: true })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Claude Code", exact: true })).toHaveCount(1);
   const harness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "OpenCode", exact: true }) });
-  await expect(harness.locator(".harness-models > span")).toHaveCount(4);
+  await expect(harness.locator(".harness-models > span")).toHaveCount(5);
   await expect(harness.getByText("GPT-6.1 Sol Medium (OpenCode)", { exact: true })).toHaveAttribute("title", /invoked model openai\/gpt-6.1-sol; reasoning effort medium/);
   await expect(harness.getByText("GPT-6 Luna Medium (OpenCode)", { exact: true })).toHaveAttribute("title", /invoked model openai\/gpt-6-luna; reasoning effort medium/);
   await expect(harness.getByText("DeepSeek V4.1 Flash High (OpenCode)", { exact: true })).toHaveAttribute("title", /invoked model opencode-go\/deepseek-v4.1-flash; reasoning effort high/);

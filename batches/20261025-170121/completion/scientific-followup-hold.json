@@ -1,0 +1,66 @@
+{
+  "recorded_at": "2026-10-31T20:28:30Z",
+  "status": "awaiting_user_direction",
+  "program_id": "unstructured_beam-1.0-oc-medium_mpi_r2",
+  "classification": "pre_existing_algorithmic_halo_transfer_defect_missed_by_small_validation",
+  "source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+  "source_path": "20261025-170121/unstructured_beam-1.0-oc-medium_mpi_r2/unstructured/unstructured.cpp",
+  "source_url": "https://github.com/PeterTh/llm-eval-generated/blob/74652eee82e2473660a7e75f3ad5d77fd0e3759c/20261025-170121/unstructured_beam-1.0-oc-medium_mpi_r2/unstructured/unstructured.cpp",
+  "source_findings": [
+    {
+      "lines": "32-35",
+      "finding": "Each ElementDynamic contains two doubles: current_energy and total_flux."
+    },
+    {
+      "lines": "183-192",
+      "finding": "Sending n contiguous MPI_DOUBLE values from a current_energy address transfers both fields of n/2 elements, not the n current_energy values. The second half of every ghost row remains unupdated."
+    },
+    {
+      "lines": "107-155",
+      "finding": "Initial dynamic values are zero; the only nonzero external-flow materials are the four global corners. Connectivity is nearest-neighbor."
+    },
+    {
+      "lines": "180-212",
+      "finding": "Each iteration reads the previous state and writes the next state; influence can advance by at most one grid edge per iteration."
+    }
+  ],
+  "why_native_validation_misses_it": {
+    "n": 256,
+    "iterations": 20,
+    "mpi_ranks": 4,
+    "owned_rows_per_rank": 64,
+    "reasoning": "Twenty nearest-neighbor updates cannot carry corner-generated values to the first inter-rank boundary, 63 edges from either global x edge. All exchanged halo energies remain zero in this validation case, so omitted halo entries are indistinguishable from correct transfers."
+  },
+  "full_benchmark_exposure": {
+    "n": 2000,
+    "iterations": 5000,
+    "mpi_ranks": 128,
+    "owned_rows": [
+      15,
+      16
+    ],
+    "reasoning": "The corner-generated field reaches rank boundaries within the benchmark iteration count. The omitted latter-half halo energies are required by the computation. This is not a timing defect or a Hash-only discrepancy."
+  },
+  "independent_confirmation": {
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "source_only": true,
+    "result": "/home/petert/llm_timing_audit/20261030-beam10-opencode-supplemental-communication-20261031/results/unstructured_beam-1.0-oc-medium_mpi_r2.json"
+  },
+  "native_validation_result": "passed; preserved unchanged as raw evidence",
+  "generated_program_executions_for_this_investigation": 0,
+  "algorithmic_edits": 0,
+  "corrections_launched": false,
+  "benchmarking_launched": false,
+  "recommendation": "Preserve the original code and recorded validation pass; count this known algorithmically incorrect implementation as failing in the adjudicated dataset, not repair its algorithm. Add a boundary-crossing validation case for Unstructured MPI/hybrid and apply it consistently to existing passing implementations; retain all earlier evidence and change only affected results. Request user direction before changing scientific validation scope or release eligibility.",
+  "input_sha256": {
+    "/tmp/beam10-opencode-evaluation-20261030.pAq8IE/generated/20261025-170121/unstructured_beam-1.0-oc-medium_mpi_r2/unstructured/unstructured.cpp": "4e2c8ba3f5cd02d6c7fc4271e570d5851dcce98f842850283086a89f11d7cfc5",
+    "/home/petert/llm_timing_audit/20261030-beam10-opencode-supplemental-communication-20261031/results/unstructured_beam-1.0-oc-medium_mpi_r2.json": "8b91bf8918fbcc91bc3a0f25b591911e0fd858e587e0f86d51026a4cbab03f19",
+    "/home/petert/llm_para_local_evaluation/20260819-003427/benchmark_config.yaml": "20153151de0d733792317198c0ee7ebd52fbde6f605771029b205ed976be7970",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/validation/unstructured_beam-1.0-oc-medium_mpi_r2/validation_out_command.log": "c75e28e86ce789acd8d1b937a0800f799420fd6a5ff41e204bff118e4202b424",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/validation/unstructured_beam-1.0-oc-medium_mpi_r2/validation_metadata.yaml": "2299d27c197f23ee8d25053a1c9b78e77490a6a875d0adb0da36ae8dbea113bf",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/validation/unstructured_beam-1.0-oc-medium_mpi_r2/validation_out_stdout.log": "1732b36cc98a93d407fbc94973c92048e1926548a1eb15b646dd8d9f1c77d264",
+    "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation/validation/all_validation_results.yaml": "5b679123c0041b4a9063ea963aa1f7386565fad97aca1a087747f59a01edd2e4"
+  },
+  "recorder_sha256": "2f41c0efdc5ea4b8ecef36bc56a1ec1fc2614be722a13e821929e10f1d541bfe"
+}

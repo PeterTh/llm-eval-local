@@ -1,0 +1,128 @@
+# frozen_string_literal: true
+
+require "/tmp/beam10-opencode-evaluation-20261030.pAq8IE/experiment/tools/timing_audit/lib/timing_audit"
+primary = "/home/petert/llm_timing_audit/20261030-beam10-opencode"
+campaign = "/home/petert/llm_para_campaigns/20261025-170121-beam10-opencode-medium/evaluation"
+supplemental = primary + "-supplemental-communication-20261031"
+supplemental_receipt_path = File.join(campaign, "audit-supplemental-communication-20261031-launch.json")
+supplemental_receipt = JSON.parse(File.read(supplemental_receipt_path))
+%w[files retained_results prior_final].each do |key|
+  supplemental_receipt.fetch(key).each do |path, sha|
+    raise "Earlier review evidence changed: #{path}" unless TimingAudit.sha256_file(path) == sha
+  end
+end
+prior_path = File.join(supplemental, "prior-final/decisions.jsonl")
+prior_decisions = TimingAudit.load_jsonl(prior_path).to_h { |row| [row.fetch("program_id"), row] }
+selected = supplemental_receipt.fetch("selected_ids").sort
+current_decisions = TimingAudit.load_jsonl(File.join(primary, "final/decisions.jsonl"))
+changed = current_decisions.select { |row| row != prior_decisions.fetch(row.fetch("program_id")) }.map { |row| row.fetch("program_id") }.sort
+raise "Supplemental changed unrelated decisions" unless changed == selected
+current_decisions.select { |row| selected.include?(row.fetch("program_id")) }.each do |row|
+  raise "Supplemental source changed" unless row.fetch("source_digest") == prior_decisions.fetch(row.fetch("program_id")).fetch("source_digest")
+  raise "Missing supplemental decision basis" unless row.fetch("decision_basis") == "supplemental_sol_adjudication"
+end
+policy_path = File.join(campaign, "review-policy.json")
+policy = JSON.parse(File.read(policy_path))
+raise "Wrong review policy" unless policy.fetch("policy") == "luna_first_uncertainty_or_disagreement_v1"
+policy.fetch("retained_results").each do |path, digest|
+  raise "Completed pilot evidence changed" unless TimingAudit.sha256_file(path) == digest
+end
+qt_plan_path = File.join(primary + "-qtclustering-sol61", "adjudication-plan-full.json")
+qt_plan = JSON.parse(File.read(qt_plan_path))
+raise "QT selection uses obsolete policy" unless qt_plan.fetch("policy") == policy.fetch("policy")
+models = {
+  primary => ["gpt-5.6-luna", "high"],
+  "#{primary}-priority" => ["gpt-5.6-luna", "high"],
+  "#{primary}-sol61" => ["gpt-6.1-sol", "xhigh"],
+  "#{primary}-qtclustering" => ["gpt-5.6-luna", "high"],
+  "#{primary}-qtclustering-sol61" => ["gpt-6.1-sol", "xhigh"],
+  supplemental => ["gpt-6.1-sol", "xhigh"]
+}
+reports = models.map do |root, (model, effort)|
+  TimingAudit::AuditRunner.new(output_dir: root, scope: "full", jobs: 1, model: model, effort: effort)
+  verifier = TimingAudit::AuditVerifier.new(root, "full")
+  paths = Dir[File.join(root, "results/*.json")].sort
+  paths.each do |path|
+    response = JSON.parse(File.read(path))
+    id = response.fetch("program_id")
+    verifier.verify_result!(id, response)
+    accepted = Dir[File.join(root, "logs", id, "attempt-*/metadata.yaml")].filter_map do |metadata_path|
+      data = YAML.safe_load_file(metadata_path)
+      data if data["result_sha256"] == TimingAudit.sha256_file(path)
+    end
+    raise "Unbound response for #{id}" if accepted.empty?
+    raise "Wrong model or effort for #{id}" unless accepted.all? { |row|
+      row.fetch("model") == model && row.fetch("reasoning_effort") == effort && row.fetch("static_only_verified") == true
+    }
+  end
+  events = Dir[File.join(root, "logs/**/events.jsonl")]
+  events.each do |path|
+    File.foreach(path) do |line|
+      item = JSON.parse(line)["item"]
+      raise "Prohibited tool event in #{path}" if item && !%w[agent_message reasoning error].include?(item["type"])
+    end
+  end
+  { "root" => root, "model" => model, "effort" => effort, "responses" => paths.size,
+    "retained_attempts" => events.size, "nonempty_event_streams" => events.count { |path| !File.zero?(path) },
+    "prohibited_tool_events" => 0,
+    "manifest_sha256" => TimingAudit.sha256_file(File.join(root, "manifest.yaml")) }
+end
+decisions = {}
+source_digests = {}
+inputs = { policy_path => TimingAudit.sha256_file(policy_path), qt_plan_path => TimingAudit.sha256_file(qt_plan_path) }
+inputs[supplemental_receipt_path] = TimingAudit.sha256_file(supplemental_receipt_path)
+inputs[prior_path] = TimingAudit.sha256_file(prior_path)
+inputs[File.join(campaign, "audit-completion-review.json")] = supplemental_receipt.fetch("prior_gate_sha256")
+Dir[File.join(supplemental, "results/*.json")].each { |path| inputs[path] = TimingAudit.sha256_file(path) }
+inputs[File.join(supplemental, "manifest.yaml")] = TimingAudit.sha256_file(File.join(supplemental, "manifest.yaml"))
+overlay_changes = []
+[primary, "#{primary}-qtclustering"].each do |root|
+  path = File.join(root, "final/decisions.jsonl")
+  inputs[path] = TimingAudit.sha256_file(path)
+  TimingAudit.load_jsonl(path).each do |row|
+    id = row.fetch("program_id")
+    digest = row.fetch("source_digest")
+    raise "Overlay source mismatch for #{id}" if source_digests.key?(id) && source_digests.fetch(id) != digest
+    if decisions[id] && decisions.fetch(id).fetch("final_verdict") != row.fetch("final_verdict")
+      overlay_changes << { "program_id" => id, "primary_verdict" => decisions.fetch(id).fetch("final_verdict"),
+        "boundary_verdict" => row.fetch("final_verdict"), "boundary_basis" => row.fetch("decision_basis"),
+        "primary_categories" => decisions.fetch(id).fetch("final_issue_categories"),
+        "boundary_categories" => row.fetch("final_issue_categories") }
+    end
+    source_digests[id] = digest
+    decisions[id] = row
+  end
+end
+require "/tmp/beam10-opencode-evaluation-20261030.pAq8IE/experiment/lib/local_evaluation"
+validation = "/home/petert/llm_para_local_evaluation/20261030-beam10-opencode-validation"
+completion = JSON.parse(File.read(File.join(validation, "validation-completion-review.json")))
+raise "Original validation changed" unless completion.fetch("validation_results_sha256") ==
+  LocalEvaluation.sha256_file(File.join(validation, "validation/all_validation_results.yaml"))
+native = LocalEvaluation::ValidationPipeline.new(run_dir: validation).send(:load_results)
+expected = native.values.select { |row|
+  row.output_comparison && (%w[mpi hybrid].include?(row.par_type) || row.benchmark == "qtclustering")
+}.map(&:id_string).sort
+raise "Combined audit coverage changed" unless decisions.keys.sort == expected
+unresolved = decisions.values.select { |row|
+  row.fetch("final_verdict") == "ambiguous" || row.fetch("final_confidence") != "high" ||
+    (row.fetch("final_verdict") == "invalid" && !row.fetch("timing_only_fix_possible"))
+}
+report = {
+  "checked_at" => TimingAudit.utc_now, "passed" => unresolved.empty?,
+  "unique_programs" => decisions.size, "reviews" => reports, "input_sha256" => inputs,
+  "verdicts" => decisions.values.map { |row| row.fetch("final_verdict") }.tally,
+  "corrections_by_benchmark" => decisions.values.select { |row| row.fetch("final_verdict") == "invalid" }
+    .group_by { |row| row.fetch("benchmark") }.transform_values(&:size),
+  "unresolved" => unresolved, "source_only" => true,
+  "overlay_verdict_changes" => overlay_changes,
+  "qt_review_policy" => qt_plan.fetch("policy"),
+  "retained_qt_sol_reviews" => qt_plan.fetch("retained_results").size,
+  "supplemental_selection" => selected,
+  "prior_report" => File.join(campaign, "audit-completion-review.json"),
+  "policy" => "Reconcile the same-source all-backend QT overlay and the explicitly selected independent supplemental Sol reviews. Original responses, prior final decisions and the failed first integrity gate remain retained. No manual scientific verdicts in this integrity report."
+}
+output = "/home/petert/llm_para_campaigns/20261025-170121-beam10-opencode-medium/evaluation/audit-completion-supplemental-review.json"
+raise "Audit completion report already exists" if File.exist?(output)
+TimingAudit.atomic_write(output, JSON.pretty_generate(report) + "\n")
+FileUtils.cp(__FILE__, File.dirname(output))
+puts JSON.pretty_generate(report)

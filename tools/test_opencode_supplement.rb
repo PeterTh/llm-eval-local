@@ -63,4 +63,25 @@ class OpenCodeSupplementTest < Minitest::Test
       record("g", "nbody", "mpi", valid: false), record("h", "qtclustering", "cuda", valid: false)]
     assert_equal %w[a b c d e], OpenCodeSupplement.audit_scope(records.reverse)
   end
+
+  def test_reference_source_is_verified_by_reconstructable_pins_without_exporting_a_copy
+    Dir.mktmpdir('opencode-reference-', '/tmp') do |source|
+      assert_nil OpenCodeSupplement.verify_reference_boundary!(source, {})
+      bytes = 'reference code'
+      File.write(File.join(source, 'sequential-reference.cpp'), bytes)
+      manifest = { 'reference_boundary' => { 'commit' => 'a' * 40, 'path' => 'roomsim/roomsim.cpp', 'sha256' => Digest::SHA256.hexdigest(bytes) } }
+      OpenCodeSupplement.verify_reference_boundary!(source, manifest)
+      assert_raises(KeyError) { OpenCodeSupplement.verify_reference_boundary!(source, {}) }
+      altered = Marshal.load(Marshal.dump(manifest))
+      altered['reference_boundary']['path'] = '../roomsim.cpp'
+      assert_raises(RuntimeError) { OpenCodeSupplement.verify_reference_boundary!(source, altered) }
+      altered['reference_boundary']['path'] = '/roomsim.cpp'
+      assert_raises(RuntimeError) { OpenCodeSupplement.verify_reference_boundary!(source, altered) }
+      altered['reference_boundary']['path'] = 'roomsim/roomsim.cpp'
+      altered['reference_boundary']['commit'] = 'unpinned'
+      assert_raises(RuntimeError) { OpenCodeSupplement.verify_reference_boundary!(source, altered) }
+      File.write(File.join(source, 'sequential-reference.cpp'), bytes + 'changed')
+      assert_raises(RuntimeError) { OpenCodeSupplement.verify_reference_boundary!(source, manifest) }
+    end
+  end
 end

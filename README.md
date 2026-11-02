@@ -22,15 +22,15 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 8,140 current validation outcomes and scoped revalidations, including exact execution output;
-- all 7,223 current benchmark outcomes (6,816 successful), measured values and wall times;
+- all 8,360 current validation outcomes and scoped revalidations, including exact execution output;
+- all 7,395 current benchmark outcomes (6,954 successful), measured values and wall times;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
 - static MPI/hybrid timing audits, all-backend QT boundary audits,
-  1,196 timing-fixed implementations, and scoped rerun comparisons;
+  1,241 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
 - compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 660 GPT-6.1 runs;
-- native OpenCode usage, shared effective configuration and request-context evidence for 880 runs
-  (877 complete usage records and three explicit partial records);
+- native OpenCode usage, shared effective configuration and request-context evidence for 1,100 runs
+  (1,096 complete usage records and four explicit partial records);
 - request-context pricing evidence for all 440 Haiku 5.5 runs across both harnesses;
 - the exact final local-evaluation pipeline source snapshot; and
 - reproducible analysis source and final publication tables/figures as they are added.
@@ -54,9 +54,9 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 8,140 scored
-programs across 37 model/effort/harness profiles, using the same scoring procedure applied jointly to twelve
-campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Terra 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6, DeepSeek V4.1 Flash and Haiku 5.5 in OpenCode, with timing-corrected measurements and
+The current combined release is under [`release/`](release/README.md): 8,360 scored
+programs across 38 model/effort/harness profiles, using the same scoring procedure applied jointly to thirteen
+campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Terra 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6, DeepSeek V4.1 Flash, Haiku 5.5 and Beam 1.0 in OpenCode, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
 analyses; superseded reviews are retained too (94 notes in total).
 
@@ -78,9 +78,9 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 
 | Campaign | Programs | Fully validated | Successful benchmarks |
 | --- | ---: | ---: | ---: |
-| [Original model set](data/release_summary.yaml) | 4,620 | 3,825 | 3,488 |
+| [Original model set](data/release_summary.yaml) | 4,620 | 3,819 | 3,482 |
 | [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 641 | 626 |
-| [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 609 | 588 |
+| [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 608 | 587 |
 | [Opus 5.5 Medium](batches/20261002-142720/README.md) | 220 | 219 | 219 |
 | [Sol 6.1 Medium and XHigh](batches/20261006-204623/README.md) | 440 | 439 | 439 |
 | [Haiku 5.5 Medium](batches/20261012-111947/README.md) | 220 | 219 | 219 |
@@ -90,6 +90,10 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | [DeepSeek V4.1 Flash High in OpenCode](batches/20261019-134042/README.md) | 220 | 217 | 217 |
 | [Haiku 5.5 Medium in OpenCode](batches/20261025-170040/README.md) | 220 | 219 | 217 |
 | [Terra 6.1 Medium in Codex](batches/20261028-200951/README.md) | 220 | 220 | 220 |
+| [Beam 1.0 Medium in OpenCode](batches/20261025-170121/README.md) | 220 | 179 | 145 |
+
+Counts include the [external Unstructured validation check](analysis/notes/2026-11-01-unstructured-boundary-validation.md);
+the original validation and measurement records remain retained.
 
 All campaigns use the same reviewed benchmark sizes, iterations, timeouts and
 resource profiles, with one warm-up and five measurements. Campaign records and
