@@ -43,6 +43,33 @@ class CurrentReleaseTest < Minitest::Test
     assert_output(/Current release verified/) { CurrentRelease.new(ROOT).run(check: true, require_reviews: true) }
   end
 
+  def test_terra61_xhigh_retains_native_boundary_validation
+    batch = File.join(ROOT, "batches/20261102-030935")
+    records = LocalEvalArtifact.read_jsonl(File.join(batch, "validation/records.jsonl"))
+    boundary = records.select do |record|
+      metadata = record.fetch("metadata")
+      metadata.fetch("benchmark") == "unstructured" && %w[mpi hybrid].include?(metadata.fetch("par_type"))
+    end
+    assert_equal 10, boundary.size
+    reference = File.join(batch, "validation/references/unstructured/unstructured-boundary-v1/validation_out_stdout.log")
+    reference_digest = Digest::SHA256.file(reference).hexdigest
+    boundary.each do |record|
+      cases = record.fetch("metadata").fetch("supplemental_validation")
+      assert_equal 1, cases.size
+      extra = cases.fetch(0)
+      assert_equal "unstructured-boundary-v1", extra.fetch("id")
+      assert_equal %w[-v -r -n 32 -i 512], extra.fetch("args")
+      assert_equal true, extra.fetch("passed")
+      assert_equal reference_digest, extra.fetch("reference_sha256")
+      expected = %w[command stdout stderr exitcode wall_time].map { |suffix| "validation_out_unstructured-boundary-v1_#{suffix}.log" }
+      assert_equal expected.sort, extra.fetch("logs").keys.sort
+      extra.fetch("logs").each do |name, digest|
+        assert_equal digest, record.fetch("log_sha256").fetch(name)
+        assert_equal digest, Digest::SHA256.hexdigest(record.fetch("logs").fetch(name))
+      end
+    end
+  end
+
   def test_rejects_modified_timing_correction_commit
     release = TamperedRelease.new(ROOT) do |records|
       record = records.values.find { |r| r.fetch("timing_fixed") }

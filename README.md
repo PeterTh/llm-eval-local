@@ -22,13 +22,13 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 8,360 current validation outcomes and scoped revalidations, including exact execution output;
-- all 7,395 current benchmark outcomes (6,954 successful), measured values and wall times;
+- all 8,580 current validation outcomes and scoped revalidations, including exact execution output;
+- all 7,615 current benchmark outcomes (7,174 successful), measured values and wall times;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
 - static MPI/hybrid timing audits, all-backend QT boundary audits,
-  1,241 timing-fixed implementations, and scoped rerun comparisons;
+  1,263 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
-- compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 660 GPT-6.1 runs;
+- compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 880 GPT-6.1 runs;
 - native OpenCode usage, shared effective configuration and request-context evidence for 1,100 runs
   (1,096 complete usage records and four explicit partial records);
 - request-context pricing evidence for all 440 Haiku 5.5 runs across both harnesses;
@@ -54,8 +54,8 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 8,360 scored
-programs across 38 model/effort/harness profiles, using the same scoring procedure applied jointly to thirteen
+The current combined release is under [`release/`](release/README.md): 8,580 scored
+programs across 39 model/effort/harness profiles, using the same scoring procedure applied jointly to fourteen
 campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Terra 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6, DeepSeek V4.1 Flash, Haiku 5.5 and Beam 1.0 in OpenCode, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
 analyses; superseded reviews are retained too (94 notes in total).
@@ -91,6 +91,7 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | [Haiku 5.5 Medium in OpenCode](batches/20261025-170040/README.md) | 220 | 219 | 217 |
 | [Terra 6.1 Medium in Codex](batches/20261028-200951/README.md) | 220 | 220 | 220 |
 | [Beam 1.0 Medium in OpenCode](batches/20261025-170121/README.md) | 220 | 179 | 145 |
+| [Terra 6.1 XHigh in Codex](batches/20261102-030935/README.md) | 220 | 220 | 220 |
 
 Counts include the [external Unstructured validation check](analysis/notes/2026-11-01-unstructured-boundary-validation.md);
 the original validation and measurement records remain retained.

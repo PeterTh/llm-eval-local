@@ -50,6 +50,19 @@ MODELS = {
         "pricing_match_note": "Beam 1.0 family; pricing endpoint declares 20261016/FP4, while the evaluated Go alias is unversioned. Serving configurations are not established to be identical. API-rate comparison, not Go promotional billing.",
         "cost_method": "Exact native OpenCode request counters; cache is included in input and reasoning in output. Flat context pricing. The protocol-terminated session has incomplete usage and is excluded from full-task costs, but retained in scores.",
     },
+    "gpt-6.1-terra-xhigh": {
+        "label": "GPT-6.1 Terra XHigh", "color": "#579c82", "marker": "D",
+        "pricing_as_of": "2026-10-28", "pricing_model_id": "openai/gpt-6.1-terra",
+        "input_price": 0.5, "cached_input_price": 0.025, "output_price": 2.5,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI pricing and live OpenRouter endpoint comparison",
+        "pricing_selection_policy": "componentwise lowest live non-batch rates in both request-context tiers (Flex); rates frozen per model, shared with Terra medium",
+        "pricing_catalog_url": "https://openrouter.ai/api/v1/models/openai/gpt-6.1-terra/endpoints",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "secondary_pricing_source_url": "https://developers.openai.com/api/docs/pricing",
+        "cost_method": "Exact native Codex counters; cache is included in input and reasoning in output. All 4,382 requests below the 272,000-input-token long-context threshold; cache writes explicitly zero. API-rate comparison, not subscription billing.",
+    },
     "gpt-6.1-terra-medium": {
         "label": "GPT-6.1 Terra Medium", "color": "#579c82", "marker": "s",
         "pricing_as_of": "2026-10-28", "pricing_model_id": "openai/gpt-6.1-terra",
@@ -446,6 +459,7 @@ EXCLUDED_MODELS = {
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
     "beam-1.0-oc-medium": (-7, -10),
+    "gpt-6.1-terra-xhigh": (-45, 20),
     "gpt-6.1-terra-medium": (-20, 0),
     "claude-haiku-5.5-oc-medium": (-85, -22),
     "deepseek-v4.1-flash-oc-high": (-8, 23),
@@ -719,7 +733,7 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             va="center",
             fontsize=8.5,
             arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
-            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium"} else None,
+            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium", "gpt-6.1-terra-xhigh"} else None,
             zorder=4,
         )
 

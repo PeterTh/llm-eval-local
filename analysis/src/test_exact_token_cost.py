@@ -79,6 +79,23 @@ class ExactTokenCostTest(unittest.TestCase):
                                places=12)
         self.assertEqual(43_027_449, row.mean_total_tokens)
 
+    def test_terra61_xhigh_shares_model_rates_with_distinct_accounting(self):
+        medium = combined.MODELS["gpt-6.1-terra-medium"]
+        xhigh = combined.MODELS["gpt-6.1-terra-xhigh"]
+        for field in ("pricing_as_of", "input_price", "cached_input_price", "output_price",
+                      "pricing_model_id", "pricing_provider_tag", "pricing_source_url"):
+            self.assertEqual(medium[field], xhigh[field], field)
+        totals = self.frame.assign(model="gpt-6.1-terra-xhigh",
+            input_tokens=97_261_512, cached_tokens=92_136_704,
+            output_tokens=1_708_412, total_tokens=98_969_924,
+            reasoning_output_tokens=423_784)
+        row = combined.aggregate(totals).iloc[0]
+        self.assertAlmostEqual(9.1368516, row.estimated_cost_usd_per_run, places=10)
+        self.assertAlmostEqual(0.041531143636363636, row.estimated_cost_usd_per_run / 220,
+                               places=12)
+        self.assertEqual(98_969_924, row.mean_total_tokens)
+        self.assertIn("4,382 requests", row.cost_method)
+
     def test_opus55_exact_tokens_use_dated_cache_discount(self):
         frame = self.frame.assign(model="claude-opus-5.5-cc-medium")
         row = combined.aggregate(frame).iloc[0]

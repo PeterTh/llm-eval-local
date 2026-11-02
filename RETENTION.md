@@ -77,7 +77,7 @@ whole.
 
 - curated `data/`: at most 60 MiB;
 - `analysis/`: at most 20 MiB;
-- complete scientific artifact tree (excluding the website): at most 256 MiB;
+- complete scientific artifact tree (excluding the website): at most 320 MiB;
 - individual file: at most 10 MiB.
 
 Git LFS is not used. Any exception requires an explicit policy change and must explain

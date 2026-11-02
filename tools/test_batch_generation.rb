@@ -54,6 +54,17 @@ class BatchGenerationTest < Minitest::Test
     assert_match(/identity differs/, assert_raises(RuntimeError) { verify }.message)
   end
 
+  def test_terra_xhigh_retains_its_actual_reasoning_effort
+    @campaign['id'] = '20261102-030935'
+    @record['batch'] = @campaign.fetch('id')
+    @record.fetch('usage')['cache_write_input_tokens'] = 0
+    @observation.merge!('model' => 'gpt-6.1-terra', 'reasoning_effort' => 'xhigh')
+    @row.merge!('model' => 'gpt-6.1-terra-xhigh', 'cache_write_input_tokens' => '0')
+    verify
+    @observation['reasoning_effort'] = 'medium'
+    assert_match(/identity differs/, assert_raises(RuntimeError) { verify }.message)
+  end
+
   def test_rejects_unmatched_session_or_scope
     @row["token_usage_session_id"] = "another"
     assert_match(/provenance differs/, assert_raises(RuntimeError) { verify }.message)

@@ -9,15 +9,25 @@ require_relative "../method/codex-usage/codex_usage"
 module Terra61Supplement
   BATCH = "20261028-200951"
   ORIGINAL = "c94e9a7be1efbb0235af8cd31fdb9f5c7b994a36"
+  CAMPAIGNS = {
+    BATCH => { "original" => ORIGINAL, "profile" => "gpt-6.1-terra-medium", "effort" => "medium",
+      "campaign_suffix" => "terra61-codex-medium", "audit" => "20261029-terra61-codex" },
+    "20261102-030935" => { "original" => "c070881d4b6186c32117ecd339e87d6f32db77e7",
+      "profile" => "gpt-6.1-terra-xhigh", "effort" => "xhigh",
+      "campaign_suffix" => "terra61-codex-xhigh", "audit" => "20261102-terra61-xhigh-codex" }
+  }.transform_values(&:freeze).freeze
   POLICY = "luna_first_uncertainty_or_disagreement_v1"
   module_function
 
-  def run(root:, home:, phase:)
+  def run(root:, home:, phase:, batch_id: BATCH)
     raise "Unknown supplement phase" unless %w[audit complete].include?(phase)
-    batch = File.join(root, "batches", BATCH)
-    campaign = File.join(home, "llm_para_campaigns/#{BATCH}-terra61-codex-medium")
+    configuration = CAMPAIGNS.fetch(batch_id)
+    original_commit = configuration.fetch("original")
+    profile = configuration.fetch("profile")
+    batch = File.join(root, "batches", batch_id)
+    campaign = File.join(home, "llm_para_campaigns/#{batch_id}-#{configuration.fetch('campaign_suffix')}")
     evaluation = File.join(campaign, "evaluation")
-    audit = File.join(home, "llm_timing_audit/20261029-terra61-codex")
+    audit = File.join(home, "llm_timing_audit", configuration.fetch("audit"))
     raise "Export native validation first" unless File.file?(File.join(batch, "validation/records.jsonl"))
     write = lambda do |relative, bytes|
       raise "Unsafe export path" if Pathname.new(relative).absolute? || relative.split('/').include?('..')
@@ -100,7 +110,7 @@ module Terra61Supplement
       correction_ids = decisions.values.select { |row| row.fetch("timing_fix_required") }.map { |row| row.fetch("program_id") }.sort
       raise "Unresolved audit conditions" unless decisions.values.all? { |row| row.fetch("timing_review_required") == false }
       json.call("timing-audit/resolved-selection.json", {
-        "schema_version" => 1, "source_commit" => ORIGINAL, "record_count" => decisions.size,
+        "schema_version" => 1, "source_commit" => original_commit, "record_count" => decisions.size,
         "ordered_decisions" => inputs, "verdict_counts" => counts, "correction_ids" => correction_ids,
         "policy" => "Same-source all-backend QT boundary decisions overlay the general MPI/hybrid audit; all review evidence is retained."
       })
@@ -124,7 +134,7 @@ module Terra61Supplement
 
     raise "Export native aggregate first" unless File.file?(File.join(batch, "aggregate/export.json"))
     completion = JSON.parse(File.read(File.join(campaign, "completion-audit.json")))
-    raise "Generation completion changed" unless completion.fetch("source_commit") == ORIGINAL &&
+    raise "Generation completion changed" unless completion.fetch("source_commit") == original_commit &&
       completion.fetch("observations") == 220 && completion.fetch("outcomes") == { "completed" => 220 } &&
       completion.fetch("accepted_generation_invocations") == 220 && completion.fetch("usage_complete")
     selected.call(campaign, "generation", %w[campaign.json run-ids.txt preflight-ids.txt preflight-gate.json
@@ -134,7 +144,7 @@ module Terra61Supplement
     selected.call(campaign, "generation/supervision", %w[prepare-campaign.rb inspect-model-access.rb run.rb
       controller.rb monitor.rb launch.rb review-preflight.rb amend-tool-host.rb audit-completion.rb])
     manifest = JSON.parse(File.read(File.join(campaign, "campaign.json")))
-    raise "Generation identity changed" unless manifest.fetch("campaign_id") == BATCH
+    raise "Generation identity changed" unless manifest.fetch("campaign_id") == batch_id
     reusable = {}
     LocalEvalArtifact.regular_files(root).each do |path|
       relative = LocalEvalArtifact.relative_path(root, path)
@@ -149,7 +159,7 @@ module Terra61Supplement
       unless relative
         stored = "generation/method/#{name.gsub('/bin/', '/commands/')}"
         copy.call(source, stored)
-        relative = "batches/#{BATCH}/#{stored}"
+        relative = "batches/#{batch_id}/#{stored}"
         reusable[digest] = relative
       end
       [name, relative]
@@ -165,11 +175,11 @@ module Terra61Supplement
     observations.each do |observation|
       record = usage.fetch(observation.fetch("id"))
       raise "Generation identity differs" unless observation.fetch("outcome") == "completed" &&
-        observation.fetch("model") == "gpt-6.1-terra" && observation.fetch("reasoning_effort") == "medium" &&
+        observation.fetch("model") == "gpt-6.1-terra" && observation.fetch("reasoning_effort") == configuration.fetch("effort") &&
         observation.fetch("session_id") == record.fetch("session_id") &&
         observation.fetch("sha256").fetch("output.txt") == record.fetch("transcript_sha256")
     end
-    usage_destination = File.join(root, "metadata/codex-usage/#{BATCH}.jsonl")
+    usage_destination = File.join(root, "metadata/codex-usage/#{batch_id}.jsonl")
     FileUtils.mkdir_p(File.dirname(usage_destination))
     FileUtils.cp(usage_path, usage_destination)
     jsonl.call("generation/observations.jsonl", observations)
@@ -191,7 +201,7 @@ module Terra61Supplement
     pricing = File.join(campaign, "pricing")
     audit_report = JSON.parse(File.read(File.join(pricing, "request-pricing-audit.json")))
     raise "Pricing scope changed" unless audit_report.fetch("observations") == 220 &&
-      audit_report.fetch("profile") == "gpt-6.1-terra-medium" && audit_report.fetch("generation_complete_before_session_inspection") &&
+      audit_report.fetch("profile") == profile && audit_report.fetch("generation_complete_before_session_inspection") &&
       audit_report.fetch("final_usage_sha256") == LocalEvalArtifact.sha256(usage_path) &&
       audit_report.fetch("pricing_reference_sha256") == LocalEvalArtifact.sha256(File.join(pricing, "pricing-reference.json")) &&
       audit_report.fetch("request_usage_sha256") == LocalEvalArtifact.sha256(File.join(pricing, "codex-request-usage.jsonl")) &&
@@ -216,6 +226,7 @@ module Terra61Supplement
 end
 
 if $PROGRAM_NAME == __FILE__
-  abort "Usage: #{$PROGRAM_NAME} audit|complete HOME" unless ARGV.size == 2 && %w[audit complete].include?(ARGV.first)
-  Terra61Supplement.run(root: File.expand_path("..", __dir__), home: File.expand_path(ARGV.last), phase: ARGV.first)
+  abort "Usage: #{$PROGRAM_NAME} audit|complete HOME [BATCH]" unless [2, 3].include?(ARGV.size) && %w[audit complete].include?(ARGV.first)
+  Terra61Supplement.run(root: File.expand_path("..", __dir__), home: File.expand_path(ARGV[1]),
+    phase: ARGV.first, batch_id: ARGV[2] || Terra61Supplement::BATCH)
 end
