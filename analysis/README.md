@@ -23,6 +23,9 @@ With full Git history, reproduce that release-specific comparison using
 `ruby analysis/src/validation_strengthening_impact.rb` at the corresponding release revision.
 The [complete static SpMV review](notes/2026-11-04-spmv-work-count.md) covers all
 722 still-eligible implementations and identifies no additional work-count exclusions.
+The [full-array pilot](notes/2026-11-04-full-array-validation.md) identifies four
+additional Roomsim numerical failures; the full sweep and release integration
+are in progress.
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;

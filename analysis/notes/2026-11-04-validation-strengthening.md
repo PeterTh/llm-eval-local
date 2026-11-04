@@ -91,9 +91,11 @@ programs. Future native validation uses the same approved cases and policy.
 The [complete SpMV work-count review](2026-11-04-spmv-work-count.md) covers all
 722 eligible implementations using source and bound validation-executable code.
 It identified no new work-count omission and changes no eligibility or scores.
-This is not an automatic work-count validator. Tolerant full-array comparison
-remains a separate follow-up; floating-point checks still use printed numerical
-summaries and samples.
+This is not an automatic work-count validator. The
+[full-array pilot](2026-11-04-full-array-validation.md) identifies four additional
+Roomsim numerical failures, including the hybrid winner. The approved full-array
+sweep and its release integration are in progress; the release counts above
+describe the already integrated checks.
 
 With full Git history, reproduce this release's impact record using
 `ruby analysis/src/validation_strengthening_impact.rb`. Rebuild eligibility
