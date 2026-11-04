@@ -1,0 +1,41 @@
+{
+  "id": "nbody_beam-1.0-oc-medium_mpi_r2",
+  "case_id": "nbody-shape-mpi128-v1",
+  "source_commit": "cbe8dcd9a86fdc63b7c5f62980956f015725ccfc",
+  "original_source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+  "source_path": "20261025-170121/nbody_beam-1.0-oc-medium_mpi_r2",
+  "result_sha256": "451707581e38b1ab99eed06df34a01ae4bac8474d87949170eb9c3d040eecf91",
+  "observed_failure": "MPI reports enormous wrapped expected byte counts (including 2^64-192, consistent with -24 doubles) and processes segfault during Allgatherv; exit 139.",
+  "execution": {
+    "success": false,
+    "exit_code": 139,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 10153,
+    "overall_score": 6
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "16eaa0d1366161f2e5ae10ed7d067a6b8391e2b6c719e5998bcaf41d345cc003",
+  "source_lines": [
+    173,
+    174,
+    175,
+    178,
+    179,
+    180,
+    181,
+    182,
+    190,
+    192
+  ],
+  "finding": "At n=1031 and 128 ranks, ceil partition size is nine. Empty ranks 115 through 127 have start>n but end clamped to n. Unsigned e-s underflows and converts to negative MPI receive counts; for rank 115 the count is -24 doubles. Both in-place MPI_Allgatherv calls use these invalid counts.",
+  "interpretation": "Pre-existing empty-partition/count-underflow defect independent of concurrent scheduling. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/count arithmetic and retained MPI diagnostic; no new program execution."
+}

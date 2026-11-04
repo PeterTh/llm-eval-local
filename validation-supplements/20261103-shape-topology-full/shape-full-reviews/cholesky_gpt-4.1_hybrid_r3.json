@@ -1,0 +1,18 @@
+{
+  "id": "cholesky_gpt-4.1_hybrid_r3",
+  "case_id": "cholesky-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cholesky_gpt-4.1_hybrid_r3",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "a1ca6b537055d17b29b18e53cde73c0a31a48a91784e8bb7cc11246d4624ad59",
+  "source_lines": [33, 34, 35, 60, 61, 215],
+  "finding": "The diagonal-block broadcast starts at A[k*n+k] but sends kb*n contiguous doubles. On the last block, this extends k doubles past the n*n allocation. At n=513 the final block has k=512 and kb=1: the program broadcasts 513 doubles starting at the final matrix element, overrunning by 512 doubles. This range is invalid even for some aligned sizes; the additional shape exposes a crash rather than relying on allocation padding.",
+  "observed_failure": "The exclusive hybrid check at n=513 exits 139. MPI reports an inaccessible 4104-byte transfer and rank 0 segfaults in MPI_Bcast; 4104 bytes equals 513 doubles. The stack and transfer size agree with the final diagonal-block broadcast. It is not a timeout or a concurrent-validation failure.",
+  "interpretation": "A concrete pre-existing out-of-bounds MPI buffer range explains the retained failure. No source or input was changed and no retry was performed. The added case is classified at the external-validation stage.",
+  "result_sha256": "a578e135a2db71cfb99c01645e279546618ae23f106af90f8c67399d854e7a25",
+  "prior_release": { "validation_status": 5, "benchmark_success": false, "benchmark_median_ms": null, "overall_score": 5 },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and retained validation output; no retry."
+}

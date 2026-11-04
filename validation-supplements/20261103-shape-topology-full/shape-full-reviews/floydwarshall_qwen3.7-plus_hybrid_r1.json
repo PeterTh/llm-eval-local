@@ -1,0 +1,36 @@
+{
+  "id": "floydwarshall_qwen3.7-plus_hybrid_r1",
+  "case_id": "floydwarshall-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260618-110425/floydwarshall_qwen3.7-plus_hybrid_r1",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "82f3d87b8e5daf9bdde75fcff52b1a52dcef64aed972b4b070b28ac28c32be4c",
+  "source_lines": [
+    129,
+    130,
+    138,
+    139,
+    148,
+    180,
+    182,
+    209,
+    210,
+    211,
+    214,
+    216
+  ],
+  "finding": "The pivot-column exchange uses MPI_Allgather with local_rows as both send count and per-rank receive count, although the floor-partitioned row counts are 128,128,128,129 at n=513. The ranks therefore disagree about message sizes; 128-count receivers cannot accept the final rank's 129 entries. A variable-count collective is required for this partition. Separately, the floor-based pivot owner also mismatches floor partition boundaries.",
+  "observed_failure": "MPI_Allgather raises MPI_ERR_TRUNCATE: message truncated, and the exclusive hybrid execution exits 15 without a numerical result.",
+  "interpretation": "Pre-existing uneven-count collective defect, unrelated to scheduling. Retain failed external validation without retry.",
+  "result_sha256": "e7e5d4a2f5c17ae1e18d5d347c912edf1e7cd8a1bf9cf94e41ec3efeacfced34",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 3982,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained MPI error; no new program execution."
+}

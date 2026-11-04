@@ -1,0 +1,39 @@
+{
+  "id": "nbody_gpt-4.1_mpi_r5",
+  "case_id": "nbody-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/nbody_gpt-4.1_mpi_r5",
+  "result_sha256": "8b0d8ab73b6e75b4480a3e903c82662f3ae20dfb300eda704f933dcc9878b681",
+  "observed_failure": "MPI_Allgather reports MPI_ERR_TRUNCATE, including on rank7, and exits15 before result output.",
+  "execution": {
+    "success": false,
+    "exit_code": 15,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "7a9d7f11336629219dcab249eba7dc75f484ecc8d901c6b5d353689eae6d217a",
+  "source_lines": [
+    163,
+    170,
+    171,
+    172,
+    173,
+    179,
+    184,
+    185
+  ],
+  "finding": "The program partitions 1031 bodies unevenly over 128 ranks (nine bodies on ranks0-6, eight on ranks7-127), but uses fixed-count MPI_Allgather with each caller's own local count as recvcount. These incompatible counts cause truncation on eight-body receivers; nine-body receivers also describe 1152 bodies in a 1031-body buffer.",
+  "interpretation": "Pre-existing uneven-partition collective-count defect independent of concurrent scheduling. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/count inspection and retained MPI diagnostic; no new program execution."
+}

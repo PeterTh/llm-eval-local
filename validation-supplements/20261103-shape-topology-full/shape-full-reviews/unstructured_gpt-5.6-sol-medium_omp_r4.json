@@ -1,0 +1,42 @@
+{
+  "id": "unstructured_gpt-5.6-sol-medium_omp_r4",
+  "case_id": "unstructured-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260805-120633/unstructured_gpt-5.6-sol-medium_omp_r4",
+  "result_sha256": "76261c3bce39651779b0427ba48e32660dcf5a422ac553343a29cf1c96ed73bb",
+  "observed_failure": "Numeric value mismatch for object ElementEnergy: 'Sum: 0.00000000000000000e+00' vs 'Sum: 1.51240714499949647e+00'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 4538,
+    "overall_score": 6
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "69b0c9f9f0844730e671f37b923caa4a2b6bfedc2744d5e52b4fb52e74e873cf",
+  "source_lines": [
+    134,
+    136,
+    137,
+    138,
+    140,
+    143,
+    151,
+    154,
+    155,
+    159,
+    160
+  ],
+  "finding": "The worksharing loop uses nowait and then a single region swaps shared buffer pointers. OpenMP single has an exit barrier but no entry barrier. A fast worker can therefore swap read_elements/write_elements before another worker has taken its iteration_read/iteration_write snapshots, causing inconsistent buffer roles within the same iteration and racing accesses.",
+  "interpretation": "This pre-existing synchronization race explains a possible wrong evolution; the retained execution demonstrably fails the unchanged numerical comparison (energy sum 1.512407145 instead of zero, with extrema and samples also differing). No timing correction exists for this source. Retain the failure without repairing or retrying it.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained correctness output; no new program execution."
+}

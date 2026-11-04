@@ -1,0 +1,37 @@
+{
+  "case_id": "cholesky-shape-mpi128-v1",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "file": "cholesky/cholesky.cpp",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained validation output; no new program execution.",
+  "id": "cholesky_qwen3.7-plus_mpi_r3",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "source_path": "20260618-110425/cholesky_qwen3.7-plus_mpi_r3",
+  "source_sha256": "245eaf668aa384882eacc758454bb538742c8f1a8e816098346d640ef6290060",
+  "source_lines": [
+    13,
+    15,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    185,
+    187,
+    190
+  ],
+  "finding": "For n=513 there are nine 64-column blocks. Ranks 9 through 127 receive zero blocks, but start_blk=9 makes col_start=576 while col_end is clamped to 513. Their unsigned local_cols underflows by 63, and n*local_cols causes the Aloc vector constructor to reject an impossible length. Empty block owners must not have a start beyond the clamped end.",
+  "observed_failure": "Multiple MPI ranks throw std::length_error: cannot create std::vector larger than max_size(), aborting the job with exit 134 after 14.58 seconds.",
+  "interpretation": "Pre-existing empty-partition arithmetic failure, not concurrency or physical-memory pressure. The original/effective source diff only changes maximum-rank timing reporting. Retain failure without retry.",
+  "result_sha256": "04e30582605393a62061a8b06dfe89b134898c900bf86510f608ec956fcd68b2",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 607,
+    "overall_score": 7
+  }
+}

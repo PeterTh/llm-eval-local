@@ -1,0 +1,44 @@
+{
+  "case_id": "floyd-integer-hash-v1",
+  "reference_source_commit": "2bc11aeac658a87b5cae25d03e0669f65d32922e",
+  "records": [
+    {
+      "id": "floydwarshall_gpt-5.6-luna-low_hybrid_r3",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/floydwarshall_gpt-5.6-luna-low_hybrid_r3",
+      "file": "floydwarshall/floydwarshall.cpp",
+      "lines": [43, 44, 45, 46, 47],
+      "finding": "initializeGlobal uses MAX_DISTANCE + 1.0 (201) as the deterministic random-number multiplier. The unchanged input calls initializeDistanceMatrix with rangeMin=1 and rangeMax=200, giving rangeMax-rangeMin+1 = 200. The implementation therefore changes the graph before shortest-path computation.",
+      "representation_check": "Both the reference and generated result are std::vector<unsigned int>; both use the original byte-identical common/hash.hpp and common/results_output.hpp. This is not a hash-width/representation difference.",
+      "disposition": "failed_external_validation",
+      "program_changed": false,
+      "performance_rerun_required": false
+    },
+    {
+      "id": "floydwarshall_gpt-5.6-luna-medium_hybrid_r1",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/floydwarshall_gpt-5.6-luna-medium_hybrid_r1",
+      "file": "floydwarshall/floydwarshall.cpp",
+      "lines": [177, 178, 179, 180, 181, 182, 183, 184, 185],
+      "finding": "At k==firstRow the pivot owner copies the original host dist row instead of the device row updated by all preceding pivots. For ranks after rank zero this broadcasts stale distances at a partition boundary. Other pivots correctly copy the current device row.",
+      "representation_check": "Both the reference and generated result are std::vector<unsigned int>; both use the original byte-identical common/hash.hpp and common/results_output.hpp. This is not a hash-width/representation difference.",
+      "disposition": "failed_external_validation",
+      "program_changed": false,
+      "performance_rerun_required": false
+    },
+    {
+      "id": "floydwarshall_qwen-3.6-27B-udq4_hybrid_r4",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260507-154026/floydwarshall_qwen-3.6-27B-udq4_hybrid_r4",
+      "file": "floydwarshall/floydwarshall.cpp",
+      "lines": [304, 305, 306, 307],
+      "finding": "Every MPI rank prints the complete result block without a rank-zero guard or output serialization. In this correctness check the blocks interleave, and the unchanged numerical parser rejects the malformed first block. The individual complete blocks show the correct integer hash; this is an output-contract failure, not evidence of wrong distances.",
+      "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "timing_correction_check": "The original already prints results from every rank. The timing-only patch adds a maximum-rank duration reduction and substitutes its value in timing/throughput reporting; it does not change result printing.",
+      "disposition": "failed_external_validation",
+      "basis": "Existing user decision: interleaved MPI output remains an IO/output-contract failure; do not rescue it by retrying or changing the parser.",
+      "program_changed": false,
+      "performance_rerun_required": false
+    }
+  ]
+}

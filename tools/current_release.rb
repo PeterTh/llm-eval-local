@@ -17,7 +17,10 @@ class CurrentRelease
     @catalog = JSON.parse(File.read(path("release/catalog.json")))
     @shared = SharedCorrections.new(@root, @catalog.fetch("correction_campaign")) if @catalog["correction_campaign"]
     @replacements = ObservationReplacements.new(self, @catalog.fetch("observation_replacements", []))
-    @external = ExternalValidationOverlay.new(self, @catalog.fetch("external_validation")) if @catalog["external_validation"]
+    if @catalog["external_validation"]
+      configuration = @catalog.fetch("external_validation")
+      @external = (configuration.is_a?(Array) ? ExternalValidationOverlays : ExternalValidationOverlay).new(self, configuration)
+    end
   end
 
   def path(relative)

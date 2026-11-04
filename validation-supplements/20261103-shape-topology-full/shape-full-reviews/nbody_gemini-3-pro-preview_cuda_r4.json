@@ -1,0 +1,43 @@
+{
+  "id": "nbody_gemini-3-pro-preview_cuda_r4",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/nbody_gemini-3-pro-preview_cuda_r4",
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "4d70af3d21d6bb6f0d01fab1244b1759bd6b810a285336d6d3edf8333602b946",
+  "result_sha256": "be972bb07e26c94880d6a599ebd643e3bddeb20db51dae099a535cb088d5f461",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: -1.76542235705890363e+02'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 3663,
+    "overall_score": 7
+  },
+  "source_lines": [
+    45,
+    47,
+    48,
+    58,
+    61,
+    63,
+    85,
+    86,
+    87,
+    88,
+    93,
+    94,
+    106
+  ],
+  "finding": "Invalid source-tile lanes initially duplicate the last real body. The attempt to replace these entries by far-away padding occurs after the load barrier, only inside the i<n output-thread branch, and has no barrier before consumers read the tile. In the partial final output block, invalid lanes never perform the replacement at all, so the seven active bodies accumulate forces from duplicated real bodies; other blocks also have unsynchronized replacement/read access.",
+  "interpretation": "Pre-existing CUDA correctness defect exposed by n=1031 and 11 steps. The exclusive execution exits successfully and its internal finite-value check passes, but the independent numerical comparison fails. Retain failed external validation; no tolerance change or retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness result; no new program execution."
+}

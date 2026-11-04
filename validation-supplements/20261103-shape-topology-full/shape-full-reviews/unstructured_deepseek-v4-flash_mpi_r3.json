@@ -1,0 +1,44 @@
+{
+  "id": "unstructured_deepseek-v4-flash_mpi_r3",
+  "case_id": "unstructured-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260616-150949/unstructured_deepseek-v4-flash_mpi_r3",
+  "result_sha256": "4585df105ec2073bf810ae8daa7e7d9aee63053896adc80940bc414a90608e4a",
+  "observed_failure": "Supplemental correctness execution failed: exit 134, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 134,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "67cd950a61076bdd9e506c58b4140d43a5cb1d791539742e21eb3337cb7f8a16",
+  "source_lines": [
+    140,
+    141,
+    142,
+    143,
+    144,
+    147,
+    148,
+    149,
+    151,
+    152,
+    154,
+    155,
+    156
+  ],
+  "finding": "Ceiling row partitioning is not clamped for empty ranks. At n=257/ranks=128, rows_per_rank=3. Rank 87 gets first_row=261, last_row=256, n_local_rows=-4 and n_storage_rows=-2 even after both ghost rows. It consequently passes n_storage_elems=-514 to vector::resize, producing the retained std::length_error.",
+  "interpretation": "This deterministic allocation defect is independent of concurrent scheduling. The paired r4 observation passed. Preserve the failed canonical result without retrying it.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained correctness output; no new program execution."
+}

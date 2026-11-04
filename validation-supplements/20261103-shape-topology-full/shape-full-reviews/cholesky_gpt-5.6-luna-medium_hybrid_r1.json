@@ -1,0 +1,18 @@
+{
+  "id": "cholesky_gpt-5.6-luna-medium_hybrid_r1",
+  "case_id": "cholesky-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260805-120633/cholesky_gpt-5.6-luna-medium_hybrid_r1",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "aa735a9dc6109b3a202300c1748fed754ae2300f11e291b8ab8d79993a80fef6",
+  "source_lines": [145, 146, 147, 162, 163, 195, 196, 198, 200, 201, 205, 206, 208, 209],
+  "finding": "Rows are assigned with boundaries floor(n*rank/ranks), but both pivot broadcasts choose root floor(j*ranks/n), which is not the inverse of those boundaries for non-divisible n. At n=513 and four ranks, row 128 belongs to rank 1 but is broadcast from rank 0; rows 256 and 384 likewise have the wrong root. The true owner reads the factorized pivot, while the selected root broadcasts stale pivot-buffer contents.",
+  "observed_failure": "The exclusive four-rank hybrid check at n=513 exits 1 and reports that the matrix is not positive definite at diagonal element 305. The deterministic reference matrix is positive definite and the retained sequential reference passes. There was no timeout or concurrent validation execution.",
+  "interpretation": "The inconsistent ownership/broadcast formulas provide a concrete pre-existing remainder-handling defect consistent with corruption before the factorization abort. No source or input was changed and no retry was performed. The added case is classified at the external-validation stage.",
+  "result_sha256": "2a6b7418dad4c55d94881af19d8fb782bf4b9a96f24a249e2a935ec9a0a5c2cc",
+  "prior_release": { "validation_status": 5, "benchmark_success": false, "benchmark_median_ms": null, "overall_score": 5 },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and retained validation output; no retry."
+}

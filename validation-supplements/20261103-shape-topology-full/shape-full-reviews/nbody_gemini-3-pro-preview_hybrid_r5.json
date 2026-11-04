@@ -1,0 +1,37 @@
+{
+  "id": "nbody_gemini-3-pro-preview_hybrid_r5",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/nbody_gemini-3-pro-preview_hybrid_r5",
+  "result_sha256": "de8d44d8f9bcfa20011b66c9ce82f7c329e990f78ce9100b665340c9a836d4d8",
+  "observed_failure": "stdout prints 'Error: Number of bodies must be divisible by number of ranks.' and the exclusive correctness execution exits 1.",
+  "execution": {
+    "success": false,
+    "exit_code": 1,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 2914,
+    "overall_score": 7
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "1619c807b2e559964d6e46db39c67ebdbf08d59a4aa42dd226353c11eea87917",
+  "source_lines": [
+    191,
+    192,
+    193,
+    194,
+    197,
+    198
+  ],
+  "finding": "The program explicitly requires numBodies to be divisible by the MPI process count. It rejects n=1031 on four ranks before computation.",
+  "interpretation": "Unsupported required uneven partition shape, not a numerical mismatch or scheduling issue. Retain failed external validation without retry or changing the case.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained explicit rejection; no new program execution."
+}

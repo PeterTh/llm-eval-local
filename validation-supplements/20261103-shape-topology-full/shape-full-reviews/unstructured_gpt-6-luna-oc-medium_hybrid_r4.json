@@ -1,0 +1,40 @@
+{
+  "id": "unstructured_gpt-6-luna-oc-medium_hybrid_r4",
+  "case_id": "unstructured-shape-topology-v1",
+  "source_commit": "fdf3ef5283428bb38fcfd6ec116e9fa03defe229",
+  "original_source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+  "source_path": "20261018-224015/unstructured_gpt-6-luna-oc-medium_hybrid_r4",
+  "result_sha256": "6e5cb8f08d583d660f66b30cfbdd5e53c7429e8201b428425909b140eef14b45",
+  "observed_failure": "Number of lines for object ElementEnergy does not match between validation and reference output.",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "3e3820596c5400e901c943d4c35772c948200ea13e91a52828a2182ab9c00f4f",
+  "source_lines": [
+    295,
+    297,
+    307,
+    318,
+    324,
+    328,
+    329,
+    335
+  ],
+  "finding": "Every MPI rank unconditionally prints the full ElementEnergy result block and performance/validation diagnostics. The retained stdout has four nested/interleaved RESULTS blocks, with diagnostics and samples mixed between ranks, so the unchanged external parser rejects the malformed result block.",
+  "interpretation": "This is an output-contract failure under the established MPI output rules, not a demonstrated numerical discrepancy. The observation already had no successful benchmark measurement. It must not be rescued by suppressing output, relaxing the parser, or retrying until scheduling happens to serialize the output.",
+  "timing_correction_check": "The original-to-effective source diff adds only MPI_Allreduce(MPI_MAX) for the measured duration. The unguarded result printing was already present in the original source.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static original/effective-source comparison and retained correctness output; no new program execution."
+}

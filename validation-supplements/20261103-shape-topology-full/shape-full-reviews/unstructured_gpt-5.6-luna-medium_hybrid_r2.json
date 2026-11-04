@@ -1,0 +1,43 @@
+{
+  "id": "unstructured_gpt-5.6-luna-medium_hybrid_r2",
+  "case_id": "unstructured-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260805-120633/unstructured_gpt-5.6-luna-medium_hybrid_r2",
+  "result_sha256": "34082ea19309e279c12c7b8f41f04e129f642b2a52fae34f3d6f01f5909bca7d",
+  "observed_failure": "Numeric value mismatch for object ElementEnergy: 'Sum: 0.00000000000000000e+00' vs 'Sum: 1.68356523085152858e+01'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "e389a127193d56a63e46168f2e047e46be11ec53c184acfb62ad09136568bdc5",
+  "source_lines": [
+    27,
+    79,
+    90,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    224,
+    225
+  ],
+  "finding": "The halo is an array of ElementDynamic structs, each containing two doubles, but every boundary copy/exchange transfers only root doubles. It neither packs the current_energy fields nor copies root complete structs. At root=33, only 264 of the row's 528 bytes are transferred, leaving the final 16 halo energy fields stale.",
+  "interpretation": "This truncated halo exchange is a pre-existing numerical defect independent of timing or concurrency. The required 513-step case produces element-energy sum 16.8356523085152858 instead of zero, exceeding the unchanged external tolerance. The internal check tests finiteness only and therefore still reports success.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained correctness output; no new program execution."
+}

@@ -1,0 +1,46 @@
+{
+  "id": "nbody_gpt-5.2_cuda_r2",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/nbody_gpt-5.2_cuda_r2",
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "60f7425e25042a63cc99a6ab6882cdca029ccd052a110530dfa61c189eb4bafd",
+  "result_sha256": "cb1809dd6bf2718b16d5f3c3773cd6eeedc5fde7449059e0ff53c3d56040700a",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 1.85670658761967115e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 3672,
+    "overall_score": 7
+  },
+  "source_lines": [
+    158,
+    159,
+    167,
+    169,
+    170,
+    171,
+    172,
+    178,
+    180,
+    181,
+    182,
+    183,
+    194,
+    204,
+    205,
+    206
+  ],
+  "finding": "The force kernel lets threads with output index i>=n skip the shared-memory tile loads. In the partial final CUDA block at n=1031, only seven output lanes are active, but the remaining lanes are still needed to load the complete earlier source tiles. Valid lanes consequently read shared-memory entries that were never populated for that tile. Bounding the inner source-tile loop does not repair missing loader threads. In addition, The fused force/integration kernel reads every body's position and then overwrites its own position in the same global array. __syncthreads only orders threads within a block; it does not stop one block from overwriting positions before another block has finished reading the old state. The partial final block can finish sooner, exposing this pre-existing cross-block read/write race.",
+  "interpretation": "Pre-existing CUDA correctness defect exposed by n=1031 and 11 steps. The exclusive execution exits successfully and its internal finite-value check passes, but the independent numerical comparison fails. Retain failed external validation; no tolerance change or retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness result; no new program execution."
+}

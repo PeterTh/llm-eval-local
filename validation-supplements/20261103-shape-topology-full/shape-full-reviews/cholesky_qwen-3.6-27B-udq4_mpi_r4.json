@@ -1,0 +1,19 @@
+{
+  "id": "cholesky_qwen-3.6-27B-udq4_mpi_r4",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260507-154026/cholesky_qwen-3.6-27B-udq4_mpi_r4",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "56aca27ed3a0c8e68803214486b187e013beee50805004dbd83de6c4eb8aaba2",
+  "source_lines": [85, 87, 89, 90, 91, 92, 93, 95, 135, 190, 207],
+  "finding": "The block width b is reduced to fit the diagonal owner's local rows, but the outer loop always increments k by base_block=64 instead of the actual width. At n=513 with 128 ranks the first b is five and subsequent blocks fit at most four local rows. Advancing by 64 skips most diagonal columns, leaving the matrix only partially factorized. The original four-rank aligned validation permits full 64-wide blocks and does not exercise this mismatch.",
+  "observed_failure": "The process exits zero but prints Validation: FAILED, with reconstruction maximum absolute error 316041.67413 and relative error 735202.26703. The reported factor contains an unfactorized-scale maximum 561.57294756. The retained external classification correctly rejects the internal check failure.",
+  "interpretation": "Pre-existing topology-dependent block-progress defect. The timing correction only adds maximum-rank duration aggregation. No retry is needed and the concurrent schedule can continue.",
+  "result_sha256": "a010fec7d330539ffbf2a45d80590412f79123de1d506ce2a4ae1a9c28ee7eae",
+  "prior_release": {"validation_status": 5, "benchmark_success": true, "benchmark_median_ms": 58, "overall_score": 9},
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection, original/effective source diff, and retained validation output; no new program execution."
+}

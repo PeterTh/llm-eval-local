@@ -1,0 +1,44 @@
+{
+  "id": "nbody_gpt-5.2_hybrid_r2",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/nbody_gpt-5.2_hybrid_r2",
+  "result_sha256": "96159af6fc2522bbcdeaf195ae6419298e8cef53c43b1d66d53530fdfa7fb0ad",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 4.14227332904071955e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 3520,
+    "overall_score": 7
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "28accdc8bb7aa36ae084491e5f5bc3b6adcbd893c0e89aaa272cfdc6144024bc",
+  "source_lines": [
+    53,
+    54,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    74,
+    76,
+    77,
+    78,
+    88
+  ],
+  "finding": "Threads outside the local MPI output partition return before cooperative shared-memory source loading. In partial final output blocks at n=1031, valid lanes consume source-tile entries whose loader threads returned without populating them.",
+  "interpretation": "Pre-existing CUDA correctness defect. Exclusive execution and internal finite-value validation succeed, but independent numerical validation fails. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

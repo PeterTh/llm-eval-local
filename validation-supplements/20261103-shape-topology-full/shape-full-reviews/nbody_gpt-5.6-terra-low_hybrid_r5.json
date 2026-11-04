@@ -1,0 +1,41 @@
+{
+  "id": "nbody_gpt-5.6-terra-low_hybrid_r5",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260805-120633/nbody_gpt-5.6-terra-low_hybrid_r5",
+  "result_sha256": "2e366cbb66e0df735ad09744418499080aa7f787a38ff78a569bc207cba85e42",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 4.14227332904072136e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 2909,
+    "overall_score": 7
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "64c89fdb3d6fee949e6fb3b8a390b856c695c0533f3d533d93c6315fc635d056",
+  "source_lines": [
+    36,
+    37,
+    42,
+    43,
+    44,
+    45,
+    46,
+    48,
+    49,
+    58
+  ],
+  "finding": "The kernel returns threads beyond localBodies before cooperative tile loading. In a partial final local output block, the valid lanes read source-tile entries whose loader threads have already returned. Separate source/destination body arrays do not fix these missing loads.",
+  "interpretation": "Pre-existing CUDA correctness defect exposed by n=1031. Exclusive execution and internal finite-value validation succeed, but independent numerical validation fails. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive numerical failure; no new program execution."
+}

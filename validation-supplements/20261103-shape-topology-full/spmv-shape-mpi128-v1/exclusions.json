@@ -1,0 +1,193 @@
+{
+  "schema_version": 2,
+  "case": {
+    "id": "spmv-shape-mpi128-v1",
+    "benchmark": "spmv",
+    "args": [
+      "-v",
+      "-r",
+      "-n",
+      "1025",
+      "-s",
+      "40",
+      "-i",
+      "67"
+    ],
+    "topology": "measurement",
+    "timeout": 30
+  },
+  "record_count": 2,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Yes, launch this sweep"
+  },
+  "reference": {
+    "stdout": "Sparse Matrix-Vector Multiplication (SpMV) Benchmark\nMatrix size: 1025 x 1025\nSparsity: 1 out of 40 entries is non-zero\nNon-zero elements: 26265 (97.50% sparse)\nIterations: 67\nMax value: 1.00\nValidation: enabled\nInitializing data structures...\nComputing reference solution...\nComputing SpMV...\nComputation time: 1 ms\nAverage time per iteration: 0.015 ms\nPerformance: 3.520 GFLOPS\n=== RESULTS ===\nName: OutputVector\nElements: 1025\nSum: 6.59467941491110378e+03\nMin: 2.09472818713260267e+00\nMax: 5.07717730588482254e+01\nSample[0]: 8.84111125859921287e+00\nSample[256]: 6.09705248695510260e+00\nSample[512]: 6.79288621726934849e+00\nSample[768]: 9.59935696877620792e+00\nSample[1024]: 5.07717730588482254e+01\nHash: 08b54bd5519e8eeb\n=== END RESULTS ===\nValidating result...\nValidation: PASSED\n",
+    "stdout_sha256": "57fb989d447a3e7d8794b5c39b15138e6e20525743eb6a95a5dc9743f5fb4082"
+  },
+  "records": [
+    {
+      "id": "spmv_gpt-4.1_mpi_r1",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r1",
+      "validation_record": {
+        "path": "data/validation/records/spmv/mpi.jsonl",
+        "line": 26,
+        "line_sha256": "d2e69304e04dd4b7d1eeb6e1406b351154725acea414fea35997e43a31b5cbfe"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "spmv-shape-mpi128-v1",
+      "result": {
+        "id": "spmv_gpt-4.1_mpi_r1",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r1",
+        "definition": {
+          "id": "spmv-shape-mpi128-v1",
+          "benchmark": "spmv",
+          "args": [
+            "-v",
+            "-r",
+            "-n",
+            "1025",
+            "-s",
+            "40",
+            "-i",
+            "67"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "2b6490bc4e3cc658477f29ab1c5b22a2b05ebcab214abf83a406df9a572a1f29",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.388015324249864,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-4.1_mpi_r1/spmv",
+            "-v",
+            "-r",
+            "-n",
+            "1025",
+            "-s",
+            "40",
+            "-i",
+            "67"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-4dd86d9f8f3e"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental internal check failed."
+        ],
+        "passed": false,
+        "reference_sha256": "57fb989d447a3e7d8794b5c39b15138e6e20525743eb6a95a5dc9743f5fb4082",
+        "output_sha256": "8799346433a644f72c6f13874cebdf23ab58bc58b5be4afded2bd51ccb6554fb",
+        "checked_at": "2026-11-04T04:30:28Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "3c07bf7f5ea32cfcd74aabed8ff334d2708886bf7f77849e7ab751883d423c88",
+      "stdout": "Sparse Matrix-Vector Multiplication (SpMV) Benchmark\nMatrix size: 1025 x 1025\nSparsity: 1 out of 40 entries is non-zero\nNon-zero elements: 26265 (97.50% sparse)\nIterations: 67\nMax value: 1.00\nValidation: enabled\nInitializing data structures...\nComputing reference solution...\nComputing SpMV...\nComputation time: 2 ms\nAverage time per iteration: 0.030 ms\nPerformance: 1.760 GFLOPS\n=== RESULTS ===\nName: OutputVector\nElements: 1025\nSum: 6.54390764185225544e+03\nMin: 0.00000000000000000e+00\nMax: 1.12779397441233282e+01\nSample[0]: 8.84111125859921287e+00\nSample[256]: 6.09705248695510260e+00\nSample[512]: 6.79288621726934849e+00\nSample[768]: 9.59935696877620792e+00\nSample[1024]: 0.00000000000000000e+00\nHash: d2c1dd0ed5f77c2c\n=== END RESULTS ===\nValidating result...\nValidation failed at index 1024: reference 5.0771773059e+01, got 0.0000000000e+00 (rel error: 1.0000000000e+00)\nValidation: FAILED\n"
+    },
+    {
+      "id": "spmv_gpt-4.1_mpi_r2",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r2",
+      "validation_record": {
+        "path": "data/validation/records/spmv/mpi.jsonl",
+        "line": 27,
+        "line_sha256": "744a29595a28d8957ed77de092a10bb5fb903b79d96154154f6d6e3aef5763f9"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "spmv-shape-mpi128-v1",
+      "result": {
+        "id": "spmv_gpt-4.1_mpi_r2",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r2",
+        "definition": {
+          "id": "spmv-shape-mpi128-v1",
+          "benchmark": "spmv",
+          "args": [
+            "-v",
+            "-r",
+            "-n",
+            "1025",
+            "-s",
+            "40",
+            "-i",
+            "67"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "643c0bfd6b52c5ab395885c13ef200f44877ccbfe85eb7b10d70dd5744f1db8b",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 10.834990344941616,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-4.1_mpi_r2/spmv",
+            "-v",
+            "-r",
+            "-n",
+            "1025",
+            "-s",
+            "40",
+            "-i",
+            "67"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-2b1913a55c33"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental internal check failed."
+        ],
+        "passed": false,
+        "reference_sha256": "57fb989d447a3e7d8794b5c39b15138e6e20525743eb6a95a5dc9743f5fb4082",
+        "output_sha256": "702e424d8e6ccf13c78ee3129120c08b12ba2a3a8657f497118ae7f732d23007",
+        "checked_at": "2026-11-04T04:30:46Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "ef84a7ccddfcaadf89be5d633d1e7b8908f8e136d0221caf367829e662a479f5",
+      "stdout": "Sparse Matrix-Vector Multiplication (SpMV) Benchmark\nMatrix size: 1025 x 1025\nSparsity: 1 out of 40 entries is non-zero\nNon-zero elements: 26265 (97.50% sparse)\nIterations: 67\nMax value: 1.00\nValidation: enabled\nComputation time: 0 ms\nAverage time per iteration: 0.000 ms\nPerformance: inf GFLOPS\n=== RESULTS ===\nName: OutputVector\nElements: 1025\nSum: 6.54390764185225544e+03\nMin: 0.00000000000000000e+00\nMax: 1.12779397441233282e+01\nSample[0]: 8.84111125859921287e+00\nSample[256]: 6.09705248695510260e+00\nSample[512]: 6.79288621726934849e+00\nSample[768]: 9.59935696877620792e+00\nSample[1024]: 0.00000000000000000e+00\nHash: d2c1dd0ed5f77c2c\n=== END RESULTS ===\nValidating result...\nValidation failed at index 1024: reference 5.0771773059e+01, got 0.0000000000e+00 (rel error: 1.0000000000e+00)\nValidation: FAILED\n"
+    }
+  ]
+}

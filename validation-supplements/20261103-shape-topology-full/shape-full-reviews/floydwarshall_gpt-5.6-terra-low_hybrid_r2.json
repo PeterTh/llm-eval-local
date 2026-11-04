@@ -1,0 +1,36 @@
+{
+  "id": "floydwarshall_gpt-5.6-terra-low_hybrid_r2",
+  "case_id": "floydwarshall-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260805-120633/floydwarshall_gpt-5.6-terra-low_hybrid_r2",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "59753a8ee94b2d9273a7e8e8eaba32503aee8248a66eb414c7d89f049f0cdaf4",
+  "source_lines": [
+    30,
+    32,
+    34,
+    35,
+    38,
+    40,
+    104,
+    105,
+    117,
+    118,
+    119,
+    121
+  ],
+  "finding": "The updated source intervals use floor(n*rank/ranks), but pivot ownership uses floor(k*ranks/n), which is not their inverse when n is not divisible by ranks. At n=513 and four ranks, pivots 128, 256 and 384 are selected from the preceding rank, which retains only the original unrelaxed data for those sources. Those stale pivot rows are broadcast instead of the owning rank's updated values.",
+  "observed_failure": "The exclusive hybrid check exits successfully and passes its internal check and sparse numerical fields, but the complete integer distance-matrix hash a96dda5a860fe718 differs from reference 545fd518ecf0a47c.",
+  "interpretation": "Pre-existing remainder-boundary pivot-ownership defect. This is an integer result mismatch under the approved exact Floyd policy, not a floating-point hash comparison. Retain failed external validation; no retry.",
+  "result_sha256": "5f36bea61961c44c6c1966fba46a70e172fc987c1f73f1e10388b7adce8a6af9",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 2656.02,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained integer comparison; no new program execution."
+}

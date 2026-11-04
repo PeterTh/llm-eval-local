@@ -1,0 +1,44 @@
+{
+  "id": "roomsim_claude-fable-5-cc-medium_hybrid_r1",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "4500d708ad5c7b5d1594f93704011d6dfbca09a1",
+  "original_source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+  "source_path": "20260901-162328/roomsim_claude-fable-5-cc-medium_hybrid_r1",
+  "result_sha256": "cf76adf9d140326951889f316eaa93f9a34bec867835b130362d3908b9c70d96",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.72000000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 754,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "e356e629146083e2d46d9adc243bab2f638252998f4fc3636524f6791fdb90bc",
+  "source_lines": [
+    438,
+    439,
+    441,
+    442,
+    443,
+    444,
+    587,
+    588,
+    592,
+    593,
+    594,
+    595
+  ],
+  "finding": "Uses independent SplitMix64 states initialized from global triangle-pair index times 0x2545F4914F6CDD1D plus 42, instead of the input's single sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, the exclusive execution and internal validation pass but the unchanged external comparator rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition is based on this numerical failure, not a floating hash mismatch or a changed random generator alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection of exact generated source and frozen sequential sampling method, plus retained exclusive correctness output; no new program execution.",
+  "timing_correction_check": "The original-to-corrected source diff only replaces the reported total with maximum-rank stage durations; sampling and numerical computation are unchanged."
+}

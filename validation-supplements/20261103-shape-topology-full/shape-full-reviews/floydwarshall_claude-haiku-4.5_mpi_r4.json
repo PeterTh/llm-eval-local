@@ -1,0 +1,42 @@
+{
+  "id": "floydwarshall_claude-haiku-4.5_mpi_r4",
+  "case_id": "floydwarshall-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/floydwarshall_claude-haiku-4.5_mpi_r4",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "6d105ac01e8b5bc3f5e101161fa4ab3bba65104698db18c32fe4e29f741dcf42",
+  "source_lines": [
+    60,
+    65,
+    67,
+    181,
+    182,
+    183,
+    184,
+    186,
+    187,
+    188,
+    210,
+    211,
+    213,
+    259,
+    263,
+    265,
+    273
+  ],
+  "finding": "The non-remainder start offset is computed with remainder*(remainder+1)/2 rather than the number of rows assigned to the remainder ranks. At n=513, 128 ranks, rank 0 owns five rows but rank 1 starts at row 1 instead of row 5; subsequent ranks are likewise shifted. Gather offsets use correct prefix counts, so the duplicated/shifted source rows are reconstructed in incorrect global positions. Pivot ownership is also inconsistent with these starts.",
+  "observed_failure": "The 128-rank check produces nonzero diagonal entries, reports diagonal [5,5] invalid, and exits 1. The paired r5 check passes in 19.87 seconds.",
+  "interpretation": "Pre-existing remainder-partition numerical defect, not scheduling interference. The timing correction changes only duration aggregation. Retain failure without retry.",
+  "result_sha256": "d8404d0bee944ab664ebee3253de9f8f889d6fbd70d127c728935fa9bcb906d8",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 6006,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection, original/effective diff and retained numerical failure; no new program execution."
+}

@@ -12,13 +12,15 @@ class ReleaseVerifier
   MAX_FILE_BYTES = 10 * MIB
   MAX_DATA_BYTES = 60 * MIB
   MAX_ANALYSIS_BYTES = 20 * MIB
-  MAX_TREE_BYTES = 320 * MIB
+  MAX_TREE_BYTES = 512 * MIB
 
   DISALLOWED_EXTENSIONS = %w[
     .a .bin .c .cc .cpp .cu .cubin .d .dll .dylib .exe .fatbin .h .hpp .ii .o .obj
     .out .ptx .pyc .pyo .so
   ].freeze
   DISALLOWED_COMPONENTS = %w[CMakeFiles build bin source].freeze
+  # Authored research instrumentation, not a copied generated/input program.
+  ANALYSIS_SOURCE_EXCEPTIONS = %w[analysis/src/winner_validity_audit/comparator_counterexample.cpp].freeze
   VALIDATION_KEYS = %w[
     schema_version id benchmark model backend repetition manifest_sha256 completed_at
     source stages result execution
@@ -166,7 +168,9 @@ class ReleaseVerifier
       raise "disallowed Makefile: #{relative}" if File.basename(relative) == "Makefile"
 
       extension = File.extname(relative).downcase
-      raise "disallowed artifact/source extension #{extension}: #{relative}" if DISALLOWED_EXTENSIONS.include?(extension)
+      if DISALLOWED_EXTENSIONS.include?(extension) && !ANALYSIS_SOURCE_EXCEPTIONS.include?(relative)
+        raise "disallowed artifact/source extension #{extension}: #{relative}"
+      end
 
       File.open(path, "rb") do |stream|
         raise "ELF binary detected: #{relative}" if stream.read(4) == "\x7FELF".b

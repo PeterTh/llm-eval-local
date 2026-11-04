@@ -1,0 +1,48 @@
+{
+  "id": "nbody_gpt-5.6-luna-medium_cuda_r2",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260805-120633/nbody_gpt-5.6-luna-medium_cuda_r2",
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "9d0fbd3fba3755c993e717884f59eff97d3cb7f9758b7b59675df9b5dbd06f8c",
+  "result_sha256": "908680aba4dc8a57b3b6dfe920a36429d72eb4250da2ab4eaf5cd081c48fe37e",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 5.18820880209535229e+00'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 4195,
+    "overall_score": 6
+  },
+  "source_lines": [
+    61,
+    62,
+    70,
+    72,
+    73,
+    74,
+    75,
+    77,
+    79,
+    80,
+    81,
+    82,
+    93,
+    103,
+    104,
+    105,
+    136,
+    137
+  ],
+  "finding": "The fused force/integration kernel reads every body's position and then overwrites its own position in the same global array. __syncthreads only orders threads within a block; it does not stop one block from overwriting positions before another block has finished reading the old state. The partial final block can finish sooner, exposing this pre-existing cross-block read/write race.",
+  "interpretation": "Pre-existing CUDA correctness defect exposed by n=1031 and 11 steps. The exclusive execution exits successfully and its internal finite-value check passes, but the independent numerical comparison fails. Retain failed external validation; no tolerance change or retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness result; no new program execution."
+}

@@ -1,0 +1,18 @@
+{
+  "id": "cholesky_claude-haiku-4.5_mpi_r3",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cholesky_claude-haiku-4.5_mpi_r3",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "5fb15f7befb9bc6cfd926bb3d265628db7e2eb2613ee27dac90e25123ebde5e0",
+  "source_lines": [16, 17, 18, 39, 40, 41, 42, 58, 205, 206, 207, 208, 211, 226, 227, 228, 242, 246, 264, 265],
+  "finding": "The last rank owns the remainder row, but fixed-count MPI_Scatter sends only floor(n/ranks) rows per rank from rank 0. With n=513 and 128 ranks, the last rank allocates five rows yet receives only four; its final row stays zero-initialized. Factorization therefore encounters a nonpositive final pivot. That owner returns before the final row broadcast, while peers remain in the collective, so the failure becomes a timeout. The later fixed-count gather also disagrees with the remainder ownership, but is not reached in this observation.",
+  "observed_failure": "Stderr reports a non-positive-definite matrix at diagonal element 512 before the 30-second timeout. This is exactly the omitted remainder row. The paired repetition r2 passes in 11.796952 seconds, below the unchanged timeout.",
+  "interpretation": "The missing scatter tail and unmatched failure-path collective are pre-existing program defects, not evidence of scheduling contention. Retain the failure without a retry and classify the added correctness case at the external-validation stage.",
+  "result_sha256": "1ea4be155be035f0652ccde3db67624c8cda7a2f6c6eded4777b14995bef8a1a",
+  "prior_release": { "validation_status": 5, "benchmark_success": false, "benchmark_median_ms": null, "overall_score": 5 },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection, retained stderr, and the paired passing execution; no retry."
+}

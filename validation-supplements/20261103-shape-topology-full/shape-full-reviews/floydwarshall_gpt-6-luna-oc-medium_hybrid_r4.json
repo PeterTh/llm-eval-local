@@ -1,0 +1,38 @@
+{
+  "id": "floydwarshall_gpt-6-luna-oc-medium_hybrid_r4",
+  "case_id": "floydwarshall-shape-topology-v1",
+  "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+  "source_path": "20261018-224015/floydwarshall_gpt-6-luna-oc-medium_hybrid_r4",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "af887d4c49babf0742c702a5abaabdb4d271e5995790cb782013c156c7a3c238",
+  "source_lines": [
+    73,
+    79,
+    80,
+    81,
+    82,
+    83,
+    85,
+    182,
+    183,
+    184,
+    185,
+    192,
+    193,
+    194
+  ],
+  "finding": "The source stores floor(n*(rank+1)/ranks)-floor(n*rank/ranks) local rows, but selects pivot owner=floor(k*ranks/n). At n=513 with four ranks, pivots 128, 256 and 384 select the preceding rank, and local=k-start equals its local row count. The CUDA row download therefore reads past the logical local distance allocation and broadcasts an invalid pivot.",
+  "observed_failure": "The exclusive hybrid run exits successfully and prints Validation: PASSED with matching sampled fields, but its complete integer distance matrix hashes to 34a28a3de3b42e0e rather than the reference 545fd518ecf0a47c.",
+  "interpretation": "Pre-existing remainder-boundary ownership/out-of-bounds defect. The approved integer comparison detects an error hidden by the sparse samples. Retain failure without retry.",
+  "result_sha256": "2930f41e4e08f6639675235a887e2f3744b0494ae40557e2fd293f468d1b08cb",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 4214,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exact integer comparison; no new program execution."
+}

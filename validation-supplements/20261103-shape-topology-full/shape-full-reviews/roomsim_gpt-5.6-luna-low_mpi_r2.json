@@ -1,0 +1,38 @@
+{
+  "id": "roomsim_gpt-5.6-luna-low_mpi_r2",
+  "case_id": "roomsim-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260805-120633/roomsim_gpt-5.6-luna-low_mpi_r2",
+  "result_sha256": "e368c7a4ddb0b4cca53328f21f118e05e36045dcb41b45b5e328e75277936f97",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71800000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 5010,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "8441590c918981911fdaa047fd507870beb640dd553f9a5458ca09539a66c8b6",
+  "source_lines": [
+    396,
+    399,
+    613,
+    615,
+    616,
+    619,
+    620
+  ],
+  "finding": "Each MPI rank starts an MT19937 stream at seed 42 and immediately evaluates only its assigned rows, without skipping earlier rows. This restarts the reference's ordered sample stream at every rank boundary. Changed form factors are consistent with the numerical discrepancy; no isolated dynamic causality test was performed.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7 with 128 ranks and exclusive execution, termination/internal validation pass but distance sum 4718 differs from reference 4772.5 by 54.5, exceeding the unchanged tolerance of 50. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

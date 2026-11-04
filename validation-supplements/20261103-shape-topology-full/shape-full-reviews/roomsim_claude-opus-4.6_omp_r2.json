@@ -1,0 +1,35 @@
+{
+  "id": "roomsim_claude-opus-4.6_omp_r2",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/roomsim_claude-opus-4.6_omp_r2",
+  "result_sha256": "2ac6e17f219ead856ba5dcf0ed56c6173d01e9a8f331e465f445ac89068743db",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71350000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 4137,
+    "overall_score": 8
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "e09e0a1de11e5c5a72805953ad0ce3f231265c5952863bbc005545b75f442f58",
+  "source_lines": [
+    598,
+    600,
+    604,
+    605
+  ],
+  "finding": "Uses an independent MT19937 stream seeded with 42+OpenMP_thread_id, with dynamically assigned rows. This differs from the sequential input's single ordered stream and makes sample assignment scheduling-dependent. The changed sampled form factors are consistent with the final-distance discrepancy; no isolated dynamic causality test was performed.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but the unchanged external comparison rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed sampling method alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

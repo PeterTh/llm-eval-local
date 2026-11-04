@@ -1,0 +1,173 @@
+{
+  "schema_version": 2,
+  "case": {
+    "id": "black-scholes-shape-mpi128-v1",
+    "benchmark": "black-scholes",
+    "args": [
+      "-v",
+      "-r",
+      "-n",
+      "10003"
+    ],
+    "topology": "measurement",
+    "timeout": 30
+  },
+  "record_count": 2,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Yes, launch this sweep"
+  },
+  "reference": {
+    "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10003\nValidation: enabled\nPricing options...\nComputation time: 0.932 ms\nOptions per second: 10732833\n=== RESULTS ===\nName: OptionPrices\nElements: 10003\nSum: 3.11536434335499862e+06\nMin: 2.07828649441422590e-02\nMax: 1.42998174421691897e+03\nSample[0]: 6.42531332374790143e+00\nSample[2500]: 7.52281167696447817e-01\nSample[5001]: 7.20174538178964440e+02\nSample[7502]: 2.02642358642515518e+02\nSample[10002]: 5.86752388792192736e+00\nHash: 0185326428f6d37b\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n",
+    "stdout_sha256": "433a2f563ebfa51ebf0c9680af952502403089acd14c9c92a81a494fcf846440"
+  },
+  "records": [
+    {
+      "id": "black-scholes_claude-haiku-4.5_mpi_r3",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/black-scholes_claude-haiku-4.5_mpi_r3",
+      "validation_record": {
+        "path": "data/validation/records/black-scholes/mpi.jsonl",
+        "line": 3,
+        "line_sha256": "cf6a74d84fb6f5153d95033f12501421063b52a3cb14a2809fffe1327206ae50"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "black-scholes-shape-mpi128-v1",
+      "result": {
+        "id": "black-scholes_claude-haiku-4.5_mpi_r3",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/black-scholes_claude-haiku-4.5_mpi_r3",
+        "definition": {
+          "id": "black-scholes-shape-mpi128-v1",
+          "benchmark": "black-scholes",
+          "args": [
+            "-v",
+            "-r",
+            "-n",
+            "10003"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "340464d67b99ec803851e1d5f79ac22fac793677403b375c9d609e383fe19fa3",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.136910762637854,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/black-scholes_claude-haiku-4.5_mpi_r3/black_scholes",
+            "-v",
+            "-r",
+            "-n",
+            "10003"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-349691-c3f0fd095f80"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object OptionPrices: 'Sum: 3.11536434335499862e+06' vs 'Sum: 3.11137040832449403e+06'"
+        ],
+        "passed": false,
+        "reference_sha256": "433a2f563ebfa51ebf0c9680af952502403089acd14c9c92a81a494fcf846440",
+        "output_sha256": "cf5b7de0f85915ca1013de81779f0ac827f956c36c2dff50b2c0f76d949bce4e",
+        "checked_at": "2026-11-03T19:16:02Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "0b3c4e6c5cfcabe89691cff566e43be021982d7f73b7b67587cb2ce26feab4fe",
+      "stdout": "Black-Scholes Option Pricing Benchmark (MPI with 128 processes)\nNumber of options: 10003\nValidation: enabled\nPricing options...\nComputation time: 3.096 ms\nOptions per second: 3230943\n=== RESULTS ===\nName: OptionPrices\nElements: 10003\nSum: 3.11137040832449403e+06\nMin: 2.07828649441422590e-02\nMax: 1.42998174421691897e+03\nSample[0]: 6.42531332374790143e+00\nSample[2500]: 2.34523936316798313e+02\nSample[5001]: 4.64550153306973073e+02\nSample[7502]: 6.94576370297148401e+02\nSample[10002]: 2.69520759890223644e+02\nHash: eca269cff1d066df\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n"
+    },
+    {
+      "id": "black-scholes_gpt-4.1_mpi_r5",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/black-scholes_gpt-4.1_mpi_r5",
+      "validation_record": {
+        "path": "data/validation/records/black-scholes/mpi.jsonl",
+        "line": 30,
+        "line_sha256": "7f20824fe8c0d14d15fdca0364dd716acbb06026fc5e2a9f29e5eabf97b6d669"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "black-scholes-shape-mpi128-v1",
+      "result": {
+        "id": "black-scholes_gpt-4.1_mpi_r5",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/black-scholes_gpt-4.1_mpi_r5",
+        "definition": {
+          "id": "black-scholes-shape-mpi128-v1",
+          "benchmark": "black-scholes",
+          "args": [
+            "-v",
+            "-r",
+            "-n",
+            "10003"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "33b285733f13f225f8e769e7f453a05e92b74963879f3ff0794ffc6bb3730498",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 19.11781980842352,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/black-scholes_gpt-4.1_mpi_r5/black_scholes",
+            "-v",
+            "-r",
+            "-n",
+            "10003"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-419295-0318a90c2d2b"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object OptionPrices: 'Sum: 3.11536434335499862e+06' vs 'Sum: 3.10331222251268569e+06'"
+        ],
+        "passed": false,
+        "reference_sha256": "433a2f563ebfa51ebf0c9680af952502403089acd14c9c92a81a494fcf846440",
+        "output_sha256": "9ccf112e828f13099115e6be70e6af53ac9e7ec1bbd03558d70607e54a65d2ca",
+        "checked_at": "2026-11-03T19:41:33Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "aa35ad62ca10b94527ff03eb220cbc0732142dd975a28645822606126bf35894",
+      "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10003\nValidation: enabled\nMPI world size: 128\nPricing options in parallel...\nComputation time: 2.859 ms\nOptions per second: 3499286\n=== RESULTS ===\nName: OptionPrices\nElements: 10003\nSum: 3.10331222251268569e+06\nMin: 0.00000000000000000e+00\nMax: 1.42699936099827096e+03\nSample[0]: 6.42531332374790143e+00\nSample[2500]: 7.52281167696447817e-01\nSample[5001]: 7.20174538178964440e+02\nSample[7502]: 2.02642358642515518e+02\nSample[10002]: 0.00000000000000000e+00\nHash: 6b6d81f513043842\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n"
+    }
+  ]
+}

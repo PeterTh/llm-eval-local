@@ -1,0 +1,47 @@
+{
+  "id": "nbody_qwen3.7-plus_cuda_r2",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260618-110425/nbody_qwen3.7-plus_cuda_r2",
+  "file": "nbody/nbody.cu",
+  "source_sha256": "dbd0f995d3d8d5c04a66475b4bc55b9331be7ad20fca7e6bd3b4465305f026d7",
+  "result_sha256": "2532c8772328644766be6436c8eb896cefe5243eff172e3a1674cc117b6c8461",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 5.18820880209535229e+00'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 3672,
+    "overall_score": 7
+  },
+  "source_lines": [
+    41,
+    46,
+    54,
+    56,
+    57,
+    58,
+    59,
+    61,
+    63,
+    64,
+    65,
+    66,
+    67,
+    80,
+    94,
+    95,
+    96
+  ],
+  "finding": "The fused kernel reads all bodies' positions and writes updated positions back to the same global arrays without a grid-wide synchronization or separate output arrays. One CUDA block can overwrite data still being read by another block. This pre-existing cross-block read/write race is exposed by the partial final block.",
+  "interpretation": "Pre-existing CUDA correctness defect. The exclusive correctness execution exits successfully and the internal finite-value check passes, but the independent numerical comparison fails. Retain failed external validation without retry or tolerance change.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

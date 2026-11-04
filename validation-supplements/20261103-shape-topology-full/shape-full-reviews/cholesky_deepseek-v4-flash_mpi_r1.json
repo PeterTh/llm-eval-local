@@ -1,0 +1,33 @@
+{
+  "id": "cholesky_deepseek-v4-flash_mpi_r1",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260616-150949/cholesky_deepseek-v4-flash_mpi_r1",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "053059f66bce9706c7930160350625cf4afb487e928d673d3fdc7f856294a1ab",
+  "source_lines": [
+    138,
+    139,
+    140,
+    141,
+    145,
+    277,
+    288,
+    334,
+    345
+  ],
+  "finding": "Ceiling-sized column blocks leave ranks 103-127 empty at n=513 and 128 ranks. local_ncols=min(start_col+blk,n)-start_col is negative for those ranks because start_col is not clamped to n. Their MPI_Gatherv send counts are therefore negative. Receive counts are separately clamped to zero, which does not repair the invalid sender arguments.",
+  "observed_failure": "The job exits 2 with MPI_ERR_COUNT in MPI_Gatherv, reported by rank 123 and 24 additional ranks. Rank 0 prints a numerically correct result and Validation: PASSED, but that does not make the failed MPI execution valid. The execution is not a timeout; the paired Sonnet 5.5 check passes.",
+  "interpretation": "This is a pre-existing empty-partition MPI argument defect, independent of concurrent scheduling. Retain failed external validation without retrying or rescuing the job based on rank 0 output alone.",
+  "result_sha256": "d4a82aef99f9dd738237873dbbdbc459eacb29230c5e58dedde41d6b069c6581",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 691,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and retained validation output; no retry."
+}

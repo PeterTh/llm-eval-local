@@ -1,0 +1,39 @@
+{
+  "id": "qtclustering_gpt-4.1_omp_r4",
+  "case_id": "qtclustering-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/qtclustering_gpt-4.1_omp_r4",
+  "result_sha256": "2c0a68562e45ab907f9343bd39a91425bd1f959c6e2032ede72e81ad862ba816",
+  "observed_failure": "Numeric value mismatch for object ClusterMembership: 'Sum: 5.51650000000000000e+04' vs 'Sum: 5.51970000000000000e+04'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "qtclustering/qtclustering.cpp",
+  "source_sha256": "45032982c27f74db1dec9621498fb374996a4e2f98a58c55d340a5fed2e7cd73",
+  "source_lines": [
+    90,
+    94,
+    103,
+    108,
+    110,
+    178,
+    186,
+    188
+  ],
+  "finding": "The parallel seed search accepts a candidate only when its cardinality is strictly larger, without a lower-seed tie-break. Equal-size candidates are therefore selected by critical-section arrival order, whereas the sequential input scans seeds in ascending order and keeps the first. The inner closest-point reduction similarly omits the candidate-index tie-break. This changes deterministic clustering/membership semantics and is consistent with the observed membership sum difference.",
+  "interpretation": "Confirmed external numerical mismatch (membership sum 55197 versus reference 55165) despite internal validation passing. This does not by itself establish a geometric-diameter violation; the result fails the existing reference-output comparison. No retry or source change.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection of exact source and frozen sequential tie-breaking, plus retained exclusive correctness result; no new program execution."
+}

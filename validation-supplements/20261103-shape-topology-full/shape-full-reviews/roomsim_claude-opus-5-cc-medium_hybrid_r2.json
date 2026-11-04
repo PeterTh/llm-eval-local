@@ -1,0 +1,48 @@
+{
+  "id": "roomsim_claude-opus-5-cc-medium_hybrid_r2",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "4500d708ad5c7b5d1594f93704011d6dfbca09a1",
+  "original_source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+  "source_path": "20260901-162328/roomsim_claude-opus-5-cc-medium_hybrid_r2",
+  "result_sha256": "a5c395f9e625678049fd420c1445d7b6e4f87d1a49294f1ff86a6991c0ffe224",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71850000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 1696,
+    "overall_score": 8
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "249812f6ed0b0991d24bd3dfa25c86e55874045a97274afc6a4f17bf3b3b1b3a",
+  "source_lines": [
+    512,
+    515,
+    517,
+    518,
+    519,
+    524,
+    528,
+    529,
+    531,
+    533,
+    535,
+    540,
+    541,
+    708,
+    711,
+    712
+  ],
+  "finding": "Uses independent SplitMix64 streams seeded by a hash of (i << 32) | j, XOR 42, instead of the input's single sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but the distance sum 4718.5 differs from reference 4772.5 by 54, exceeding the existing tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed random generator alone.",
+  "timing_correction_check": "The original-to-corrected source diff only replaces the reported total with maximum-rank stage durations; sampling and numerical computation are unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive correctness output; no new program execution."
+}

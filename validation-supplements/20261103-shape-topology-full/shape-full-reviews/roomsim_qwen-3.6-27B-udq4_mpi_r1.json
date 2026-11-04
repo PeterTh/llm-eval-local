@@ -1,0 +1,46 @@
+{
+  "id": "roomsim_qwen-3.6-27B-udq4_mpi_r1",
+  "case_id": "roomsim-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260507-154026/roomsim_qwen-3.6-27B-udq4_mpi_r1",
+  "result_sha256": "82b6b60dda74d71aaed958b2b98c186f2b360e96bdef1a66035264f73744d5ce",
+  "observed_failure": "Supplemental correctness execution failed: exit 139, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 139,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 5401,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "ad13e8768aba383f1b7bf42c5cf70b91e2cbd6d0252f7011d483df0147e0efae",
+  "source_lines": [
+    604,
+    605,
+    606,
+    627,
+    628,
+    629,
+    632,
+    642,
+    643,
+    644,
+    657,
+    658,
+    659,
+    662
+  ],
+  "finding": "Ceiling-sized row partitioning uses chunkSize=3 for 320 triangles and 128 ranks. Ranks 107-127 have rs>320 but re=320. The unsigned re-rs underflows, then becomes a negative MPI receive count after multiplying by n and converting to int. The time-delay MPI_Allgatherv consequently receives invalid counts/displacements. Rank 107's count is -320 ints, matching the retained stderr byte request 18446744073709550336 (2^64-1280) before segmentation faults.",
+  "interpretation": "Confirmed pre-existing empty-rank partition/count defect under the approved topology. This check ran exclusively, so there is no cross-program concurrency ambiguity. Retain failed external validation without retry.",
+  "timing_correction_check": "The original-to-corrected source diff changes only duration reductions/reporting; partitioning and numerical computation are unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive crash output; no new program execution."
+}

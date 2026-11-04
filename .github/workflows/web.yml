@@ -9,6 +9,9 @@ on:
       - "release/**"
       - "batches/**"
       - "corrections/**"
+      - "validation-supplements/**"
+      - "method/validation-strengthening/**"
+      - "tools/**"
       - "metadata/codex-usage/**"
       - "analysis/notes/individual/**"
       - "analysis/tables/**"
@@ -20,6 +23,9 @@ on:
       - "release/**"
       - "batches/**"
       - "corrections/**"
+      - "validation-supplements/**"
+      - "method/validation-strengthening/**"
+      - "tools/**"
       - "metadata/codex-usage/**"
       - "analysis/notes/individual/**"
       - "analysis/tables/**"
@@ -55,6 +61,11 @@ jobs:
           ruby-version: "3.2"
       - name: Check scientific release
         run: ruby tools/verify_release.rb
+      - name: Check supplemental validation integration
+        run: |
+          ruby tools/test_external_validation_overlay.rb
+          ruby tools/test_supplemental_validation_registry.rb
+          ruby tools/test_validation_sweep_receipt.rb
       - name: Check individual reviews
         run: |
           ruby analysis/src/check_winner_reviews.rb

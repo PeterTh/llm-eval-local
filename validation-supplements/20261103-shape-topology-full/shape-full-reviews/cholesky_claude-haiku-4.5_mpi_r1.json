@@ -1,0 +1,18 @@
+{
+  "id": "cholesky_claude-haiku-4.5_mpi_r1",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cholesky_claude-haiku-4.5_mpi_r1",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "8c44cabb4f050851a4c551eadbfb4e723bd5faf57e8deb4cfa851d60edd7edcf",
+  "source_lines": [34, 122, 123, 124, 125, 126, 127, 135, 136, 137, 149, 150, 151, 258, 259, 260, 261, 262, 272, 280],
+  "finding": "Local allocations use ceil(n/ranks) contiguous chunks, whereas MPI_Scatterv and MPI_Gatherv use balanced floor(n*rank/ranks) boundaries. At n=513 with 128 ranks, local chunks are five rows for ranks 0-101, three for rank 102 and zero for ranks 103-127. The scatter instead sends four rows to ranks 0-126 and five to rank 127. Some receives are therefore smaller than their incoming messages, including positive-sized transfers to zero-length buffers, and row identities disagree even where buffers are large enough. The pivot-owner formula also does not describe the allocated ceiling chunks.",
+  "observed_failure": "The concurrent check prints malloc(): corrupted top size followed by a rank abort while distributing the input. It subsequently reaches the 30-second timeout with other ranks unfinished. The paired Fable implementation passes in 19.958961 seconds. The retained result is a timeout, but its stderr and pinned source show a concrete program-level memory/communication defect rather than merely slow concurrent execution.",
+  "interpretation": "Retain the failure without a retry. The inconsistent allocation and MPI transfer sizes are independent of concurrent scheduling. The added case is classified at the external-validation stage.",
+  "result_sha256": "86790d2b7022d5a338d3d95834073821b330f4eafd14a281e450590ddd860ede",
+  "prior_release": { "validation_status": 5, "benchmark_success": false, "benchmark_median_ms": null, "overall_score": 5 },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection, retained stderr, and the paired passing execution; no retry."
+}

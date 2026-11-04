@@ -1,0 +1,22 @@
+{
+  "id": "black-scholes_qwen-3.6-27B-udq4_hybrid_r4",
+  "case_id": "black-scholes-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260507-154026/black-scholes_qwen-3.6-27B-udq4_hybrid_r4",
+  "file": "black-scholes/black_scholes.cu",
+  "source_sha256": "17779126eac2d80f9670d247e404ce44f20d1ad7d2c63bcb21e5fd058e538539",
+  "source_lines": [202, 204, 205, 210, 211, 212, 276, 277, 279],
+  "finding": "The gather displacement prefix adds the current rank's count rather than the preceding rank's count. For 10003 options and four ranks, counts are [2501,2501,2501,2500]. Local starts are correctly [0,2501,5002,7503], but prefix_n becomes [0,2501,5002,7502]. MPI_Gatherv therefore overlaps the last element of rank 2 with rank 3 and leaves the final output slot at its zero-initialized value. The gather receive ranges are invalidly overlapping; equal-sized partitions concealed this defect in the original validation case.",
+  "observed_failure": "The unchanged numeric comparator rejects OptionPrices sum 3115161.70099635562 versus reference 3115364.34335499862. The difference is approximately 202.642358643, matching the lost reference value at index 7502. Sample[7502] is 4.41171151739800571 rather than 202.642358642515518, and Sample[10002] is zero rather than 5.86752388792192736. Execution and the original internal validation both pass.",
+  "result_sha256": "cbd271a8e467c5e9fa4ad2d317aab0156a9a04e0091dfa56f26f84bd240350c1",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "overall_score": 5,
+    "current_winner": false
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and retained validation output only; no retry or new program execution."
+}

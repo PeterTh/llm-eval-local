@@ -1,0 +1,42 @@
+{
+  "id": "floydwarshall_deepseek-v4-flash_mpi_r2",
+  "case_id": "floydwarshall-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260616-150949/floydwarshall_deepseek-v4-flash_mpi_r2",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "a25f23f186ad2af1f1a7b2bd30d199ce7a65d3e8613ae2036f4d61d59e557aeb",
+  "source_lines": [
+    157,
+    158,
+    159,
+    160,
+    161,
+    162,
+    165,
+    166,
+    167,
+    173,
+    174,
+    175,
+    176,
+    180,
+    183,
+    184,
+    185
+  ],
+  "finding": "Ceiling-sized row partitions leave ranks 103 through 127 starting beyond n=513. Subtracting their start from the clamped end underflows unsigned local_rows and local_elems, leading to impossible vector lengths. The same arithmetic generates invalid signed Scatterv counts on rank 0.",
+  "observed_failure": "Empty ranks report std::length_error: cannot create std::vector larger than max_size(); rank 0 reports MPI_ERR_COUNT: invalid count argument. The job exits 2. The paired r1 check passes in 19.72 seconds.",
+  "interpretation": "Pre-existing empty-partition underflow and invalid MPI counts, not concurrency pressure. The source correction changes only maximum-rank timing. Retain failed external validation without retry.",
+  "result_sha256": "edd4a590f95d6eb535b859982d12300c137f9172d608342b8db36f57695bb79c",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 1746,
+    "overall_score": 9
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection, original/effective diff and retained MPI/vector errors; no new program execution."
+}

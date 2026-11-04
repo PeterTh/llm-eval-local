@@ -1,0 +1,49 @@
+{
+  "id": "nbody_qwen-3.6-27B-udq4_mpi_r4",
+  "case_id": "nbody-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260507-154026/nbody_qwen-3.6-27B-udq4_mpi_r4",
+  "result_sha256": "c19041d3d906658788ed1310e03868770246224f0a7eb430e1314d0bdb9b6686",
+  "observed_failure": "Multiple ranks throw std::length_error: cannot create std::vector larger than max_size(); process abort, exit134.",
+  "execution": {
+    "success": false,
+    "exit_code": 134,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 9943,
+    "overall_score": 6
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "5161b65997e6ef97baedece14bbd55528d88b55294a6658cbc6984fdce336341",
+  "source_lines": [
+    37,
+    38,
+    39,
+    40,
+    44,
+    45,
+    46,
+    47,
+    88,
+    89,
+    91,
+    92,
+    103,
+    107,
+    108,
+    109,
+    114,
+    115
+  ],
+  "finding": "Ceil partitioning at n=1031 and 128 ranks uses chunks of nine, giving ranks115-127 start>n while end is clamped to n. BodyRange::size() subtracts these size_t values without clamping. The underflow becomes a negative int sendCount and then an enormous vector size in syncBodies; receive counts have the same defect.",
+  "interpretation": "Pre-existing empty-partition unsigned-underflow defect independent of concurrent scheduling. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/count/allocation inspection and retained exception diagnostic; no new program execution."
+}

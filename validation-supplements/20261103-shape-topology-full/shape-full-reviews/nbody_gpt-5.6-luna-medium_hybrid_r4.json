@@ -1,0 +1,45 @@
+{
+  "id": "nbody_gpt-5.6-luna-medium_hybrid_r4",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260805-120633/nbody_gpt-5.6-luna-medium_hybrid_r4",
+  "result_sha256": "ede5f4f6295e4327055bb43c22602d172db5f05f73eb5cf33ad95e28518173d1",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: -1.18711514754685687e+01'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 2923,
+    "overall_score": 7
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "cdabc2dd80ff7b70e1682608280097c9bbc9cbc02e82e2438dd3bc5a7d61c189",
+  "source_lines": [
+    35,
+    36,
+    37,
+    38,
+    42,
+    43,
+    44,
+    45,
+    54,
+    55,
+    56,
+    60,
+    61,
+    62
+  ],
+  "finding": "The fused CUDA kernel reads every body's position and then writes new positions to the same arrays, without synchronization between the reading and writing threads/blocks. One block can finish its force loop and overwrite positions while another block is still reading the old state.",
+  "interpretation": "Pre-existing CUDA read/write race exposed by the n=1031 case. Exclusive execution and internal finite-value validation succeed, but independent numerical validation fails. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive numerical failure; no new program execution."
+}

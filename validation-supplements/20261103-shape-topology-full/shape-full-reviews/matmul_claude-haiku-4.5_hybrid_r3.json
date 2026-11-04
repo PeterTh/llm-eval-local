@@ -1,0 +1,33 @@
+{
+  "id": "matmul_claude-haiku-4.5_hybrid_r3",
+  "case_id": "matmul-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/matmul_claude-haiku-4.5_hybrid_r3",
+  "file": "matmul/matmul.cpp",
+  "source_sha256": "ca5a0b005e4f79c9da7f535e212d554bfedb66eca4bb3f3aec57dd3fc12dd3c6",
+  "source_lines": [
+    164,
+    165,
+    168,
+    169,
+    174,
+    175,
+    178,
+    179
+  ],
+  "finding": "The B-matrix exchange uses fixed-count MPI_Allgather with local_rows*N as each caller's per-peer receive count. At N=513 with four ranks the partitions are 129,129,129,126 rows. Counts therefore disagree across ranks, and the 129-row callers describe 516 receive rows in a 513-row allocation.",
+  "observed_failure": "The exclusive hybrid run fails during initialization with MPI_ERR_TRUNCATE in MPI_Allgather and an additional unpacking/communication segmentation fault, exiting 15 before multiplication.",
+  "interpretation": "Pre-existing unequal-count collective and receive-buffer overflow, independent of concurrent scheduling. The timing correction only changes maximum-rank duration reporting. Retain failed external validation without retry.",
+  "result_sha256": "8abe4e5bf55f5ba263bd79368afa5da93ac1d09907230a2ed810b56e3b942b49",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 631,
+    "overall_score": 8
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection, original/effective diff and retained MPI error; no new program execution."
+}

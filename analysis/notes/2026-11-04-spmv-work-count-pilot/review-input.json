@@ -1,0 +1,121 @@
+{
+  "review_started_at": "2026-11-04T07:11:19Z",
+  "review_finished_at": "2026-11-04T07:20:15Z",
+  "reviewer": "Primary agent; manual source/control-flow and disassembly inspection, without program execution or delegated reviews.",
+  "duration_scope": "Wall time from prepared review packs through completion of the twelve inspections, including status checks/context recovery; excludes subsequent evidence-packaging/tool-test work. Conservative rather than a CPU-time measurement.",
+  "population_deduplication": {
+    "implementations": 722,
+    "distinct_spmv_cpp_digests": 685,
+    "distinct_staged_source_tree_digests": 716,
+    "note": "Identical main files alone do not establish identical build flags or compiled code. The estimate does not assume those cases can be skipped."
+  },
+  "method_limits": [
+    "Final SpMV output is independent of the number of positive repetitions; another numerical comparison alone cannot close this gap.",
+    "Review traces the requested iteration count through the timed compute path and checks that a full local product remains inside the compiled repetition loop, or is launched once per requested iteration.",
+    "The sample includes each backend's winner, median-sized source and largest source. This is a feasibility sample, not a random prevalence estimate.",
+    "Compiled evidence is bound to retained/rebuilt validation executables. It is not represented as a bit-for-bit inspection of historical measurement executables.",
+    "No universal automatic work-count validator has been established. Source regexes or runtime scaling alone must not produce scientific failure verdicts."
+  ],
+  "reviews": [
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed launch forwards the requested count into a persistent CSR kernel. Each iteration resets the accumulator and recomputes all row nonzeros. The compiled 32-lane path retains arithmetic inside the outer iteration backedge; the single warm-up is additional, not a substitute.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[147,179],[201,216],[278,284],[361,377]],"claim":"CLI count is forwarded unchanged; source specializations use the same full-product repetition loop."}],
+      "compiled_evidence": [{"file":"device-sass.txt","ranges":[[1996,2110],[2252,2286]],"claim":"32-lane specialization initializes R14, increments and compares against the iterations parameter at 0x1c0/0x1e0, executes DFMA within the loop, then branches from 0x8f0 to 0x1a0 after the output store."}],
+      "notes": "The detailed compiled inspection is the 32-lane path selected by the audited validation/measurement sparsities; this is not a formal proof for every possible input."
+    },
+    {
+      "id": "spmv_gpt-6-astra-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "One full CSR kernel launch per requested repetition; warm-up is outside the timed CUDA events. All source width variants cover the rows and their CSR nonzeros.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[49,78],[231,239],[306,326]],"claim":"The iteration-bound host loop launches the selected complete-product kernel."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1345,1377]],"claim":"main 0xb350-0xb373 retains an indirect launch call, increment and comparison with the requested count, followed by the end event and synchronization."},
+        {"file":"device-sass.txt","ranges":[[19,24],[135,151]],"claim":"A compiled CSR specialization retains loads and DFMA in its nonzero loop."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The outer loop launches all device row slices once per requested repetition. CSR prefix/body/tail loops cover the row nonzeros, followed by completion synchronization.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[300,329],[344,364],[424,431],[509,521],[569,591]],"claim":"CLI count, complete device slices, full CSR arithmetic and the timed nested launch loop are present."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1209,1241]],"claim":"main 0x3492 launches each slice; 0x34a6-0x34ac increments and compares the outer count and returns to the first slice."},
+        {"file":"device-sass.txt","ranges":[[19,24],[153,185]],"claim":"Compiled CSR kernel retains DFMA and the nonzero-loop backedge."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Graph construction captures min(iterations,64) complete local SpMVs. Timed execution replays whole batches and launches the exact residual count. Contiguous rank/device row partitions cover the result; no repetition is replaced by graph warm-up.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[253,274],[279,326],[399,425],[443,469],[590,601],[632,653]],"claim":"Full local CSR kernels, bounded graph capture, quotient/remainder replay and device synchronization are explicit."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[4148,4190],[4952,4994]],"claim":"Graph capture calls launchSpmv until graphIterations; computeDevice subtracts that count per replay at 0x73eb and launches the residual one by one at 0x7402-0x740b."},
+        {"file":"device-sass.txt","ranges":[[19,24],[187,209]],"claim":"Compiled CSR specialization retains nonzero arithmetic and its loop."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank owns a quotient/remainder row partition and launches a complete local CSR kernel for every requested repetition. Empty ranks do no work; all nonempty partitions are included.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[137,163],[229,234],[257,261],[388,418]],"claim":"Count is parsed unchanged and bounds the local launch loop; all row nonzeros are computed by cooperating warp lanes."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1540,1585]],"claim":"main 0xc8b1 calls the kernel stub; 0xc8b6-0xc8be increments, compares and repeats before the end event."},
+        {"file":"device-sass.txt","ranges":[[10,15],[138,160]],"claim":"The retained SASS contains the actual CSR DFMA loop. No PTX was embedded in this executable."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed iteration computes ordinary local rows on the GPU and unusually long rows on the CPU. SELL conversion excludes long rows from GPU arithmetic but does not remove them from the iteration's CPU work. The compiled outer loop contains both operations.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[505,556],[657,664],[693,711],[714,743],[778,814]],"claim":"Rank row ranges cover the matrix; GPU rows and CPU long-row lists are complementary and both are recomputed within the requested iteration loop."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1738,1801],[3942,3966]],"claim":"main 0x3f33 launches the GPU and 0x3e81 runs the CPU worker, before the iteration increment/comparison; the worker retains multiply/add operations inside its nonzero loop."},
+        {"file":"device-sass.txt","ranges":[[19,24],[229,247],[325,343]],"claim":"SELL GPU path retains multiplication and ordered accumulation."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Every nonempty rank recomputes its local rows for the full requested count. The optimized four-row path covers common and remaining nonzeros and has a serial tail for leftover rows; the compiled caller retains the repetition loop.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[232,287],[345,360],[433,466]],"claim":"The full local product is invoked once per repetition with unchanged count; four-row batching is spatial rather than repetition elision."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1685,1719],[2468,2494]],"claim":"0x4766 calls spmvLocal inside the count-bound backedge 0x4774->0x4750. The four-row product contains fresh multiply/add instructions."}]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The full local CSR product is recomputed on every iteration. Compilation inlines the function but leaves the row/nonzero loops inside the repetition loop.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[102,112],[179,185],[256,273],[321,335]],"claim":"CLI count bounds complete local CSR products over contiguous rank row partitions."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2314,2353]],"claim":"main 0xa370-0xa38c performs nonzero arithmetic; 0xa39d-0xa3a1 repeats the entire row loop, not merely its stores."}]
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All rank-local row products are recomputed for each requested repetition. Fast random-stream initialization does not replace timed multiplication, and the inlined compiled product remains inside the outer loop.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[458,469],[539,545],[591,599],[634,649]],"claim":"The iteration count is unchanged; contiguous rank row partitions and complete CSR dot products are used."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2243,2292]],"claim":"main 0xa280-0xa29b performs the row arithmetic; 0xa2ac-0xa2b6 loops back to recompute all local rows for the next repetition."}]
+    },
+    {
+      "id": "spmv_gpt-5.2_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A persistent OpenMP team repeats all statically assigned rows for the requested count, using SIMD reduction for each row. Removing per-iteration barriers does not skip work because row ownership is fixed and inputs are invariant. Compiled SIMD arithmetic is retained inside the repetition loop.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[110,136],[196,203],[253,265]],"claim":"Requested repetitions surround complete row products; the warm-up creates only the OpenMP team."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[902,974],[1026,1056],[1105,1141]],"claim":"The worker retains vector FMA at 0x215c/0x217b, row stores, and the outer count backedge 0x2345->0x1ffb."}]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The persistent OpenMP team retains all repetitions over fixed row assignments. The compiled worker recomputes row arithmetic rather than hoisting an invariant result outside the repetition loop.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[97,119],[179,185],[233,241]],"claim":"CLI iteration count reaches the persistent-team CSR loop unchanged."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[901,998]],"claim":"0x2050-0x206c retains multiply/add arithmetic; 0x2081-0x2092 increments and compares the repetition count before branching to the next complete row pass."}]
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each OpenMP worker repeatedly computes its fixed nonzero-balanced row range. The monotone partitions cover all rows, and compilation preserves the complete dot products within the repetition loop.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[291,310],[320,341],[402,408],[464,496]],"claim":"CLI count bounds complete products on disjoint, collectively exhaustive row ranges."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1309,1397]],"claim":"Worker 0x2660-0x267c computes each dot product; 0x268d-0x2692 repeats all assigned rows up to the requested count."}]
+    }
+  ]
+}

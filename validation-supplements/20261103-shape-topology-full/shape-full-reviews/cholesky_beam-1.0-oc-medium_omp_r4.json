@@ -1,0 +1,31 @@
+{
+  "id": "cholesky_beam-1.0-oc-medium_omp_r4",
+  "case_id": "cholesky-large-tile-v1",
+  "source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+  "source_path": "20261025-170121/cholesky_beam-1.0-oc-medium_omp_r4",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "f02ea21d5d015a312e34cc1e01bcdbec19226df7583164cf87c945264f2fe278",
+  "source_lines": [
+    19,
+    20,
+    25,
+    26,
+    41,
+    42,
+    51
+  ],
+  "finding": "The unblocked factorization creates an OpenMP parallel reduction for every lower-triangular element: n*(n+1)/2, or 1,181,953 separate regions at n=1537, plus row-zeroing regions. This is a plausible source of excessive synchronization overhead at 128 threads, not a demonstrated arithmetic error.",
+  "observed_failure": "The exclusive larger-shape execution produces no flushed stdout and exceeds the unchanged 30-second correctness timeout. It previously passed the n=513 case; the previously published performance benchmark had already failed.",
+  "interpretation": "Retain the approved supplemental validation timeout as failed external validation. Do not describe this as a proven numerical defect or concurrency failure. The exact phase at timeout was not traced, and no retry or timeout relaxation was performed.",
+  "result_sha256": "7be5a4076f1b9b4709f169f4aeb9cecf1d900dfce284309fde464889f9c79c76",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive validation result; no new program execution."
+}

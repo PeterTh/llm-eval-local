@@ -35,6 +35,9 @@ published program sources, benchmark sources, pipeline source, and documented sy
   native event/session exports remain in the generated-program repository.
 - Analysis code, environment locks, final tables, and one canonical representation of
   each final figure.
+- The authored winner-audit counterexample wrapper, retained as analysis source
+  to reproduce validator blind spots; it includes separately retained input code
+  rather than duplicating that code. Generated program sources remain excluded.
 
 ## Excluded
 
@@ -77,14 +80,15 @@ whole.
 
 - curated `data/`: at most 60 MiB;
 - `analysis/`: at most 20 MiB;
-- complete scientific artifact tree (excluding the website): at most 320 MiB;
+- complete scientific artifact tree (excluding the website): at most 512 MiB;
 - individual file: at most 10 MiB.
 
 Git LFS is not used. Any exception requires an explicit policy change and must explain
 why the additional artifact is scientifically necessary.
 
 The tree budget accommodates retained campaigns, timing audits, corrections and
-scoped rerun evidence. The per-file, historical `data/`, and analysis budgets remain
+scoped rerun evidence, and complete supplemental correctness sweeps with retained
+outputs and provenance. The per-file, historical `data/`, and analysis budgets remain
 separate constraints. Binaries, duplicate program sources and raw agent streams
 are excluded. Historical QT replacements are a scoped overlay under `corrections/`;
 their prior observations remain in the immutable source campaigns.

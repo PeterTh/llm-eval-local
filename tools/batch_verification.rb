@@ -384,7 +384,7 @@ module BatchVerification
           [ExternalValidationExclusions::CASE_ID, "unstructured", ExternalValidationExclusions::ARGS]
       raise "Corrected supplemental validation coverage differs"
     end
-    reference = @external.registry.data.fetch("reference").fetch("stdout")
+    reference = @external.reference_stdout(ExternalValidationExclusions::CASE_ID)
     ids.each do |id|
       directory = File.join(File.dirname(relative), ExternalValidationExclusions::CASE_ID, id)
       result_path = path(File.join(directory, "result.json"))

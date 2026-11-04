@@ -1,0 +1,36 @@
+{
+  "id": "cholesky_claude-sonnet-4.5_mpi_r1",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cholesky_claude-sonnet-4.5_mpi_r1",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "3babe2e94e20c6635b881ea5f1891a8e3cadd366b45127aaf590a3e1f08b192e",
+  "source_lines": [
+    23,
+    25,
+    29,
+    31,
+    32,
+    36,
+    49,
+    52,
+    53,
+    55,
+    60
+  ],
+  "finding": "Pivot ownership floor(j*ranks/n) does not invert the floor(n*rank/ranks) row-update boundaries at non-divisible sizes. For n=513 and 128 ranks, row 4 is updated by rank 1 but selected and broadcast by rank 0, whose copy has not received those updates. Many subsequent boundary rows have the same mismatch.",
+  "observed_failure": "The 128-rank check exits 1 through MPI_Abort on rank 35 during factorization. The pinned source invokes this abort when it computes a nonpositive diagonal. The paired Opus 5.5 check passes in 11.239979 seconds; the failing execution exits in 15.354108 seconds and does not time out.",
+  "interpretation": "This is a pre-existing ownership/numerical defect, not a scheduling failure. The original-to-effective source diff only reduces and prints the maximum duration, leaving all affected ownership and factorization code unchanged. Retain the failed external-validation disposition without a retry.",
+  "result_sha256": "a820cb97e4651d9a5faac8836daf1ace1aaba551cd6884d3c3c1eb59fe4a92de",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 714,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection, original/effective source diff, retained stderr, and the paired passing execution; no retry."
+}

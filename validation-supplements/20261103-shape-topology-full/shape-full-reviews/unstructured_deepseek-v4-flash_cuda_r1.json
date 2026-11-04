@@ -1,0 +1,45 @@
+{
+  "id": "unstructured_deepseek-v4-flash_cuda_r1",
+  "case_id": "unstructured-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260616-150949/unstructured_deepseek-v4-flash_cuda_r1",
+  "result_sha256": "1e470bacdcb7bfd391a745c0385865af9570a72f726ebd4d27e0addee362d7b2",
+  "observed_failure": "Numeric value mismatch for object ElementEnergy: 'Min: -4.79550758577440650e+00' vs 'Min: -4.79436565212419818e+00'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 4946,
+    "overall_score": 7
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "a627a9c99d709df70ec1a965d4682cc48b92e2fb2b336f319fbf78a014a8f35d",
+  "source_lines": [
+    168,
+    174,
+    178,
+    179,
+    181,
+    182,
+    183,
+    185,
+    186,
+    187,
+    192,
+    194,
+    344,
+    357
+  ],
+  "finding": "runSimulationGPU swaps only its local gpu_read/gpu_write pointers. cleanupGPU always copies gpu.dyn_a, regardless of iteration parity. After the required 513 iterations the final state is in gpu.dyn_b, so the published output is the state after 512 iterations.",
+  "interpretation": "This is an odd-iteration final-buffer defect independent of scheduling. The retained minimum element energy differs from the reference beyond the unchanged numerical tolerance; the internal aggregate check still passes.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained correctness output; no new program execution."
+}

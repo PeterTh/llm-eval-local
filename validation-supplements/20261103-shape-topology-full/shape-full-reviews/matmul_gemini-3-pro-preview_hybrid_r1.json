@@ -1,0 +1,29 @@
+{
+  "id": "matmul_gemini-3-pro-preview_hybrid_r1",
+  "case_id": "matmul-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/matmul_gemini-3-pro-preview_hybrid_r1",
+  "file": "matmul/matmul.cpp",
+  "source_sha256": "348989f38c11a5540c21a997d76569c870abea7452bc82ac607ee8ff39cd56c3",
+  "source_lines": [
+    103,
+    104,
+    105,
+    108
+  ],
+  "finding": "The implementation explicitly aborts whenever N is not divisible by the MPI communicator size. The approved N=513, four-rank case takes this branch before computation.",
+  "observed_failure": "Prints Error: N must be divisible by MPI size and invokes MPI_Abort with exit 1 during the exclusive hybrid check.",
+  "interpretation": "Pre-existing unsupported-remainder input restriction. This is failure to support the approved shape, not a numerical result mismatch or scheduling problem. The timing correction does not change this restriction. Retain failed external validation without retry.",
+  "result_sha256": "eaeab350358b25238acee0a2a328f7164b879797d3443e44d5c7a579de5d840f",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 630,
+    "overall_score": 8
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection, original/effective diff and retained explicit rejection; no new program execution."
+}

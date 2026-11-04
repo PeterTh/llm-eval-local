@@ -1,0 +1,37 @@
+{
+  "id": "roomsim_qwen3.7-plus_omp_r4",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260618-110425/roomsim_qwen3.7-plus_omp_r4",
+  "result_sha256": "1164eb324102d7779da81d3d30b4a042b76d688e75e7117082fc067fee537a82",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.72000000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 7234,
+    "overall_score": 8
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "a1e962356a4722d76eeafbb7fd90c0e086034fde4e14000506e0af51ed497ef3",
+  "source_lines": [
+    397,
+    400,
+    605,
+    606,
+    607,
+    608
+  ],
+  "finding": "Creates a fresh MT19937 stream for every pair with seed (i*N+j) XOR 0xA5A5A5A5, instead of the sequential input's single ordered stream. The changed sampled form factors are consistent with the final-distance discrepancy; no isolated dynamic causality test was performed.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but the unchanged external comparison rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed sampling method alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

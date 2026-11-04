@@ -1,0 +1,30 @@
+{
+  "id": "cholesky_gpt-5.2-codex_omp_r4",
+  "case_id": "cholesky-large-tile-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cholesky_gpt-5.2-codex_omp_r4",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "96410c9fa5f5e5fdd8024f44da4d36cceae772192050635c6216776df3919bae",
+  "source_lines": [
+    16,
+    17,
+    22,
+    23,
+    35,
+    36
+  ],
+  "finding": "The unblocked factorization creates a separate OpenMP parallel reduction for each lower-triangular matrix element: 1,181,953 regions at n=1537. Excessive team synchronization is a plausible timeout cause; no numerical defect is established by this observation.",
+  "observed_failure": "The exclusive 128-thread n=1537 check exceeds the unchanged 30-second correctness timeout without flushed stdout. The n=513 check passed; the prior performance benchmark had already failed.",
+  "interpretation": "Retain as failed external validation under the approved timeout, without inferring numerical error or concurrent-scheduling interference. No timeout relaxation or retry.",
+  "result_sha256": "e9556fa38fefa717c3bf2205f12a2e388b650e483532b07e0816a34a6fbb679d",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive validation output; no new program execution."
+}

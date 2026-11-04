@@ -1,0 +1,37 @@
+{
+  "id": "cholesky_deepseek-v4-flash_mpi_r2",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260616-150949/cholesky_deepseek-v4-flash_mpi_r2",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "05b0bf6d5a1937a01e49f2700dc2cd9c0ab5ebed63957e284505e37592d60aa9",
+  "source_lines": [
+    109,
+    110,
+    116,
+    122,
+    212,
+    213,
+    294,
+    295,
+    296,
+    297,
+    300,
+    321
+  ],
+  "finding": "The ceiling block width is five at n=513 with 128 ranks. For ranks 103-127, localStart exceeds n, and unsigned n-localStart underflows; min(colsPerRank,n-localStart) therefore incorrectly assigns five nonexistent columns instead of zero. generateLocalMatrix then reads B[j*n+k] for j>=n and writes col[j] beyond the intended column bounds. The gather-count construction repeats the same unsigned subtraction.",
+  "observed_failure": "The job exits 139 with multiple rank segmentation faults. The common fault offset is main+0x3b5 (ELF address 0x9b25), a vector multiply with a memory operand, consistent with the invalid matrix-generation read. The paired r4 check passes in 12.092829 seconds; the failed execution does not time out.",
+  "interpretation": "This is a pre-existing empty-partition memory defect, not scheduling contention. The original-to-effective source diff only changes maximum-rank timing reporting. Retain failed external validation without a retry.",
+  "result_sha256": "b0670eba1e869b9d1d024794dee32a8fb05477b20c73fa4a4d68eae1b163763d",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 654,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source and binary inspection, original/effective timing diff, and retained validation output; no retry."
+}

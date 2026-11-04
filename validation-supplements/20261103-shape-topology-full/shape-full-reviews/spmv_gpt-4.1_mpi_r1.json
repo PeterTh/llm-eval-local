@@ -1,0 +1,42 @@
+{
+  "id": "spmv_gpt-4.1_mpi_r1",
+  "case_id": "spmv-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r1",
+  "result_sha256": "3c07bf7f5ea32cfcd74aabed8ff334d2708886bf7f77849e7ab751883d423c88",
+  "observed_failure": "Supplemental internal check failed.",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 5406,
+    "overall_score": 8
+  },
+  "file": "spmv/spmv.cpp",
+  "source_sha256": "221e30daa5fdbce18128dd32e4bab8dbe1c46b10ba668ab67ac3da2e579ab3eb",
+  "source_lines": [
+    209,
+    210,
+    211,
+    212,
+    253,
+    259,
+    262,
+    263,
+    287,
+    291
+  ],
+  "finding": "Assigns floor(N/ranks) rows to each rank except the last, which also receives the remainder, but gathers with fixed-count MPI_Gather using the root's local_num_rows as receive count. For N=1025 and 128 ranks, rank 127 sends nine values while root reserves eight per rank (1024 in total). The final output element is consequently not gathered correctly; retained output shows index 1024 remains zero and explicitly fails the program's internal comparison.",
+  "interpretation": "Confirmed pre-existing uneven-partition gather defect in exclusive validation. Although the executable exits zero, its Validation: FAILED output is correctly rejected by the supplemental external-validation step.",
+  "timing_correction_check": "The original-to-corrected source diff changes only elapsed-duration reduction/reporting and derived timing metrics; partitioning, multiplication and gather code are unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive correctness output; no new program execution."
+}

@@ -1,0 +1,46 @@
+{
+  "id": "qtclustering_qwen3.7-plus_cuda_r3",
+  "case_id": "qtclustering-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260618-110425/qtclustering_qwen3.7-plus_cuda_r3",
+  "result_sha256": "0746cb69f2a24729641b19dcaa1e556305419e2dc19ce3053cb5df9fc8b25a1b",
+  "observed_failure": "Exclusive execution exits0 and prints Validation: PASSED despite Clusters found:0 and Points clustered:0/1001. Every membership value is -1 (sum-1001 rather than reference55165).",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "qtclustering/qtclustering.cpp",
+  "source_sha256": "4ea2baf4d7fd08e685d187da877ab59c3c979730c2f98b9e274b38184484de05",
+  "source_lines": [
+    62,
+    72,
+    73,
+    74,
+    130,
+    131,
+    275,
+    281,
+    296,
+    303,
+    306,
+    308,
+    309,
+    310,
+    315
+  ],
+  "finding": "The shared-memory double reduction array starts at point_count*sizeof(int), without alignment padding. At1001 points the byte offset4004 is not eight-byte aligned. CUDA return codes are unchecked, including the result cudaMemcpy; zero-initialized host cardinalities can then cause the loop to terminate with no clusters. The layout defect and unchecked errors are consistent with the observed empty result, without claiming the exact device fault was traced.",
+  "interpretation": "Confirmed independent numerical failure on the approved odd-size case. Retain failed external validation without retry or source edits.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/shared-layout inspection and retained exclusive correctness output; no new program execution."
+}

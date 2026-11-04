@@ -1,0 +1,19 @@
+{
+  "id": "black-scholes_gpt-4.1_mpi_r5",
+  "case_id": "black-scholes-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/black-scholes_gpt-4.1_mpi_r5",
+  "file": "black-scholes/black_scholes.cpp",
+  "source_sha256": "b4522fc515558ed0043b7058ae05f47184640aa48518f9e24586909448838597",
+  "source_lines": [199, 202, 203, 204, 209, 214],
+  "finding": "The last rank computes the remainder, but MPI_Allgather exchanges only floor(N/P) values per rank. At 10003 options and 128 ranks, only 9984 results are exchanged. The final 19 entries on the printing rank remain zero-initialized, although the last rank computed them. Divisible inputs conceal this error.",
+  "observed_failure": "The sum is 3103312.22251268569 rather than 3115364.34335499862, and Sample[10002] is zero rather than 5.86752388792192736. Execution and internal validation pass; the external numerical comparison fails.",
+  "timing_correction_check": "The original-to-corrected diff changes only maximum-rank timing and throughput. The fixed-count gather is unchanged.",
+  "result_sha256": "aa35ad62ca10b94527ff03eb220cbc0732142dd975a28645822606126bf35894",
+  "prior_release": { "validation_status": 5, "benchmark_success": true, "benchmark_median_ms": 1384.616, "overall_score": 6 },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and retained validation output; no retry."
+}

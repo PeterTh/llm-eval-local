@@ -1,0 +1,40 @@
+{
+  "id": "roomsim_deepseek-v4-flash_cuda_r5",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260616-150949/roomsim_deepseek-v4-flash_cuda_r5",
+  "result_sha256": "04fcb64a8661061925cae6cb319c584b2c39e6e6c96c6fab33c1ce9b7466ca8f",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71550000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 25459,
+    "overall_score": 6
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "9ddfdb96162a6efce91dafc8957f3d862a904cfd5b6a0255a8fafa15b8a7fc32",
+  "source_lines": [
+    132,
+    141,
+    143,
+    146,
+    147,
+    148,
+    283,
+    287,
+    288
+  ],
+  "finding": "Uses xorshift32 with a distinct state initialized as i*2654435761U+j*2246822519U+1 for each triangle pair, rather than the input's single sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, the exclusive execution and internal validation pass but the unchanged external comparator rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition is based on this numerical failure, not a floating hash mismatch or a changed random generator alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection of exact generated source and frozen sequential sampling method, plus retained exclusive correctness output; no new program execution."
+}

@@ -1,0 +1,53 @@
+{
+  "id": "nbody_gpt-5-mini_hybrid_r2",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/nbody_gpt-5-mini_hybrid_r2",
+  "result_sha256": "63d1059d63646c0df769b17de124802f835020fa654da1c6045db28688fcb646",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 7.67711224041606670e+02'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 1996,
+    "overall_score": 8
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "c3740c147808b31aa3fc2f173556d9bb80fe42826b78505d2efd06394be6fc54",
+  "source_lines": [
+    39,
+    40,
+    41,
+    42,
+    61,
+    62,
+    63,
+    64,
+    70,
+    71,
+    72,
+    74,
+    75,
+    76,
+    225,
+    229,
+    230,
+    231,
+    239,
+    240,
+    257,
+    261
+  ],
+  "finding": "The kernels guard i_global<N, not i_local<local_n, although velocity buffers have only local_n elements. The rounded CUDA grid launches 512 threads for rank partitions of 257 or 258 bodies. On non-final ranks, many extra threads pass the global bound and read/write past the local velocity arrays; the integration kernel also updates bodies outside the rank's owned interval.",
+  "interpretation": "Pre-existing local-bound/array-overrun defect consistent with the retained large numerical error. Exclusive execution and internal finite-value checking pass, but external validation fails. Retain failure without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source and allocation/launch inspection plus retained exclusive correctness output; no new program execution."
+}

@@ -1,0 +1,45 @@
+{
+  "id": "roomsim_claude-fable-5-cc-medium_hybrid_r4",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "4500d708ad5c7b5d1594f93704011d6dfbca09a1",
+  "original_source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+  "source_path": "20260901-162328/roomsim_claude-fable-5-cc-medium_hybrid_r4",
+  "result_sha256": "0042e4c5cc4639a0bf4424d545dff80a624e14e3f25d67e6c5975350b4d733f5",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71000000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 1191,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "72365ce5b49f4850f3e77b4422e50a6e54784ff32ffba5a8176784307d4d9d85",
+  "source_lines": [
+    430,
+    432,
+    433,
+    435,
+    436,
+    437,
+    439,
+    445,
+    446,
+    578,
+    579,
+    582,
+    583
+  ],
+  "finding": "Uses independent SplitMix64 states initialized from each global triangle-pair index, instead of the input's single sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but the distance sum 4710 differs from reference 4772.5 by 62.5, exceeding the existing tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed random generator alone.",
+  "timing_correction_check": "The original-to-corrected source diff only adds MPI_MAX Allreduces for three stage durations; sampling and numerical computation are unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive correctness output; no new program execution."
+}

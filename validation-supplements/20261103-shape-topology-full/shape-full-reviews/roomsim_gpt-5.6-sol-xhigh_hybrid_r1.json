@@ -1,0 +1,44 @@
+{
+  "id": "roomsim_gpt-5.6-sol-xhigh_hybrid_r1",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260805-120633/roomsim_gpt-5.6-sol-xhigh_hybrid_r1",
+  "result_sha256": "1d6850ceb1727be32643c165563e627485113c56e911e8fbe174b2115ffa288f",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71900000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 597,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "41fdab0c51f370ce3ccb7bb9b00f56a9ea5e1cf93237bebf14ba683d9940b5c0",
+  "source_lines": [
+    587,
+    588,
+    589,
+    590,
+    594,
+    595,
+    596,
+    597,
+    603,
+    604,
+    722,
+    725,
+    726
+  ],
+  "finding": "Uses a SplitMix64-style counter hash of global pair, ray and coordinate indices, XOR 42, instead of the input's single sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but the unchanged external comparison rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed sampling method alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

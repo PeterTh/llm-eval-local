@@ -1,0 +1,41 @@
+{
+  "id": "roomsim_deepseek-v4.1-flash-oc-high_omp_r5",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "40ad0bc6da259d4584e75b8f23f43c77e9751b24",
+  "original_source_commit": null,
+  "source_path": "20261019-134042/roomsim_deepseek-v4.1-flash-oc-high_omp_r5",
+  "result_sha256": "4100b02409c982d6961fd3fa846c44c803b1ee577e32d9801857946c316d5554",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71850000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 4427,
+    "overall_score": 8
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "009f5a60efdb5cb10b48acd7fa70c57ca91397c4b890b07cc4a0a9c2c6079024",
+  "source_lines": [
+    409,
+    410,
+    495,
+    496,
+    613,
+    622,
+    623,
+    629,
+    632,
+    633
+  ],
+  "finding": "Attempts to preserve row-boundary MT19937 states but counts/discards only 2*NUM_RAYS draws per non-culled pair. Each of the two sampled endpoints consumes two draws, so the required count is 4*NUM_RAYS. Subsequent row snapshots therefore use wrong stream offsets. The changed sampled form factors are consistent with the final-distance discrepancy; no isolated dynamic causality test was performed.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but the unchanged external comparison rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed sampling method alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

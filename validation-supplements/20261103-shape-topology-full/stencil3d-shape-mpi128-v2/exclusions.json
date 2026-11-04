@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "case": {
+    "id": "stencil3d-shape-mpi128-v2",
+    "benchmark": "stencil3d",
+    "args": [
+      "-v",
+      "-r",
+      "-x",
+      "129",
+      "-y",
+      "131",
+      "-z",
+      "257",
+      "-i",
+      "21"
+    ],
+    "topology": "measurement",
+    "timeout": 30
+  },
+  "record_count": 1,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Yes, launch this sweep"
+  },
+  "reference": {
+    "stdout": "3D Stencil Benchmark\nGrid size: 129 x 131 x 257\nIterations: 21\nValidation: enabled\nInitializing grid...\nRunning stencil computation...\nComputation time: 204 ms\nPerformance: 430.054 MCellUpdates/s\n=== RESULTS ===\nName: Grid\nElements: 4343043\nSum: 3.90873365848355740e+07\nMin: 0.00000000000000000e+00\nMax: 1.80000000000000000e+01\nSample[0]: 0.00000000000000000e+00\nSample[1085760]: 8.99998376820274615e+00\nSample[2171521]: 8.99999175793676010e+00\nSample[3257282]: 9.00003073106262796e+00\nSample[4343042]: 3.00000000000000000e+00\nHash: 36f5260709b353b1\n=== END RESULTS ===\nValidating result...\nValue range: [0.000000, 18.000000]\nValidation: PASSED\n",
+    "stdout_sha256": "9a869f7bffe7821823eead4877691b5756d26b6a810d6e8d44323fbf48a436c6"
+  },
+  "records": [
+    {
+      "id": "stencil3d_qwen-3.6-27B-udq4_mpi_r5",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260507-154026/stencil3d_qwen-3.6-27B-udq4_mpi_r5",
+      "validation_record": {
+        "path": "data/validation/records/stencil3d/mpi.jsonl",
+        "line": 100,
+        "line_sha256": "9a3996727641f7baab8388bc7fc708a15aaefc05d7c841807b67d94ded3c92f2"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "stencil3d-shape-mpi128-v2",
+      "result": {
+        "id": "stencil3d_qwen-3.6-27B-udq4_mpi_r5",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "source_path": "20260507-154026/stencil3d_qwen-3.6-27B-udq4_mpi_r5",
+        "definition": {
+          "id": "stencil3d-shape-mpi128-v2",
+          "benchmark": "stencil3d",
+          "args": [
+            "-v",
+            "-r",
+            "-x",
+            "129",
+            "-y",
+            "131",
+            "-z",
+            "257",
+            "-i",
+            "21"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "9e3a8ea0c25081f06b81599ce349009e0440530abd74bb0d2b92a429f8b8cdb6",
+        "execution": {
+          "success": false,
+          "exit_code": 124,
+          "timed_out": true,
+          "wall_seconds": 32.123903231695294,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/stencil3d_qwen-3.6-27B-udq4_mpi_r5/stencil3d",
+            "-v",
+            "-r",
+            "-x",
+            "129",
+            "-y",
+            "131",
+            "-z",
+            "257",
+            "-i",
+            "21"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-d788ec3f6d8e"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental correctness execution failed: exit 124, timeout true."
+        ],
+        "passed": false,
+        "reference_sha256": "9a869f7bffe7821823eead4877691b5756d26b6a810d6e8d44323fbf48a436c6",
+        "output_sha256": "366b027a29e8e4c43653e9843379400481f823b9bc2278078e47dd633b5fe798",
+        "checked_at": "2026-11-04T05:39:18Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "5076e6898027290f3250ff1adb44bf4f480b9eb9159e355ba6bf3d4c7293fb9f",
+      "stdout": "3D Stencil Benchmark (MPI)\nGrid size: 129 x 131 x 257\nMPI ranks: 128 (decomposition: 5 x 5 x 5)\nIterations: 21\nValidation: enabled\nInitializing grid...\nRunning stencil computation...\n"
+    }
+  ]
+}

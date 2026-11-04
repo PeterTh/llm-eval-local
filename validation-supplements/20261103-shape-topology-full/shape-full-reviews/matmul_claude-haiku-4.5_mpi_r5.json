@@ -1,0 +1,36 @@
+{
+  "id": "matmul_claude-haiku-4.5_mpi_r5",
+  "case_id": "matmul-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/matmul_claude-haiku-4.5_mpi_r5",
+  "file": "matmul/matmul.cpp",
+  "source_sha256": "18829bef992716eb001c8df35609345cc6a23f14d79c58656dfdc4de3f25f946",
+  "source_lines": [
+    139,
+    140,
+    141,
+    165,
+    166,
+    167,
+    168,
+    169,
+    172,
+    173,
+    174
+  ],
+  "finding": "For N=513 on 128 ranks, ceil(N/P)=5 assigns empty ranks 103 through 127 startRow>N, while endRow is clamped to N. The unsigned subtraction endRow-startRow underflows, and its product with N converts to negative MPI send/receive counts. MPI_Gatherv also receives pointers beyond the allocated matrix on those ranks.",
+  "observed_failure": "MPI_Gatherv reports MPI_ERR_COUNT: invalid count argument; execution exits 2 before validation or result output. The paired program passes.",
+  "interpretation": "Pre-existing empty-partition handling defect independent of concurrent scheduling. Retain failed external validation without retry.",
+  "result_sha256": "a4ace6cebfed6baf16184a8f71fec3f71e293784e47bc312a2c47926b6d0fabe",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 37629,
+    "overall_score": 6
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection of the source and retained MPI diagnostic; no new program execution."
+}

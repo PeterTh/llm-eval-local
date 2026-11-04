@@ -1,0 +1,35 @@
+{
+  "id": "floydwarshall_gpt-4.1_mpi_r4",
+  "case_id": "floydwarshall-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/floydwarshall_gpt-4.1_mpi_r4",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "0736bac7dcc0085ef14568b2dcc93bed464cdaad67a89bb9fa900499395fba8a",
+  "source_lines": [
+    51,
+    52,
+    53,
+    54,
+    59,
+    64,
+    83,
+    84,
+    85,
+    86
+  ],
+  "finding": "Broadcast root calculation uses extra as a row threshold instead of the rows covered by the larger partitions, and shifts the later-owner formula incorrectly. For n=513, size=128, rows_per_proc=4 and extra=1, k=509..512 computes root=(k-1)/4+1=128, outside the communicator. Earlier k values also choose roots inconsistent with row ownership. The final fixed-count Gather additionally assumes equal local row counts.",
+  "observed_failure": "MPI_Bcast reports MPI_ERR_ROOT: invalid root and exits 8. The paired r2 case passes in 20.13 seconds.",
+  "interpretation": "Pre-existing invalid root arithmetic, unrelated to concurrent resource contention. The timing correction only changes maximum-rank duration reporting. Retain failed external validation without retry.",
+  "result_sha256": "f52163b81770b38b5c53b75dd66458d5b10a1f09ccb5861df07a4eda7a4614d5",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 11412,
+    "overall_score": 6
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection, original/effective diff and retained MPI error; no new program execution."
+}

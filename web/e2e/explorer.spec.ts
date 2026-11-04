@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { parse as parseCsv } from "csv-parse/sync";
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const basePath = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";
@@ -18,6 +19,22 @@ function watchPage(page: Page): string[] {
 
 async function goto(page: Page, route: string): Promise<void> {
   await page.goto(`${basePath}#${route}`);
+}
+
+async function canonicalScores(): Promise<Array<{ model: string; overall_score: string }>> {
+  return parseCsv(await readFile(new URL("../../release/scored_results.csv", import.meta.url), "utf8"), { columns: true });
+}
+
+async function expectedMeanScore(selection = "default"): Promise<string> {
+  const rows = await canonicalScores();
+  const config = JSON.parse(await readFile(new URL("../config/site.json", import.meta.url), "utf8")) as {
+    defaultModelSetId: string;
+    modelSets: Array<{ id: string; excludeModelIds: string[] }>;
+  };
+  const excluded = new Set(config.modelSets.find((set) => set.id === config.defaultModelSetId)!.excludeModelIds);
+  const selected = rows.filter((row) => selection === "all" || (selection === "default" ? !excluded.has(row.model) : row.model === selection));
+  expect(selected.length).toBeGreaterThan(0);
+  return (selected.reduce((sum, row) => sum + Number(row.overall_score), 0) / selected.length).toFixed(2);
 }
 
 test("tier overview filters, exports, and drills into its source runs", async ({ page }, testInfo) => {
@@ -47,7 +64,7 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   await expect(modelMenu.locator("summary strong")).toHaveText("Default");
   await expect(selectionSummary.getByText("32", { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText(/7[,.]040/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("7.02", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(await expectedMeanScore(), { exact: true })).toBeVisible();
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
@@ -73,7 +90,7 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   await expect(modelMenu.locator("summary strong")).toHaveText("All models");
   await expect(selectionSummary.getByText("39", { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText(/8[,.]580/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("6.97", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(await expectedMeanScore("all"), { exact: true })).toBeVisible();
   await expect(page.locator(".chart svg.marks")).toBeVisible();
   await expect(page.locator(".mark-rect path").first()).toBeVisible();
 
@@ -782,7 +799,7 @@ test("complexity recomputes benchmark and target distributions and opens their r
   await expect(page.getByRole("heading", { name: "Benchmark / Target complexity" })).toBeVisible();
   const selectionSummary = page.getByLabel("Current complexity selection summary");
   await expect(selectionSummary.getByText(/7[,.]040/, { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("7.02", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(await expectedMeanScore(), { exact: true })).toBeVisible();
   await expect(page.getByLabel("Export chart")).toHaveCount(2);
 
   const benchmarkCategories = page.locator('.benchmark-complexity svg [role="button"][aria-label^="Benchmark "]');
@@ -866,7 +883,7 @@ test("complexity recomputes benchmark and target distributions and opens their r
   await page.locator(".brand-name").click();
   await expect(modelMenu).not.toHaveAttribute("open", "");
   await expect(selectionSummary.getByText("220", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("5.51", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(await expectedMeanScore("claude-haiku-4.5"), { exact: true })).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -891,7 +908,8 @@ test("complexity recomputes benchmark and target distributions and opens their r
 test("runs combine outcome filters, paginate, and retain context through detail", async ({ page }) => {
   const problems = watchPage(page);
   await goto(page, "/runs?model=gpt-4.1&band=invalid");
-  await expect(page.getByRole("heading", { name: "127 matching runs" })).toBeVisible();
+  const invalidCount = (await canonicalScores()).filter((row) => row.model === "gpt-4.1" && Number(row.overall_score) <= 4).length;
+  await expect(page.getByRole("heading", { name: `${invalidCount} matching runs` })).toBeVisible();
 
   await page.getByRole("combobox", { name: "Validation" }).selectOption("failed");
   await page.getByRole("combobox", { name: "Exact score" }).selectOption("4");
@@ -917,7 +935,7 @@ test("runs combine outcome filters, paginate, and retain context through detail"
   await expect(tokenConsumption).toContainText("Cached input tokens");
   await expect(tokenConsumption).toContainText("Output tokens");
   await expect(page.getByRole("link", { name: /This model in Cost Efficiency/ })).toHaveAttribute("href", /#\/cost\?/);
-  const sourceLink = page.getByRole("link", { name: /Generated source directory/ });
+  const sourceLink = page.getByRole("link", { name: /^(Generated|Timing-corrected) source directory/ });
   await expect(sourceLink).toHaveAttribute("href", /\/tree\/[0-9a-f]{40}\//);
   await expect(sourceLink).toHaveAttribute("target", "_blank");
   await expect(page.getByRole("link", { name: /Validation JSONL evidence/ })).toHaveAttribute("href", /#L\d+$/);

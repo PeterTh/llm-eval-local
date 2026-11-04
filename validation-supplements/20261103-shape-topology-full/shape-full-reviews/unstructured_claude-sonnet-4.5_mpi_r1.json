@@ -1,0 +1,51 @@
+{
+  "id": "unstructured_claude-sonnet-4.5_mpi_r1",
+  "case_id": "unstructured-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/unstructured_claude-sonnet-4.5_mpi_r1",
+  "result_sha256": "8ba98e73936c25cd7e152ae3073c78855cbbaf63e8bebe88ac33aa2b2f432a5f",
+  "observed_failure": "Numeric value mismatch for object ElementEnergy: 'Sum: 0.00000000000000000e+00' vs 'Sum: 2.56500000000000000e+02'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 5115,
+    "overall_score": 7
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "28291c4956ad603a58181eae2880e35f4fc83977db77b0bd2a0daa4fa5d93774",
+  "source_lines": [
+    80,
+    81,
+    83,
+    84,
+    153,
+    161,
+    181,
+    182,
+    183,
+    191,
+    193,
+    200,
+    202,
+    203,
+    204,
+    205,
+    338,
+    349,
+    360
+  ],
+  "finding": "Connectivity is also constructed for ghost elements, using global_to_local[neighbor_global]. Neighbors beyond the one-row halo are absent, so operator[] inserts them with local index zero. Corner-material assignment subsequently treats those inserted entries as resident corners and overwrites a real local element's material. With n=257/ranks=128, rank 126 owns rows 253–254 and has ghost row 255; processing its neighbors inserts both row-256 corners at local index zero. The final corner assignment makes its first local element an extra +0.5 inflow.",
+  "interpretation": "The spurious +0.5 source predicts the observed energy excess exactly: 513 * 0.5 = 256.5. The unchanged external comparison rejects that error; the program's internal conservation check only warns. This defect is independent of timing and scheduling.",
+  "timing_correction_check": "The original-to-effective diff replaces the local duration with an MPI_MAX reduction only. Connectivity construction and corner assignment are unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static original/effective-source comparison, exact partition/source arithmetic, and retained correctness output; no new program execution."
+}

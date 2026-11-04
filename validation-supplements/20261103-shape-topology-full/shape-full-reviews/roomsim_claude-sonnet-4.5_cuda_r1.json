@@ -1,0 +1,40 @@
+{
+  "id": "roomsim_claude-sonnet-4.5_cuda_r1",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/roomsim_claude-sonnet-4.5_cuda_r1",
+  "result_sha256": "493930f059b31d0dbad6e5cb721cab8c5e9a55518b5a1d95338451dc7be9eab2",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71500000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 38016,
+    "overall_score": 6
+  },
+  "file": "roomsim/roomsim.cu",
+  "source_sha256": "a5a0c89b291e07af9fde89a83d8dcf66f81a09aadda1254bb2453f3a154944c3",
+  "source_lines": [
+    537,
+    538,
+    539,
+    582,
+    585,
+    619,
+    622,
+    623,
+    798
+  ],
+  "finding": "Replaces the input's single sequential MT19937 stream with cuRAND streams indexed by triangle pair (modulo one million states), and samples both endpoints using curand_uniform. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, the exclusive execution and internal validation pass but the unchanged external comparator rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition is based on this numerical failure, not a floating hash mismatch or a changed random generator alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection of exact generated source and frozen sequential sampling method, plus retained exclusive correctness output; no new program execution."
+}

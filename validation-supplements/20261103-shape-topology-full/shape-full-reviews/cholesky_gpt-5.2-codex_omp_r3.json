@@ -1,0 +1,31 @@
+{
+  "id": "cholesky_gpt-5.2-codex_omp_r3",
+  "case_id": "cholesky-large-tile-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cholesky_gpt-5.2-codex_omp_r3",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "3159de5b0dd6869802242b7f7a921d20e90d8905e957e2a3e0422c5f235a9b79",
+  "source_lines": [
+    19,
+    21,
+    22,
+    23,
+    28,
+    38,
+    58
+  ],
+  "finding": "The persistent OpenMP team performs two single regions and one worksharing reduction, each with its implicit barrier, for every lower-triangular element. At n=1537 this means over 3.5 million all-team synchronization points, plus row-zeroing barriers. Synchronization overhead is a plausible explanation for the timeout, not a demonstrated numerical error.",
+  "observed_failure": "The exclusive 128-thread n=1537 correctness execution exceeds the unchanged 30-second timeout without flushed stdout. The n=513 check passed; the prior release already had no successful performance benchmark for this observation.",
+  "interpretation": "Retain the approved supplemental timeout as failed external validation. Do not infer an arithmetic defect or blame concurrent scheduling. The exact runtime phase was not traced and the timeout was not relaxed.",
+  "result_sha256": "1280b515cca498221e6658ee51152e8163fbd12c959e5ee29e820ec02246e92d",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive validation output; no new program execution."
+}

@@ -1,0 +1,42 @@
+{
+  "id": "cholesky_gpt-5.6-luna-low_mpi_r4",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260805-120633/cholesky_gpt-5.6-luna-low_mpi_r4",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "e0880e83cb3142724d47fef432c4aae8e50cbb5f2c3c994cc52a1855a7af3493",
+  "source_lines": [
+    16,
+    17,
+    19,
+    20,
+    23,
+    24,
+    25,
+    29,
+    31,
+    32,
+    35,
+    174,
+    178,
+    179,
+    181,
+    183
+  ],
+  "finding": "Pivot ownership floor(k*ranks/n) disagrees with floor(n*rank/ranks) row-update boundaries at non-divisible sizes. At n=513 with 128 ranks, row 4 is updated by rank 1 but selected by rank 0 with stale entries. A rank detecting a nonpositive diagonal returns before the current MPI_Bcast, then enters the later MPI_Reduce while its peers remain in the broadcast. This provides a concrete ownership defect and an unmatched-collective failure path.",
+  "observed_failure": "Both the original two-program execution and one exclusive serial control time out at the unchanged 30-second limit after entering factorization. They use the identical binary SHA, input, rank count, affinity, containment limits and reference. The paired original check passes in 15.148503 seconds.",
+  "interpretation": "The timeout reproduces without concurrent scheduling. The source defects are consistent with a deadlock, although the exact runtime branch was not traced. Retain the original external-validation failure; the isolated control is separate diagnostic evidence and does not replace the canonical record.",
+  "result_sha256": "16e4f6b5024bdb7f5c9f303572bb2ea4dbba33539253cc7cd60d7b839e692c99",
+  "diagnostic_result": "shape-full-reviews/serial-control-0010-000009/cholesky-shape-mpi128-v1/cholesky_gpt-5.6-luna-low_mpi_r4/result.json",
+  "diagnostic_result_sha256": "68f65ad3c74ddcffaccae56fad7d7ccddc2c6b5abb9ab33a761d77b732c4964a",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and one separately retained exclusive correctness control; no performance benchmark and no replacement of the original failure."
+}

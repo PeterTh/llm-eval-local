@@ -1,0 +1,43 @@
+{
+  "id": "roomsim_gpt-5.6-sol-medium_hybrid_r1",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260805-120633/roomsim_gpt-5.6-sol-medium_hybrid_r1",
+  "result_sha256": "ea93fe66ecd3b05874096e25143bd0faddc693e80878dfdabbc06fccfc5245ef",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71800000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 586,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "5c4271f1f35e220c9411706400e65ac1d27778bad4ed8c5397374548ea89cf28",
+  "source_lines": [
+    570,
+    572,
+    576,
+    577,
+    578,
+    579,
+    584,
+    585,
+    695,
+    696,
+    697,
+    698
+  ],
+  "finding": "Uses stateless integer-hashed samples keyed by triangle indices, ray index, coordinate lane and 42, instead of the input's single sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but distance sum 4718 differs from reference 4772.5 by 54.5, exceeding the existing tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed random generator alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

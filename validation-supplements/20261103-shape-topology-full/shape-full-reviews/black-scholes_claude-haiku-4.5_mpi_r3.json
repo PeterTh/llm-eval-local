@@ -1,0 +1,25 @@
+{
+  "id": "black-scholes_claude-haiku-4.5_mpi_r3",
+  "case_id": "black-scholes-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/black-scholes_claude-haiku-4.5_mpi_r3",
+  "file": "black-scholes/black_scholes.cpp",
+  "source_sha256": "a5bf4ac0bbe1bb5ce792b0416a0c70e31d5efa08c1e4969d562098e04d24d1db",
+  "source_lines": [193, 194, 198, 199, 200, 221, 251, 254, 259, 263],
+  "finding": "The option slice start is incorrect after the remainder-owning ranks. For N=10003 and P=128, base=78 and remainder=19. Rank 19 starts at floor(19*10003/128)=1484 instead of 19*78+19=1501. Higher ranks similarly select earlier options, while MPI_Gatherv uses the correct count-prefix displacements. Thus the gathered vector contains duplicate earlier options and omits required options. The original four-rank, 10000-option validation has no remainder and conceals the defect.",
+  "observed_failure": "Execution and the original internal validation pass, but the unchanged external comparator rejects OptionPrices sum 3111370.40832449403 versus reference 3115364.34335499862. Four nonzero-index samples also differ substantially. This was discovered in the serial sweep before any concurrency pilot.",
+  "timing_correction_check": "The original-to-corrected diff changes only elapsed-time reduction and its displayed throughput. The incorrect start_idx calculation is pre-existing and unchanged.",
+  "result_sha256": "0b3c4e6c5cfcabe89691cff566e43be021982d7f73b7b67587cb2ce26feab4fe",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 348.347,
+    "overall_score": 7,
+    "current_winner": false
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and retained validation output only; no retry of the failing implementation."
+}

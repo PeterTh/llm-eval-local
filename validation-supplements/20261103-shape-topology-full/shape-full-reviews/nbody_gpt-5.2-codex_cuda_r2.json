@@ -1,0 +1,45 @@
+{
+  "id": "nbody_gpt-5.2-codex_cuda_r2",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/nbody_gpt-5.2-codex_cuda_r2",
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "e4159e08548339bf1b7f08ddb14ecd4a3306d2fa6bae914e1a9d9faaa6db6542",
+  "result_sha256": "bfdb99e6931b2179d461c10ee0b718c9fa9b806cf23fc8bedefc963d0680908d",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 1.83333503833433610e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 3672,
+    "overall_score": 7
+  },
+  "source_lines": [
+    36,
+    37,
+    38,
+    53,
+    55,
+    56,
+    57,
+    58,
+    60,
+    62,
+    63,
+    64,
+    67,
+    68,
+    78
+  ],
+  "finding": "The force kernel lets threads with output index i>=n skip the shared-memory tile loads. In the partial final CUDA block at n=1031, only seven output lanes are active, but the remaining lanes are still needed to load the complete earlier source tiles. Valid lanes consequently read shared-memory entries that were never populated for that tile. Bounding the inner source-tile loop does not repair missing loader threads.",
+  "interpretation": "Pre-existing CUDA correctness defect exposed by n=1031 and 11 steps. The exclusive execution exits successfully and its internal finite-value check passes, but the independent numerical comparison fails. Retain failed external validation; no tolerance change or retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness result; no new program execution."
+}

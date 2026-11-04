@@ -1,0 +1,41 @@
+{
+  "id": "roomsim_gpt-6-luna-medium_omp_r5",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+  "original_source_commit": null,
+  "source_path": "20260929-135931/roomsim_gpt-6-luna-medium_omp_r5",
+  "result_sha256": "fe00105383323fd1e2065db9013e6437d6d423c488aa1424ef1dce29c38e4d55",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71850000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 10072,
+    "overall_score": 7
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "ddb2bab25fb32944bb23649c7123d44e1a7691dc4a61ae670cdfc46305695848",
+  "source_lines": [
+    399,
+    405,
+    406,
+    491,
+    492,
+    600,
+    603,
+    609,
+    612,
+    613
+  ],
+  "finding": "Attempts to preserve the reference MT19937 stream by preparing row states/offsets, but advances only 2*NUM_RAYS draws per non-culled pair. Two sampled endpoints consume two draws each, requiring 4*NUM_RAYS. Later rows therefore start at incorrect offsets. The changed sampled form factors are consistent with the final-distance discrepancy; no isolated dynamic causality test was performed.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, exclusive execution and internal validation pass but the unchanged external comparison rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition follows this numerical failure, not a hash mismatch or a changed sampling method alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

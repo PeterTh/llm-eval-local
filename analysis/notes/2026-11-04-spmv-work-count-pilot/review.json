@@ -1,0 +1,898 @@
+{
+  "review_started_at": "2026-11-04T07:11:19Z",
+  "review_finished_at": "2026-11-04T07:20:15Z",
+  "reviewer": "Primary agent; manual source/control-flow and disassembly inspection, without program execution or delegated reviews.",
+  "duration_scope": "Wall time from prepared review packs through completion of the twelve inspections, including status checks/context recovery; excludes subsequent evidence-packaging/tool-test work. Conservative rather than a CPU-time measurement.",
+  "population_deduplication": {
+    "implementations": 722,
+    "distinct_spmv_cpp_digests": 685,
+    "distinct_staged_source_tree_digests": 716,
+    "note": "Identical main files alone do not establish identical build flags or compiled code. The estimate does not assume those cases can be skipped."
+  },
+  "method_limits": [
+    "Final SpMV output is independent of the number of positive repetitions; another numerical comparison alone cannot close this gap.",
+    "Review traces the requested iteration count through the timed compute path and checks that a full local product remains inside the compiled repetition loop, or is launched once per requested iteration.",
+    "The sample includes each backend's winner, median-sized source and largest source. This is a feasibility sample, not a random prevalence estimate.",
+    "Compiled evidence is bound to retained/rebuilt validation executables. It is not represented as a bit-for-bit inspection of historical measurement executables.",
+    "No universal automatic work-count validator has been established. Source regexes or runtime scaling alone must not produce scientific failure verdicts."
+  ],
+  "reviews": [
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed launch forwards the requested count into a persistent CSR kernel. Each iteration resets the accumulator and recomputes all row nonzeros. The compiled 32-lane path retains arithmetic inside the outer iteration backedge; the single warm-up is additional, not a substitute.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              147,
+              179
+            ],
+            [
+              201,
+              216
+            ],
+            [
+              278,
+              284
+            ],
+            [
+              361,
+              377
+            ]
+          ],
+          "claim": "CLI count is forwarded unchanged; source specializations use the same full-product repetition loop.",
+          "sha256": "0f9853f9633f2d65b64870d8acea7ea58bdef2192fab3202fdd61544e27e5aea",
+          "git_blob": "3fcf85e7d60efccf169f05f4acdc564a53f93a33"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "device-sass.txt",
+          "claim": "32-lane specialization initializes R14, increments and compares against the iterations parameter at 0x1c0/0x1e0, executes DFMA within the loop, then branches from 0x8f0 to 0x1a0 after the output store.",
+          "complete_dump_sha256": "82749d80fe04493420ada30b1cb8bde0306b028b926f21a18d85c6693b179386",
+          "inspection_command": [
+            "cuobjdump",
+            "--dump-sass",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_deepseek-v4.1-flash-oc-high_cuda_r2/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 1996,
+              "last_line": 2110,
+              "text": "\t\tFunction : _Z13spmvCsrKernelILi32EEvPKdPKjS3_S1_Pdjj\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;             /* 0x00000a00ff017624 */\n                                                                                       /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R15, SR_TID.X ;                                 /* 0x00000000000f7919 */\n                                                                                       /* 0x000e220000002100 */\n        /*0020*/                   ISETP.NE.AND P1, PT, RZ, c[0x0][0x18c], PT ;        /* 0x00006300ff007a0c */\n                                                                                       /* 0x000fe20003f25270 */\n        /*0030*/                   ULDC UR4, c[0x0][0x0] ;                             /* 0x0000000000047ab9 */\n                                                                                       /* 0x000fe40000000800 */\n        /*0040*/                   S2R R3, SR_CTAID.X ;                                /* 0x0000000000037919 */\n                                                                                       /* 0x000e620000002500 */\n        /*0050*/                   USHF.R.U32.HI UR4, URZ, 0x5, UR4 ;                  /* 0x000000053f047899 */\n                                                                                       /* 0x000fe20008011604 */\n        /*0060*/                   SHF.R.U32.HI R0, RZ, 0x5, R15 ;                     /* 0x00000005ff007819 */\n                                                                                       /* 0x001fca000001160f */\n        /*0070*/                   IMAD R2, R3, UR4, R0 ;                              /* 0x0000000403027c24 */\n                                                                                       /* 0x002fe2000f8e0200 */\n        /*0080*/                   ULDC UR4, c[0x0][0x188] ;                           /* 0x0000620000047ab9 */\n                                                                                       /* 0x000fe40000000800 */\n        /*0090*/                   UIADD3 UR4, UR4, -0x1, URZ ;                        /* 0xffffffff04047890 */\n                                                                                       /* 0x000fe4000fffe03f */\n        /*00a0*/                   ISETP.GE.U32.AND P0, PT, R2, c[0x0][0x188], PT ;    /* 0x0000620002007a0c */\n                                                                                       /* 0x000fe20003f06070 */\n        /*00b0*/              @!P1 EXIT ;                                              /* 0x000000000000994d */\n                                                                                       /* 0x000fd80003800000 */\n        /*00c0*/                   SEL R0, R2, UR4, !P0 ;                              /* 0x0000000402007c07 */\n                                                                                       /* 0x000fe2000c000000 */\n        /*00d0*/                   IMAD.MOV.U32 R5, RZ, RZ, 0x4 ;                      /* 0x00000004ff057424 */\n                                                                                       /* 0x000fe200078e00ff */\n        /*00e0*/                   ULDC.64 UR4, c[0x0][0x118] ;                        /* 0x0000460000047ab9 */\n                                                                                       /* 0x000fe40000000a00 */\n        /*00f0*/                   IADD3 R4, R0.reuse, 0x1, RZ ;                       /* 0x0000000100047810 */\n                                                                                       /* 0x040fe20007ffe0ff */\n        /*0100*/                   IMAD.WIDE.U32 R6, R0, R5, c[0x0][0x170] ;           /* 0x00005c0000067625 */\n                                                                                       /* 0x000fc800078e0005 */\n        /*0110*/                   IMAD.WIDE.U32 R4, R4, R5, c[0x0][0x170] ;           /* 0x00005c0004047625 */\n                                                                                       /* 0x000fe400078e0005 */\n        /*0120*/                   LDG.E.CONSTANT R6, [R6.64] ;                        /* 0x0000000406067981 */\n                                                                                       /* 0x000ea8000c1e9900 */\n        /*0130*/                   LDG.E.CONSTANT R0, [R4.64] ;                        /* 0x0000000404007981 */\n                                                                                       /* 0x000162000c1e9900 */\n        /*0140*/                   LOP3.LUT P0, R15, R15, 0x1f, RZ, 0xc0, !PT ;        /* 0x0000001f0f0f7812 */\n                                                                                       /* 0x000fe4000780c0ff */\n        /*0150*/                   MOV R3, 0x8 ;                                       /* 0x0000000800037802 */\n                                                                                       /* 0x000fe40000000f00 */\n        /*0160*/                   ISETP.LT.U32.AND P0, PT, R2, c[0x0][0x188], !P0 ;   /* 0x0000620002007a0c */\n                                                                                       /* 0x000fc40004701070 */\n        /*0170*/                   MOV R14, RZ ;                                       /* 0x000000ff000e7202 */\n                                                                                       /* 0x000fe20000000f00 */\n        /*0180*/                   IMAD.WIDE.U32 R2, R2, R3, c[0x0][0x180] ;           /* 0x0000600002027625 */\n                                                                                       /* 0x000fc800078e0003 */\n        /*0190*/                   IMAD.IADD R15, R15, 0x1, R6 ;                       /* 0x000000010f0f7824 */\n                                                                                       /* 0x005fca00078e0206 */\n        /*01a0*/                   ISETP.GE.U32.AND P1, PT, R15, R0, PT ;              /* 0x000000000f00720c */\n                                                                                       /* 0x020fe20003f26070 */\n        /*01b0*/                   BSSY B0, 0x7f0 ;                                    /* 0x0000063000007945 */\n                                                                                       /* 0x000fe20003800000 */\n        /*01c0*/                   IADD3 R14, R14, 0x1, RZ ;                           /* 0x000000010e0e7810 */\n                                                                                       /* 0x000fe20007ffe0ff */\n        /*01d0*/                   CS2R R4, SRZ ;                                      /* 0x0000000000047805 */\n                                                                                       /* 0x001fc6000001ff00 */\n        /*01e0*/                   ISETP.GE.U32.AND P3, PT, R14, c[0x0][0x18c], PT ;   /* 0x000063000e007a0c */\n                                                                                       /* 0x000fce0003f66070 */\n        /*01f0*/               @P1 BRA 0x7e0 ;                                         /* 0x000005e000001947 */\n                                                                                       /* 0x000fea0003800000 */\n        /*0200*/                   ISETP.GE.U32.AND P4, PT, R15, R0, PT ;              /* 0x000000000f00720c */\n                                                                                       /* 0x000fe20003f86070 */\n        /*0210*/                   IMAD.MOV.U32 R17, RZ, RZ, R15 ;                     /* 0x000000ffff117224 */\n                                                                                       /* 0x000fd800078e000f */\n        /*0220*/               @P4 MOV R8, 0x4 ;                                       /* 0x0000000400084802 */\n                                                                                       /* 0x000fca0000000f00 */\n        /*0230*/               @P4 IMAD.WIDE.U32 R8, R17, R8, c[0x0][0x168] ;          /* 0x00005a0011084625 */\n                                                                                       /* 0x000fcc00078e0008 */\n        /*0240*/               @P4 LDG.E.CONSTANT R8, [R8.64] ;                        /* 0x0000000408084981 */\n                                                                                       /* 0x000ea2000c1e9900 */\n        /*0250*/               @P4 IMAD.MOV.U32 R10, RZ, RZ, 0x8 ;                     /* 0x00000008ff0a4424 */\n                                                                                       /* 0x000fc800078e00ff */\n        /*0260*/               @P4 IMAD.WIDE.U32 R6, R17, R10, c[0x0][0x160] ;         /* 0x0000580011064625 */\n                                                                                       /* 0x000fcc00078e000a */\n        /*0270*/               @P4 LDG.E.64.CONSTANT R6, [R6.64] ;                     /* 0x0000000406064981 */\n                                                                                       /* 0x000ee2000c1e9b00 */\n        /*0280*/               @P4 IADD3 R17, R17, 0x20, RZ ;                          /* 0x0000002011114810 */\n                                                                                       /* 0x000fe20007ffe0ff */\n        /*0290*/               @P4 IMAD.WIDE.U32 R10, R8, R10, c[0x0][0x178] ;         /* 0x00005e00080a4625 */\n                                                                                       /* 0x004fcc00078e000a */\n        /*02a0*/               @P4 LDG.E.64.CONSTANT R10, [R10.64] ;                   /* 0x000000040a0a4981 */\n                                                                                       /* 0x000ee2000c1e9b00 */\n        /*02b0*/                   ISETP.GT.U32.AND P2, PT, R0.reuse, R17.reuse, PT ;  /* 0x000000110000720c */\n                                                                                       /* 0x0c0fe40003f44070 */\n        /*02c0*/                   IADD3 R4, R0, -R17, RZ ;                            /* 0x8000001100047210 */\n                                                                                       /* 0x000fc80007ffe0ff */\n        /*02d0*/                   ISETP.LE.U32.OR P2, PT, R4, 0x60, !P2 ;             /* 0x000000600400780c */\n                                                                                       /* 0x000fe40005743470 */\n        /*02e0*/                   CS2R R4, SRZ ;                                      /* 0x0000000000047805 */\n                                                                                       /* 0x000fe2000001ff00 */\n        /*02f0*/                   BSSY B1, 0x5a0 ;                                    /* 0x000002a000017945 */\n                                                                                       /* 0x000fe20003800000 */\n        /*0300*/                   PLOP3.LUT P1, PT, P4, PT, PT, 0x8, 0x0 ;            /* 0x000000000000781c */\n                                                                                       /* 0x000fc8000272e170 */\n        /*0310*/               @P4 DFMA R4, R6, R10, R4 ;                              /* 0x0000000a0604422b */\n                                                                                       /* 0x00804a0000000004 */\n        /*0320*/               @P2 BRA 0x590 ;                                         /* 0x0000026000002947 */\n                                                                                       /* 0x000fea0003800000 */\n        /*0330*/                   PLOP3.LUT P1, PT, PT, PT, PT, 0x8, 0x0 ;            /* 0x000000000000781c */\n                                                                                       /* 0x000fe40003f2e170 */\n        /*0340*/                   IADD3 R16, R0, -0x60, RZ ;                          /* 0xffffffa000107810 */\n                                                                                       /* 0x000fe40007ffe0ff */\n        /*0350*/                   IMAD.MOV.U32 R26, RZ, RZ, 0x4 ;                     /* 0x00000004ff1a7424 */\n                                                                                       /* 0x000fe200078e00ff */\n        /*0360*/                   IADD3 R11, R17, 0x20, RZ ;                          /* 0x00000020110b7810 */\n                                                                                       /* 0x001fc60007ffe0ff */\n        /*0370*/                   IMAD.WIDE.U32 R8, R17.reuse, R26, c[0x0][0x168] ;   /* 0x00005a0011087625 */\n                                                                                       /* 0x040fe200078e001a */\n        /*0380*/                   IADD3 R19, R17, 0x40, RZ ;                          /* 0x0000004011137810 */\n"
+            },
+            {
+              "first_line": 2252,
+              "last_line": 2286,
+              "text": "        /*07f0*/                   SHFL.DOWN PT, R7, R5, 0x10, 0x1f ;                  /* 0x0a001f0005077f89 */\n                                                                                       /* 0x003fe800000e0000 */\n        /*0800*/                   SHFL.DOWN PT, R6, R4, 0x10, 0x1f ;                  /* 0x0a001f0004067f89 */\n                                                                                       /* 0x000e2400000e0000 */\n        /*0810*/                   DADD R6, R6, R4 ;                                   /* 0x0000000006067229 */\n                                                                                       /* 0x001e0e0000000004 */\n        /*0820*/                   SHFL.DOWN PT, R9, R7, 0x8, 0x1f ;                   /* 0x09001f0007097f89 */\n                                                                                       /* 0x001fe800000e0000 */\n        /*0830*/                   SHFL.DOWN PT, R8, R6, 0x8, 0x1f ;                   /* 0x09001f0006087f89 */\n                                                                                       /* 0x000e2400000e0000 */\n        /*0840*/                   DADD R8, R6, R8 ;                                   /* 0x0000000006087229 */\n                                                                                       /* 0x001e0e0000000008 */\n        /*0850*/                   SHFL.DOWN PT, R11, R9, 0x4, 0x1f ;                  /* 0x08801f00090b7f89 */\n                                                                                       /* 0x001fe800000e0000 */\n        /*0860*/                   SHFL.DOWN PT, R10, R8, 0x4, 0x1f ;                  /* 0x08801f00080a7f89 */\n                                                                                       /* 0x000e2400000e0000 */\n        /*0870*/                   DADD R10, R8, R10 ;                                 /* 0x00000000080a7229 */\n                                                                                       /* 0x001e0e000000000a */\n        /*0880*/                   SHFL.DOWN PT, R13, R11, 0x2, 0x1f ;                 /* 0x08401f000b0d7f89 */\n                                                                                       /* 0x001fe800000e0000 */\n        /*0890*/                   SHFL.DOWN PT, R12, R10, 0x2, 0x1f ;                 /* 0x08401f000a0c7f89 */\n                                                                                       /* 0x000e2400000e0000 */\n        /*08a0*/                   DADD R12, R10, R12 ;                                /* 0x000000000a0c7229 */\n                                                                                       /* 0x001e0e000000000c */\n        /*08b0*/                   SHFL.DOWN PT, R5, R13, 0x1, 0x1f ;                  /* 0x08201f000d057f89 */\n                                                                                       /* 0x001fe800000e0000 */\n        /*08c0*/                   SHFL.DOWN PT, R4, R12, 0x1, 0x1f ;                  /* 0x08201f000c047f89 */\n                                                                                       /* 0x000e2400000e0000 */\n        /*08d0*/                   DADD R4, R12, R4 ;                                  /* 0x000000000c047229 */\n                                                                                       /* 0x001e0e0000000004 */\n        /*08e0*/               @P0 STG.E.64 [R2.64], R4 ;                              /* 0x0000000402000986 */\n                                                                                       /* 0x0011e2000c101b04 */\n        /*08f0*/              @!P3 BRA 0x1a0 ;                                         /* 0xfffff8a00000b947 */\n                                                                                       /* 0x000fea000383ffff */\n        /*0900*/                   EXIT ;                                              /* 0x000000000000794d */\n"
+            }
+          ]
+        }
+      ],
+      "notes": "The detailed compiled inspection is the 32-lane path selected by the audited validation/measurement sparsities; this is not a formal proof for every possible input.",
+      "source": {
+        "source_path": "20261019-134042/spmv_deepseek-v4.1-flash-oc-high_cuda_r2",
+        "source_commit": "40ad0bc6da259d4584e75b8f23f43c77e9751b24",
+        "staged_source_sha256": "ef23dd3d4b3409f8fbf5a344a0dda5e25dbe99ff0eddd36f9742fcfd290c2765"
+      },
+      "binary_sha256": "f8f4700e96e45e329ba24b0e8c775365104bc769adb4be95114cd570ae47819e",
+      "binding_sha256": "feb28c920ea493d3dfe9aa50a770570e1bc3b17aa807d06a7e1acdb45e342ed3"
+    },
+    {
+      "id": "spmv_gpt-6-astra-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "One full CSR kernel launch per requested repetition; warm-up is outside the timed CUDA events. All source width variants cover the rows and their CSR nonzeros.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              49,
+              78
+            ],
+            [
+              231,
+              239
+            ],
+            [
+              306,
+              326
+            ]
+          ],
+          "claim": "The iteration-bound host loop launches the selected complete-product kernel.",
+          "sha256": "039a6df0a05c29cee61f16fdd0c9b20d15652ed347d013154ab63bc64825ec6a",
+          "git_blob": "a4cb96ed8cebab4088442cb086702244f3fb398f"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "main 0xb350-0xb373 retains an indirect launch call, increment and comparison with the requested count, followed by the end event and synchronization.",
+          "complete_dump_sha256": "4a3cb3427ffd732be09dfdadfe5c5bb9f99a5fbbf7a303a5e2be4383d3fad03c",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-astra-medium_cuda_r3/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 1345,
+              "last_line": 1377,
+              "text": "    b323:\ttest   %eax,%eax\n    b325:\tjne    b82e <main+0xc0e>\n    b32b:\tmov    0x90(%rsp),%rdi\n    b333:\txor    %esi,%esi\n    b335:\tcall   759e0 <cudaEventRecord>\n    b33a:\tmov    %eax,%r12d\n    b33d:\ttest   %eax,%eax\n    b33f:\tjne    b6f3 <main+0xad3>\n    b345:\tcmpl   $0x0,0x18(%rsp)\n    b34a:\tje     b375 <main+0x755>\n    b34c:\tnopl   0x0(%rax)\n    b350:\tmov    0x10(%rsp),%r9\n    b355:\tmov    0x8(%rsp),%rcx\n    b35a:\tmov    %ebx,%r8d\n    b35d:\tmov    %r14,%rdx\n    b360:\tmov    (%rsp),%rdi\n    b364:\tmov    %r15,%rsi\n    b367:\tcall   *%r13\n    b36a:\tadd    $0x1,%r12d\n    b36e:\tcmp    %r12d,0x18(%rsp)\n    b373:\tjne    b350 <main+0x730>\n    b375:\tcall   4f160 <cudaGetLastError>\n    b37a:\ttest   %eax,%eax\n    b37c:\tjne    b712 <main+0xaf2>\n    b382:\tmov    0x98(%rsp),%rdi\n    b38a:\txor    %esi,%esi\n    b38c:\tcall   759e0 <cudaEventRecord>\n    b391:\ttest   %eax,%eax\n    b393:\tjne    b730 <main+0xb10>\n    b399:\tmov    0x98(%rsp),%rdi\n    b3a1:\tcall   54ad0 <cudaEventSynchronize>\n    b3a6:\ttest   %eax,%eax\n    b3a8:\tjne    b74e <main+0xb2e>\n"
+            }
+          ]
+        },
+        {
+          "file": "device-sass.txt",
+          "claim": "A compiled CSR specialization retains loads and DFMA in its nonzero loop.",
+          "complete_dump_sha256": "3742dee8e4c33ee3c7538bac414d2fa3469a2f1fd04d9dc2fa6760e448df059c",
+          "inspection_command": [
+            "cuobjdump",
+            "--dump-sass",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-astra-medium_cuda_r3/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 19,
+              "last_line": 24,
+              "text": "\t\tFunction : _Z8spmvCudaILj4EEvPKdPKjS3_S1_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;                     /* 0x00000a00ff017624 */\n                                                                                               /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R2, SR_TID.X ;                                          /* 0x0000000000027919 */\n                                                                                               /* 0x000e220000002100 */\n"
+            },
+            {
+              "first_line": 135,
+              "last_line": 151,
+              "text": "        /*0390*/                   IADD3 R4, P3, R4, 0x4, RZ ;                                 /* 0x0000000404047810 */\n                                                                                               /* 0x000fe40007f7e0ff */\n        /*03a0*/                   IADD3 R12, P4, R12, 0x10, RZ ;                              /* 0x000000100c0c7810 */\n                                                                                               /* 0x000fe40007f9e0ff */\n        /*03b0*/                   IADD3 R15, P5, R15, 0x20, RZ ;                              /* 0x000000200f0f7810 */\n                                                                                               /* 0x000fe20007fbe0ff */\n        /*03c0*/                   IMAD.X R7, RZ, RZ, R7, P3 ;                                 /* 0x000000ffff077224 */\n                                                                                               /* 0x000fe400018e0607 */\n        /*03d0*/                   IMAD.X R13, RZ, RZ, R13, P4 ;                               /* 0x000000ffff0d7224 */\n                                                                                               /* 0x000fe400020e060d */\n        /*03e0*/                   IMAD.X R16, RZ, RZ, R16, P5 ;                               /* 0x000000ffff107224 */\n                                                                                               /* 0x000fe200028e0610 */\n        /*03f0*/                   DFMA R34, R8, R10, R34 ;                                    /* 0x0000000a0822722b */\n                                                                                               /* 0x00a0620000000022 */\n        /*0400*/               @P2 BRA 0x2e0 ;                                                 /* 0xfffffed000002947 */\n                                                                                               /* 0x000fea000383ffff */\n        /*0410*/                   BSYNC B1 ;                                                  /* 0x0000000000017941 */\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20260929-135931/spmv_gpt-6-astra-medium_cuda_r3",
+        "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+        "staged_source_sha256": "7a449eb70b45a51c29b775b1ab8cecadaeb2a3b849fca4f00cb4a250cc6766b4"
+      },
+      "binary_sha256": "a655622f1d396b12c30f59d5bb5329ccc659f472069bfe4fbeadf1965b76efbe",
+      "binding_sha256": "33157d68edf003987defcd774dd1aef757274004f7ce241e52e340d7bc4f84ed"
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The outer loop launches all device row slices once per requested repetition. CSR prefix/body/tail loops cover the row nonzeros, followed by completion synchronization.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              300,
+              329
+            ],
+            [
+              344,
+              364
+            ],
+            [
+              424,
+              431
+            ],
+            [
+              509,
+              521
+            ],
+            [
+              569,
+              591
+            ]
+          ],
+          "claim": "CLI count, complete device slices, full CSR arithmetic and the timed nested launch loop are present.",
+          "sha256": "36c7537cdf9b41115168880ad73c210bfb0a4e235b65e02b572e7850e9260e7b",
+          "git_blob": "313de46fcd8efbf3cb63f27706d19841887b8001"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "main 0x3492 launches each slice; 0x34a6-0x34ac increments and compares the outer count and returns to the first slice.",
+          "complete_dump_sha256": "ffad4007353d58059c791e5a5c270cd2e7878873eacc4aa0fc263e3c1d22c979",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5.5-cc-medium_cuda_r4/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 1209,
+              "last_line": 1241,
+              "text": "    3436:\tcall   22c0 <__printf_chk@plt>\n    343b:\tcall   22e0 <std::chrono::_V2::system_clock::now()@plt>\n    3440:\tmov    -0x1f4(%rbp),%r14d\n    3447:\tmov    %rax,-0x200(%rbp)\n    344e:\ttest   %r14d,%r14d\n    3451:\tje     34ae <main+0xc5e>\n    3453:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    345e:\txchg   %ax,%ax\n    3460:\tmov    %r13,%r14\n    3463:\tcmp    %rbx,%r13\n    3466:\tje     34a0 <main+0xc50>\n    3468:\tnopl   0x0(%rax,%rax,1)\n    3470:\tcmpl   $0x1,-0x1e8(%rbp)\n    3477:\tjle    3489 <main+0xc39>\n    3479:\tmov    (%r14),%edi\n    347c:\tcall   2520 <cudaSetDevice@plt>\n    3481:\ttest   %eax,%eax\n    3483:\tjne    39d2 <main+0x1182>\n    3489:\tmov    -0x1e4(%rbp),%esi\n    348f:\tmov    %r14,%rdi\n    3492:\tcall   3e10 <launchSpmvVS(DeviceSlice const&, int)>\n    3497:\tadd    $0x48,%r14\n    349b:\tcmp    %r14,%rbx\n    349e:\tjne    3470 <main+0xc20>\n    34a0:\tmov    -0x1f4(%rbp),%eax\n    34a6:\tinc    %r12d\n    34a9:\tcmp    %eax,%r12d\n    34ac:\tjne    3460 <main+0xc10>\n    34ae:\tmov    %r13,%r14\n    34b1:\tmov    %r13,%r12\n    34b4:\tcmp    %rbx,%r13\n    34b7:\tjne    34cd <main+0xc7d>\n    34b9:\tjmp    357a <main+0xd2a>\n"
+            }
+          ]
+        },
+        {
+          "file": "device-sass.txt",
+          "claim": "Compiled CSR kernel retains DFMA and the nonzero-loop backedge.",
+          "complete_dump_sha256": "2f7e330ea99212874a1b080cadf37df12fbd37e8bfbaa8e3d519fe9c5f084476",
+          "inspection_command": [
+            "cuobjdump",
+            "--dump-sass",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5.5-cc-medium_cuda_r4/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 19,
+              "last_line": 24,
+              "text": "\t\tFunction : _Z19spmvCsrVectorKernelILi32EEvPKdPKjS3_S1_jjPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;             /* 0x00000a00ff017624 */\n                                                                                       /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R2, SR_TID.X ;                                  /* 0x0000000000027919 */\n                                                                                       /* 0x000e220000002100 */\n"
+            },
+            {
+              "first_line": 153,
+              "last_line": 185,
+              "text": "        /*0420*/                   IADD3 R19, R9, 0x60, RZ ;                           /* 0x0000006009137810 */\n                                                                                       /* 0x000fe20007ffe0ff */\n        /*0430*/                   IMAD.WIDE.U32 R16, R15, R10, c[0x0][0x178] ;        /* 0x00005e000f107625 */\n                                                                                       /* 0x004fcc00078e000a */\n        /*0440*/                   LDG.E.64.CONSTANT R16, [R16.64] ;                   /* 0x0000000410107981 */\n                                                                                       /* 0x000ee2000c1e9b00 */\n        /*0450*/                   ISETP.GE.U32.AND P0, PT, R19, R4, PT ;              /* 0x000000041300720c */\n                                                                                       /* 0x000fe20003f06070 */\n        /*0460*/                   DFMA R6, R12, R16, R6 ;                             /* 0x000000100c06722b */\n                                                                                       /* 0x00a0580000000006 */\n        /*0470*/               @P0 BRA 0x520 ;                                         /* 0x000000a000000947 */\n                                                                                       /* 0x000fea0003800000 */\n        /*0480*/                   IMAD.WIDE.U32 R14, R19, R8, c[0x0][0x168] ;         /* 0x00005a00130e7625 */\n                                                                                       /* 0x000fca00078e0008 */\n        /*0490*/                   LDG.E.EF R11, [R14.64] ;                            /* 0x000000040e0b7981 */\n                                                                                       /* 0x000ea2000c0e1900 */\n        /*04a0*/                   IMAD.WIDE.U32 R12, R19, R10, c[0x0][0x160] ;        /* 0x00005800130c7625 */\n                                                                                       /* 0x001fcc00078e000a */\n        /*04b0*/                   LDG.E.EF.64 R12, [R12.64] ;                         /* 0x000000040c0c7981 */\n                                                                                       /* 0x000ee2000c0e1b00 */\n        /*04c0*/                   IADD3 R9, R9, 0x80, RZ ;                            /* 0x0000008009097810 */\n                                                                                       /* 0x000fe20007ffe0ff */\n        /*04d0*/                   IMAD.WIDE.U32 R10, R11, R10, c[0x0][0x178] ;        /* 0x00005e000b0a7625 */\n                                                                                       /* 0x004fcc00078e000a */\n        /*04e0*/                   LDG.E.64.CONSTANT R10, [R10.64] ;                   /* 0x000000040a0a7981 */\n                                                                                       /* 0x000ee2000c1e9b00 */\n        /*04f0*/                   ISETP.GE.U32.AND P0, PT, R9, R4, PT ;               /* 0x000000040900720c */\n                                                                                       /* 0x000fe20003f06070 */\n        /*0500*/                   DFMA R6, R12, R10, R6 ;                             /* 0x0000000a0c06722b */\n                                                                                       /* 0x00a0580000000006 */\n        /*0510*/              @!P0 BRA 0x280 ;                                         /* 0xfffffd6000008947 */\n                                                                                       /* 0x000fea000383ffff */\n        /*0520*/                   BSYNC B0 ;                                          /* 0x0000000000007941 */\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20261002-142720/spmv_claude-opus-5.5-cc-medium_cuda_r4",
+        "source_commit": "d2d8446a37657d114b3ea1c171767218539cae54",
+        "staged_source_sha256": "3e42072f65d6abdadfc295c955784283a21fe84c67eb0a8b9803d8056129c155"
+      },
+      "binary_sha256": "6735b06c2a257ccc61c360381cd8bc30b33086636c6c605aa7a2ae008f400457",
+      "binding_sha256": "5f115036cb288a122ed1620ddb98ad8727905597a0e97af7957e919a3795aaaa"
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Graph construction captures min(iterations,64) complete local SpMVs. Timed execution replays whole batches and launches the exact residual count. Contiguous rank/device row partitions cover the result; no repetition is replaced by graph warm-up.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              253,
+              274
+            ],
+            [
+              279,
+              326
+            ],
+            [
+              399,
+              425
+            ],
+            [
+              443,
+              469
+            ],
+            [
+              590,
+              601
+            ],
+            [
+              632,
+              653
+            ]
+          ],
+          "claim": "Full local CSR kernels, bounded graph capture, quotient/remainder replay and device synchronization are explicit.",
+          "sha256": "b924b896cfed69ab601dbeb012a9a1db620072544a0f971b9c5ee8dd403fb786",
+          "git_blob": "a235d91c6976a9e01c61b15fe1d7c9bd1db09d4f"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "Graph capture calls launchSpmv until graphIterations; computeDevice subtracts that count per replay at 0x73eb and launches the residual one by one at 0x7402-0x740b.",
+          "complete_dump_sha256": "39776a16fd052aa37f7f4743986b29530a95f08db364f542e382ea6ec6d79a4d",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-sol-xhigh_hybrid_r4/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 4148,
+              "last_line": 4190,
+              "text": "0000000000007390 <computeDevice(DeviceShard const&, unsigned int)>:\n    7390:\tendbr64\n    7394:\tpush   %r12\n    7396:\tpush   %rbp\n    7397:\tmov    %rdi,%rbp\n    739a:\tpush   %rbx\n    739b:\tmov    (%rdi),%edi\n    739d:\tmov    %esi,%ebx\n    739f:\tcall   3a50 <cudaSetDevice@plt>\n    73a4:\ttest   %eax,%eax\n    73a6:\tjne    4186 <computeDevice(DeviceShard const&, unsigned int) [clone .cold]+0x36>\n    73ac:\tmov    0x8(%rbp),%edx\n    73af:\ttest   %edx,%edx\n    73b1:\tje     740d <computeDevice(DeviceShard const&, unsigned int)+0x7d>\n    73b3:\tmov    0x58(%rbp),%rdi\n    73b7:\ttest   %rdi,%rdi\n    73ba:\tje     73f3 <computeDevice(DeviceShard const&, unsigned int)+0x63>\n    73bc:\tmov    0x60(%rbp),%eax\n    73bf:\tcmp    %rax,%rbx\n    73c2:\tjae    73d4 <computeDevice(DeviceShard const&, unsigned int)+0x44>\n    73c4:\tjmp    73f3 <computeDevice(DeviceShard const&, unsigned int)+0x63>\n    73c6:\tcs nopw 0x0(%rax,%rax,1)\n    73d0:\tmov    0x58(%rbp),%rdi\n    73d4:\tmov    0x48(%rbp),%rsi\n    73d8:\tcall   3870 <cudaGraphLaunch@plt>\n    73dd:\tmov    %eax,%r12d\n    73e0:\ttest   %eax,%eax\n    73e2:\tjne    4150 <computeDevice(DeviceShard const&, unsigned int) [clone .cold]>\n    73e8:\tmov    0x60(%rbp),%eax\n    73eb:\tsub    %rax,%rbx\n    73ee:\tcmp    %rax,%rbx\n    73f1:\tjae    73d0 <computeDevice(DeviceShard const&, unsigned int)+0x40>\n    73f3:\ttest   %rbx,%rbx\n    73f6:\tje     740d <computeDevice(DeviceShard const&, unsigned int)+0x7d>\n    73f8:\tmov    0x8(%rbp),%eax\n    73fb:\ttest   %eax,%eax\n    73fd:\tje     740d <computeDevice(DeviceShard const&, unsigned int)+0x7d>\n    73ff:\tmov    %rbp,%rdi\n    7402:\tcall   6970 <launchSpmv(DeviceShard const&) [clone .part.0]>\n    7407:\tsub    $0x1,%rbx\n    740b:\tjne    73f8 <computeDevice(DeviceShard const&, unsigned int)+0x68>\n    740d:\tpop    %rbx\n    740e:\tpop    %rbp\n"
+            },
+            {
+              "first_line": 4952,
+              "last_line": 4994,
+              "text": "    8034:\tjne    49ed <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int) [clone .cold]+0x5b5>\n    803a:\tcmp    $0x1,%r13d\n    803e:\tjbe    80ed <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int)+0x33d>\n    8044:\tmov    $0x40,%eax\n    8049:\tmov    0x48(%rbx),%rdi\n    804d:\tmov    $0x1,%esi\n    8052:\tcmp    %eax,%r13d\n    8055:\tcmova  %eax,%r13d\n    8059:\tmov    %r13d,0x60(%rbx)\n    805d:\tcall   3680 <cudaStreamBeginCapture@plt>\n    8062:\tmov    %eax,%r12d\n    8065:\ttest   %eax,%eax\n    8067:\tjne    4a52 <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int) [clone .cold]+0x61a>\n    806d:\tmov    0x60(%rbx),%edx\n    8070:\ttest   %edx,%edx\n    8072:\tje     8090 <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int)+0x2e0>\n    8074:\tmov    0x8(%rbx),%eax\n    8077:\ttest   %eax,%eax\n    8079:\tje     8090 <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int)+0x2e0>\n    807b:\tmov    %rbx,%rdi\n    807e:\tcall   6970 <launchSpmv(DeviceShard const&) [clone .part.0]>\n    8083:\tadd    $0x1,%r12d\n    8087:\tcmp    0x60(%rbx),%r12d\n    808b:\tjb     8074 <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int)+0x2c4>\n    808d:\tnopl   (%rax)\n    8090:\tmov    0x48(%rbx),%rdi\n    8094:\tlea    0x50(%rbx),%rsi\n    8098:\tcall   3950 <cudaStreamEndCapture@plt>\n    809d:\tmov    %eax,%r12d\n    80a0:\ttest   %eax,%eax\n    80a2:\tjne    8329 <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int)+0x579>\n    80a8:\tmov    0x50(%rbx),%rsi\n    80ac:\tlea    0x58(%rbx),%rdi\n    80b0:\txor    %edx,%edx\n    80b2:\tcall   36a0 <cudaGraphInstantiate@plt>\n    80b7:\tmov    %eax,%r12d\n    80ba:\ttest   %eax,%eax\n    80bc:\tjne    479b <prepareDevice(DeviceShard&, std::vector<double, std::allocator<double> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<double, std::allocator<double> > const&, unsigned int) [clone .cold]+0x363>\n    80c2:\tmov    0x48(%rbx),%rsi\n    80c6:\tmov    0x58(%rbx),%rdi\n    80ca:\tcall   3870 <cudaGraphLaunch@plt>\n    80cf:\tmov    %eax,%r12d\n    80d2:\ttest   %eax,%eax\n"
+            }
+          ]
+        },
+        {
+          "file": "device-sass.txt",
+          "claim": "Compiled CSR specialization retains nonzero arithmetic and its loop.",
+          "complete_dump_sha256": "80d236fd131c912d558408e83e4232e2b894db31cbb851dd09a40835f63f22d7",
+          "inspection_command": [
+            "cuobjdump",
+            "--dump-sass",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-sol-xhigh_hybrid_r4/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 19,
+              "last_line": 24,
+              "text": "\t\tFunction : _Z9csrKernelILi32EEvPKdPKjS3_S1_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;               /* 0x00000a00ff017624 */\n                                                                                         /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R2, SR_TID.X ;                                    /* 0x0000000000027919 */\n                                                                                         /* 0x000e220000002100 */\n"
+            },
+            {
+              "first_line": 187,
+              "last_line": 209,
+              "text": "        /*0530*/                   ISETP.GE.U32.AND P0, PT, R8, R9, PT ;                 /* 0x000000090800720c */\n                                                                                         /* 0x000fc80003f06070 */\n        /*0540*/                   ISETP.GE.U32.AND.EX P0, PT, R7, R32, PT, P0 ;         /* 0x000000200700720c */\n                                                                                         /* 0x000fe40003f06100 */\n        /*0550*/                   IADD3 R14, P2, R14, 0x400, RZ ;                       /* 0x000004000e0e7810 */\n                                                                                         /* 0x001fe40007f5e0ff */\n        /*0560*/                   IADD3 R12, P3, R12, 0x200, RZ ;                       /* 0x000002000c0c7810 */\n                                                                                         /* 0x000fc60007f7e0ff */\n        /*0570*/                   IMAD.X R15, RZ, RZ, R15, P2 ;                         /* 0x000000ffff0f7224 */\n                                                                                         /* 0x000fe400010e060f */\n        /*0580*/                   IMAD.X R13, RZ, RZ, R13, P3 ;                         /* 0x000000ffff0d7224 */\n                                                                                         /* 0x000fe200018e060d */\n        /*0590*/                   DFMA R16, R16, R18, R10 ;                             /* 0x000000121010722b */\n                                                                                         /* 0x006ecc000000000a */\n        /*05a0*/                   DFMA R16, R20, R22, R16 ;                             /* 0x000000161410722b */\n                                                                                         /* 0x008f0c0000000010 */\n        /*05b0*/                   DFMA R16, R24, R26, R16 ;                             /* 0x0000001a1810722b */\n                                                                                         /* 0x010f4c0000000010 */\n        /*05c0*/                   DFMA R10, R30, R28, R16 ;                             /* 0x0000001c1e0a722b */\n                                                                                         /* 0x0200620000000010 */\n        /*05d0*/              @!P0 BRA 0x400 ;                                           /* 0xfffffe2000008947 */\n                                                                                         /* 0x000fea000383ffff */\n        /*05e0*/                   BSYNC B1 ;                                            /* 0x0000000000017941 */\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20261006-204623/spmv_gpt-6.1-sol-xhigh_hybrid_r4",
+        "source_commit": "6adaf64dc195651e5b3da3575738874e09fdc72d",
+        "staged_source_sha256": "ab314f8716c42c85e8efec592dbbf17138023b7c2d2b9f543c2f68e48f01202a"
+      },
+      "binary_sha256": "eafeaf094b01d7f0ec876d92efbc2dbfc92c0711306421d59c9c022851c705f1",
+      "binding_sha256": "e103ce30851c1bdf83a4c3b6e8dd48446689ac2399c520232f9390a7ea993410"
+    },
+    {
+      "id": "spmv_gpt-5.2_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank owns a quotient/remainder row partition and launches a complete local CSR kernel for every requested repetition. Empty ranks do no work; all nonempty partitions are included.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              137,
+              163
+            ],
+            [
+              229,
+              234
+            ],
+            [
+              257,
+              261
+            ],
+            [
+              388,
+              418
+            ]
+          ],
+          "claim": "Count is parsed unchanged and bounds the local launch loop; all row nonzeros are computed by cooperating warp lanes.",
+          "sha256": "abe30a42c948d536629055ce2b9247461c3c52932dde2282bf06af7a71106fa3",
+          "git_blob": "d4295c97e4a4f53ef6f7de23eb15bd643c4f9350"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "main 0xc8b1 calls the kernel stub; 0xc8b6-0xc8be increments, compares and repeats before the end event.",
+          "complete_dump_sha256": "9bf8d45d820007fcc3e5867930b02bdf68ab9f3a3940219542a46f23f299ec84",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.2_hybrid_r3/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 1540,
+              "last_line": 1585,
+              "text": "    c7f1:\tshr    $0x3,%r12d\n    c7f5:\tcall   77390 <cudaEventRecord>\n    c7fa:\ttest   %eax,%eax\n    c7fc:\tjne    d46d <main+0x179d>\n    c802:\tcmpl   $0x0,-0x318(%rbp)\n    c809:\tje     c8c4 <main+0xbf4>\n    c80f:\tmov    0x86162(%rip),%r14        # 92978 <libcudart_static_17cb5f807914dde50de9f48427f24567f09ed95c+0x68>\n    c816:\txor    %ebx,%ebx\n    c818:\tmovabs $0x100000001,%r13\n    c822:\tjmp    c83e <main+0xb6e>\n    c824:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c82f:\tnop\n    c830:\tinc    %ebx\n    c832:\tcmp    %ebx,-0x318(%rbp)\n    c838:\tje     c8c4 <main+0xbf4>\n    c83e:\tmov    %r13,-0xac(%rbp)\n    c845:\tmov    %r12d,-0xb0(%rbp)\n    c84c:\tmov    -0xa8(%rbp),%esi\n    c852:\tmov    -0xb0(%rbp),%rdi\n    c859:\txor    %r9d,%r9d\n    c85c:\txor    %r8d,%r8d\n    c85f:\tmovabs $0x100000100,%rdx\n    c869:\tmov    $0x1,%ecx\n    c86e:\tmov    %r14,-0xd0(%rbp)\n    c875:\tmovl   $0x1,-0xc8(%rbp)\n    c87f:\tcall   22740 <__cudaPushCallConfiguration>\n    c884:\ttest   %eax,%eax\n    c886:\tjne    c830 <main+0xb60>\n    c888:\tmov    -0x2d8(%rbp),%r9\n    c88f:\tmov    -0x2e0(%rbp),%r8\n    c896:\tmov    -0x2f8(%rbp),%rcx\n    c89d:\tmov    -0x2f0(%rbp),%rdx\n    c8a4:\tmov    -0x2e8(%rbp),%rsi\n    c8ab:\tmov    -0x350(%rbp),%edi\n    c8b1:\tcall   dfa0 <__device_stub__Z19spmvCsrVectorKerneljPKjS0_PKdS2_Pd(unsigned int, unsigned int const*, unsigned int const*, double const*, double const*, double*)>\n    c8b6:\tinc    %ebx\n    c8b8:\tcmp    %ebx,-0x318(%rbp)\n    c8be:\tjne    c83e <main+0xb6e>\n    c8c4:\tmov    -0xf0(%rbp),%rdi\n    c8cb:\txor    %esi,%esi\n    c8cd:\tcall   77390 <cudaEventRecord>\n    c8d2:\ttest   %eax,%eax\n    c8d4:\tjne    d418 <main+0x1748>\n    c8da:\tmov    -0xf0(%rbp),%rdi\n    c8e1:\tcall   56480 <cudaEventSynchronize>\n    c8e6:\ttest   %eax,%eax\n"
+            }
+          ]
+        },
+        {
+          "file": "device-sass.txt",
+          "claim": "The retained SASS contains the actual CSR DFMA loop. No PTX was embedded in this executable.",
+          "complete_dump_sha256": "2548e2aeea6cf29f7e39eb40e42f21ae0249a54466ba1ce30c101bfd37a926ce",
+          "inspection_command": [
+            "cuobjdump",
+            "--dump-sass",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.2_hybrid_r3/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 10,
+              "last_line": 15,
+              "text": "\t\tFunction : _Z19spmvCsrVectorKerneljPKjS0_PKdS2_Pd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   MOV R1, c[0x0][0x28] ;                              /* 0x00000a0000017a02 */\n                                                                                       /* 0x000fe40000000f00 */\n        /*0010*/                   S2R R8, SR_CTAID.X ;                                /* 0x0000000000087919 */\n                                                                                       /* 0x000e280000002500 */\n"
+            },
+            {
+              "first_line": 138,
+              "last_line": 160,
+              "text": "        /*03f0*/                   IMAD.WIDE.U32 R26, R22, R23, c[0x0][0x180] ;        /* 0x00006000161a7625 */\n                                                                                       /* 0x020fe400078e0017 */\n        /*0400*/                   LDG.E.64.CONSTANT R18, [R18.64] ;                   /* 0x0000000412127981 */\n                                                                                       /* 0x000f28000c1e9b00 */\n        /*0410*/                   LDG.E.64.CONSTANT R22, [R24.64] ;                   /* 0x0000000418167981 */\n                                                                                       /* 0x000f68000c1e9b00 */\n        /*0420*/                   LDG.E.64.CONSTANT R26, [R26.64] ;                   /* 0x000000041a1a7981 */\n                                                                                       /* 0x000f62000c1e9b00 */\n        /*0430*/                   IADD3 R10, R10, 0x80, RZ ;                          /* 0x000000800a0a7810 */\n                                                                                       /* 0x000fc80007ffe0ff */\n        /*0440*/                   ISETP.GE.U32.AND P1, PT, R10, R17, PT ;             /* 0x000000110a00720c */\n                                                                                       /* 0x000fe20003f26070 */\n        /*0450*/                   DFMA R4, R4, R6, R2 ;                               /* 0x000000060404722b */\n                                                                                       /* 0x006ecc0000000002 */\n        /*0460*/                   DFMA R4, R12, R14, R4 ;                             /* 0x0000000e0c04722b */\n                                                                                       /* 0x008f0c0000000004 */\n        /*0470*/                   DFMA R4, R18, R20, R4 ;                             /* 0x000000141204722b */\n                                                                                       /* 0x010f4c0000000004 */\n        /*0480*/                   DFMA R2, R26, R22, R4 ;                             /* 0x000000161a02722b */\n                                                                                       /* 0x0200620000000004 */\n        /*0490*/              @!P1 BRA 0x270 ;                                         /* 0xfffffdd000009947 */\n                                                                                       /* 0x000fea000383ffff */\n        /*04a0*/                   BSYNC B1 ;                                          /* 0x0000000000017941 */\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20260215-162417/spmv_gpt-5.2_hybrid_r3",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "staged_source_sha256": "32563298369ecac59b83a68b6cefed32b7fda6beccc9306a50801bfd14996c96"
+      },
+      "binary_sha256": "f0c9c28e0f4734c3597b2524047a3fd2f40f4ec7c567fc44f0dbc2da4a4ee6ba",
+      "binding_sha256": "6a4f959468f256f18f76149a94e2238f396cf0296214202ec82544b22ce27d06"
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed iteration computes ordinary local rows on the GPU and unusually long rows on the CPU. SELL conversion excludes long rows from GPU arithmetic but does not remove them from the iteration's CPU work. The compiled outer loop contains both operations.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              505,
+              556
+            ],
+            [
+              657,
+              664
+            ],
+            [
+              693,
+              711
+            ],
+            [
+              714,
+              743
+            ],
+            [
+              778,
+              814
+            ]
+          ],
+          "claim": "Rank row ranges cover the matrix; GPU rows and CPU long-row lists are complementary and both are recomputed within the requested iteration loop.",
+          "sha256": "c9c052b33af24c6ec323ef5982d48cd1a38b71fc507c8c258a1e788043b5adec",
+          "git_blob": "48c34818d344da60656db6c0ab8ad3f6d8f3c648"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "main 0x3f33 launches the GPU and 0x3e81 runs the CPU worker, before the iteration increment/comparison; the worker retains multiply/add operations inside its nonzero loop.",
+          "complete_dump_sha256": "d9164502fee91c158efac1bd3bbb9619a1a7d21c760713f67e04fa7bade137b0",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5.5-cc-medium_hybrid_r5/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 1738,
+              "last_line": 1801,
+              "text": "    3de6:\txor    %ebx,%ebx\n    3de8:\tcmpl   $0x0,-0x470(%rbp)\n    3def:\tlea    -0x390(%rbp),%r12\n    3df6:\tmov    %rax,-0x4f0(%rbp)\n    3dfd:\tje     454c <main+0x1a9c>\n    3e03:\tvmovq  -0x530(%rbp),%xmm6\n    3e0b:\tvmovq  -0x4e8(%rbp),%xmm2\n    3e13:\tvpinsrq $0x1,-0x520(%rbp),%xmm6,%xmm0\n    3e1d:\tvpinsrq $0x1,%r12,%xmm2,%xmm1\n    3e23:\tvinserti128 $0x1,%xmm0,%ymm1,%ymm7\n    3e29:\tvmovdqa %ymm7,-0x490(%rbp)\n    3e31:\tjmp    3e96 <main+0x13e6>\n    3e33:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    3e3e:\txchg   %ax,%ax\n    3e40:\tvmovdqa -0x490(%rbp),%ymm4\n    3e48:\tmov    -0x4b0(%rbp),%rax\n    3e4f:\txor    %edx,%edx\n    3e51:\tcmp    $0x1,%r15d\n    3e55:\tmov    -0x468(%rbp),%rsi\n    3e5c:\tsetbe  %dl\n    3e5f:\tmov    %r15d,-0x248(%rbp)\n    3e66:\txor    %ecx,%ecx\n    3e68:\tlea    0x2641(%rip),%rdi        # 64b0 <main._omp_fn.2>\n    3e6f:\tmov    %rax,-0x250(%rbp)\n    3e76:\tvmovdqa %ymm4,-0x270(%rbp)\n    3e7e:\tvzeroupper\n    3e81:\tcall   2620 <GOMP_parallel@plt>\n    3e86:\tinc    %ebx\n    3e88:\tmov    -0x470(%rbp),%eax\n    3e8e:\tcmp    %eax,%ebx\n    3e90:\tje     454c <main+0x1a9c>\n    3e96:\tmov    -0x22c(%rbp),%eax\n    3e9c:\ttest   %eax,%eax\n    3e9e:\tje     3e40 <main+0x1390>\n    3ea0:\tmov    0x8821(%rip),%rax        # c6c8 <_IO_stdin_used+0x6c8>\n    3ea7:\tmov    %r14d,-0x270(%rbp)\n    3eae:\tmovl   $0x1,-0x3f8(%rbp)\n    3eb8:\txor    %r9d,%r9d\n    3ebb:\txor    %r8d,%r8d\n    3ebe:\tmovabs $0x100000100,%rdx\n    3ec8:\tmov    $0x1,%ecx\n    3ecd:\tmov    %rax,-0x400(%rbp)\n    3ed4:\tmovabs $0x100000001,%rax\n    3ede:\tmov    %rax,-0x26c(%rbp)\n    3ee5:\tmov    -0x270(%rbp),%rdi\n    3eec:\tmov    -0x268(%rbp),%esi\n    3ef2:\tvzeroupper\n    3ef5:\tcall   26d0 <__cudaPushCallConfiguration@plt>\n    3efa:\ttest   %eax,%eax\n    3efc:\tjne    3e40 <main+0x1390>\n    3f02:\tpush   %rax\n    3f03:\tpush   -0x428(%rbp)\n    3f09:\tmov    -0x22c(%rbp),%r9d\n    3f10:\tmov    -0x430(%rbp),%r8\n    3f17:\tmov    -0x418(%rbp),%rcx\n    3f1e:\tmov    -0x410(%rbp),%rdx\n    3f25:\tmov    -0x420(%rbp),%rsi\n    3f2c:\tmov    -0x438(%rbp),%rdi\n    3f33:\tcall   a260 <__device_stub__Z14spmvSellKernelPKdPKjPKyS2_S0_jPd(double const*, unsigned int const*, unsigned long long const*, unsigned int const*, double const*, unsigned int, double*)>\n    3f38:\tpop    %r11\n    3f3a:\tpop    %rax\n    3f3b:\tjmp    3e40 <main+0x1390>\n    3f40:\tcmpb   $0x0,0x2(%r13)\n    3f45:\tjne    2c2b <main+0x17b>\n"
+            },
+            {
+              "first_line": 3942,
+              "last_line": 3966,
+              "text": "    65a3:\tmov    (%r11),%rcx\n    65a6:\tmov    %r9d,%r8d\n    65a9:\tinc    %r9d\n    65ac:\tshl    $0x3,%r8\n    65b0:\tcmp    %rcx,%rax\n    65b3:\tjae    6530 <main._omp_fn.2+0x80>\n    65b9:\tmov    (%r15),%rdi\n    65bc:\tmov    (%r14),%rsi\n    65bf:\tvxorpd %xmm1,%xmm1,%xmm1\n    65c3:\tmov    0x50(%r13),%rdx\n    65c7:\tnopw   0x0(%rax,%rax,1)\n    65d0:\tmov    (%rsi,%rax,4),%r10d\n    65d4:\tvmovsd (%rdx,%r10,8),%xmm0\n    65da:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    65df:\tinc    %rax\n    65e2:\tvaddsd %xmm0,%xmm1,%xmm1\n    65e6:\tcmp    %rcx,%rax\n    65e9:\tjne    65d0 <main._omp_fn.2+0x120>\n    65eb:\tvmovsd %xmm1,0x0(%rbp,%r8,1)\n    65f2:\tadd    $0x8,%r11\n    65f6:\tcmp    %r12d,%r9d\n    65f9:\tjb     65a0 <main._omp_fn.2+0xf0>\n    65fb:\tjmp    6550 <main._omp_fn.2+0xa0>\n    6600:\tcall   2520 <__stack_chk_fail@plt>\n    6605:\tdata16 cs nopw 0x0(%rax,%rax,1)\n"
+            }
+          ]
+        },
+        {
+          "file": "device-sass.txt",
+          "claim": "SELL GPU path retains multiplication and ordered accumulation.",
+          "complete_dump_sha256": "759aa77d67aa56154ccf3d61c3a825c9cc9992e957ffa4e3afbf1d8f155c70ac",
+          "inspection_command": [
+            "cuobjdump",
+            "--dump-sass",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5.5-cc-medium_hybrid_r5/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 19,
+              "last_line": 24,
+              "text": "\t\tFunction : _Z14spmvSellKernelPKdPKjPKyS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;                /* 0x00000a00ff017624 */\n                                                                                          /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R8, SR_CTAID.X ;                                   /* 0x0000000000087919 */\n                                                                                          /* 0x000e220000002500 */\n"
+            },
+            {
+              "first_line": 229,
+              "last_line": 247,
+              "text": "        /*0680*/                   LOP3.LUT R26, R26, 0xfffffc00, RZ, 0xc0, !PT ;         /* 0xfffffc001a1a7812 */\n                                                                                          /* 0x000fca00078ec0ff */\n        /*0690*/                   IMAD R7, R7, 0x1c00, R26 ;                             /* 0x00001c0007077824 */\n                                                                                          /* 0x000fc800078e021a */\n        /*06a0*/                   IMAD R7, R2, 0x8, R7 ;                                 /* 0x0000000802077824 */\n                                                                                          /* 0x000fe200078e0207 */\n        /*06b0*/                   DMUL R12, R12, R18 ;                                   /* 0x000000120c0c7228 */\n                                                                                          /* 0x010e080000000000 */\n        /*06c0*/                   DMUL R14, R14, R16 ;                                   /* 0x000000100e0e7228 */\n                                                                                          /* 0x004e460000000000 */\n        /*06d0*/                   STS.64 [R7+-0x300], R12 ;                              /* 0xfffd000c07007388 */\n                                                                                          /* 0x0011e80000000a00 */\n        /*06e0*/                   STS.64 [R7+-0x400], R14 ;                              /* 0xfffc000e07007388 */\n                                                                                          /* 0x0021e20000000a00 */\n        /*06f0*/                   DMUL R20, R36, R20 ;                                   /* 0x0000001424147228 */\n                                                                                          /* 0x020e480000000000 */\n        /*0700*/                   DMUL R28, R30, R28 ;                                   /* 0x0000001c1e1c7228 */\n                                                                                          /* 0x008e860000000000 */\n        /*0710*/                   STS.64 [R7+-0x200], R20 ;                              /* 0xfffe001407007388 */\n"
+            },
+            {
+              "first_line": 325,
+              "last_line": 343,
+              "text": "        /*0980*/                   LDS.64 R18, [R31.X8+0x400] ;                           /* 0x000400001f127984 */\n                                                                                          /* 0x000f280000008a00 */\n        /*0990*/                   LDS.64 R16, [R31.X8+0x500] ;                           /* 0x000500001f107984 */\n                                                                                          /* 0x000f680000008a00 */\n        /*09a0*/                   LDS.64 R26, [R31.X8+0x600] ;                           /* 0x000600001f1a7984 */\n                                                                                          /* 0x000f220000008a00 */\n        /*09b0*/                   DADD R12, R12, R24 ;                                   /* 0x000000000c0c7229 */\n                                                                                          /* 0x0010460000000018 */\n        /*09c0*/                   LDS.64 R24, [R31.X8+0x700] ;                           /* 0x000700001f187984 */\n                                                                                          /* 0x001e260000008a00 */\n        /*09d0*/                   DADD R14, R12, R14 ;                                   /* 0x000000000c0e7229 */\n                                                                                          /* 0x002288000000000e */\n        /*09e0*/                   LDS.64 R12, [R31.X8+0x800] ;                           /* 0x000800001f0c7984 */\n                                                                                          /* 0x002e640000008a00 */\n        /*09f0*/                   DADD R22, R14, R22 ;                                   /* 0x000000000e167229 */\n                                                                                          /* 0x0044c80000000016 */\n        /*0a00*/                   LDS.64 R14, [R31.X8+0x900] ;                           /* 0x000900001f0e7984 */\n                                                                                          /* 0x004ea40000008a00 */\n        /*0a10*/                   DADD R20, R22, R20 ;                                   /* 0x0000000016147229 */\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20261002-142720/spmv_claude-opus-5.5-cc-medium_hybrid_r5",
+        "source_commit": "a14535a1a0101b4ddbc725d374772c2da529c824",
+        "staged_source_sha256": "d673b39b373c1fc79a1354d1c952e5b286b32ad7a8cd10ca3d46b9beb178c39d"
+      },
+      "binary_sha256": "f2a87a4f31db38945a5b65540e6e92c7543334d74e1db7a3a1f841c9330ec4b7",
+      "binding_sha256": "0d97928bbca37655fe2be1c38d831abb51160187622f7239d39b9ede54a9718e"
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Every nonempty rank recomputes its local rows for the full requested count. The optimized four-row path covers common and remaining nonzeros and has a serial tail for leftover rows; the compiled caller retains the repetition loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              232,
+              287
+            ],
+            [
+              345,
+              360
+            ],
+            [
+              433,
+              466
+            ]
+          ],
+          "claim": "The full local product is invoked once per repetition with unchanged count; four-row batching is spatial rather than repetition elision.",
+          "sha256": "20d6fb035201220b99e886a880260718fa6764d8421c9ac381636d8cafea2b2b",
+          "git_blob": "7ed7c7ca5839e4ffb140002e56071d9329a38f33"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "0x4766 calls spmvLocal inside the count-bound backedge 0x4774->0x4750. The four-row product contains fresh multiply/add instructions.",
+          "complete_dump_sha256": "ebc41e3ed00781aca6c623a7822ab15c9938572451d94a5d5bfa1082efc26e8b",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-sol-xhigh_mpi_r2/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 1685,
+              "last_line": 1719,
+              "text": "    3902:\tjae    3b10 <spmvLocal(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x300>\n    3908:\tvxorpd %xmm1,%xmm1,%xmm1\n    390c:\tlea    (%r14,%rdx,8),%rbx\n    3910:\tlea    (%rsi,%rdx,4),%r11\n    3914:\tlea    -0x1(%r10),%r12d\n    3918:\txor    %edx,%edx\n    391a:\tvmovsd %xmm1,%xmm1,%xmm3\n    391e:\tvmovsd %xmm1,%xmm1,%xmm2\n    3922:\tvmovsd %xmm1,%xmm1,%xmm0\n    3926:\tmov    %r15d,-0x14(%rsp)\n    392b:\tmov    %r9d,-0x18(%rsp)\n    3930:\tmov    (%r11,%rdx,4),%r9d\n    3934:\tvmovsd (%rax,%r9,8),%xmm4\n    393a:\tlea    (%r8,%rdx,1),%r9d\n    393e:\tvmulsd (%rbx,%rdx,8),%xmm4,%xmm4\n    3943:\tmov    (%rsi,%r9,4),%r15d\n    3947:\tvaddsd %xmm4,%xmm0,%xmm0\n    394b:\tvmovsd (%rax,%r15,8),%xmm4\n    3951:\tvmulsd (%r14,%r9,8),%xmm4,%xmm4\n    3957:\tlea    (%rdi,%rdx,1),%r9d\n    395b:\tmov    (%rsi,%r9,4),%r15d\n    395f:\tvaddsd %xmm4,%xmm2,%xmm2\n    3963:\tvmovsd (%rax,%r15,8),%xmm4\n    3969:\tvmulsd (%r14,%r9,8),%xmm4,%xmm4\n    396f:\tlea    (%rcx,%rdx,1),%r9d\n    3973:\tmov    (%rsi,%r9,4),%r15d\n    3977:\tvaddsd %xmm4,%xmm3,%xmm3\n    397b:\tvmovsd (%rax,%r15,8),%xmm4\n    3981:\tvmulsd (%r14,%r9,8),%xmm4,%xmm4\n    3987:\tmov    %rdx,%r9\n    398a:\tinc    %rdx\n    398d:\tvaddsd %xmm4,%xmm1,%xmm1\n    3991:\tcmp    %r9,%r12\n    3994:\tjne    3930 <spmvLocal(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x120>\n    3996:\tmov    -0x14(%rsp),%r15d\n"
+            },
+            {
+              "first_line": 2468,
+              "last_line": 2494,
+              "text": "    4714:\tcall   2310 <MPI_Wtime@plt>\n    4719:\tvmovsd %xmm0,-0x1f0(%rbp)\n    4721:\ttest   %r15d,%r15d\n    4724:\tje     4776 <runBenchmark(int, char**, int, int)+0x986>\n    4726:\tmov    -0x1fc(%rbp),%esi\n    472c:\ttest   %esi,%esi\n    472e:\tje     4776 <runBenchmark(int, char**, int, int)+0x986>\n    4730:\tmov    -0xb0(%rbp),%r12\n    4737:\tmov    -0x90(%rbp),%rsi\n    473e:\txor    %r13d,%r13d\n    4741:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    474c:\tnopl   0x0(%rax)\n    4750:\tmov    -0x1e0(%rbp),%rcx\n    4757:\tmov    %rbx,%r9\n    475a:\tmov    %r15d,%r8d\n    475d:\tmov    %r14,%rdx\n    4760:\tmov    %r12,%rdi\n    4763:\tinc    %r13d\n    4766:\tcall   3810 <spmvLocal(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    476b:\tmov    -0x1fc(%rbp),%eax\n    4771:\tcmp    %eax,%r13d\n    4774:\tjne    4750 <runBenchmark(int, char**, int, int)+0x960>\n    4776:\tlea    -0x50(%rbp),%r13\n    477a:\tlea    -0x130(%rbp),%r12\n    4781:\tcall   2310 <MPI_Wtime@plt>\n    4786:\tvsubsd -0x1f0(%rbp),%xmm0,%xmm0\n    478e:\tsub    $0x8,%rsp\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20261006-204623/spmv_gpt-6.1-sol-xhigh_mpi_r2",
+        "source_commit": "6adaf64dc195651e5b3da3575738874e09fdc72d",
+        "staged_source_sha256": "c2640d5d076cace048490e3a25bdd1c996987e93eeb03b5b9eb6bd6bb7ce28f6"
+      },
+      "binary_sha256": "072d69d79dde9907f04b86ddd49870b358d95de6603b15e0e492628c63f93759",
+      "binding_sha256": "947130b2288955a1eb6c8faeb7882787fb8db3b0cdb198ac8c7a5ecd10d209b1"
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The full local CSR product is recomputed on every iteration. Compilation inlines the function but leaves the row/nonzero loops inside the repetition loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              102,
+              112
+            ],
+            [
+              179,
+              185
+            ],
+            [
+              256,
+              273
+            ],
+            [
+              321,
+              335
+            ]
+          ],
+          "claim": "CLI count bounds complete local CSR products over contiguous rank row partitions.",
+          "sha256": "214ebe13d87afeb69bed2ac2ae637783fb3253298cf24c534e493a737182020a",
+          "git_blob": "3ef66e86bb1f0c36fd124d317de7bc51c1c924fb"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "main 0xa370-0xa38c performs nonzero arithmetic; 0xa39d-0xa3a1 repeats the entire row loop, not merely its stores.",
+          "complete_dump_sha256": "a356a4ec789d16ad07cc1e5629914f64bece161d3c51e144694dd47fdae5a98b",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-sol-medium_mpi_r2/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 2314,
+              "last_line": 2353,
+              "text": "    a30b:\tcall   9210 <MPI_Wtime@plt>\n    a310:\tmov    -0x218(%rbp),%r8d\n    a317:\tmov    -0x70(%rbp),%r13\n    a31b:\tvmovsd %xmm0,-0x2b8(%rbp)\n    a323:\ttest   %r8d,%r8d\n    a326:\tje     a3a3 <main+0xb83>\n    a328:\tmov    -0x238(%rbp),%esi\n    a32e:\txor    %ecx,%ecx\n    a330:\txor    %r9d,%r9d\n    a333:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a33e:\txchg   %ax,%ax\n    a340:\tmov    (%r12,%r9,4),%eax\n    a344:\tmov    0x4(%r12,%r9,4),%edx\n    a349:\tcmp    %edx,%eax\n    a34b:\tjae    a690 <main+0xe70>\n    a351:\tdec    %edx\n    a353:\tlea    (%r15,%rax,4),%r10\n    a357:\tlea    (%r14,%rax,8),%rdi\n    a35b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a35f:\tsub    %eax,%edx\n    a361:\txor    %eax,%eax\n    a363:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a36e:\txchg   %ax,%ax\n    a370:\tmov    (%r10,%rax,4),%r11d\n    a374:\tvmovsd (%rbx,%r11,8),%xmm0\n    a37a:\tmov    %rax,%r11\n    a37d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a382:\tinc    %rax\n    a385:\tvaddsd %xmm0,%xmm1,%xmm1\n    a389:\tcmp    %r11,%rdx\n    a38c:\tjne    a370 <main+0xb50>\n    a38e:\tvmovsd %xmm1,0x0(%r13,%r9,8)\n    a395:\tinc    %r9\n    a398:\tcmp    %r8,%r9\n    a39b:\tjne    a340 <main+0xb20>\n    a39d:\tinc    %ecx\n    a39f:\tcmp    %esi,%ecx\n    a3a1:\tjb     a330 <main+0xb10>\n    a3a3:\tcall   9210 <MPI_Wtime@plt>\n    a3a8:\tvsubsd -0x2b8(%rbp),%xmm0,%xmm0\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20260805-120633/spmv_gpt-5.6-sol-medium_mpi_r2",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "staged_source_sha256": "9fa1db26cf1e0be0779f8702258793a7c949e54f236491b03c2de1c073ef096f"
+      },
+      "binary_sha256": "d3b404a919a9aa3979659cd77ce2bbebcc8510e388359bf0c193fe47f86b1c8f",
+      "binding_sha256": "edbd287872a0f1ae187c1beeab910825efb035e7ee16a3b6e866115e1db709c4"
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All rank-local row products are recomputed for each requested repetition. Fast random-stream initialization does not replace timed multiplication, and the inlined compiled product remains inside the outer loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              458,
+              469
+            ],
+            [
+              539,
+              545
+            ],
+            [
+              591,
+              599
+            ],
+            [
+              634,
+              649
+            ]
+          ],
+          "claim": "The iteration count is unchanged; contiguous rank row partitions and complete CSR dot products are used.",
+          "sha256": "d285a55942573459237b1c412c3d2767f6a88d28540a40c2569abe1e2b981a03",
+          "git_blob": "16be2e3d00394b04665533db7f3505da8d39bbe8"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "main 0xa280-0xa29b performs the row arithmetic; 0xa2ac-0xa2b6 loops back to recompute all local rows for the next repetition.",
+          "complete_dump_sha256": "3ba56f48eee7a893793e48a473e255be677d397f89dc63090987c8b8903c5850",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5-cc-medium_mpi_r1/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 2243,
+              "last_line": 2292,
+              "text": "    a1f1:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a1f6:\tmov    -0x310(%rbp),%r11d\n    a1fd:\tmov    -0x270(%rbp),%r14\n    a204:\tmov    %rax,-0x330(%rbp)\n    a20b:\ttest   %r11d,%r11d\n    a20e:\tje     a2b8 <main+0xb38>\n    a214:\tmov    -0x318(%rbp),%r10d\n    a21b:\tmov    -0x2d0(%rbp),%r9\n    a222:\ttest   %r10d,%r10d\n    a225:\tje     a2b8 <main+0xb38>\n    a22b:\tmov    -0x338(%rbp),%r8\n    a232:\txor    %ecx,%ecx\n    a234:\tshl    $0x2,%r8\n    a238:\tnopl   0x0(%rax,%rax,1)\n    a240:\txor    %r11d,%r11d\n    a243:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a24e:\txchg   %ax,%ax\n    a250:\tmov    (%r12,%r11,1),%eax\n    a254:\tmov    0x4(%r12,%r11,1),%esi\n    a259:\tcmp    %esi,%eax\n    a25b:\tjae    a5e0 <main+0xe60>\n    a261:\tdec    %esi\n    a263:\tlea    (%r9,%rax,4),%r10\n    a267:\tlea    0x0(%r13,%rax,8),%rdi\n    a26c:\tvxorpd %xmm1,%xmm1,%xmm1\n    a270:\tsub    %eax,%esi\n    a272:\txor    %eax,%eax\n    a274:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a27f:\tnop\n    a280:\tmov    (%r10,%rax,4),%edx\n    a284:\tvmovsd (%rbx,%rdx,8),%xmm0\n    a289:\tmov    %rax,%rdx\n    a28c:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a291:\tinc    %rax\n    a294:\tvaddsd %xmm0,%xmm1,%xmm1\n    a298:\tcmp    %rsi,%rdx\n    a29b:\tjne    a280 <main+0xb00>\n    a29d:\tvmovsd %xmm1,(%r14,%r11,2)\n    a2a3:\tadd    $0x4,%r11\n    a2a7:\tcmp    %r11,%r8\n    a2aa:\tjne    a250 <main+0xad0>\n    a2ac:\tmov    -0x310(%rbp),%eax\n    a2b2:\tinc    %ecx\n    a2b4:\tcmp    %eax,%ecx\n    a2b6:\tjne    a240 <main+0xac0>\n    a2b8:\tlea    0xd561(%rip),%rdi        # 17820 <ompi_mpi_comm_world@@Base>\n    a2bf:\tcall   8e90 <MPI_Barrier@plt>\n    a2c4:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a2c9:\tmov    -0x330(%rbp),%rcx\n    a2d0:\tmovabs $0x431bde82d7b634db,%rdx\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20260901-162328/spmv_claude-opus-5-cc-medium_mpi_r1",
+        "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+        "staged_source_sha256": "c81cbe2705cfc4f4c34417b45b5bf86b1584f5201fc5be19e2ab6d40afb97b3c"
+      },
+      "binary_sha256": "e49b8bed37e5362d3cf53f2b29534bd4de42f7186feaeef73edc990abb8da3fc",
+      "binding_sha256": "c1dbd7fb3b0de0baec6cdcb78d9f2fa31650e6f6993f05c73af68aa49e7cb7db"
+    },
+    {
+      "id": "spmv_gpt-5.2_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A persistent OpenMP team repeats all statically assigned rows for the requested count, using SIMD reduction for each row. Removing per-iteration barriers does not skip work because row ownership is fixed and inputs are invariant. Compiled SIMD arithmetic is retained inside the repetition loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              110,
+              136
+            ],
+            [
+              196,
+              203
+            ],
+            [
+              253,
+              265
+            ]
+          ],
+          "claim": "Requested repetitions surround complete row products; the warm-up creates only the OpenMP team.",
+          "sha256": "9b45e7a57d94611b21afa40c4a903ce9e3f85dd3f0de6ae3766203aeb69fe4c2",
+          "git_blob": "1e68226e8e02451085c7bf1796893998437308e9"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "The worker retains vector FMA at 0x215c/0x217b, row stores, and the outer count backedge 0x2345->0x1ffb.",
+          "complete_dump_sha256": "b9112e8aba83ef62106bb6d5a9fda1d9e9ca860f1bde011909e10568a8e24e26",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.2_omp_r4/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 902,
+              "last_line": 974,
+              "text": "0000000000001f30 <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]>:\n    1f30:\tendbr64\n    1f34:\tpush   %rbp\n    1f35:\tmov    %rsp,%rbp\n    1f38:\tpush   %r15\n    1f3a:\tpush   %r14\n    1f3c:\tpush   %r13\n    1f3e:\tpush   %r12\n    1f40:\tpush   %rbx\n    1f41:\tand    $0xffffffffffffffe0,%rsp\n    1f45:\tsub    $0xe0,%rsp\n    1f4c:\tmov    0x2c(%rdi),%r10d\n    1f50:\tmov    0x18(%rdi),%r15\n    1f54:\tmov    %fs:0x28,%rax\n    1f5d:\tmov    %rax,0xd8(%rsp)\n    1f65:\tmov    0x20(%rdi),%rax\n    1f69:\tmov    0x8(%rdi),%r14\n    1f6d:\tmov    (%rdi),%r13\n    1f70:\tmov    0x28(%rdi),%edx\n    1f73:\ttest   %r10d,%r10d\n    1f76:\tmov    %r10d,0x78(%rsp)\n    1f7b:\tmov    %rax,0x28(%rsp)\n    1f80:\tmov    0x10(%rdi),%rax\n    1f84:\tmov    %rax,0x30(%rsp)\n    1f89:\tje     234e <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x41e>\n    1f8f:\ttest   %edx,%edx\n    1f91:\tmov    %edx,0x70(%rsp)\n    1f95:\tje     234e <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x41e>\n    1f9b:\tcall   1250 <omp_get_num_threads@plt>\n    1fa0:\tmov    %eax,%ebx\n    1fa2:\tcall   1230 <omp_get_thread_num@plt>\n    1fa7:\txor    %edx,%edx\n    1fa9:\tmov    0x30(%rsp),%rcx\n    1fae:\tmov    %eax,%r12d\n    1fb1:\tmov    0x70(%rsp),%eax\n    1fb5:\tmov    0x78(%rsp),%r11d\n    1fba:\tvpxor  %xmm3,%xmm3,%xmm3\n    1fbe:\tvxorpd %xmm4,%xmm4,%xmm4\n    1fc2:\tdiv    %ebx\n    1fc4:\tcmp    %edx,%r12d\n    1fc7:\tmov    %edx,%esi\n    1fc9:\tmov    %eax,%edx\n    1fcb:\tadc    $0x0,%edx\n    1fce:\tadd    $0x4,%rcx\n    1fd2:\txor    %eax,%eax\n    1fd4:\tmov    %edx,%edi\n    1fd6:\tlea    -0x1(%rdx),%ebx\n    1fd9:\tmov    %rcx,0x18(%rsp)\n    1fde:\timul   %r12d,%edi\n    1fe2:\tmov    %rbx,0x20(%rsp)\n    1fe7:\tmov    %edi,%r8d\n    1fea:\tmov    %r12d,%edi\n    1fed:\tjmp    1ffb <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xcb>\n    1fef:\tnop\n    1ff0:\tinc    %eax\n    1ff2:\tcmp    %eax,%r11d\n    1ff5:\tje     234b <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x41b>\n    1ffb:\txor    %r10d,%r10d\n    1ffe:\tcmp    %esi,%edi\n    2000:\tcmovae %esi,%r10d\n    2004:\tadd    %r8d,%r10d\n    2007:\tlea    (%rdx,%r10,1),%ecx\n    200b:\tcmp    %ecx,%r10d\n    200e:\tjae    1ff0 <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xc0>\n    2010:\tmov    0x30(%rsp),%rcx\n    2015:\tmov    %r10d,%r9d\n    2018:\tmov    0x20(%rsp),%r12\n    201d:\tinc    %r10d\n    2020:\tsub    %r9,%r10\n    2023:\tmov    %edx,0x4c(%rsp)\n    2027:\tmov    %r11d,0x48(%rsp)\n    202c:\tmov    %edi,0x44(%rsp)\n    2030:\tmov    %r10,0x50(%rsp)\n"
+            },
+            {
+              "first_line": 1026,
+              "last_line": 1056,
+              "text": "    2116:\tmov    0x18(%rdx,%rax,1),%r14d\n    211b:\tmov    0x10(%rdx,%rax,1),%ebx\n    211f:\tmov    0x1c(%rdx,%rax,1),%r13d\n    2124:\tmov    0x14(%rdx,%rax,1),%r11d\n    2129:\tvmovsd (%r15,%r14,8),%xmm1\n    212f:\tvmovsd (%r15,%rbx,8),%xmm0\n    2135:\tmov    (%r10),%ebx\n    2138:\tvmovhpd (%r15,%r13,8),%xmm1,%xmm1\n    213e:\tmov    0x8(%r10),%r13d\n    2142:\tvmovhpd (%r15,%r11,8),%xmm0,%xmm0\n    2148:\tmov    0x4(%r10),%r11d\n    214c:\tvinsertf128 $0x1,%xmm1,%ymm0,%ymm0\n    2152:\tvmovsd (%r15,%rbx,8),%xmm1\n    2158:\tmov    0xc(%r10),%r10d\n    215c:\tvfmadd231pd 0x20(%r9,%rax,2),%ymm0,%ymm5\n    2163:\tvmovsd (%r15,%r13,8),%xmm2\n    2169:\tvmovhpd (%r15,%r11,8),%xmm1,%xmm1\n    216f:\tvmovhpd (%r15,%r10,8),%xmm2,%xmm2\n    2175:\tvinsertf128 $0x1,%xmm2,%ymm1,%ymm1\n    217b:\tvfmadd231pd (%r9,%rax,2),%ymm1,%ymm6\n    2181:\tvmovapd %ymm5,0xa0(%rsp)\n    218a:\tadd    $0x20,%rax\n    218e:\tvmovapd %ymm6,0x80(%rsp)\n    2197:\tcmp    %r8d,%esi\n    219a:\tjb     2110 <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x1e0>\n    21a0:\tmov    0x68(%rsp),%r11d\n    21a5:\tshl    $0x3,%r8d\n    21a9:\tmov    0x78(%rsp),%r14\n    21ae:\tmov    0x70(%rsp),%r13\n    21b3:\tadd    %r8d,%edi\n    21b6:\tmov    0x6c(%rsp),%r10d\n"
+            },
+            {
+              "first_line": 1105,
+              "last_line": 1141,
+              "text": "    22b0:\tvmovsd 0x0(%r13,%rdi,8),%xmm7\n    22b7:\tvfmadd231sd (%r15,%rax,8),%xmm7,%xmm0\n    22bd:\tvmovsd %xmm0,0x80(%rsp)\n    22c6:\tvaddsd 0x80(%rsp),%xmm4,%xmm0\n    22cf:\tadd    $0x4,%rbx\n    22d3:\tadd    $0x8,%rcx\n    22d7:\tvaddsd 0x88(%rsp),%xmm0,%xmm0\n    22e0:\tvaddsd 0x90(%rsp),%xmm0,%xmm0\n    22e9:\tvaddsd 0x98(%rsp),%xmm0,%xmm0\n    22f2:\tvaddsd 0xa0(%rsp),%xmm0,%xmm0\n    22fb:\tvaddsd 0xa8(%rsp),%xmm0,%xmm0\n    2304:\tvaddsd 0xb0(%rsp),%xmm0,%xmm0\n    230d:\tvaddsd 0xb8(%rsp),%xmm0,%xmm0\n    2316:\tvmovsd %xmm0,-0x8(%rcx)\n    231b:\tcmp    %rbx,0x58(%rsp)\n    2320:\tjne    2080 <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x150>\n    2326:\tmov    0x3c(%rsp),%eax\n    232a:\tmov    0x48(%rsp),%r11d\n    232f:\tmov    0x4c(%rsp),%edx\n    2333:\tmov    0x44(%rsp),%edi\n    2337:\tmov    0x40(%rsp),%r8d\n    233c:\tmov    0x38(%rsp),%esi\n    2340:\tinc    %eax\n    2342:\tcmp    %eax,%r11d\n    2345:\tjne    1ffb <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xcb>\n    234b:\tvzeroupper\n    234e:\tmov    0xd8(%rsp),%rax\n    2356:\tsub    %fs:0x28,%rax\n    235f:\tjne    2370 <spmvCpuOmpIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x440>\n    2361:\tlea    -0x28(%rbp),%rsp\n    2365:\tpop    %rbx\n    2366:\tpop    %r12\n    2368:\tpop    %r13\n    236a:\tpop    %r14\n    236c:\tpop    %r15\n    236e:\tpop    %rbp\n    236f:\tret\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20260215-162417/spmv_gpt-5.2_omp_r4",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "staged_source_sha256": "1a1bc490aed74c7b09ae638e61d00f6051098896c8160387dc123a26beae5e0f"
+      },
+      "binary_sha256": "b5cff85b458dec5c92adfaa1cc2e64fa945aa22995285b4f347323c3427c8ea1",
+      "binding_sha256": "d17552eb58c3948f0e99acdfafc8d80ec76e592d9d20afbcc3d283620ff77fc4"
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The persistent OpenMP team retains all repetitions over fixed row assignments. The compiled worker recomputes row arithmetic rather than hoisting an invariant result outside the repetition loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              119
+            ],
+            [
+              179,
+              185
+            ],
+            [
+              233,
+              241
+            ]
+          ],
+          "claim": "CLI iteration count reaches the persistent-team CSR loop unchanged.",
+          "sha256": "0ad6065f88942c9e3a86bc5bc0c751fd460992ce0a47e508411523d39922b577",
+          "git_blob": "920151d3ec8dfa37afc833247d0a66ac58da263e"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "0x2050-0x206c retains multiply/add arithmetic; 0x2081-0x2092 increments and compares the repetition count before branching to the next complete row pass.",
+          "complete_dump_sha256": "4aa9996d8c2e6cc7d7f69d51d29bc63aff965251f12c8489d283e6315b8ed514",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-terra-xhigh_omp_r3/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 901,
+              "last_line": 998,
+              "text": "0000000000001f50 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]>:\n    1f50:\tendbr64\n    1f54:\tpush   %r15\n    1f56:\tpush   %r14\n    1f58:\tpush   %r13\n    1f5a:\tpush   %r12\n    1f5c:\tpush   %rbp\n    1f5d:\tpush   %rbx\n    1f5e:\tsub    $0x28,%rsp\n    1f62:\tmov    0x20(%rdi),%rax\n    1f66:\tmov    0x2c(%rdi),%esi\n    1f69:\tmov    0x28(%rdi),%r14d\n    1f6d:\tmov    0x18(%rdi),%rbx\n    1f71:\tmov    0x8(%rdi),%rbp\n    1f75:\tmov    (%rdi),%r12\n    1f78:\tmov    %rax,0x10(%rsp)\n    1f7d:\tmov    0x10(%rdi),%rax\n    1f81:\ttest   %esi,%esi\n    1f83:\tmov    %esi,(%rsp)\n    1f86:\tmov    %rax,0x18(%rsp)\n    1f8b:\tje     2098 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x148>\n    1f91:\ttest   %r14d,%r14d\n    1f94:\tje     2098 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x148>\n    1f9a:\tcall   1240 <omp_get_num_threads@plt>\n    1f9f:\tmov    %eax,%r13d\n    1fa2:\tcall   1220 <omp_get_thread_num@plt>\n    1fa7:\txor    %edx,%edx\n    1fa9:\tmov    (%rsp),%esi\n    1fac:\tmov    %eax,%r15d\n    1faf:\tmov    %r14d,%eax\n    1fb2:\tdiv    %r13d\n    1fb5:\tmov    %r15d,%r9d\n    1fb8:\tcmp    %edx,%r15d\n    1fbb:\tmov    %edx,%edi\n    1fbd:\tadc    $0x0,%eax\n    1fc0:\txor    %ecx,%ecx\n    1fc2:\tmov    %eax,%r14d\n    1fc5:\tmov    %eax,%r8d\n    1fc8:\tlea    -0x1(%rax),%eax\n    1fcb:\timul   %r15d,%r14d\n    1fcf:\tlea    0x4(,%rax,4),%r13\n    1fd7:\tmov    %r14d,%edx\n    1fda:\tjmp    1fea <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x9a>\n    1fdc:\tnopl   0x0(%rax)\n    1fe0:\tinc    %ecx\n    1fe2:\tcmp    %ecx,%esi\n    1fe4:\tje     2098 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x148>\n    1fea:\txor    %r10d,%r10d\n    1fed:\tcmp    %edi,%r9d\n    1ff0:\tcmovae %edi,%r10d\n    1ff4:\tadd    %edx,%r10d\n    1ff7:\tlea    (%r8,%r10,1),%eax\n    1ffb:\tcmp    %eax,%r10d\n    1ffe:\tjae    1fe0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x90>\n    2000:\tmov    0x18(%rsp),%r11\n    2005:\tmov    %r10d,%eax\n    2008:\tinc    %r10d\n    200b:\tmov    %r8d,(%rsp)\n    200f:\tmov    %esi,0x4(%rsp)\n    2013:\tmov    %r9d,0x8(%rsp)\n    2018:\tmov    %edx,0xc(%rsp)\n    201c:\tlea    (%r11,%r10,4),%r14\n    2020:\tlea    (%r11,%rax,4),%r15\n    2024:\tmov    0x10(%rsp),%r11\n    2029:\txor    %r10d,%r10d\n    202c:\tlea    (%r11,%rax,8),%r11\n    2030:\tmov    (%r15,%r10,1),%eax\n    2034:\tmov    (%r14,%r10,1),%esi\n    2038:\tcmp    %esi,%eax\n    203a:\tjae    20b0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x160>\n    203c:\tdec    %esi\n    203e:\tlea    0x0(%rbp,%rax,4),%r9\n    2043:\tlea    (%r12,%rax,8),%r8\n    2047:\tvxorpd %xmm1,%xmm1,%xmm1\n    204b:\tsub    %eax,%esi\n    204d:\txor    %eax,%eax\n    204f:\tnop\n    2050:\tmov    (%r9,%rax,4),%edx\n    2054:\tvmovsd (%rbx,%rdx,8),%xmm0\n    2059:\tmov    %rax,%rdx\n    205c:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    2062:\tinc    %rax\n    2065:\tvaddsd %xmm0,%xmm1,%xmm1\n    2069:\tcmp    %rsi,%rdx\n    206c:\tjne    2050 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x100>\n    206e:\tvmovsd %xmm1,(%r11,%r10,2)\n    2074:\tadd    $0x4,%r10\n    2078:\tcmp    %r10,%r13\n    207b:\tjne    2030 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0xe0>\n    207d:\tmov    0x4(%rsp),%esi\n    2081:\tinc    %ecx\n    2083:\tmov    (%rsp),%r8d\n    2087:\tmov    0x8(%rsp),%r9d\n    208c:\tmov    0xc(%rsp),%edx\n    2090:\tcmp    %ecx,%esi\n    2092:\tjne    1fea <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x9a>\n    2098:\tadd    $0x28,%rsp\n    209c:\tpop    %rbx\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20260805-120633/spmv_gpt-5.6-terra-xhigh_omp_r3",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "staged_source_sha256": "573e6a7a9cfc2b0617fa43c62b33d78eb0b165675d54548231297ffeb8c1595d"
+      },
+      "binary_sha256": "571d86d151c1dd21b3bd56bb1b2875b87d24c0c0d3d7ee3c75e2d85610b39eb3",
+      "binding_sha256": "f7f8246817ca4f1fd72124f0a46a8503d70778be58ffd64e372f74e61900d2b1"
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each OpenMP worker repeatedly computes its fixed nonzero-balanced row range. The monotone partitions cover all rows, and compilation preserves the complete dot products within the repetition loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              291,
+              310
+            ],
+            [
+              320,
+              341
+            ],
+            [
+              402,
+              408
+            ],
+            [
+              464,
+              496
+            ]
+          ],
+          "claim": "CLI count bounds complete products on disjoint, collectively exhaustive row ranges.",
+          "sha256": "c4d7f23c83754fd3ba9480569192a0ec1366e766eb36b69af0889592ffd7cf8f",
+          "git_blob": "e0154af35c6cc5a12385c253c66a212c0fb47854"
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "claim": "Worker 0x2660-0x267c computes each dot product; 0x268d-0x2692 repeats all assigned rows up to the requested count.",
+          "complete_dump_sha256": "f29b416e681dcb67b9a870b6e0374e47654929cbeea79383abc86c35951c01a4",
+          "inspection_command": [
+            "objdump",
+            "-d",
+            "-C",
+            "--no-show-raw-insn",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5-cc-medium_omp_r4/spmv"
+          ],
+          "excerpts": [
+            {
+              "first_line": 1309,
+              "last_line": 1397,
+              "text": "00000000000025a0 <main._omp_fn.0>:\n    25a0:\tendbr64\n    25a4:\tpush   %r15\n    25a6:\tpush   %r14\n    25a8:\tpush   %r13\n    25aa:\tpush   %r12\n    25ac:\tpush   %rbp\n    25ad:\tpush   %rbx\n    25ae:\tmov    %rdi,%rbx\n    25b1:\tsub    $0x8,%rsp\n    25b5:\tmov    0x30(%rdi),%r13d\n    25b9:\tcall   13a0 <omp_get_thread_num@plt>\n    25be:\tmov    0x28(%rbx),%rdx\n    25c2:\tcltq\n    25c4:\tshl    $0x2,%rax\n    25c8:\tmov    (%rdx),%rcx\n    25cb:\tmov    (%rcx,%rax,1),%edx\n    25ce:\tmov    0x4(%rcx,%rax,1),%eax\n    25d2:\ttest   %r13d,%r13d\n    25d5:\tje     2694 <main._omp_fn.0+0xf4>\n    25db:\tmov    0x20(%rbx),%rcx\n    25df:\tmov    0x8(%rbx),%r8\n    25e3:\tmov    (%rcx),%rsi\n    25e6:\tmov    0x18(%rbx),%rcx\n    25ea:\tmov    (%r8),%r12\n    25ed:\tmov    (%rbx),%r8\n    25f0:\tmov    (%rcx),%rdi\n    25f3:\tmov    0x10(%rbx),%rcx\n    25f7:\tmov    (%r8),%rbp\n    25fa:\tmov    (%rcx),%rcx\n    25fd:\tcmp    %eax,%edx\n    25ff:\tjae    2694 <main._omp_fn.0+0xf4>\n    2605:\tsub    %edx,%eax\n    2607:\tlea    0x0(,%rax,4),%r9\n    260f:\tmov    %edx,%eax\n    2611:\tinc    %edx\n    2613:\tlea    (%rcx,%rax,4),%rbx\n    2617:\tlea    (%rcx,%rdx,4),%r11\n    261b:\tlea    (%rsi,%rax,8),%r10\n    261f:\txor    %ecx,%ecx\n    2621:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    262c:\tnopl   0x0(%rax)\n    2630:\txor    %r14d,%r14d\n    2633:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    263e:\txchg   %ax,%ax\n    2640:\tmov    (%rbx,%r14,1),%eax\n    2644:\tmov    (%r11,%r14,1),%edx\n    2648:\tcmp    %edx,%eax\n    264a:\tjae    26b0 <main._omp_fn.0+0x110>\n    264c:\tdec    %edx\n    264e:\tlea    (%r12,%rax,4),%r8\n    2652:\tlea    0x0(%rbp,%rax,8),%rsi\n    2657:\tvxorpd %xmm1,%xmm1,%xmm1\n    265b:\tsub    %eax,%edx\n    265d:\txor    %eax,%eax\n    265f:\tnop\n    2660:\tmov    (%r8,%rax,4),%r15d\n    2664:\tvmovsd (%rdi,%r15,8),%xmm0\n    266a:\tmov    %rax,%r15\n    266d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    2672:\tinc    %rax\n    2675:\tvaddsd %xmm0,%xmm1,%xmm1\n    2679:\tcmp    %r15,%rdx\n    267c:\tjne    2660 <main._omp_fn.0+0xc0>\n    267e:\tvmovsd %xmm1,(%r10,%r14,2)\n    2684:\tadd    $0x4,%r14\n    2688:\tcmp    %r14,%r9\n    268b:\tjne    2640 <main._omp_fn.0+0xa0>\n    268d:\tinc    %ecx\n    268f:\tcmp    %ecx,%r13d\n    2692:\tjne    2630 <main._omp_fn.0+0x90>\n    2694:\tadd    $0x8,%rsp\n    2698:\tpop    %rbx\n    2699:\tpop    %rbp\n    269a:\tpop    %r12\n    269c:\tpop    %r13\n    269e:\tpop    %r14\n    26a0:\tpop    %r15\n    26a2:\tret\n    26a3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    26ae:\txchg   %ax,%ax\n    26b0:\tvxorpd %xmm1,%xmm1,%xmm1\n    26b4:\tvmovsd %xmm1,(%r10,%r14,2)\n    26ba:\tadd    $0x4,%r14\n    26be:\tcmp    %r14,%r9\n    26c1:\tjne    2640 <main._omp_fn.0+0xa0>\n    26c7:\tjmp    268d <main._omp_fn.0+0xed>\n    26c9:\tnopl   0x0(%rax)\n\n"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "source_path": "20260901-162328/spmv_claude-opus-5-cc-medium_omp_r4",
+        "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+        "staged_source_sha256": "b7b57a15bac1213de5186840fdf52aefe8b5871a23aead62e857792c74fbd2de"
+      },
+      "binary_sha256": "f4c82f193695e90ba869b86de5c24e7bc94b35d5467c1df4dcc6f76dbec1862f",
+      "binding_sha256": "275f85246a20d8c0d52fd8eeb9629416c277bf0539525221c051373978a2361f"
+    }
+  ],
+  "schema_version": 1,
+  "phase": "spmv-work-count-pilot",
+  "saved_at": "2026-11-04T07:25:24Z",
+  "preparation_sha256": "2edaadfe293b239637c32fe8c1e77ec4a7bdf3cfd8cfee989ff578db08926107",
+  "review_input_sha256": "5d6f3f369c9036e30654fde7e6a923e685c8783dc229565e39e98b99598c7b1d",
+  "estimate": {
+    "review_seconds": 536.0,
+    "reviewed_implementations": 12,
+    "population": 722,
+    "remaining_implementations": 710,
+    "projected_full_review_hours": 8.958148148148148,
+    "projected_remaining_review_hours": 8.809259259259258,
+    "conservative_remaining_review_hours": 13.213888888888889,
+    "method": "Linear extrapolation of complete source/compiled-code inspection, with a 1.5x conservative allowance. Not a statistical confidence interval; the pilot deliberately includes large implementations.",
+    "approval_required": true
+  },
+  "status": "pilot_complete_awaiting_full_review_approval",
+  "new_failures": [
+
+  ],
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "release_changes": 0,
+  "interpretation": "A bounded static review of the selected sources and bound validation executables, not an automatic validation verdict or proof for every possible input/compiler. Original measurement binaries were not assumed identical. The remainder of the population has not been reviewed for work count."
+}

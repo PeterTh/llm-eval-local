@@ -1,0 +1,41 @@
+{
+  "id": "unstructured_beam-1.0-oc-medium_mpi_r1",
+  "case_id": "unstructured-shape-mpi128-v1",
+  "source_commit": "cbe8dcd9a86fdc63b7c5f62980956f015725ccfc",
+  "original_source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+  "source_path": "20261025-170121/unstructured_beam-1.0-oc-medium_mpi_r1",
+  "result_sha256": "fa1f8aa4a8a033e50209c6df1f3d4cb5ac39a33187ec4e99f8d690555c8a0577",
+  "observed_failure": "Supplemental correctness execution failed: exit 134, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 134,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "736116eabf6b8da40890b21ad81c2199f690fb9d0a51e1af01046cf838a75bcc",
+  "source_lines": [
+    60,
+    61,
+    62,
+    63,
+    64,
+    71,
+    72,
+    73,
+    74
+  ],
+  "finding": "Ceiling partitioning uses rows_per=(n+world_size-1)/world_size and local_nx=min(rank*rows_per+rows_per,n)-rank*rows_per without clamping an empty range to zero. At n=257 and 128 ranks, rows_per=3; rank 86 starts at 258 and gets local_nx=-1. Passing local_nx*n to vector::assign converts the negative count to an enormous unsigned size, matching the retained std::length_error abort.",
+  "interpretation": "The failure follows directly from rank arithmetic before simulation and is independent of concurrent scheduling or memory pressure. The paired r3 observation passed. Retain the failed result and resume only the remaining unchecked observations.",
+  "timing_correction_check": "The original-to-effective diff adds only MPI_Allreduce(MPI_MAX) for the duration after the final gather; the invalid partition/allocation code is unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static original/effective-source comparison and retained correctness output; no new program execution."
+}

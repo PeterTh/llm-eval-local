@@ -1,0 +1,42 @@
+{
+  "id": "roomsim_gpt-6-sol-medium_cuda_r1",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+  "original_source_commit": null,
+  "source_path": "20260929-135931/roomsim_gpt-6-sol-medium_cuda_r1",
+  "result_sha256": "3f25d2e519049500cada2f3d045dcac143bd6f89a87af78d985acf0ef98b7e1d",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.70300000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 7375,
+    "overall_score": 8
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "fb2d542ec2b76a8fc8186c0729c80600b12e31489a49885eb14baa9966062704",
+  "source_lines": [
+    627,
+    628,
+    629,
+    630,
+    631,
+    701,
+    702,
+    703,
+    704,
+    705,
+    708
+  ],
+  "finding": "Uses per-pair xorshift states initialized by hashing pair_index XOR 0x9e3779b9, instead of the input's sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, the exclusive execution and internal validation pass but the unchanged external comparator rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition is based on this numerical failure, not a floating hash mismatch or a changed random generator alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection of exact generated source and frozen sequential sampling method, plus retained exclusive correctness output; no new program execution."
+}

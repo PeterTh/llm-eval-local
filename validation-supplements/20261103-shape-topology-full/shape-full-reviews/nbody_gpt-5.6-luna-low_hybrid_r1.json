@@ -1,0 +1,48 @@
+{
+  "id": "nbody_gpt-5.6-luna-low_hybrid_r1",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260805-120633/nbody_gpt-5.6-luna-low_hybrid_r1",
+  "result_sha256": "a47859572c0109daf48a2df531d733b0d513380662d94a9af2d4fb965a4f4a8e",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 3.00021548081893457e+01'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 2917,
+    "overall_score": 7
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "af24cbe1f6d9edcca39dcedea911ef6b9cad02f984815e4ab2eb67f087154b23",
+  "source_lines": [
+    19,
+    20,
+    21,
+    23,
+    24,
+    25,
+    26,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    94,
+    103,
+    104,
+    105
+  ],
+  "finding": "The fused CUDA step reads every body's position and writes new positions to the same global array without any synchronization across the reading and writing threads. A thread/block that finishes force accumulation early can overwrite positions still being read by other threads/blocks. At n=1031 each rank has a partial second CUDA block, exposing the pre-existing read/write race.",
+  "interpretation": "Pre-existing CUDA correctness defect. Exclusive execution and internal finite-value validation succeed, but independent numerical validation fails. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

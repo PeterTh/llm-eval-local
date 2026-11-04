@@ -1,0 +1,47 @@
+{
+  "id": "roomsim_qwen-3.6-27B-udq4_mpi_r5",
+  "case_id": "roomsim-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260507-154026/roomsim_qwen-3.6-27B-udq4_mpi_r5",
+  "result_sha256": "304ca6fb44c53f937087ecc865e37b95b073f2cedeab90c137c10e976baecc92",
+  "observed_failure": "Supplemental correctness execution failed: exit 15, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 15,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 6295,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "37d32837809265d139713a7d4d89bfa6d46987c6ba970bf8d1ca46d5823f99ed",
+  "source_lines": [
+    53,
+    55,
+    57,
+    58,
+    59,
+    60,
+    643,
+    644,
+    645,
+    648,
+    658,
+    685,
+    686,
+    687,
+    690
+  ],
+  "finding": "When constructing every rank's Allgatherv counts, the loop calls LocalRange(count), which always uses the calling process's rank, rather than the loop variable r. With 320 rows and 128 ranks, ranks 0-63 own three rows and ranks 64-127 own two. Rank 64 therefore expects two rows from senders that send three, matching the retained MPI_ERR_TRUNCATE report from rank 64. Counts/displacements also overstate the global extent on three-row receivers.",
+  "interpretation": "Confirmed pre-existing uneven-partition collective-count defect in exclusive validation. Retain failed external validation without retry or source changes.",
+  "timing_correction_check": "The original-to-corrected source diff only adds a maximum-rank total-duration reduction; partitioning and numerical computation are unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive MPI error output; no new program execution."
+}

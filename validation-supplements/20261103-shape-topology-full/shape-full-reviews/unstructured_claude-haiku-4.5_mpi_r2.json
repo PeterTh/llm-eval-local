@@ -1,0 +1,40 @@
+{
+  "id": "unstructured_claude-haiku-4.5_mpi_r2",
+  "case_id": "unstructured-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/unstructured_claude-haiku-4.5_mpi_r2",
+  "result_sha256": "1f4c263ce5987b309c0a1657740738358e2a3f22a6f2c017ccda0d1871fdd442",
+  "observed_failure": "Supplemental correctness execution failed: exit 134, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 134,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "94e92a50ca6bfdabcf038e930cc4f9cdc86075a58eb36f056f163d3ed62a6033",
+  "source_lines": [
+    75,
+    76,
+    77,
+    78,
+    81,
+    82,
+    84,
+    85,
+    86
+  ],
+  "finding": "Ceiling row partitioning does not clamp an empty rank's range. For n=257 and 128 ranks, rows_per_rank=3; rank 86 has start=258, end=257, local_rows=-1 and local_n_elems=-257. vector::resize converts this negative count to an enormous unsigned size, producing the retained std::length_error.",
+  "interpretation": "This invalid allocation follows directly from the program's partition arithmetic, independent of concurrent scheduling. The paired Fable observation passed. Retain the failed result without retrying it.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained correctness output; no new program execution."
+}

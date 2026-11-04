@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "case": {
+    "id": "cahn-hilliard-shape-mpi128-v2",
+    "benchmark": "cahn-hilliard",
+    "args": [
+      "-v",
+      "-r",
+      "-x",
+      "129",
+      "-y",
+      "131",
+      "-z",
+      "257",
+      "-i",
+      "21"
+    ],
+    "topology": "measurement",
+    "timeout": 30
+  },
+  "record_count": 1,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Yes, launch this sweep"
+  },
+  "reference": {
+    "stdout": "Cahn-Hilliard Phase Separation Benchmark\nGrid size: 129 x 131 x 257\nTime steps: 21\nValidation: enabled\nInitializing concentration field...\nRunning Cahn-Hilliard simulation...\nComputation time: 566 ms\nPerformance: 161.138 MCellUpdates/s\n=== RESULTS ===\nName: Concentration\nElements: 4343043\nSum: -9.99999999999967137e-01\nMin: -5.05031487057713724e-01\nMax: 5.04569883436838729e-01\nSample[0]: -4.12459361135382035e-02\nSample[1085760]: -5.37023744230196651e-02\nSample[2171521]: -8.64422343190828987e-03\nSample[3257282]: 1.41344903590356369e-01\nSample[4343042]: -4.89598661325732931e-01\nHash: d74d9375c1046893\n=== END RESULTS ===\nValidating result...\nConcentration range: [-0.505031, 0.504570]\nValidation: PASSED\n",
+    "stdout_sha256": "61eb26d225493b4a1d19eb346bb56ec3900d20d728a9b425028c4814a19f79a8"
+  },
+  "records": [
+    {
+      "id": "cahn-hilliard_claude-sonnet-4.5_mpi_r5",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/cahn-hilliard_claude-sonnet-4.5_mpi_r5",
+      "validation_record": {
+        "path": "data/validation/records/cahn-hilliard/mpi.jsonl",
+        "line": 15,
+        "line_sha256": "cc244a7ccbd67f171bbe45c78c979618aacf323b12d3a70bc2d03247e1d05949"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "cahn-hilliard-shape-mpi128-v2",
+      "result": {
+        "id": "cahn-hilliard_claude-sonnet-4.5_mpi_r5",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/cahn-hilliard_claude-sonnet-4.5_mpi_r5",
+        "definition": {
+          "id": "cahn-hilliard-shape-mpi128-v2",
+          "benchmark": "cahn-hilliard",
+          "args": [
+            "-v",
+            "-r",
+            "-x",
+            "129",
+            "-y",
+            "131",
+            "-z",
+            "257",
+            "-i",
+            "21"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "6f5d22cd0ab0abb48334400347a4e480f883ea8710ce6977953741973b8245d4",
+        "execution": {
+          "success": false,
+          "exit_code": 1,
+          "timed_out": false,
+          "wall_seconds": 22.05525417625904,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/cahn-hilliard_claude-sonnet-4.5_mpi_r5/cahn_hilliard",
+            "-v",
+            "-r",
+            "-x",
+            "129",
+            "-y",
+            "131",
+            "-z",
+            "257",
+            "-i",
+            "21"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-419295-e2531a92dc98"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental correctness execution failed: exit 1, timeout false."
+        ],
+        "passed": false,
+        "reference_sha256": "61eb26d225493b4a1d19eb346bb56ec3900d20d728a9b425028c4814a19f79a8",
+        "output_sha256": "00ba0ae39a58fa31d67bab0600918dbacf5da804fb103adae785bb83ee699b39",
+        "checked_at": "2026-11-03T20:34:55Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "087ab2fdf9ac6cf23a8446467675fd2807b16587bb107a4a8035e3cbaa792449",
+      "stdout": "Error: Z dimension (257) must be divisible by number of MPI ranks (128)\n"
+    }
+  ]
+}

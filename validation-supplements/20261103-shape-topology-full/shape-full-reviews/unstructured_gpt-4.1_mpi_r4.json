@@ -1,0 +1,38 @@
+{
+  "id": "unstructured_gpt-4.1_mpi_r4",
+  "case_id": "unstructured-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/unstructured_gpt-4.1_mpi_r4",
+  "result_sha256": "4da8dda1fdac51089a95b3a4cd73e950b4ea6dee048c8d5056cf0f0f362e22be",
+  "observed_failure": "Supplemental correctness execution failed: exit 15, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 15,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "e8ba3eaa037ae7c233e6ac6509489a009fd54607ab0fad7ae0a0b7fdbb096d54",
+  "source_lines": [
+    263,
+    264,
+    265,
+    266,
+    267,
+    303,
+    304
+  ],
+  "finding": "Remainder-aware partitioning gives rank 0 517 elements and the other ranks 516 at n=257 with 128 ranks, but fixed-count MPI_Allgather uses each rank's local count as its receive count for every sender. Rank 0 sends 8272 bytes while rank 1 expects 8256, matching the retained MPI_ERR_TRUNCATE on rank 1.",
+  "interpretation": "This collective count mismatch is a deterministic source defect independent of concurrent scheduling. Preserve this observation's failed result without retrying it.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Independent static source inspection and retained correctness output; no new program execution."
+}

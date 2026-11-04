@@ -1,0 +1,38 @@
+{
+  "id": "floydwarshall_claude-haiku-4.5_mpi_r1",
+  "case_id": "floydwarshall-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/floydwarshall_claude-haiku-4.5_mpi_r1",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "b8cfb1f1db33e6b68fd6065fd85b1fe960667ff7bdbb003abb732ad27d74815e",
+  "source_lines": [
+    53,
+    54,
+    55,
+    56,
+    62,
+    63,
+    64,
+    65,
+    90,
+    96,
+    120,
+    121,
+    122
+  ],
+  "finding": "Ceiling-sized five-row partitions at n=513, 128 ranks are not clamped to empty when start_row exceeds n. Ranks 103 through 127 compute unsigned local_rows=n-start_row, which underflows, then construct local_col_k with an impossible length. The receive-count calculation repeats the same defect.",
+  "observed_failure": "Multiple ranks throw std::length_error: cannot create std::vector larger than max_size(), and the job exits 134. The paired Fable r5 case passes in 19.61 seconds.",
+  "interpretation": "Deterministic empty-partition underflow, not resource pressure or timeout. The effective-source change is only maximum-rank timing reporting. Retain failed external validation without retry.",
+  "result_sha256": "1e116f2a51fb9df376d1ba51159c44f0d4bbadcfbb749204f73e5add5cca3f1e",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 16661,
+    "overall_score": 6
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection, original/effective diff and retained validation output; no new program execution."
+}

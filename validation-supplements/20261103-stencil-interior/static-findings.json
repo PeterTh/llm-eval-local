@@ -1,0 +1,29 @@
+{
+  "case_id": "stencil-interior-v1",
+  "records": [
+    {
+      "id": "stencil3d_claude-sonnet-4.5_hybrid_r4",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260215-162417/stencil3d_claude-sonnet-4.5_hybrid_r4",
+      "file": "stencil3d/stencil3d.cpp",
+      "source_lines": [265, 268],
+      "finding": "The Z decomposition sets z_start = rank * base + min(rank, remainder), then adds rank again when rank < remainder. For 67 planes on four ranks the correct starts are 0,17,34,51 but initialization uses 0,18,36,51. The gathered output therefore contains values evolved from incorrectly positioned initial planes. The standard 64-plane case has no remainder and misses this error.",
+      "observed_failure": "The unchanged numerical comparator rejects the grid sum: reference 2390932.6307430244 versus 2390955.2924434263. Execution and the original internal validation both pass.",
+      "disposition": "failed_external_validation",
+      "program_changed": false,
+      "performance_rerun_required": false
+    },
+    {
+      "id": "stencil3d_gpt-5.6-luna-medium_mpi_r2",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/stencil3d_gpt-5.6-luna-medium_mpi_r2",
+      "file": "stencil3d/stencil3d.cpp",
+      "source_lines": [194, 204],
+      "finding": "Each iteration swaps grid1 and grid2, so grid1 always holds the latest result. The final gather nevertheless selects grid2 when the iteration count is odd, returning the preceding iteration. The standard 20-iteration case selects grid1 and hides this error; the new 21-iteration case selects the stale buffer.",
+      "observed_failure": "The unchanged numerical comparator rejects the grid sum: reference 2390932.6307430244 versus 2390931.6686490946. Execution and the original internal validation both pass.",
+      "disposition": "failed_external_validation",
+      "program_changed": false,
+      "performance_rerun_required": false
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "id": "roomsim_gpt-5.6-luna-low_cuda_r4",
+  "case_id": "roomsim-shape-topology-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260805-120633/roomsim_gpt-5.6-luna-low_cuda_r4",
+  "result_sha256": "80f1c430c9ce9d48d6d0147079261327dae408f9d50df60e1f248e55bed3ba30",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71300000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 35835,
+    "overall_score": 6
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "3df6c48ef0e383051ddb41100733ab1f52cdeefe4d7e273e43e0742082c29550",
+  "source_lines": [
+    116,
+    128,
+    129
+  ],
+  "finding": "Generates endpoint samples with integer hash functions of pair and ray indices, rather than consuming the input's single sequential MT19937 stream. This changes sampled form factors and is consistent with the final-distance discrepancy, but has not been established as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7, the exclusive execution and internal validation pass but the unchanged external comparator rejects the distance sum: absolute error exceeds the existing Roomsim tolerance of 50. Disposition is based on this numerical failure, not a floating hash mismatch or a changed random generator alone.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection of exact generated source and frozen sequential sampling method, plus retained exclusive correctness output; no new program execution."
+}

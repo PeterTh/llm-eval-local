@@ -1,0 +1,173 @@
+{
+  "schema_version": 2,
+  "case": {
+    "id": "matmul-shape-mpi128-v1",
+    "benchmark": "matmul",
+    "args": [
+      "-v",
+      "-r",
+      "-n",
+      "513"
+    ],
+    "topology": "measurement",
+    "timeout": 30
+  },
+  "record_count": 2,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Yes, launch this sweep"
+  },
+  "reference": {
+    "stdout": "Matrix Multiplication Benchmark\nMatrix size: 513 x 513\nValidation: enabled\nInitializing matrices...\nComputing matrix multiplication...\nComputation time: 201 ms\nPerformance: 1.343 GFLOPS\n=== RESULTS ===\nName: MatrixC\nElements: 263169\nSum: 3.37533397805934623e+07\nMin: 1.10760312939485317e+02\nMax: 1.76009133300994307e+02\nSample[0]: 1.24687580984082530e+02\nSample[65792]: 1.28401267614654699e+02\nSample[131584]: 1.29280937912321434e+02\nSample[197376]: 1.31331876831834791e+02\nSample[263168]: 1.32801791497732069e+02\nHash: 6c38175eab73149c\n=== END RESULTS ===\nValidating result...\nValidation: PASSED\n",
+    "stdout_sha256": "ccefa379d59da7f2ac84eca2401edaaa83944b49e4d4d4d0aff681d6c4b730c6"
+  },
+  "records": [
+    {
+      "id": "matmul_claude-haiku-4.5_mpi_r5",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/matmul_claude-haiku-4.5_mpi_r5",
+      "validation_record": {
+        "path": "data/validation/records/matmul/mpi.jsonl",
+        "line": 5,
+        "line_sha256": "4ec8ac1bcda4a360c10a8360cda04678c3587a487708a6d70751a2105c541511"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "matmul-shape-mpi128-v1",
+      "result": {
+        "id": "matmul_claude-haiku-4.5_mpi_r5",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/matmul_claude-haiku-4.5_mpi_r5",
+        "definition": {
+          "id": "matmul-shape-mpi128-v1",
+          "benchmark": "matmul",
+          "args": [
+            "-v",
+            "-r",
+            "-n",
+            "513"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "511954e97ebe614cfda204a874b6d434f4ab96c26aabd3128768a5576de34ffa",
+        "execution": {
+          "success": false,
+          "exit_code": 2,
+          "timed_out": false,
+          "wall_seconds": 20.68290239572525,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/matmul_claude-haiku-4.5_mpi_r5/matmul",
+            "-v",
+            "-r",
+            "-n",
+            "513"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-900551-4e54435f2e25"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental correctness execution failed: exit 2, timeout false."
+        ],
+        "passed": false,
+        "reference_sha256": "ccefa379d59da7f2ac84eca2401edaaa83944b49e4d4d4d0aff681d6c4b730c6",
+        "output_sha256": "e398b47f910ab8d1e2c815106709c663282d389e2dafcdf1410471fecbe51717",
+        "checked_at": "2026-11-04T00:17:13Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "a4ace6cebfed6baf16184a8f71fec3f71e293784e47bc312a2c47926b6d0fabe",
+      "stdout": "Matrix Multiplication Benchmark (MPI)\nMatrix size: 513 x 513\nNumber of processes: 128\nValidation: enabled\nInitializing matrices...\nComputing matrix multiplication...\n"
+    },
+    {
+      "id": "matmul_gpt-6-luna-oc-medium_mpi_r4",
+      "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+      "source_path": "20261018-224015/matmul_gpt-6-luna-oc-medium_mpi_r4",
+      "validation_record": {
+        "path": "batches/20261018-224015/validation/records.jsonl",
+        "line": 94,
+        "line_sha256": "fe3c682fc59e18d944558de547983887109698ffe8aad8d248b46ea1470b17a8"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "matmul-shape-mpi128-v1",
+      "result": {
+        "id": "matmul_gpt-6-luna-oc-medium_mpi_r4",
+        "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+        "source_path": "20261018-224015/matmul_gpt-6-luna-oc-medium_mpi_r4",
+        "definition": {
+          "id": "matmul-shape-mpi128-v1",
+          "benchmark": "matmul",
+          "args": [
+            "-v",
+            "-r",
+            "-n",
+            "513"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "58be2f3523e8e914dcd9b87c2903bd4cba79fb6c64f7a8bfbebe9e602d26157f",
+        "execution": {
+          "success": false,
+          "exit_code": 1,
+          "timed_out": false,
+          "wall_seconds": 21.58078627102077,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/matmul_gpt-6-luna-oc-medium_mpi_r4/matmul",
+            "-v",
+            "-r",
+            "-n",
+            "513"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-982186-d162806b62d3"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental correctness execution failed: exit 1, timeout false."
+        ],
+        "passed": false,
+        "reference_sha256": "ccefa379d59da7f2ac84eca2401edaaa83944b49e4d4d4d0aff681d6c4b730c6",
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "checked_at": "2026-11-04T00:42:21Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "bed4b22e12d91037d63974b1ce3c9dca513bdfbdec3af73d782c79b72b1d9f93",
+      "stdout": ""
+    }
+  ]
+}

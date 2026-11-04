@@ -138,9 +138,16 @@ export function MethodologyView() {
               <li><strong>Internal validation</strong><span>The benchmark’s own correctness and sanity checks must pass.</span></li>
               <li><strong>Output comparison</strong><span>Exported results are compared with a known-good sequential reference.</span></li>
             </ol>
-            <p>Unstructured MPI and hybrid programs must also pass a boundary-crossing case
-              with a 32×32 grid and 512 iterations on four ranks. Both cases use the unchanged
-              sequential reference and numerical comparison; result hashes are informational.</p>
+            <p>External validation also checks odd and non-divisible problem sizes, remainder and
+              boundary handling, and execution with the benchmark resource topology. Selected larger
+              inputs exercise size-dependent OpenMP paths. Stencil checks sample interior values;
+              Unstructured MPI and hybrid checks include a 32×32 grid with 512 iterations on four ranks.</p>
+            <p>All cases use unchanged generated programs and sequential references. Floyd–Warshall
+              also requires an exact hash match for its integer distance matrix. Floating-point hashes
+              remain informational; numerical comparisons use the established tolerances. A failed
+              supplemental correctness check is classified as failed external validation, including
+              when it invalidates an earlier pass. Historical measurements remain available as evidence
+              but are excluded from performance comparisons.</p>
             <p>Only programs passing output comparison are eligible for performance benchmarking.</p>
           </section>
 
@@ -154,7 +161,7 @@ export function MethodologyView() {
             </p>
             <div className="table-scroll methodology-resource-table">
               <table>
-                <caption>Resource profiles used by validation and performance benchmarking</caption>
+                <caption>Base validation and performance resource profiles</caption>
                 <thead><tr><th scope="col">Phase</th><th scope="col">Backend</th><th scope="col">Effective resources</th></tr></thead>
                 <tbody>
                   {system.resourceProfiles.map((profile) => (
@@ -167,6 +174,9 @@ export function MethodologyView() {
                 </tbody>
               </table>
             </div>
+            <p>Shape and topology validation uses the performance resource profiles, including
+              128 MPI ranks or four ranks with 32 threads each for hybrid programs. These are
+              correctness checks, not additional performance measurements.</p>
             <details className="toolchain-record">
               <summary>Recorded toolchain</summary>
               <dl>
@@ -215,7 +225,7 @@ export function MethodologyView() {
                   <tr><th scope="row">1</th><td>Parallelization was detected; the build did not pass.</td></tr>
                   <tr><th scope="row">2</th><td>The build passed; validation execution did not pass.</td></tr>
                   <tr><th scope="row">3</th><td>Execution passed; internal validation did not pass.</td></tr>
-                  <tr><th scope="row">4</th><td>Internal validation passed; output comparison did not pass.</td></tr>
+                  <tr><th scope="row">4</th><td>Failed external validation: output comparison or a supplemental correctness check did not pass.</td></tr>
                   <tr><th scope="row">5</th><td>Output comparison passed, but no successful performance result is available.</td></tr>
                   <tr><th scope="row">6</th><td>The benchmark completed outside the reviewed performance thresholds.</td></tr>
                   <tr><th scope="row">7–9</th><td>The median time met the cell’s reviewed good, great, or top threshold.</td></tr>

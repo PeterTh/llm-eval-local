@@ -23,7 +23,8 @@ SHA-256 digest.
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
 - all 8,580 current validation outcomes and scoped revalidations, including exact execution output;
-- all 7,615 current benchmark outcomes (7,174 successful), measured values and wall times;
+- original benchmark outcomes, measured values and wall times, including results now excluded by external validation;
+- the current eligible view: 7,440 validated programs and 7,032 successful measurements;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
 - static MPI/hybrid timing audits, all-backend QT boundary audits,
   1,263 timing-fixed implementations, and scoped rerun comparisons;
@@ -78,23 +79,25 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 
 | Campaign | Programs | Fully validated | Successful benchmarks |
 | --- | ---: | ---: | ---: |
-| [Original model set](data/release_summary.yaml) | 4,620 | 3,819 | 3,482 |
-| [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 641 | 626 |
-| [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 608 | 587 |
+| [Original model set](data/release_summary.yaml) | 4,620 | 3,671 | 3,361 |
+| [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 636 | 623 |
+| [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 599 | 578 |
 | [Opus 5.5 Medium](batches/20261002-142720/README.md) | 220 | 219 | 219 |
 | [Sol 6.1 Medium and XHigh](batches/20261006-204623/README.md) | 440 | 439 | 439 |
 | [Haiku 5.5 Medium](batches/20261012-111947/README.md) | 220 | 219 | 219 |
-| [Sonnet 5.5 Medium](batches/20261014-212207/README.md) | 220 | 215 | 215 |
+| [Sonnet 5.5 Medium](batches/20261014-212207/README.md) | 220 | 214 | 214 |
 | [Sol 6.1 Medium in OpenCode](batches/20261017-192226/README.md) | 220 | 219 | 219 |
-| [Luna 6 Medium in OpenCode](batches/20261018-224015/README.md) | 220 | 181 | 149 |
-| [DeepSeek V4.1 Flash High in OpenCode](batches/20261019-134042/README.md) | 220 | 217 | 217 |
+| [Luna 6 Medium in OpenCode](batches/20261018-224015/README.md) | 220 | 175 | 145 |
+| [DeepSeek V4.1 Flash High in OpenCode](batches/20261019-134042/README.md) | 220 | 214 | 214 |
 | [Haiku 5.5 Medium in OpenCode](batches/20261025-170040/README.md) | 220 | 219 | 217 |
 | [Terra 6.1 Medium in Codex](batches/20261028-200951/README.md) | 220 | 220 | 220 |
-| [Beam 1.0 Medium in OpenCode](batches/20261025-170121/README.md) | 220 | 179 | 145 |
+| [Beam 1.0 Medium in OpenCode](batches/20261025-170121/README.md) | 220 | 176 | 144 |
 | [Terra 6.1 XHigh in Codex](batches/20261102-030935/README.md) | 220 | 220 | 220 |
 
-Counts include the [external Unstructured validation check](analysis/notes/2026-11-01-unstructured-boundary-validation.md);
-the original validation and measurement records remain retained.
+Counts include the [supplemental correctness checks](analysis/notes/2026-11-04-validation-strengthening.md)
+and [Unstructured boundary check](analysis/notes/2026-11-01-unstructured-boundary-validation.md).
+Original validation and measurement records remain retained; linked campaign summaries
+describe their archived observations, while the table gives current eligibility.
 
 All campaigns use the same reviewed benchmark sizes, iterations, timeouts and
 resource profiles, with one warm-up and five measurements. Campaign records and

@@ -1,0 +1,31 @@
+{
+  "id": "floydwarshall_gpt-4.1_mpi_r5",
+  "case_id": "floydwarshall-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/floydwarshall_gpt-4.1_mpi_r5",
+  "file": "floydwarshall/floydwarshall.cpp",
+  "source_sha256": "1e341615a48874b51c537fa467a6fa720f13c7649c11cef74852c27a0ba4b625",
+  "source_lines": [
+    53,
+    54,
+    55,
+    56,
+    70,
+    71,
+    72
+  ],
+  "finding": "MPI_Allgather uses a fixed receive block sized from each caller's own row count even though the remainder partition gives rank 0 five rows and all other ranks four. Rank 0 describes 128 five-row blocks, exceeding the n=513 matrix allocation, while other ranks expect four-row messages and reject the larger contribution. MPI_IN_PLACE also assumes a different equal-block layout from the actual uneven partitions.",
+  "observed_failure": "MPI_Allgather reports MPI_ERR_TRUNCATE, and another rank segfaults while unpacking the collective. The job terminates with exit 15.",
+  "interpretation": "Pre-existing unequal-count collective and buffer-layout defect, independent of concurrent scheduling. Retain failed external validation without retry.",
+  "result_sha256": "f0c162599d0448e5db445fec5290cf353f457f91091bb8baa646e93941ba591f",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained MPI error; no new program execution."
+}

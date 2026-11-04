@@ -1,0 +1,45 @@
+{
+  "id": "nbody_gpt-5.2-codex_hybrid_r5",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/nbody_gpt-5.2-codex_hybrid_r5",
+  "result_sha256": "4d2c01802ef2635368f644863f2a17ba5fe32fdfc60a2de9d5849038fe76dea0",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 4.14227332904072136e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 2855,
+    "overall_score": 7
+  },
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "b2017544dd9657d1c82bbf177965f2ba8fe54b7a0b0ccce737eabc391800d79b",
+  "source_lines": [
+    57,
+    58,
+    59,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    82,
+    84,
+    85,
+    86,
+    96
+  ],
+  "finding": "Threads with localIdx>=nLocal return before cooperative shared-memory source-tile loading. In a partial local output block, the valid lanes consequently read tile entries whose loader threads have already returned. The tileSize bound limits source indices but does not supply the missing loads.",
+  "interpretation": "Pre-existing partial-block CUDA loading defect exposed at n=1031. Exclusive execution and internal validation succeed, but independent numerical validation fails. Retain failed external validation without retry.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

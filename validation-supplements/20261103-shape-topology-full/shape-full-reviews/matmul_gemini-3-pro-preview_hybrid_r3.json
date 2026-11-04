@@ -1,0 +1,29 @@
+{
+  "id": "matmul_gemini-3-pro-preview_hybrid_r3",
+  "source_sha256": "d47bf6ca1379946b5b0eedafa02f421d1ab5f4b6cfdf30f9dec39a954144e0ab",
+  "source_lines": [
+    158,
+    159,
+    160,
+    161
+  ],
+  "result_sha256": "902bcc54d8de52340ed2799ffc5b40449f9d52f0bb079e4f4bad4315fba31869",
+  "case_id": "matmul-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/matmul_gemini-3-pro-preview_hybrid_r3",
+  "file": "matmul/matmul.cpp",
+  "finding": "The implementation explicitly requires N to be divisible by the MPI size, rejecting the approved N=513, four-rank case before multiplication.",
+  "observed_failure": "Prints the divisibility restriction, calls MPI_Finalize and returns exit 1 during the exclusive hybrid correctness check.",
+  "interpretation": "Pre-existing unsupported-remainder shape restriction, not a numerical result mismatch or scheduling problem. The timing correction changes only duration aggregation. Retain failed external validation without retry.",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 573,
+    "overall_score": 8
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection, original/effective diff and retained explicit rejection; no new program execution."
+}

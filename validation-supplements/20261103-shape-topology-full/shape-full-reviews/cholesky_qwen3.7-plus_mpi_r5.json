@@ -1,0 +1,41 @@
+{
+  "id": "cholesky_qwen3.7-plus_mpi_r5",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260618-110425/cholesky_qwen3.7-plus_mpi_r5",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "7b79b2c7c5b589cb4349a28c99dbd7ec641c4d630fc481b301771479d109183b",
+  "source_lines": [
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    76,
+    77,
+    91,
+    123,
+    132,
+    133,
+    134,
+    179,
+    189,
+    190
+  ],
+  "finding": "Ranks with an empty trailing-row partition execute continue before the MPI_Allgather and MPI_Allgatherv required by ranks with nonempty work. At n=513 and 128 ranks the panel ending at je=448 leaves only 65 rows: ranks 65 through 127 skip those collectives and advance to the next panel's broadcasts, while ranks 0 through 64 still need the gathers. This is an invalid collective sequence; empty ranks must participate with zero counts.",
+  "observed_failure": "The correctness execution reaches factorization but times out after 30 seconds, without a numerical result. Its paired r4 observation passes in 19.96 seconds.",
+  "interpretation": "Static source establishes a topology-dependent collective mismatch, consistent with the timeout and independent of concurrent scheduling. The exact dynamic blocking call was not traced. Retain the failure without retry.",
+  "result_sha256": "a2ca0b2bf12c4c0d0fce8deeb8f1554318e4bb374fe51405886d2ecf5af9142c",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection and retained validation output; no new program execution."
+}

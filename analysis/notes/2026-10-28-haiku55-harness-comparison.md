@@ -15,13 +15,13 @@ isolating a causal harness effect.
 | --- | ---: | ---: |
 | Passed validation | 219/220 | 219/220 |
 | Successfully benchmarked | 219/220 | 217/220 |
-| Mean joint score | 7.623 | 7.627 |
+| Mean joint score | 7.582 | 7.582 |
 | Mean generation time | 807.9 s | 942.7 s |
 | Mean total tokens | 1,564,282 | 2,085,509 |
 | Mean API-rate cost | $0.090755 | $0.124641 |
 | Timing-corrected programs | 33 | 36 |
 
-The mean scores are nearly identical, while OpenCode takes 16.7% longer to generate a
+The mean scores are equal, while OpenCode takes 16.7% longer to generate a
 program, uses 33.3% more tokens and has a 37.3% higher estimated API-rate cost.
 These summaries include all 220 programs, including failures.
 

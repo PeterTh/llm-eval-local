@@ -1,0 +1,31 @@
+{
+  "id": "matmul_gpt-6-luna-oc-medium_mpi_r4",
+  "case_id": "matmul-shape-mpi128-v1",
+  "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+  "source_path": "20261018-224015/matmul_gpt-6-luna-oc-medium_mpi_r4",
+  "file": "matmul/matmul.cpp",
+  "source_sha256": "8f8b9599255c80136d09416c479bae4411133751b97aecaea1f60c0c9ccba0e3",
+  "source_lines": [
+    75,
+    76,
+    77,
+    92,
+    93,
+    94,
+    95
+  ],
+  "finding": "The program requires a square process grid and explicitly rejects any MPI process count that is not a perfect square. At the established 128-rank topology it chooses an 8x16 grid and exits before matrix allocation or computation.",
+  "observed_failure": "stderr reports 'MPI process count must be a perfect square'; exit 1, no result output.",
+  "interpretation": "Unsupported established MPI topology, independent of concurrent scheduling. This is not a numerical disagreement. Retain failed external validation without retry or topology change.",
+  "result_sha256": "bed4b22e12d91037d63974b1ce3c9dca513bdfbdec3af73d782c79b72b1d9f93",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained explicit rejection; no new program execution."
+}

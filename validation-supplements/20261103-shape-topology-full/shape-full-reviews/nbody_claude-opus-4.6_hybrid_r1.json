@@ -1,0 +1,38 @@
+{
+  "id": "nbody_claude-opus-4.6_hybrid_r1",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/nbody_claude-opus-4.6_hybrid_r1",
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "05b2eba3ddc451665bd3278dceeb0c7d7811543fd19e7e66b326f572478fad24",
+  "source_lines": [
+    33,
+    34,
+    36,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    51,
+    52,
+    53,
+    63
+  ],
+  "finding": "The force kernel returns threads whose local output index is outside localCount before loading shared source tiles. At n=1031 split over four ranks, each local partition has a partial final CUDA block. Most threads in that block return, even though they are needed to load the complete source tiles for its remaining valid outputs. Those outputs then accumulate forces from unloaded shared entries.",
+  "observed_failure": "Exclusive correctness execution exits 0 and internal finite-value validation passes, but Bodies sum is 4142.27332904072136 instead of reference 6.06775878802135438.",
+  "interpretation": "Pre-existing partial-block shared-memory loading defect; retain failed external validation without retry or algorithm changes.",
+  "result_sha256": "cec51403738da79a4eb21e31c6af3b539077e640a9e2b6d8f79a06644adcc496",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 2843,
+    "overall_score": 7
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive result; no new program execution."
+}

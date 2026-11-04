@@ -1,0 +1,883 @@
+{
+  "schema_version": 2,
+  "case": {
+    "id": "roomsim-shape-mpi128-v1",
+    "benchmark": "roomsim",
+    "args": [
+      "-v",
+      "-o",
+      "-n",
+      "320",
+      "-t",
+      "101",
+      "-s",
+      "7",
+      "-r",
+      "0.7"
+    ],
+    "topology": "measurement",
+    "timeout": 30
+  },
+  "record_count": 10,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Yes, launch this sweep"
+  },
+  "reference": {
+    "stdout": "Room Response Simulation Benchmark\n===================================\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\n  Progress: 100/320 triangles\n  Progress: 200/320 triangles\n  Progress: 300/320 triangles\n  Progress: 320/320 triangles\nPrecomputation time: 1466 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 32 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 1 ms\n\nTotal computation time: 1499 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 4.6844 ms\n  Memory usage: 1.03 MB\n  Result hash: 90D8D9BADF02DF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.77250000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.15000000000000000e+01\nHash: 728fa5421748ae38\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.9141\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n",
+    "stdout_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c"
+  },
+  "records": [
+    {
+      "id": "roomsim_claude-haiku-4.5_mpi_r2",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/roomsim_claude-haiku-4.5_mpi_r2",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 2,
+        "line_sha256": "52d925e921271ed7952f0b1e3c2c669182e4ff8c4b5739f415f8c8d559cfa128"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_claude-haiku-4.5_mpi_r2",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/roomsim_claude-haiku-4.5_mpi_r2",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "d0c40f409916dbc350398f02e78ba1a2d176b2e9e437deed04589a58ae1337e0",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.287614494562149,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_claude-haiku-4.5_mpi_r2/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-83dc8724405b"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71800000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "20d5e153114076d7977ae3c354b1161f2b20832730e8cecaea45f0a9d30f98ac",
+        "checked_at": "2026-11-04T03:21:24Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "160052f2541754b084687407fd2cc7b7a7934e9c3482860f90af4ae10c3ded88",
+      "stdout": "Generated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nRoom Response Simulation Benchmark\n===================================\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\nPrecomputation time: 24 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 5 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\nTotal computation time: 28 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0875 ms\n  Memory usage: 1.03 MB\n  Result hash: B3D1664CE6FADF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.71800000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.10000000000000000e+01\nHash: 41cf9660e44ce0df\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.7437\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n"
+    },
+    {
+      "id": "roomsim_claude-haiku-4.5_mpi_r3",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260215-162417/roomsim_claude-haiku-4.5_mpi_r3",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 3,
+        "line_sha256": "437af09b6304ced7eec4520ef7876181361a3e947ebf1dea5472b0f5c7004014"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_claude-haiku-4.5_mpi_r3",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260215-162417/roomsim_claude-haiku-4.5_mpi_r3",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "5626ada17c8a9765022981e768c37b2356fdd1c49cfb5d76db22bf8471ec2e2f",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.137982849031687,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_claude-haiku-4.5_mpi_r3/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-64cd94647fcb"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71800000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "e6b91263ebd82e265b441e98d2d518367a7de10ecc18362545377495d7e4a583",
+        "checked_at": "2026-11-04T03:21:45Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "b85e6862638bf9e8b70ef21f8c8ed1e6dd18e99cb100f1d1b89b4a5fb010d66d",
+      "stdout": "Generated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nRoom Response Simulation Benchmark\n===================================\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\nMPI ranks: 128\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nComputing time delays (Tau)...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing time delays (Tau)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\n  Progress: 100/320 triangles\n  Progress: 200/320 triangles\n  Progress: 300/320 triangles\n  Progress: 320/320 triangles\nPrecomputation time: 19 ms\n\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\nTotal computation time: 30 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0938 ms\n  Memory usage: 1.03 MB\n  Result hash: B3D1664CE6FADF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.71800000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.10000000000000000e+01\nHash: 41cf9660e44ce0df\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.7437\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\nComputing distances via cross-correlation...\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n"
+    },
+    {
+      "id": "roomsim_deepseek-v4.1-flash-oc-high_mpi_r4",
+      "source_commit": "65363cf3710daa9e0d3409306efee5a49e18c8dd",
+      "source_path": "20261019-134042/roomsim_deepseek-v4.1-flash-oc-high_mpi_r4",
+      "validation_record": {
+        "path": "batches/20261019-134042/timing-corrections/revalidation/validation/records.jsonl",
+        "line": 41,
+        "line_sha256": "cbb5c109e197ecf507afd0f533ebfc372643f6246f6bd513f752732940d7ad8e"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_deepseek-v4.1-flash-oc-high_mpi_r4",
+        "source_commit": "65363cf3710daa9e0d3409306efee5a49e18c8dd",
+        "source_path": "20261019-134042/roomsim_deepseek-v4.1-flash-oc-high_mpi_r4",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "fbc552a15029c8606a04ea681e22ad6c5cc9fb88cd0785f3b7505e936b74bcc1",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.236429424956441,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_deepseek-v4.1-flash-oc-high_mpi_r4/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-082ed02fc57c"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.72200000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "e0292d9d5a32d26d36db317326c6a553e13ea7920023fffeb149754d4c62bd05",
+        "checked_at": "2026-11-04T03:29:26Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "3b7d94acfec6738c7ac74b1d097c1c08a8a956e7d9e6ba28d5bff270ca58becd",
+      "stdout": "Room Response Simulation Benchmark\n===================================\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\n  Progress: 3/3 triangles\nPrecomputation time: 15 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 6 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\nTotal computation time: 21 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0656 ms\n  Memory usage: 1.03 MB\n  Result hash: 0B557457B272DF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.72200000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.10000000000000000e+01\nHash: 092050e2fbc8706c\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.7563\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n"
+    },
+    {
+      "id": "roomsim_gpt-5.6-luna-low_mpi_r2",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/roomsim_gpt-5.6-luna-low_mpi_r2",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 47,
+        "line_sha256": "5923c0a94275b503242aedeb869b8b57e2d2284b234e3e7ba4a4680210e991a1"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_gpt-5.6-luna-low_mpi_r2",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "source_path": "20260805-120633/roomsim_gpt-5.6-luna-low_mpi_r2",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "2f14b7f7acbe7f973cd61f4bc37c08078ba897aad3cc3c73a45652ccf4d3b67e",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 10.885964203625917,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_gpt-5.6-luna-low_mpi_r2/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-f3591b3ee2a1"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71800000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "b87d732e9cd5bc0c773cfae497081ee7607be9c5e79145559488d548459433c5",
+        "checked_at": "2026-11-04T03:32:02Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "e368c7a4ddb0b4cca53328f21f118e05e36045dcb41b45b5e328e75277936f97",
+      "stdout": "Generated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nRoom Response Simulation Benchmark\n===================================\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nComputing form factors (Kij)...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\nPrecomputation time: 21 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\nTotal computation time: 29 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0906 ms\n  Memory usage: 1.03 MB\n  Result hash: B3D1664CE6FADF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.71800000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.10000000000000000e+01\nHash: 41cf9660e44ce0df\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.7437\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 8 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\n"
+    },
+    {
+      "id": "roomsim_gpt-5.6-luna-medium_mpi_r1",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/roomsim_gpt-5.6-luna-medium_mpi_r1",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 51,
+        "line_sha256": "7c3b8776580a810bdca11f280ebd7d9d4a95a7a254c94e23ed7b2efed39fe5c6"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_gpt-5.6-luna-medium_mpi_r1",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "source_path": "20260805-120633/roomsim_gpt-5.6-luna-medium_mpi_r1",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "91951b75d547ff6ffd803d73065e04ce6a2b0494879167f6a529eaa7ebdb57df",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.285185392946005,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_gpt-5.6-luna-medium_mpi_r1/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-7d1f27562255"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71850000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "e2ff1de2e1960dab56d3651bbbad99b07bd7c2be0457e9639d9444d5167fd0de",
+        "checked_at": "2026-11-04T03:32:24Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "a7fe8108220fc9f5751d92954a92ab449d5e6d4a734c0e01c96822ef88a46e6a",
+      "stdout": "Room Response Simulation Benchmark\n===================================\nMPI ranks: 128\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\nPrecomputation time: 18 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 7 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\nTotal computation time: 25 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0781 ms\n  Memory usage per rank: 0.25 MB\n  Result hash: 0CDFD1294346DF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.71850000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.15000000000000000e+01\nHash: e6d0d7d8b1d9f6f6\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.7453\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n"
+    },
+    {
+      "id": "roomsim_gpt-5.6-sol-xhigh_mpi_r4",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/roomsim_gpt-5.6-sol-xhigh_mpi_r4",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 74,
+        "line_sha256": "7b4821c89e27f3780f304e28c07c617e3ec4956985a4668047e2f06ee9b58ed1"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_gpt-5.6-sol-xhigh_mpi_r4",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "source_path": "20260805-120633/roomsim_gpt-5.6-sol-xhigh_mpi_r4",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "b4b29c48bab95bc6f05ce95a9439f16cb987fbf09cbf234f02b1be32f74c7ea4",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.036565564572811,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_gpt-5.6-sol-xhigh_mpi_r4/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-fc0388c30b1a"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.70850000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "fc631d37be20519fa3d97991b96293ef4d5eb67a3049a755fb0dd696c5ab32ac",
+        "checked_at": "2026-11-04T03:36:17Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "e5cf5c8f2be196e000a07007a7974a6ac78cf9cd53e1d803e48018c6fd6a2f68",
+      "stdout": "Room Response Simulation Benchmark\n===================================\nMPI ranks: 128\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree on each MPI rank...\n\nComputing distributed time delays (Tau) and form factors (Kij)...\nPrecomputation time: 14 ms\n\nRunning distributed wave propagation simulation...\n  Synchronizing in batches of 4 timestep(s)\n  Timestep 20/101\n  Timestep 40/101\n  Timestep 60/101\n  Timestep 80/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 4 ms\n\nComputing distributed distances via cross-correlation...\nDistance computation time: 1 ms\n\nTotal computation time: 19 ms\n\nPerformance:\n  MPI ranks: 128\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0594 ms\n  Peak array memory per rank: 0.13 MB\n  Result hash: 7B2CC88AFA42DF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.70850000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.10000000000000000e+01\nHash: 83c97a979841eb87\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.7141\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n"
+    },
+    {
+      "id": "roomsim_gpt-6-luna-oc-medium_mpi_r1",
+      "source_commit": "fdf3ef5283428bb38fcfd6ec116e9fa03defe229",
+      "source_path": "20261018-224015/roomsim_gpt-6-luna-oc-medium_mpi_r1",
+      "validation_record": {
+        "path": "batches/20261018-224015/timing-corrections/revalidation/validation/records.jsonl",
+        "line": 28,
+        "line_sha256": "6973d1f676c6884d38c160d8d6b9dff3556b731e89904974301a8e515508160b"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_gpt-6-luna-oc-medium_mpi_r1",
+        "source_commit": "fdf3ef5283428bb38fcfd6ec116e9fa03defe229",
+        "source_path": "20261018-224015/roomsim_gpt-6-luna-oc-medium_mpi_r1",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "4ad6ddcc8036dd2bb28c680c0689525f733d702e8b6e21dcb18a1f5175441e1d",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.035828404128551,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_gpt-6-luna-oc-medium_mpi_r1/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-aabeede90ea9"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.70300000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "1aa508adaba36fec8d67ca4358ee4de06a093bd32dbcfbac07481f091cdad37a",
+        "checked_at": "2026-11-04T03:40:32Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "577045a837fd8b111630392ec2013b80e43452858ba71a591c8672e2bafc3d28",
+      "stdout": "Room Response Simulation Benchmark\n===================================\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\nPrecomputation time: 20 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 6 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\nTotal computation time: 28 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0875 ms\n  Memory usage: 1.03 MB\n  Result hash: C0311B52B2AADF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.70300000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.10000000000000000e+01\nHash: 66b9d157d66cb911\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.6969\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 101960/102400 (99.57%)\n  Validation: PASSED\n"
+    },
+    {
+      "id": "roomsim_qwen-3.6-27B-udq4_mpi_r1",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260507-154026/roomsim_qwen-3.6-27B-udq4_mpi_r1",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 96,
+        "line_sha256": "090cb190d5af10f9446555d5dd8ec734fb4defaec33ff47656d3463842be0a21"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_qwen-3.6-27B-udq4_mpi_r1",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260507-154026/roomsim_qwen-3.6-27B-udq4_mpi_r1",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "a5eebcb8f442c21de793a9232f319e9d3159b0de9035e5fd46536b43ff12fc4a",
+        "execution": {
+          "success": false,
+          "exit_code": 139,
+          "timed_out": false,
+          "wall_seconds": 13.879025466740131,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_qwen-3.6-27B-udq4_mpi_r1/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-c646f170e4c0"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental correctness execution failed: exit 139, timeout false."
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "632666fc882c1ba86ea9e9376aedcbea38ff7b0e17437f369adc15846520418c",
+        "checked_at": "2026-11-04T03:46:42Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "82b6b60dda74d71aaed958b2b98c186f2b360e96bdef1a66035264f73744d5ce",
+      "stdout": "Generated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nRoom Response Simulation Benchmark\n===================================\nMPI processes: 128\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\n"
+    },
+    {
+      "id": "roomsim_qwen-3.6-27B-udq4_mpi_r5",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260507-154026/roomsim_qwen-3.6-27B-udq4_mpi_r5",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 100,
+        "line_sha256": "47dbe8d5410df9d30a2ff8520949d54b92fc3b94681fe19dacdae73cd6489007"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_qwen-3.6-27B-udq4_mpi_r5",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260507-154026/roomsim_qwen-3.6-27B-udq4_mpi_r5",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "debf3b36b6164404227bc3a4d90681a22afd99f33d222d86ed01082d31912bfc",
+        "execution": {
+          "success": false,
+          "exit_code": 15,
+          "timed_out": false,
+          "wall_seconds": 13.188441578298807,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_qwen-3.6-27B-udq4_mpi_r5/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-f04c3357d4ca"
+        },
+        "internal_validation": false,
+        "comparison": [
+          false,
+          "Supplemental correctness execution failed: exit 15, timeout false."
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "03575cc0d1af902946ead0577e520e3423fc3ff512f5a866b6e71bfd8241b783",
+        "checked_at": "2026-11-04T03:47:46Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "304ca6fb44c53f937087ecc865e37b95b073f2cedeab90c137c10e976baecc92",
+      "stdout": "Room Response Simulation Benchmark\n===================================\nMPI processes: 128\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nBuilding octree...\n\nComputing time delays (Tau)...\n"
+    },
+    {
+      "id": "roomsim_qwen3.7-plus_mpi_r3",
+      "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+      "source_path": "20260618-110425/roomsim_qwen3.7-plus_mpi_r3",
+      "validation_record": {
+        "path": "data/validation/records/roomsim/mpi.jsonl",
+        "line": 103,
+        "line_sha256": "ce83ef6c6414de00f7f090d87609bcdf491d2ecd532b0a1e3e381fe56bd39c24"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "roomsim-shape-mpi128-v1",
+      "result": {
+        "id": "roomsim_qwen3.7-plus_mpi_r3",
+        "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+        "source_path": "20260618-110425/roomsim_qwen3.7-plus_mpi_r3",
+        "definition": {
+          "id": "roomsim-shape-mpi128-v1",
+          "benchmark": "roomsim",
+          "args": [
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "topology": "measurement",
+          "timeout": 30
+        },
+        "binary_sha256": "764fa9cedba1dcb5b6dc7639c1dbfd4976133c869dd4212898462acb2d988102",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 11.039037000387907,
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/roomsim_qwen3.7-plus_mpi_r3/roomsim",
+            "-v",
+            "-o",
+            "-n",
+            "320",
+            "-t",
+            "101",
+            "-s",
+            "7",
+            "-r",
+            "0.7"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-1199711-a8c04a5fc38f"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71800000000000000e+03'"
+        ],
+        "passed": false,
+        "reference_sha256": "589086751f611c1e83852e4923a7a669ea2cd60e2f12460649a0d5f1b83e668c",
+        "output_sha256": "1e70aa1ea1bfcecabde47b8470bff101052044df1b8c5ddb563ea1ff664c3240",
+        "checked_at": "2026-11-04T03:48:49Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "ab80752c21741f0f3d649c6865203483e74d6274fd39476fce5d18933c7a5699",
+      "stdout": "Room Response Simulation Benchmark\n===================================\nTarget triangles: 320 (using 2 subdivisions)\nTimesteps: 101\nSource triangle: 7\nReflectivity: 0.70\nValidation: enabled\n\nGenerated icosphere mesh with 320 triangles\nMPI: Using 128 processes\n\nComputing time delays (Tau)...\nComputing form factors (Kij)...\nPrecomputation time: 10 ms\n\nRunning wave propagation simulation...\n  Timestep 10/101\n  Timestep 20/101\n  Timestep 30/101\n  Timestep 40/101\n  Timestep 50/101\n  Timestep 60/101\n  Timestep 70/101\n  Timestep 80/101\n  Timestep 90/101\n  Timestep 100/101\n  Timestep 101/101\nSimulation time: 13 ms\n\nComputing distances via cross-correlation...\nDistance computation time: 0 ms\n\nTotal computation time: 23 ms\n\nPerformance:\n  Triangles: 320\n  Timesteps: 101\n  Form factor computations: 1.02e+05\n  Simulation operations: 1.03e+07\n  Distance computations: 3.26e+06\n  Total time per triangle: 0.0719 ms\n  Memory usage: 1.03 MB\n  Result hash: B3D1664CE6FADF00\n\n=== RESULTS ===\nName: Distances\nElements: 320\nSum: 4.71800000000000000e+03\nMin: 0.00000000000000000e+00\nMax: 2.55000000000000000e+01\nSample[0]: 7.50000000000000000e+00\nSample[80]: 1.50000000000000000e+01\nSample[160]: 2.10000000000000000e+01\nSample[240]: 1.15000000000000000e+01\nSample[319]: 2.10000000000000000e+01\nHash: 41cf9660e44ce0df\n=== END RESULTS ===\n\nValidation:\n  Distance range: [0.0000, 25.5000]\n  Average distance: 14.7437\n  Non-zero distances: 319/320\n  Triangles receiving energy: 320/320\n  Non-zero form factors: 26878/102400 (26.25%)\n  Validation: PASSED\n"
+    }
+  ]
+}

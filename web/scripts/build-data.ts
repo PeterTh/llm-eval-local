@@ -400,7 +400,7 @@ export async function buildData(): Promise<void> {
     campaigns: Array<{ validation_records: string; corrected_validation_records?: string; validation_format: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
     observation_replacements?: Array<{ ids: string[]; validation_records: string; corrected_validation_records: string; benchmark_records: string; source_commit: string; corrected_source_commit: string }>;
     correction_campaign?: { root: string; validation_records: string; benchmark_records: string; source_history: string };
-    external_validation?: { registry: string; registry_sha256: string; records: string; applied_ids: string[] };
+    external_validation?: { registry: string; registry_sha256: string; records: string; applied_ids: string[] } | Array<{ registry: string; registry_sha256: string; records: string; applied_ids: string[] }>;
   };
   const validationRecords = new Map<string, LocatedRecord<ValidationRecord>>();
   const benchmarkRecords = new Map<string, LocatedRecord<BenchmarkRecord>>();
@@ -467,8 +467,10 @@ export async function buildData(): Promise<void> {
       failureDispositions.set(decision.program_id, { classification: decision.classification, reason: decision.reason });
     }
   }
-  if (catalog.external_validation) {
-    const overlay = catalog.external_validation;
+  const externalOverlays = catalog.external_validation
+    ? (Array.isArray(catalog.external_validation) ? catalog.external_validation : [catalog.external_validation])
+    : [];
+  for (const overlay of externalOverlays) {
     const content = await readFile(resolve(repositoryRoot, overlay.registry), "utf8");
     invariant(digest(content) === overlay.registry_sha256, "external-validation registry digest differs");
     const registry = JSON.parse(content) as {

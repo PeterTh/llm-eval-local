@@ -1,0 +1,46 @@
+{
+  "id": "stencil3d_qwen-3.6-27B-udq4_mpi_r5",
+  "case_id": "stencil3d-shape-mpi128-v2",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260507-154026/stencil3d_qwen-3.6-27B-udq4_mpi_r5",
+  "result_sha256": "5076e6898027290f3250ff1adb44bf4f480b9eb9159e355ba6bf3d4c7293fb9f",
+  "observed_failure": "Supplemental correctness execution failed: exit 124, timeout true.",
+  "execution": {
+    "success": false,
+    "exit_code": 124,
+    "timed_out": true
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "stencil3d/stencil3d.cpp",
+  "source_sha256": "cab40eb801c69d47a6bca261712e7ec1f78aea172e3fbb732536df8230d530b5",
+  "source_lines": [
+    29,
+    30,
+    31,
+    32,
+    41,
+    43,
+    63,
+    64,
+    65,
+    68,
+    376,
+    390,
+    399,
+    401,
+    545
+  ],
+  "finding": "The decomposition routine chooses 5x5x5=125 active ranks for the requested 128 ranks (confirmed by retained stdout). Only ranks below px*py*pz enter the isActive block. Inside that block they call MPI_Barrier(MPI_COMM_WORLD), whereas ranks 125-127 skip the block and reach MPI_Finalize. The world-communicator barrier cannot complete without those ranks. Stdout reaches Running stencil computation immediately before this barrier and then times out.",
+  "interpretation": "Confirmed pre-existing collective-participation deadlock, independent of scheduling or the second validation worker. No exclusive rerun is needed to distinguish contention. Retain the canonical timeout as failed external validation.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/control-flow inspection plus retained concurrent timeout output; no new program execution."
+}

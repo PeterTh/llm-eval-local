@@ -1,0 +1,38 @@
+{
+  "id": "roomsim_qwen3.7-plus_mpi_r3",
+  "case_id": "roomsim-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260618-110425/roomsim_qwen3.7-plus_mpi_r3",
+  "result_sha256": "ab80752c21741f0f3d649c6865203483e74d6274fd39476fce5d18933c7a5699",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.71800000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 4734,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "58c04e013af65b944951feb3b012569b93409e608cd6075f88969804c9482236",
+  "source_lines": [
+    396,
+    399,
+    623,
+    626,
+    629,
+    630
+  ],
+  "finding": "Each MPI rank starts its own MT19937 stream at seed 42 and computes only its local rows without advancing past earlier rows. This restarts the reference's single ordered sample stream at rank boundaries and is consistent with the numerical discrepancy; no isolated dynamic causality test was performed.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7 with 128 ranks and exclusive execution, termination/internal validation pass but distance sum 4718 differs from reference 4772.5 by 54.5, exceeding the unchanged tolerance of 50. Retain failed external validation without retry.",
+  "timing_correction_check": "The original-to-corrected source diff only adds a maximum-rank total-duration reduction; sampling/numerical code is unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive correctness output; no new program execution."
+}

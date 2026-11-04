@@ -1,0 +1,41 @@
+{
+  "id": "unstructured_claude-haiku-4.5_mpi_r4",
+  "case_id": "unstructured-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/unstructured_claude-haiku-4.5_mpi_r4",
+  "result_sha256": "81ed4e29bddd6aa0523acf2167f94a17abdeb2c33a6bc0ca545bd21124caf635",
+  "observed_failure": "Supplemental correctness execution failed: exit 134, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 134,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "d8f0396363e942dbc498da343064ecd4d9821ccdf928ffd7c27adefee99bda71",
+  "source_lines": [
+    81,
+    82,
+    83,
+    84,
+    87,
+    88,
+    97,
+    98,
+    99,
+    100
+  ],
+  "finding": "Ceiling row partitioning leaves empty ranks with negative local_width. At n=257 and 128 ranks, elems_per_proc=3; rank 86 has start=258, end=257, local_width=-1 and local_n_elems=-257. vector::resize receives the converted huge unsigned count, matching std::length_error in the retained execution.",
+  "interpretation": "This is a source-level allocation defect, independent of scheduling or resource contention. No retry or program modification is needed to establish the failure.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained correctness output; no new program execution."
+}

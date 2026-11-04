@@ -1,0 +1,37 @@
+{
+  "id": "cholesky_gemini-3-pro-preview_mpi_r4",
+  "case_id": "cholesky-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cholesky_gemini-3-pro-preview_mpi_r4",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "404c04f0bdbd878ca07955c85ca86c4b28b08f82ecee0a549ff44b502ff760ec",
+  "source_lines": [
+    17,
+    20,
+    33,
+    34,
+    45,
+    46,
+    48,
+    54,
+    159,
+    160,
+    161,
+    164
+  ],
+  "finding": "After factoring the final row j=512 at n=513 with 128 ranks, first_i becomes n. The search stops, but the following loop still starts at first_i/size=4. Rank 0 owns five cyclic rows, so it enters the trailing-row update for local row 4 even though no row after j exists, overwriting the just-factorized final diagonal. The loop needs a valid global trailing row; converting n to a local index is not a valid sentinel for the longer remainder partition.",
+  "observed_failure": "The last diagonal is 0.86963469683608785 instead of approximately 23.5189215597066. Reconstruction reports maximum absolute error 552.38340683 and relative error 0.99312787393, prints Validation: FAILED, and exits 1. There is no timeout; the paired r3 check passes.",
+  "interpretation": "This is a pre-existing cyclic-tail numerical defect, independent of scheduling. The earlier source correction only changes maximum-rank timing reporting. Retain failed external validation without a retry.",
+  "result_sha256": "02766cc9dc1d51d9da81e3598922a88fd8f5e9babc4d4d35cddc85d1b9d850cc",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 372,
+    "overall_score": 8
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static inspection, original/effective source diff, and retained validation output; no retry."
+}

@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "case": {
+    "id": "stencil-interior-v1",
+    "benchmark": "stencil3d",
+    "args": [
+      "-v",
+      "-r",
+      "-x",
+      "65",
+      "-y",
+      "61",
+      "-z",
+      "67",
+      "-i",
+      "21"
+    ],
+    "timeout": 30
+  },
+  "record_count": 2,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Apply each validation improvement after a pilot when the full retrospective estimate is under five hours; failures use the existing failed external validation category. No performance benchmarks are rerun."
+  },
+  "reference": {
+    "stdout": "3D Stencil Benchmark\nGrid size: 65 x 61 x 67\nIterations: 21\nValidation: enabled\nInitializing grid...\nRunning stencil computation...\nComputation time: 11 ms\nPerformance: 461.246 MCellUpdates/s\n=== RESULTS ===\nName: Grid\nElements: 265655\nSum: 2.39093263074302441e+06\nMin: 0.00000000000000000e+00\nMax: 1.80000000000000000e+01\nSample[0]: 0.00000000000000000e+00\nSample[66413]: 8.99998867229606070e+00\nSample[132827]: 9.00001563520911496e+00\nSample[199241]: 9.00000486934627553e+00\nSample[265654]: 1.50000000000000000e+01\nHash: 76467de1a1f65165\n=== END RESULTS ===\nValidating result...\nValue range: [0.000000, 18.000000]\nValidation: PASSED\n",
+    "stdout_sha256": "bd7ef40d411605b26bc5a745416feaf1f5110f64402f3f091d50025782db5d44"
+  },
+  "records": [
+    {
+      "id": "stencil3d_claude-sonnet-4.5_hybrid_r4",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260215-162417/stencil3d_claude-sonnet-4.5_hybrid_r4",
+      "validation_record": {
+        "path": "data/validation/records/stencil3d/hybrid.jsonl",
+        "line": 14,
+        "line_sha256": "20266d68fb2d0a67c90e08de257d02d6ec42af51938282e5a3105f70e9a245e4"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "stencil-interior-v1",
+      "result": {
+        "id": "stencil3d_claude-sonnet-4.5_hybrid_r4",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "source_path": "20260215-162417/stencil3d_claude-sonnet-4.5_hybrid_r4",
+        "definition": {
+          "id": "stencil-interior-v1",
+          "benchmark": "stencil3d",
+          "args": [
+            "-v",
+            "-r",
+            "-x",
+            "65",
+            "-y",
+            "61",
+            "-z",
+            "67",
+            "-i",
+            "21"
+          ],
+          "timeout": 30
+        },
+        "binary_sha256": "d8678515d0cf9ecd38fda174f17553369f7c88ff72d2e9e5b61972fcde34e76b",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 5.482512179762125,
+          "argv": [
+            "mpirun",
+            "--np",
+            "4",
+            "--map-by",
+            "ppr:2:socket:PE=8",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/usr/bin/ruby3.2",
+            "/home/petert/llm_eval/experiment/local_gpu_rank_wrapper.rb",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/stencil3d_claude-sonnet-4.5_hybrid_r4/stencil3d",
+            "-v",
+            "-r",
+            "-x",
+            "65",
+            "-y",
+            "61",
+            "-z",
+            "67",
+            "-i",
+            "21"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-254440-d86e7ad72afb"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Grid: 'Sum: 2.39093263074302441e+06' vs 'Sum: 2.39095529244342633e+06'"
+        ],
+        "passed": false,
+        "reference_sha256": "bd7ef40d411605b26bc5a745416feaf1f5110f64402f3f091d50025782db5d44",
+        "output_sha256": "87bf55eee466d6c5ea132eb2e1a4023d075d4f9fcc4f6983b9b390a0b4c838fa",
+        "checked_at": "2026-11-03T17:24:47Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "4e5941da4ce1f7ff111b619da26428e217a5e4e29b98c3489169ad04a01cee9c",
+      "stdout": "3D Stencil Benchmark (Hybrid MPI+OpenMP+CUDA)\nMPI ranks: 4\nOpenMP threads: 8\nGrid size: 65 x 61 x 67\nIterations: 21\nValidation: enabled\nInitializing grid...\nRunning stencil computation...\nComputation time: 6 ms\nPerformance: 845.617 MCellUpdates/s\n=== RESULTS ===\nName: Grid\nElements: 265655\nSum: 2.39095529244342633e+06\nMin: 0.00000000000000000e+00\nMax: 1.80000000000000000e+01\nSample[0]: 0.00000000000000000e+00\nSample[66413]: 9.00545322080937005e+00\nSample[132827]: 8.99747720894418457e+00\nSample[199241]: 8.99627697270935300e+00\nSample[265654]: 1.50000000000000000e+01\nHash: c0fb066073a92dd8\n=== END RESULTS ===\nValidating result...\nValue range: [0.000000, 18.000000]\nValidation: PASSED\n"
+    },
+    {
+      "id": "stencil3d_gpt-5.6-luna-medium_mpi_r2",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260805-120633/stencil3d_gpt-5.6-luna-medium_mpi_r2",
+      "validation_record": {
+        "path": "data/validation/records/stencil3d/mpi.jsonl",
+        "line": 52,
+        "line_sha256": "f8ae353f09b7d4012245792f055a53df1bfc4aba56817b22bae154277ae0030c"
+      },
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "case_id": "stencil-interior-v1",
+      "result": {
+        "id": "stencil3d_gpt-5.6-luna-medium_mpi_r2",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "source_path": "20260805-120633/stencil3d_gpt-5.6-luna-medium_mpi_r2",
+        "definition": {
+          "id": "stencil-interior-v1",
+          "benchmark": "stencil3d",
+          "args": [
+            "-v",
+            "-r",
+            "-x",
+            "65",
+            "-y",
+            "61",
+            "-z",
+            "67",
+            "-i",
+            "21"
+          ],
+          "timeout": 30
+        },
+        "binary_sha256": "89c24bfe8a72af3c1ba3da0554b0eb81312ca9ce238c6dc54d501d67b45cb955",
+        "execution": {
+          "success": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "wall_seconds": 1.5227538105100393,
+          "argv": [
+            "mpirun",
+            "--np",
+            "4",
+            "--map-by",
+            "ppr:2:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/validation-strengthening-20261103.aXM3pL/build/stencil3d_gpt-5.6-luna-medium_mpi_r2/stencil3d",
+            "-v",
+            "-r",
+            "-x",
+            "65",
+            "-y",
+            "61",
+            "-z",
+            "67",
+            "-i",
+            "21"
+          ],
+          "term_signal": null,
+          "output_truncated": false,
+          "containment_unit": "local-evaluation-254440-f7ff27526719"
+        },
+        "internal_validation": true,
+        "comparison": [
+          false,
+          "Numeric value mismatch for object Grid: 'Sum: 2.39093263074302441e+06' vs 'Sum: 2.39093166864909464e+06'"
+        ],
+        "passed": false,
+        "reference_sha256": "bd7ef40d411605b26bc5a745416feaf1f5110f64402f3f091d50025782db5d44",
+        "output_sha256": "b9b581ce284159f54cec537329324a5e30c153886c613859c210aaea4a02f443",
+        "checked_at": "2026-11-03T17:33:50Z",
+        "performance_measurement": false
+      },
+      "result_sha256": "a91f3c62529bb2f5222263be4aaeb47defe6b0fbb800702929e5fc71b1f58116",
+      "stdout": "3D Stencil Benchmark\nGrid size: 65 x 61 x 67\nIterations: 21\nValidation: enabled\nInitializing grid...\nRunning stencil computation...\nComputation time: 10 ms\nPerformance: 480.962 MCellUpdates/s\n=== RESULTS ===\nName: Grid\nElements: 265655\nSum: 2.39093166864909464e+06\nMin: 0.00000000000000000e+00\nMax: 1.80000000000000000e+01\nSample[0]: 0.00000000000000000e+00\nSample[66413]: 9.00000069561449401e+00\nSample[132827]: 8.99999548959786821e+00\nSample[199241]: 8.99997119213631969e+00\nSample[265654]: 1.50000000000000000e+01\nHash: d7e3be114a449cd6\n=== END RESULTS ===\nValidating result...\nValue range: [0.000000, 18.000000]\nValidation: PASSED\n"
+    }
+  ]
+}

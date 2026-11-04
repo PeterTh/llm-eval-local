@@ -1,0 +1,35 @@
+{
+  "id": "cholesky_gpt-5.6-luna-low_omp_r2",
+  "case_id": "cholesky-large-tile-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260805-120633/cholesky_gpt-5.6-luna-low_omp_r2",
+  "file": "cholesky/cholesky.cpp",
+  "source_sha256": "58b7db695789ba73818a0dfe868878f47a87265bf854112b66bfbb9d5eadb755",
+  "source_lines": [
+    18,
+    19,
+    21,
+    22,
+    35,
+    56,
+    57,
+    59,
+    78,
+    79,
+    81
+  ],
+  "finding": "The factorization launches one OpenMP reduction per lower-triangular element (1,181,953 at n=1537), while matrix construction and internal reconstruction remain serial cubic loops. These are plausible sources of excessive runtime; the exact phase at timeout was not observed.",
+  "observed_failure": "The exclusive 128-thread n=1537 correctness execution exceeds the unchanged 30-second limit without flushed stdout. Its n=513 check passed, while its prior performance benchmark had already failed.",
+  "interpretation": "Approved supplemental timeout failure, not proof of a numerical error and not caused by two-program scheduling. No retry or limit relaxation.",
+  "result_sha256": "ae0d05ea932e03737b3014c8441904cd6a67f6fc01fdd258b60124dd4835bb46",
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive validation output; no new program execution."
+}

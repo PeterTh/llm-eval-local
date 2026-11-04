@@ -1,0 +1,41 @@
+{
+  "id": "spmv_gpt-4.1_mpi_r2",
+  "case_id": "spmv-shape-mpi128-v1",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r2",
+  "result_sha256": "ef84a7ccddfcaadf89be5d633d1e7b8908f8e136d0221caf367829e662a479f5",
+  "observed_failure": "Supplemental internal check failed.",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 1776,
+    "overall_score": 9
+  },
+  "file": "spmv/spmv.cpp",
+  "source_sha256": "61d5bfb4fad67f1f0135880003cbeceb407114680a1861292020f1b13101e323",
+  "source_lines": [
+    244,
+    245,
+    246,
+    247,
+    262,
+    267,
+    277,
+    278,
+    294
+  ],
+  "finding": "Assigns floor(N/ranks) rows to each rank except the last, which also receives the remainder, but gathers with fixed-count MPI_Gather using the root's local_num_rows as receive count. For N=1025 and 128 ranks, rank 127 sends nine values while root reserves eight per rank (1024 in total). Retained output shows the final element 1024 remains zero and the internal comparison explicitly fails.",
+  "interpretation": "Confirmed pre-existing uneven-partition gather defect in exclusive validation. Exit zero does not override the explicit Validation: FAILED result. Retain failed external validation without retry.",
+  "timing_correction_check": "The original-to-corrected source diff changes only elapsed-duration reduction/reporting and derived timing metrics; partitioning, multiplication and gather code are unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive correctness output; no new program execution."
+}

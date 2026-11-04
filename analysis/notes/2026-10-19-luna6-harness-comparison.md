@@ -13,17 +13,17 @@ harness effect.
 
 | All-program measure | Codex | OpenCode |
 | --- | ---: | ---: |
-| Passed validation | 170/220 | 181/220 |
-| Successfully benchmarked | 149/220 | 149/220 |
-| Mean joint score | 5.877 | 6.050 |
+| Passed validation | 166/220 | 175/220 |
+| Successfully benchmarked | 145/220 | 145/220 |
+| Mean joint score | 5.823 | 5.968 |
 | Mean generation time | 100.4 s | 70.3 s |
 | Mean total tokens | 152,423 | 137,793 |
 | Mean API-rate cost | $0.002580 | $0.002680 |
 | Timing-corrected programs | 18 | 39 |
 
-OpenCode finishes generation 30.0% faster and uses 9.6% fewer tokens. Its eleven
+OpenCode finishes generation 30.0% faster and uses 9.6% fewer tokens. Its nine
 additional validation passes do not translate into more completed benchmarks:
-32 validated programs fail at the benchmark configuration, versus 21 in Codex.
+30 validated programs fail at the benchmark configuration, versus 21 in Codex.
 OpenCode improves validation and benchmark coverage in OpenMP and hybrid, while
 CUDA and MPI have fewer successful benchmarks. All failures remain in the score,
 generation-time and cost summaries.
@@ -44,10 +44,10 @@ at least one successful program in both harnesses are included.
 | Backend | Runtime ratio | Eligible cells / 11 |
 | --- | ---: | ---: |
 | OpenMP | 0.998 | 10 |
-| CUDA | 1.004 | 9 |
-| MPI | 1.078 | 11 |
+| CUDA | 1.003 | 9 |
+| MPI | 1.087 | 11 |
 | Hybrid | 1.849 | 6 |
-| All | 1.134 | 36 / 44 |
+| All | 1.137 | 36 / 44 |
 
 OpenCode has lower cell medians in 14 of the 36 comparable cells; Codex has lower
 medians in 22. OpenMP and CUDA are nearly equal in aggregate. The six comparable
@@ -58,8 +58,8 @@ successful program; conversely, only Codex succeeds in QT CUDA and hybrid.
 Differences vary considerably by workload. Black–Scholes MPI is 62.459 versus
 12.516 ms, while Cahn–Hilliard CUDA is 4,267 versus 8,510 ms and SpMV OpenMP is
 3,167 versus 4,835 ms. These are descriptive cell medians, not significance tests.
-Restricting the comparison to the 13 cells where all ten generated programs
-successfully benchmarked gives a runtime ratio of 1.050. That subset excludes
+Restricting the comparison to the 12 cells where all ten generated programs
+successfully benchmarked gives a runtime ratio of 1.068. That subset excludes
 most hybrid cells and should not be read as a full-workload result.
 
 No new winner across the complete model set was introduced. Existing individual

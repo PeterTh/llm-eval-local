@@ -1,0 +1,42 @@
+{
+  "id": "unstructured_gpt-4.1_mpi_r2",
+  "case_id": "unstructured-shape-mpi128-v1",
+  "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "original_source_commit": null,
+  "source_path": "20260215-162417/unstructured_gpt-4.1_mpi_r2",
+  "result_sha256": "d4ffb8ef174394334dd70f2da92982d6377f1760ced2d4b4d45b7a56faaa8f95",
+  "observed_failure": "Supplemental correctness execution failed: exit 15, timeout false.",
+  "execution": {
+    "success": false,
+    "exit_code": 15,
+    "timed_out": false
+  },
+  "internal_validation": false,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": false,
+    "benchmark_median_ms": null,
+    "overall_score": 5
+  },
+  "file": "unstructured/unstructured.cpp",
+  "source_sha256": "49b5a9fb813df73ecc71acbeeaab9ad0f2c0f85d1345c5dbe63fd9b650e2be72",
+  "source_lines": [
+    124,
+    125,
+    126,
+    127,
+    133,
+    135,
+    136,
+    137,
+    158,
+    160,
+    161
+  ],
+  "finding": "The code distributes a remainder element unevenly but uses fixed-count MPI_Allgather (and later MPI_Gather). At 257^2=66049 elements and 128 ranks, rank 0 sends 517 ElementDynamic records while every other rank supplies a receive count of 516. With 16-byte records that is 8272 sent bytes versus 8256 expected bytes, matching MPI_ERR_TRUNCATE reported by rank 127.",
+  "interpretation": "The collective count mismatch is a deterministic program defect, independent of concurrent scheduling. The paired Gemini observation passed. Retain the canonical failure without retrying it.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained correctness output; no new program execution."
+}

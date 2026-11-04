@@ -1,0 +1,43 @@
+{
+  "id": "nbody_gpt-6-luna-oc-medium_cuda_r2",
+  "case_id": "nbody-shape-topology-v1",
+  "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+  "source_path": "20261018-224015/nbody_gpt-6-luna-oc-medium_cuda_r2",
+  "file": "nbody/nbody.cpp",
+  "source_sha256": "9401d7940f0a36edf8f4031e3e99bcd0ab353a944b45c3f1fc6d0af40057ff89",
+  "result_sha256": "2e1d966a18a91f72c23b96e2a179d3730e856ab695d6e56cf5200bd9cd4b857d",
+  "observed_failure": "Numeric value mismatch for object Bodies: 'Sum: 6.06775878802135438e+00' vs 'Sum: 1.83333503833433610e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 3663,
+    "overall_score": 7
+  },
+  "source_lines": [
+    45,
+    46,
+    56,
+    58,
+    59,
+    60,
+    61,
+    63,
+    64,
+    65,
+    66,
+    67,
+    77
+  ],
+  "finding": "The force kernel gates the whole tile-loading loop on whether the thread has a valid output body (an early return, or the outer i<n loop). At n=1031 only seven lanes in the final output block participate, leaving source-tile entries needed by these lanes unloaded. The inner source bounds do not repair the missing shared-memory loader threads.",
+  "interpretation": "Pre-existing CUDA correctness defect. The exclusive correctness execution exits successfully and the internal finite-value check passes, but the independent numerical comparison fails. Retain failed external validation without retry or tolerance change.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source inspection and retained exclusive correctness output; no new program execution."
+}

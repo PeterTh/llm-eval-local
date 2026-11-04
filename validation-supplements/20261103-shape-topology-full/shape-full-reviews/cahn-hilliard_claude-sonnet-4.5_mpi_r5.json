@@ -1,0 +1,18 @@
+{
+  "id": "cahn-hilliard_claude-sonnet-4.5_mpi_r5",
+  "case_id": "cahn-hilliard-shape-mpi128-v2",
+  "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+  "original_source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+  "source_path": "20260215-162417/cahn-hilliard_claude-sonnet-4.5_mpi_r5",
+  "file": "cahn-hilliard/cahn_hilliard.cpp",
+  "source_sha256": "550fb4ee11dc0f7f6402f9014f2d9245d8d0069833aab92ec8ca4768b99f566b",
+  "source_lines": [253, 255, 257, 259, 261, 262],
+  "finding": "The implementation requires global_nz to be divisible by the MPI world size and explicitly exits 1 otherwise. The approved 129x131x257 case at 128 ranks reaches that rejection because 257 % 128 is 1. This is a generated-program input restriction, not resource contention or an MPI launch failure.",
+  "observed_failure": "Stdout reports: Error: Z dimension (257) must be divisible by number of MPI ranks (128). The process exits 1 without timeout. Its concurrently checked partner passes in 20.15 seconds. No failing observation was retried.",
+  "timing_correction_check": "The original-to-corrected diff changes only the maximum-rank duration and displayed timing/throughput. The dimension restriction is unchanged.",
+  "result_sha256": "087ab2fdf9ac6cf23a8446467675fd2807b16587bb107a4a8035e3cbaa792449",
+  "prior_release": { "validation_status": 5, "benchmark_success": true, "benchmark_median_ms": 6642.0, "overall_score": 7 },
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false
+}

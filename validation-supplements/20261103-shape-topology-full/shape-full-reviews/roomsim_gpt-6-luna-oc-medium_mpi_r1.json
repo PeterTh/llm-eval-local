@@ -1,0 +1,39 @@
+{
+  "id": "roomsim_gpt-6-luna-oc-medium_mpi_r1",
+  "case_id": "roomsim-shape-mpi128-v1",
+  "source_commit": "fdf3ef5283428bb38fcfd6ec116e9fa03defe229",
+  "original_source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+  "source_path": "20261018-224015/roomsim_gpt-6-luna-oc-medium_mpi_r1",
+  "result_sha256": "577045a837fd8b111630392ec2013b80e43452858ba71a591c8672e2bafc3d28",
+  "observed_failure": "Numeric value mismatch for object Distances: 'Sum: 4.77250000000000000e+03' vs 'Sum: 4.70300000000000000e+03'",
+  "execution": {
+    "success": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "internal_validation": true,
+  "prior_release": {
+    "validation_status": 5,
+    "benchmark_success": true,
+    "benchmark_median_ms": 5773,
+    "overall_score": 9
+  },
+  "file": "roomsim/roomsim.cpp",
+  "source_sha256": "95cc9be835ccabf593630f5bfc6cb8cc8263df27b2947a5a93b03c1a7f754499",
+  "source_lines": [
+    420,
+    423,
+    619,
+    620,
+    621,
+    624,
+    625
+  ],
+  "finding": "Starts a separate MT19937 stream with seed 42+row*0x9e3779b9 for each assigned global row, instead of the sequential input's single ordered stream. This changes sampled form factors and is consistent with the numerical discrepancy, but has not been isolated as its sole cause.",
+  "interpretation": "At -n 320 -t 101 -s 7 -r 0.7 with 128 ranks and exclusive execution, termination/internal validation pass but distance sum 4703 differs from reference 4772.5 by 69.5, exceeding the unchanged tolerance of 50. Retain failed external validation without retry.",
+  "timing_correction_check": "The original-to-corrected source diff only adds maximum-rank stage-duration reductions and sums those durations; sampling/numerical code is unchanged.",
+  "disposition": "failed_external_validation",
+  "program_changed": false,
+  "performance_rerun_required": false,
+  "investigation": "Static source/diff inspection and retained exclusive correctness output; no new program execution."
+}

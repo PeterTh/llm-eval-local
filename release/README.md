@@ -1,4 +1,4 @@
-# Combined release: 2026-11-02
+# Combined release: 2026-11-04
 
 This is a reproducible view over fourteen retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
@@ -34,8 +34,8 @@ This release includes GPT-6 validation, timing review and benchmarks.
 The shared correction campaign at `corrections/20261001-gpt6-qt/` applies 81
 revalidations and exactly 32 historical QT benchmark replacements. Initial GPT-6
 validation observed 611 passes; two confirmed pre-existing defects failed corrected
-revalidation, and one additional implementation fails external validation, giving
-608 eligible programs. Original observations remain accessible. All 4,435 unrelated
+revalidation, and ten implementations fail supplemental external validation, giving
+599 eligible programs. Original observations remain accessible. All 4,435 unrelated
 historical benchmark records from the shared correction campaign are guarded unchanged.
 
 The initial Claude 5 generation harness and campaign tooling are published at
@@ -45,7 +45,7 @@ from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
 - 8,580 programs, 39 model/effort/harness profiles, 220 programs each.
-- 7,615 effectively validated programs and benchmark attempts; 7,174 successful measurements.
+- 7,440 effectively validated programs and eligible benchmark attempts; 7,032 successful measurements.
 - 1,263 timing-fixed programs (including two failed revalidations), with source history.
 - 44 benchmark/backend cells, all with reviewed winners; 94 retained reviews total.
 
@@ -54,9 +54,9 @@ include six successful benchmarks and one retained numerical validation failure.
 Two needed timing-only corrections. The [comparison snapshot](../analysis/notes/2026-10-25-sonnet5-replacement-context.json)
 binds the replaced records and their source revisions.
 
-DeepSeek V4.1 Flash High in OpenCode contributes 217 validated and successfully
-benchmarked programs, including 56 timing-only corrections. Three validation
-failures remain in the dataset. Its new CUDA SpMV winner is a practical tie with
+DeepSeek V4.1 Flash High in OpenCode contributes 214 validated and successfully
+benchmarked programs. Its 56 timing-only corrections retain source history;
+six validation failures remain in the dataset. Its CUDA SpMV winner is a practical tie with
 the previous Luna result. The [comparison snapshot](../analysis/notes/2026-10-23-deepseek41-opencode-winner-context.json)
 pins the preceding release and the unchanged evidence for all 7,480 prior observations.
 The [Luna 6](../analysis/notes/2026-10-19-luna6-harness-comparison.md) and
@@ -78,9 +78,9 @@ bind the preceding releases and unchanged observation evidence. The
 [pricing note](../analysis/notes/2026-10-29-terra61-pricing.md) binds both profiles'
 API-equivalent costs to exact native counters and request-context evidence.
 
-Beam 1.0 Medium in OpenCode contributes 179 effectively validated programs and
-145 successful benchmarks, including 45 timing-only corrections. Forty native
-validation failures, one external validation failure and 34 benchmark failures
+Beam 1.0 Medium in OpenCode contributes 176 effectively validated programs and
+144 successful benchmarks, with 45 timing-only corrections retained. Forty native
+validation failures, four supplemental external-validation failures and 32 benchmark failures
 remain in the dataset. Eleven independent full-result replicas retain valid
 local timing without source changes; this does not waive the single-primary-time
 output contract. Beam introduces no new cell winners. The
@@ -90,14 +90,16 @@ the other seven receive the approved external-validation exclusion.
 The [pricing note](../analysis/notes/2026-10-30-beam10-opencode-pricing.md)
 retains complete native accounting for 219 programs and one partial record.
 
-The [external Unstructured check](../analysis/notes/2026-11-01-unstructured-boundary-validation.md)
-is part of current validation. Its source-pinned exclusions affect eligibility,
-not the immutable original validation or benchmark evidence.
+The [supplemental correctness checks](../analysis/notes/2026-11-04-validation-strengthening.md)
+and [Unstructured boundary check](../analysis/notes/2026-11-01-unstructured-boundary-validation.md)
+are part of current validation. Their 183 source-pinned exclusions affect eligibility,
+not the immutable original validation or benchmark evidence. All 44 current winners
+remain eligible; no performance measurements were rerun for these checks.
 
 `scored_results.csv` is the current analysis and website input. The unchanged historic
 log-natural-break threshold procedure is applied to the joint successful-measurement
 distribution. `historical_score_changes.csv` records older score changes and distinguishes
-joint-threshold changes from affected QT timing-boundary replacements.
+joint-threshold changes from affected QT timing-boundary replacements and external-validation exclusions.
 The builder also reproduces all 4,620 old scores with the old thresholds as a regression
 check. Previous QT observations stay immutable in `data/` and the Claude batch.
 
