@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-haiku-5.5-cc-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed loop repeats the complete rank-owned CSR matrix-vector product for each requested iteration; contiguous floor-partitioned row intervals cover the matrix.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          140,
+          150
+        ],
+        [
+          207,
+          242
+        ],
+        [
+          259,
+          281
+        ],
+        [
+          286,
+          310
+        ]
+      ],
+      "claim": "The -i value directly bounds the timed loop. Each iteration visits every local row and every CSR nonzero; the separately computed validation reference does not replace timed work.",
+      "sha256": "c62375f0ac31fa93f660f6c6190a20611cc5236f65aaac9ead4b0bc199b10d8e",
+      "git_blob": "83b729628c790e62ad284ed1211f41712ffced01"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Between clock calls, vmulsd/vaddsd remain inside the nonzero backedge 9dac->9d90, row backedge 9dc2->9d60, and iteration backedge 9dcc->9d50.",
+      "complete_dump_sha256": "d792767926f3627fa80c91971438fba547b28646ec244197794d5827dfad9b8f",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-cc-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1980,
+          "last_line": 2030,
+          "text": "    9ced:\tlea    0xa32c(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9cf4:\tcall   8e80 <MPI_Barrier@plt>\n    9cf9:\tcall   91d0 <MPI_Wtime@plt>\n    9cfe:\tmov    -0xd0(%rbp),%rax\n    9d05:\tvmovsd %xmm0,-0x1d0(%rbp)\n    9d0d:\tmov    %rax,-0x1a0(%rbp)\n    9d14:\ttest   %r14d,%r14d\n    9d17:\tje     9dd5 <main+0x645>\n    9d1d:\tmov    -0x1b4(%rbp),%r9d\n    9d24:\tmov    -0x130(%rbp),%r8\n    9d2b:\ttest   %r9d,%r9d\n    9d2e:\tje     9dd5 <main+0x645>\n    9d34:\tmov    -0x198(%rbp),%r9\n    9d3b:\tmov    -0x1a0(%rbp),%rdi\n    9d42:\txor    %ecx,%ecx\n    9d44:\tshl    $0x2,%r9\n    9d48:\tnopl   0x0(%rax,%rax,1)\n    9d50:\txor    %r10d,%r10d\n    9d53:\tmov    %rdi,%r11\n    9d56:\tcs nopw 0x0(%rax,%rax,1)\n    9d60:\tmov    (%r8,%r10,1),%eax\n    9d64:\tmov    0x4(%r8,%r10,1),%edx\n    9d69:\tcmp    %edx,%eax\n    9d6b:\tjae    9f70 <main+0x7e0>\n    9d71:\tdec    %edx\n    9d73:\tlea    0x0(%r13,%rax,4),%rdi\n    9d78:\tlea    (%r12,%rax,8),%rsi\n    9d7c:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d80:\tsub    %eax,%edx\n    9d82:\tmov    %r11,-0x198(%rbp)\n    9d89:\txor    %eax,%eax\n    9d8b:\tnopl   0x0(%rax,%rax,1)\n    9d90:\tmov    (%rdi,%rax,4),%r11d\n    9d94:\tvmovsd (%rbx,%r11,8),%xmm0\n    9d9a:\tmov    %rax,%r11\n    9d9d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    9da2:\tinc    %rax\n    9da5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9da9:\tcmp    %rdx,%r11\n    9dac:\tjne    9d90 <main+0x600>\n    9dae:\tmov    -0x198(%rbp),%r11\n    9db5:\tvmovsd %xmm1,(%r11,%r10,2)\n    9dbb:\tadd    $0x4,%r10\n    9dbf:\tcmp    %r10,%r9\n    9dc2:\tjne    9d60 <main+0x5d0>\n    9dc4:\tinc    %ecx\n    9dc6:\tmov    %r11,%rdi\n    9dc9:\tcmp    %r14d,%ecx\n    9dcc:\tjne    9d50 <main+0x5c0>\n    9dce:\tmov    %r11,-0x1a0(%rbp)\n    9dd5:\tcall   91d0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261012-111947/spmv_claude-haiku-5.5-cc-medium_mpi_r1",
+    "source_commit": "71ba7cc523997c8fd1537d7a8159b583f260793d",
+    "staged_source_sha256": "3c7d23a7672fd2a17c1eb61dee1cf816062cd4d70dad1c61cbf8385655d31c31"
+  },
+  "binary_sha256": "f1008a37a6f0c19dbdfa0fd099fa034466c4278dc39c419b4c0fe874788e1c87",
+  "binding_sha256": "44e084dff0642cf33c36591bfb1205abeb6b681db922aaa45d7855682aff7fcc",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:54:48Z",
+  "review_finished_at": "2026-11-04T12:55:17Z",
+  "review_input_sha256": "7ebe82a12317fa6e47d93fb5336f5fdc3874a39a4ca3ec657332fd8972c264df",
+  "pack_sha256": "18976aa11ade42455cef7d41c11d3dcd894ec65949b65a3053a9e1ee94a03fc0",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,1203 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:33:50Z",
+  "review_finished_at": "2026-11-04T15:43:27Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The rank-local CSR partition is prepared before timing. The GPU uses the selected width kernel for each captured graph node; the measured host path replays iterations/batch graphs plus residual direct launches and synchronizes. Each selected kernel maps rows and traverses the row's complete CSR interval, accumulating and storing the result.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              472
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3553,
+              3564
+            ]
+          ],
+          "claim": "Measured clock start and branch into the timed path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3944,
+              4000
+            ]
+          ],
+          "claim": "Timed graph quotient/replay, residual launch loop, and synchronization path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3898,
+              3918
+            ]
+          ],
+          "claim": "Graph capture/instantiate setup immediately preceding the measured replay path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1681,
+              1835
+            ]
+          ],
+          "claim": "Complete host launch dispatcher called during capture and residual launches; includes width selection and launch submission."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1176,
+              1475
+            ]
+          ],
+          "claim": "Complete width-specialized device stub bodies through launch submission."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2283
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed path replays a graph containing the selected width kernel and launches any residual iterations, then synchronizes. The rank's local CSR rows are handled by the selected width variant; the final sm86 SASS contains the row bounds, complete nonzero traversal, accumulation/reduction and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              491
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2683,
+              2727
+            ]
+          ],
+          "claim": "Measured graph quotient and residual launch repetition, error checking, synchronization and clock end."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3243,
+              3260
+            ]
+          ],
+          "claim": "Graph capture and graph instantiation before timing."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3356,
+              3660
+            ]
+          ],
+          "claim": "Complete emitted width-specialized host launch bodies used by the captured dispatcher, through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3600
+            ],
+            [
+              3601,
+              4011
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "There is no graph path: the timed loop dispatches one selected width-specific kernel per requested iteration and synchronizes before clock end. Each selected final-sm86 specialization covers rows and traverses each row's full CSR interval before reduction and output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              479
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2934,
+              3071
+            ]
+          ],
+          "claim": "Measured direct per-iteration dispatch, selected width branches, launch submissions, error check and device synchronization."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1243,
+              1482
+            ]
+          ],
+          "claim": "Complete width-4/8/16/32 emitted stubs through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3238
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "After a warmup, the source captures a bounded graph of full launches. The measured path replays the graph quotient and uses the selected launch dispatcher for remaining iterations, then synchronizes. Each selected final-sm86 width kernel traverses all nonzeros in each assigned CSR row and stores the result.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              525
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2589,
+              2713
+            ]
+          ],
+          "claim": "Measured graph replay quotient, residual launch loop, synchronization and clock end."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3133,
+              3153
+            ]
+          ],
+          "claim": "Graph capture/instantiate setup before timing."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3410,
+              3653
+            ]
+          ],
+          "claim": "Complete emitted width-32/8/16/4 host launch bodies through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3238
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The selected width kernel is captured before timing. The measured path replays a bounded graph quotient plus direct residual launches, then synchronizes. The selected kernel covers each assigned row and its complete CSR interval with product accumulation, reduction and output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              473
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2710,
+              2749
+            ]
+          ],
+          "claim": "Measured graph quotient and residual replay/launch control."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2670,
+              2690
+            ]
+          ],
+          "claim": "Graph capture and instantiation before timing."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3334,
+              3638
+            ]
+          ],
+          "claim": "Complete emitted width-specific host launch bodies through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3600
+            ],
+            [
+              3601,
+              4050
+            ],
+            [
+              4051,
+              4347
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A launch helper dispatches the width-specific kernel and builds a bounded graph before timing. During measurement, the code replays the graph quotient and invokes the helper for each remainder iteration, then synchronizes. The final-sm86 width variants traverse complete row intervals and store each row's sum.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              506
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              25
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2818,
+              2869
+            ]
+          ],
+          "claim": "Measured graph replay and residual-launch loop, synchronization and clock boundary."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2770,
+              2796
+            ]
+          ],
+          "claim": "Graph capture and instantiation setup before timing."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1192,
+              1421
+            ]
+          ],
+          "claim": "Complete launchSpmv dispatcher through cudaLaunchKernel submission."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3305,
+              3486
+            ]
+          ],
+          "claim": "Complete emitted selected width-kernel launch wrappers."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2417
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each GPU receives a contiguous CSR row partition and prepares captured graphs for its local work before measurement. Inside the clock interval, the OpenMP workers submit each partition's graph/remainder work and then synchronize the devices; the timer ends only after both worker passes. The selected final-sm86 width kernels cover their assigned rows and full CSR intervals.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              508
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              27
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              5681,
+              5823
+            ]
+          ],
+          "claim": "Measured interval: GOMP work submission for each GPU followed by a separate synchronization pass, ending at the second clock call."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2922,
+              3268
+            ]
+          ],
+          "claim": "Outlined GPU compute worker reached by the measured first forEachGpu pass."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2835,
+              2921
+            ]
+          ],
+          "claim": "Outlined synchronization worker reached by the measured second forEachGpu pass."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3473,
+              3790
+            ]
+          ],
+          "claim": "Outlined pre-timing GPU preparation/capture worker, including setup portion."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3791,
+              4189
+            ]
+          ],
+          "claim": "Continuation of pre-timing preparation/capture worker, including selected launch variants and graph setup."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2359,
+              2765
+            ]
+          ],
+          "claim": "All six width-specific CUDA stubs through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3600
+            ],
+            [
+              3601,
+              4050
+            ],
+            [
+              4051,
+              4500
+            ],
+            [
+              4501,
+              4640
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each GPU is prepared with a bounded repeated-launch graph and optional tail graph before timing. The timed OpenMP worker iterates its assigned GPU partitions, replays the repeated graph for the quotient and tail graph for the remainder, then synchronizes each stream. The selected SASS kernel variants traverse complete CSR rows and store outputs.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              750
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              30
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              5501,
+              5567
+            ]
+          ],
+          "claim": "Measured worker clock region, GPU assignment loop, graph quotient/tail launches and stream synchronization."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              5426,
+              5715
+            ]
+          ],
+          "claim": "Complete timed outlined OpenMP worker and its device/partition control."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4590,
+              5039
+            ],
+            [
+              5040,
+              5106
+            ]
+          ],
+          "claim": "Complete launchSpmv dispatch helper through kernel launch submission."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              5107,
+              5171
+            ]
+          ],
+          "claim": "Complete captureSpmv graph capture/instantiation helper."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              5172,
+              5425
+            ]
+          ],
+          "claim": "Complete prepareGpu setup path that selects launch geometry and prepares repeated/tail graphs."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3600
+            ],
+            [
+              3601,
+              4050
+            ],
+            [
+              4051,
+              4500
+            ],
+            [
+              4501,
+              4950
+            ],
+            [
+              4951,
+              5397
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "For each GPU partition, setup captures a bounded graph of full launches before timing. The measured host region enters the OpenMP compute worker; each selected device partition's compute method replays graph quotient launches plus direct residual launches and synchronizes. The runtime-selected vector-width/block variants traverse each CSR row's full nonzero range and store the result.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              718
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              30
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              5196,
+              5273
+            ]
+          ],
+          "claim": "Clock interval surrounding OpenMP GPU compute work."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2880,
+              3217
+            ]
+          ],
+          "claim": "Complete outlined forDevices compute worker, including per-partition calls and iteration/remainder dispatch."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              6592,
+              6868
+            ]
+          ],
+          "claim": "Complete DevicePartition::launch helper through kernel stub submission."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              7086,
+              7146
+            ]
+          ],
+          "claim": "Graph capture/instantiate path as emitted in the exact executable."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1668,
+              2087
+            ]
+          ],
+          "claim": "All vector width 1/2/4/8/16/32 stubs through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2693,
+              2789
+            ]
+          ],
+          "claim": "Complete alternate spmvBlock device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3600
+            ],
+            [
+              3601,
+              4050
+            ],
+            [
+              4051,
+              4500
+            ],
+            [
+              4501,
+              4757
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "GPU initialization constructs and captures the repeated-launch graph before the timed region. The timed OpenMP worker assigns GPU workers, replays the graph quotient and submits any remainder kernels; a subsequent synchronization path completes before the timer ends. The emitted launch method dispatches the selected width kernel, whose final SASS covers row/nonzero work and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              748
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/count, CSR construction and row/nonzero arithmetic, dispatch, partitioning, and timing/capture logic."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              36
+            ]
+          ],
+          "claim": "Complete exact build configuration for this executable."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2826,
+              2966
+            ]
+          ],
+          "claim": "Measured worker clock interval, GPU assignment, graph replay and residual direct-launch loop."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2726,
+              3007
+            ]
+          ],
+          "claim": "Complete timed outlined OpenMP worker through its exit."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              6060,
+              6385
+            ]
+          ],
+          "claim": "GPU initialization and graph-capture method called before timing."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              5399,
+              5848
+            ],
+            [
+              5849,
+              6059
+            ]
+          ],
+          "claim": "Complete GpuWorker launch method and runtime width dispatcher through launch submission."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4871,
+              5321
+            ]
+          ],
+          "claim": "Complete generated host launch wrappers for the selectable width variants."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3600
+            ],
+            [
+              3601,
+              4050
+            ],
+            [
+              4051,
+              4500
+            ],
+            [
+              4501,
+              4950
+            ],
+            [
+              4951,
+              5381
+            ]
+          ],
+          "claim": "Complete final sm86 SASS dump in bounded chunks, including all embedded kernel variants; source width/dispatch selection determines which variants are selected, and the cited bodies show their row/nonzero loops, arithmetic and stores."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}
+

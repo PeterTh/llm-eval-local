@@ -1,0 +1,42 @@
+{
+  "reviewer":"Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at":"2026-11-04T12:47:34Z",
+  "review_finished_at":"2026-11-04T12:50:53Z",
+  "reviews":[
+    {
+      "id":"spmv_claude-haiku-4.5_mpi_r1",
+      "finding":"no_work_count_omission_identified",
+      "summary":"The root-parsed iteration count is broadcast unchanged. Distributed CSR slices cover all rows, with the last rank taking the remainder, and every local product is recomputed for each requested iteration.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[97,107],[163,204],[222,225],[273,340],[351,367]],"claim":"Complete slice distribution and full repeated local product; the broadcast does not reduce or replace the requested count."}],
+      "compiled_evidence":[{"file":"host-assembly.txt","ranges":[[2450,2500]],"claim":"Actual multiply/add at 0xa680-0xa69d is within the full local-product repetition backedge 0xa6be -> 0xa640."}]
+    },
+    {
+      "id":"spmv_claude-haiku-4.5_mpi_r2",
+      "finding":"no_work_count_omission_identified",
+      "summary":"All ranks parse the same count and recompute their complete contiguous row partitions on every iteration. The last rank receives the remainder; compiled code preserves the nested product/repetition loops.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[163,179],[237,276]],"claim":"The full input is broadcast and all local nonzeros participate in every requested product."}],
+      "compiled_evidence":[{"file":"host-assembly.txt","ranges":[[1977,2045]],"claim":"0x9d70-0x9d8c retains dot-product arithmetic, enclosed by count increment/comparison and 0x9dd7 -> 0x9d30."}]
+    },
+    {
+      "id":"spmv_claude-haiku-4.5_mpi_r3",
+      "finding":"no_work_count_omission_identified",
+      "summary":"The broadcast iteration count bounds complete products over quotient/remainder CSR slices. Received row delimiters are rebased correctly; the executable recomputes arithmetic on each repetition rather than copying a precomputed reference.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[97,107],[164,205],[246,314],[331,343]],"claim":"Unchanged count reaches the complete local CSR computation; scatter and validation are outside the timed repeated products."}],
+      "compiled_evidence":[{"file":"host-assembly.txt","ranges":[[2339,2383]],"claim":"The dot-product loop at 0xa400-0xa41c is enclosed by the full-row repetition backedge 0xa432 -> 0xa3c0."}]
+    },
+    {
+      "id":"spmv_claude-haiku-4.5_mpi_r4",
+      "finding":"no_work_count_omission_identified",
+      "summary":"The full matrix is replicated, but each rank computes only its assigned contiguous rows. Passing an offset row-delimiter pointer preserves global value/column indexing. Every requested repetition recomputes that complete slice.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[97,107],[164,205],[223,234],[255,287]],"claim":"The broadcast count is unchanged; all local products remain inside the timed repetition loop."}],
+      "compiled_evidence":[{"file":"host-assembly.txt","ranges":[[2085,2132]],"claim":"The retained multiply/add loop 0x9f00-0x9f1c lies within 0x9f32 -> 0x9ec0, the requested-count repetition backedge."}]
+    },
+    {
+      "id":"spmv_claude-haiku-4.5_mpi_r5",
+      "finding":"no_work_count_omission_identified",
+      "summary":"Each rank extracts a complete quotient/remainder CSR slice from the broadcast input and invokes spmvCpuLocal for every requested iteration. Redundant setup copies add work but do not replace timed products.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[125,135],[191,207],[242,254],[287,345]],"claim":"The original count bounds complete local products after source-independent input extraction."}],
+      "compiled_evidence":[{"file":"host-assembly.txt","ranges":[[2199,2247]],"claim":"The product arithmetic at 0xa1a0-0xa1bb remains within 0xa1d1 -> 0xa160, repeating the whole local row pass."}]
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:35:35Z",
+  "review_finished_at": "2026-11-04T15:43:51Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Single-process CSR input contains nItems stored values across numRows rows. The timed loop is bounded by iterations and launches the 4-warps-per-block kernel each pass; each warp owns one row, lanes stride by 32 over its complete CSR range, reduce, and lane zero stores. The compiled timed loop has the iterations backedge, invokes cudaLaunchKernel with the kernel and arguments, then checks launch status and synchronizes before timer end.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,17]],"claim":"CUDA target and optimization/build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,315]],"claim":"Full source: CLI rows/sparsity/repetitions, CSR creation, complete warp-per-row kernel, warmup, event-bounded repeated launch loop and output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1340,1437]],"claim":"Timed host loop increments and compares against runtime iterations, calls cudaLaunchKernel with the spmvCuda symbol, checks error and synchronizes before timer end."},
+        {"file":"device-sass.txt","ranges":[[18,311]],"claim":"sm_86 kernel covers launched rows; each lane strides over the row's CSR interval, performs multiply-add and warp reduction, and lane zero stores output."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The complete CSR matrix and vector are resident on the device. The counted host loop launches the warp-per-row kernel for every requested iteration; each row's lanes visit indices from its start to end in stride-32 steps, reduce, and store. The CMake target is specifically sm_60, matching the available native SASS. The compiled loop forwards dimensions and kernel arguments through cudaLaunchKernel and synchronizes at the timer boundary.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"CUDA target is compiled for architecture 60 with optimization flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,315]],"claim":"Full source: runtime iteration count, full CSR input, row assignment, lane-strided CSR arithmetic, event-timed repeated launch and output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1344,1433]],"claim":"Timed counted loop/backedge issues the spmvKernel launch via cudaLaunchKernel and synchronizes before ending the interval."},
+        {"file":"device-sass.txt","ranges":[[18,279]],"claim":"sm_60 kernel row bounds, full CSR traversal/reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The single-process CSR setup covers nItems nonzeros over all rows. The runtime-count loop repeatedly launches the scalar-per-row kernel; each valid launched row scans from rowDelimiters[row] to rowDelimiters[row+1], accumulates every stored entry and writes its output. The compiled timed loop contains the iteration backedge, actual cudaLaunchKernel call and synchronization before timer end. The CMake target and available native dump include sm_86.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,17]],"claim":"CUDA architecture list includes sm_86 and build optimization flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,303]],"claim":"Full source: CLI and CSR creation, scalar row kernel, complete launch grid, timed counted repetitions and output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1346,1450]],"claim":"Timed host loop and backedge call cudaLaunchKernel for the row kernel, then check launch status and synchronize before timer end."},
+        {"file":"device-sass.txt","ranges":[[2943,3300],[3301,3652]],"claim":"Complete sm_86 kernel SASS through CSR arithmetic and row-loop control to the output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source keeps the full CSR matrix resident and launches one scalar thread per row in each requested iteration. Each thread checks its row bound, scans the complete CSR interval and stores the sum. The timed compiled host loop has its repetition backedge and actual kernel launch, followed by synchronization before timer end. CMake selects sm_70, matching the final SASS architecture.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA target is configured for architecture 70 and optimization flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,303]],"claim":"Full source: rows/nonzeros and CLI count, scalar CSR kernel, repeated timed launch and output retrieval."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1319,1423]],"claim":"Timed host repetition and kernel launch path include the actual cudaLaunchKernel call, error check and device synchronization."},
+        {"file":"device-sass.txt","ranges":[[9,400],[401,702]],"claim":"sm_70 kernel row bounds, CSR traversal/arithmetic backedge and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source performs iterations launches with one warp per row; lane-strided work covers each CSR interval, followed by shuffle reduction and a lane-zero store. In the compiled timed main path the iterations counter backedge encloses the cudaLaunchKernel call and ends with error checking and device synchronization. The SASS includes the linked shuffle helper and the complete sm_86 CSR kernel through its row/element loops and store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"CUDA compilation and optimization configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,315]],"claim":"Full source: input/CSR setup, requested iteration loop, one-warp-per-row kernel and final output handling."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1326,1439]],"claim":"Timed loop calls cudaLaunchKernel and branches on the runtime iteration bound, then synchronizes before timer end."},
+        {"file":"device-sass.txt","ranges":[[9,44],[47,339]],"claim":"sm_86 shuffle helper and complete selected kernel with row/CSR bounds, arithmetic, reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The warmup precedes the event-timed work. The compiled event-bounded loop repeats the warp-row kernel exactly to the runtime iteration bound, then records/synchronizes the end event. The actual called device stub reaches cudaLaunchKernel. Each warp processes one row, lanes stride over all its CSR entries, reduce and lane zero stores. All rows are covered by the grid sizing in source.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA target and compiler options."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,330]],"claim":"Full source: CLI and CSR initialization, warp-per-row kernel, warmup, counted event-timed loop and output handling."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1340,1495],[2288,2344]],"claim":"Timed host event interval includes the iterations backedge and called spmvCuda device stub; full stub passes the kernel symbol and arguments to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[18,327]],"claim":"sm_86 warp-row kernel bounds rows, traverses all CSR entries, reduces and stores output."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The event-timed loop compares its repetition counter with the requested runtime count and dispatches the selected 2/4/8/16/32-lane row kernel. Compiled host branches calculate launch dimensions for those widths and call cudaLaunchKernel; the event end follows the backedge. Each width's sm_86 SASS assigns lanes to a row, strides through the complete row interval, reduces and stores. Inputs stay resident across repetitions.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA target and compiler options."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,355]],"claim":"Full source: runtime count, five-way average-NNZ width dispatch, lane-strided CSR kernels, event loop and complete output path."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1385,1525],[1680,1960]],"claim":"Event start, counted main-loop backedge and compiled alternative launch branches, including cudaLaunchKernel calls for the selected lane widths, followed by event completion."},
+        {"file":"device-sass.txt","ranges":[[10,302],[303,595],[596,872],[873,1149],[1150,1410]],"claim":"All five sm_86 kernel variants (32, 16, 8, 4 and 2 lanes) through CSR traversal/backedges, reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The event-timed loop repeats its selected kernel for the requested iteration count, with a warmup outside timing. Average row length selects widths 32/16/8/4/1. The compiled main control flow includes the repeated iteration loop and each selected actual stub; all five complete stubs call cudaLaunchKernel. Every sm_86 variant covers a row's full CSR interval with lane-width strides and stores a reduced row result.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"CUDA target and compilation options."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,357]],"claim":"Full source: all row/CSR initialization, average-based five-way selector, warmup, requested timed repetitions and output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1580,1910],[2205,2503]],"claim":"Timed dispatch and repeated main loop invoke selected width-specific stubs; the complete set of five stubs passes kernel symbols/arguments to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,500],[501,711],[712,988],[989,1265],[1266,1542],[1543,1835]],"claim":"All five sm_86 variants (1, 4, 8, 16, 32 lanes) through CSR arithmetic/reduction and output stores."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A warmup is outside the timed event interval. The compiled counted event-timed loop calls launchAdaptiveSpmv and has the runtime-count backedge, then records and synchronizes the stop event. The compiled adaptive dispatcher branches to all six lane-width stubs; each complete stub reaches cudaLaunchKernel. The selected sm_86 kernel SASS variants cover CSR intervals, reduce and store output.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"CUDA target and compiler configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,358]],"claim":"Full source: CSR setup, adaptive 1/2/4/8/16/32 lane selector, warmup, timed iterations and output handling."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1410,1495],[2363,2591],[1982,2341]],"claim":"Timed main loop's launchAdaptiveSpmv call and backedge; complete adaptive dispatcher and all six complete kernel stubs through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,311],[312,604],[605,881],[882,1158],[1159,1419],[1420,1900],[1901,2112]],"claim":"All six sm_86 variants (32/16/8/4/2/1 lanes) through CSR traversal, reduction and output stores."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The event interval encloses the requested-count loop, guarded only by a nonzero launch grid. The compiled main loop calls launchSpmv and branches on the runtime iteration counter; the complete compiled dispatcher selects and launches 4/8/16/32-lane variants via cudaLaunchKernel. Each variant's sm_86 SASS covers row CSR entries using the selected lane stride and writes the reduced output.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,22]],"claim":"CUDA target and optimization/build settings."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,354]],"claim":"Full source: runtime count, fixed CSR input, average-based lane selector and launch dispatcher, timed repetition loop and output handling."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1425,1450],[1580,1645],[2204,2503]],"claim":"Timed loop and backedge call the full compiled launchSpmv dispatcher; its width branches issue cudaLaunchKernel for their kernel symbols and arguments."},
+        {"file":"device-sass.txt","ranges":[[19,327],[328,636],[637,929],[930,1222]],"claim":"All four sm_86 variants (32/16/8/4 lanes) through CSR arithmetic/reduction and output stores."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

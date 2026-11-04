@@ -1,0 +1,68 @@
+{
+  "id": "spmv_qwen-3.6-27B-udq4_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The root-parsed and broadcast -i count reaches timed loop 368–371 unchanged. Cumulative quotient/remainder row partitions span all rows; complete CSR operand and delimiter scatters, offset rebasing and vector broadcast preserve all work. Every local interval is recomputed per iteration and gathered. Output allocation occurs inside timing, adding overhead rather than omitting work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          51,
+          109
+        ],
+        [
+          158,
+          210
+        ],
+        [
+          227,
+          353
+        ],
+        [
+          358,
+          393
+        ]
+      ],
+      "claim": "The root-parsed and broadcast -i count reaches timed loop 368–371 unchanged. Cumulative quotient/remainder row partitions span all rows; complete CSR operand and delimiter scatters, offset rebasing and vector broadcast preserve all work. Every local interval is recomputed per iteration and gathered. Output allocation occurs inside timing, adding overhead rather than omitting work.",
+      "sha256": "eb2bc5ecb663539991cb93baf464dbe526b6336e580944ce5c87dbae61a9a46e",
+      "git_blob": "5c779f24f9d1113642e9509999005035f3b4d612"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "system_clock a2d1/a3d4 encloses output allocation a2fe plus multiply/add a39d/a3a6, nonzero backedge a3ad->a390, row a3bc->a360, repetition a3c8->a350.",
+      "complete_dump_sha256": "8f35f2411c787c01367909ee87879ee45fa6c3b88b2a09b369dfb6d64787dcf9",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_qwen-3.6-27B-udq4_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2271,
+          "last_line": 2341,
+          "text": "    a29b:\tmovq   $0x0,-0xc0(%rbp)\n    a2a6:\tlea    -0xd0(%rbp),%rax\n    a2ad:\tvmovdqa %xmm0,-0xd0(%rbp)\n    a2b5:\ttest   %r8d,%r8d\n    a2b8:\tje     a72c <main+0xf2c>\n    a2be:\tmov    %rax,-0x2c8(%rbp)\n    a2c5:\tlea    0xaf54(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a2cc:\tcall   8ea0 <MPI_Barrier@plt>\n    a2d1:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    a2d6:\tmov    -0x2d0(%rbp),%rdx\n    a2dd:\tlea    -0xb0(%rbp),%r15\n    a2e4:\tmov    %rax,-0x2d8(%rbp)\n    a2eb:\tmov    -0x2c0(%rbp),%eax\n    a2f1:\tmov    %r15,%rdi\n    a2f4:\tmov    %rax,%rsi\n    a2f7:\tmov    %rax,-0x2b8(%rbp)\n    a2fe:\tcall   f370 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    a303:\tmov    -0x28c(%rbp),%esi\n    a309:\ttest   %esi,%esi\n    a30b:\tje     a3d4 <main+0xbd4>\n    a311:\tmov    -0x2c0(%rbp),%ecx\n    a317:\tmov    -0xb0(%rbp),%r11\n    a31e:\tmov    -0xf0(%rbp),%r8\n    a325:\ttest   %ecx,%ecx\n    a327:\tje     a3d4 <main+0xbd4>\n    a32d:\tmov    -0x2b8(%rbp),%r10\n    a334:\txor    %edx,%edx\n    a336:\tmov    %r14,-0x2e0(%rbp)\n    a33d:\tmov    %r15,%rcx\n    a340:\tshl    $0x2,%r10\n    a344:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a34f:\tnop\n    a350:\txor    %r15d,%r15d\n    a353:\tmov    %edx,-0x2b8(%rbp)\n    a359:\tnopl   0x0(%rax)\n    a360:\tmov    (%rbx,%r15,1),%eax\n    a364:\tmov    0x4(%rbx,%r15,1),%edi\n    a369:\tcmp    %edi,%eax\n    a36b:\tjae    a710 <main+0xf10>\n    a371:\tdec    %edi\n    a373:\tlea    (%r12,%rax,4),%r14\n    a377:\tlea    0x0(%r13,%rax,8),%r9\n    a37c:\tvxorpd %xmm1,%xmm1,%xmm1\n    a380:\tsub    %eax,%edi\n    a382:\txor    %eax,%eax\n    a384:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a38f:\tnop\n    a390:\tmov    (%r14,%rax,4),%edx\n    a394:\tvmovsd (%r8,%rdx,8),%xmm0\n    a39a:\tmov    %rax,%rdx\n    a39d:\tvmulsd (%r9,%rax,8),%xmm0,%xmm0\n    a3a3:\tinc    %rax\n    a3a6:\tvaddsd %xmm0,%xmm1,%xmm1\n    a3aa:\tcmp    %rdi,%rdx\n    a3ad:\tjne    a390 <main+0xb90>\n    a3af:\tvmovsd %xmm1,(%r11,%r15,2)\n    a3b5:\tadd    $0x4,%r15\n    a3b9:\tcmp    %r15,%r10\n    a3bc:\tjne    a360 <main+0xb60>\n    a3be:\tmov    -0x2b8(%rbp),%edx\n    a3c4:\tinc    %edx\n    a3c6:\tcmp    %esi,%edx\n    a3c8:\tjne    a350 <main+0xb50>\n    a3ca:\tmov    -0x2e0(%rbp),%r14\n    a3d1:\tmov    %rcx,%r15\n    a3d4:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    a3d9:\tmov    -0x2d8(%rbp),%rcx\n    a3e0:\tmovabs $0x431bde82d7b634db,%rdx\n    a3ea:\tsub    $0x8,%rsp\n    a3ee:\tmovq   $0x0,-0x278(%rbp)\n    a3f9:\tlea    -0x278(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260507-154026/spmv_qwen-3.6-27B-udq4_mpi_r2",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "8d6e9920b69fae323b2a9414f2c2de09b550f5a5c7e68fa1e63f34737f11eff7"
+  },
+  "binary_sha256": "f7ddcc2d4d4beda1be86988013362caa9834835a9e87398801c4313fa4325b4b",
+  "binding_sha256": "f64a20ee6a842427b4f60c32c98338b86d0436df0037106b7417903dfe3532f4",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:40:44Z",
+  "review_finished_at": "2026-11-04T13:41:30Z",
+  "review_input_sha256": "9dcf856e8c22a58f334479dbc0a10514739704dae7552d70a6e6103faac2ae29",
+  "pack_sha256": "d783ba85be491b393b3d61118cd4151a94f51263b1a6f68715ba529c540ed9ae",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

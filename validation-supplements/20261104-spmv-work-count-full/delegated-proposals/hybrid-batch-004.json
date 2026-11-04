@@ -1,0 +1,122 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:17:52Z",
+  "review_finished_at": "2026-11-04T14:23:34Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-opus-4.6_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank row blocks and matching CSR intervals are local, with row pointers rebased. The timed runtime loop launches once per iteration; compiled clock path enters the out-of-line launch loop and synchronizes after it. Final SASS bounds local rows, traverses CSR intervals in unrolled chunks and remainder, and stores row results.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[203,217],[279,312],[328,357]],"claim":"Contiguous MPI row/CSR partition, local pointer rebasing, CSR row kernel and timed iteration launches."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1408,1431],[1887,1940]],"claim":"Timed region reaches the out-of-line repeated launch path, bounded by runtime iterations, followed by device synchronization."},
+        {"file":"device-sass.txt","ranges":[[19,86],[95,155],[632,679]],"claim":"Final kernel local-row guard, CSR chunk/remainder loop arithmetic, output store and row coverage."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-4.6_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-local rows and rebased CSR pointers feed a warp-per-row kernel; each lane strides through its row's complete interval and lane reduction writes one output. The host runtime-count loop is out of line from the clock neighborhood; synchronization follows. Final SASS shows bounds, CSR chunk/remainder traversal, reduction, and store.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[121,145],[280,322],[329,360]],"claim":"Warp/lane CSR traversal, rank-local row/nnz setup, per-iteration launches and synchronization."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1440,1465],[1706,1758]],"claim":"Timed path enters launch loop bounded by the runtime count; kernel stub is called in the loop and device synchronization precedes ending timing."},
+        {"file":"device-sass.txt","ranges":[[19,89],[93,147],[247,283]],"claim":"Final kernel row guard, complete CSR lane-stride traversal, warp reduction and row output store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-4.6_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Contiguous MPI row/CSR slices feed a one-thread-per-row GPU kernel. The timed host path launches for the requested count and synchronizes; the final SASS has a local-row bound, nonzero loop with unrolled chunks and tail and a store per row.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[29,42],[238,277],[284,359]],"claim":"CSR row arithmetic and rank-local data, followed by repeated timed launches and output retrieval."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1519,1536],[2023,2075]],"claim":"Clocked path reaches compiled repeated launch loop and then synchronization/end time."},
+        {"file":"device-sass.txt","ranges":[[19,81],[95,162],[638,683]],"claim":"Final SASS bounds local rows, consumes CSR entries through loop/tail and stores the result."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI partitions rows and CSR intervals; each rank further partitions by nonzero count across its GPU contexts and rebases row pointers. An OpenMP worker per GPU owns that context and timed runtime loop launches each GPU's selected group-size kernel for every repetition, synchronizes and records output. The selector dispatches groups 2/4/8/16/32; all five final SASS specializations are included, each with row/nonzero control, reduction and output store.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[189,215],[291,321],[447,457],[516,568],[580,605]],"claim":"Balanced MPI/device row partition, selected group kernel, per-device OpenMP timed loop and full result collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2791,2820],[2547,2624],[3446,3498],[3514,3569],[3582,3638],[3650,3706],[3718,3775]],"claim":"Clock boundary and persistent outlined worker execute GPU arithmetic path; all five device stub targets exist in the same executable."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1233],[1234,1590],[1591,1889]],"claim":"All five final SASS group-size specializations contain bounded row mapping, CSR traversal, warp reduction and output stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-local CSR data is processed by the vector kernel selected from the local average nonzero count. The timed runtime loop calls the selector/launcher and synchronizes before retrieving local rows. All six compiled group-size SASS variants are present and each uses row guards, nonzero traversal, reduction and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[190,213],[411,438],[448,487],[495,506]],"claim":"Selector covers 1/2/4/8/16/32 groups; rank-local row/CSR setup and timed launcher loop."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1671,1740],[2210,2290]],"claim":"Clocked loop dispatches one of the group-size launchers per iteration and synchronizes after repetitions."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1217],[1218,1558],[1559,1883],[1884,2200]],"claim":"Each final SASS group specialization contains row bounds, nonzero accumulations, reductions and row stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Although named hybrid, this build's CMake compiles CUDA and the timed computation uses the GPU kernel, not CPU repetition. MPI rank slices are rebased and every selected GROUP specialization traverses each row's full CSR interval and stores. Host timed count loop repeatedly invokes the selector before synchronization. Five SASS variants are embedded.",
+      "source_evidence": [{"file":"spmv/CMakeLists.txt","ranges":[[1,29]],"claim":"Build uses CUDA translation unit, despite no explicit OpenMP linkage relevance to timed kernel path."},{"file":"spmv/spmv.cpp","ranges":[[153,179],[438,455],[487,512]],"claim":"Group-size CSR GPU kernel, MPI row/nnz slice and timed iteration launches."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1714,1761],[2230,2310]],"claim":"Timed runtime counter encloses launch path and synchronization follows."},
+        {"file":"device-sass.txt","ranges":[[19,375],[376,716],[717,1057],[1058,1382],[1383,1681]],"claim":"All five GROUP variants contain bounded row and CSR traversal, warp reduction, and output store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are first balanced across ranks and then across GPU devices by nonzero count, with local row pointers rebased. Timed loops run over requested iterations and launch each device's selected scalar or warp kernel; after all launches, outputs are copied and gathered. Both final SASS kernels were inspected for full CSR traversal and output coverage.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[347,377],[611,686],[722,790]],"claim":"Rank/device partitions, per-device CSR slices, selected kernel variants, timed launches and output copies."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2468,2683],[2670,2740]],"claim":"Timed control loops across device contexts and repetitions, launch stubs, then synchronize/copy results."},
+        {"file":"device-sass.txt","ranges":[[19,400],[401,743],[744,1000]],"claim":"Final scalar and warp kernels guard local rows, traverse CSR entries and store computed outputs."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-local CSR rows are split across selected GPU group-size kernels. An untimed warm-up is separate; timed loop invokes the selected group launcher per requested iteration and synchronizes before ending timing. Each available final SASS specialization maps groups over rows, consumes all row nonzeros and stores the reduction.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[145,193],[420,450],[497,542]],"claim":"Group-size dispatch and rank-local CSR work; timed repetitions and output gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1647,1703],[2100,2170]],"claim":"Timed loop counter encloses kernel stub calls for runtime repetitions, followed by synchronization."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1217],[1218,1558],[1559,1880]],"claim":"All five embedded SASS group variants have bounded rows, full CSR arithmetic/remainder and output stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI partitions rows and their CSR intervals. Each rank builds SELL slices while retaining long rows for a separate CSR device kernel; timed runtime loop launches both relevant paths once per iteration and synchronization precedes timing completion. Final image contains CSR-to-SELL preprocessing and SELL SpMV kernels; SELL visits packed entries and stores rows, with long-row execution also in source/launch path.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[521,560],[585,610],[645,705],[716,726]],"claim":"Rank row/CSR ownership, SELL and long-row allocation/dispatch, timed repetition and result retrieval."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[5906,6028],[6020,6080]],"claim":"Timed runtime loop and repeated kernel launch path are inside clock interval; stream sync and result copy follow."},
+        {"file":"device-sass.txt","ranges":[[19,247],[248,510]],"claim":"Final image has CSR-to-SELL conversion and SELL computation kernels with row/chunk traversal and stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank blocks and per-GPU worker row slices rebase CSR delimiters to their own nonzero ranges. Each worker pre-captures GRAPH_BATCH launches when iterations permit, replays the graph floor(iterations/GRAPH_BATCH) times, then issues scalar launches until its counter reaches iterations. Thus graph batching plus remainder preserves requested launch count; SASS variants are selected by average row length and each processes full CSR rows. Worker synchronizes after output copies.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[448,490],[496,521],[523,550],[552,564]],"claim":"Per-worker row/nnz setup, graph capture of fixed launch batch, timed graph/remainder loops and output copies."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1477,1507],[3676,3792],[3850,3990]],"claim":"Timed region dispatches outlined worker; worker handles batch and remainder launches and synchronizes after output copy."},
+        {"file":"device-sass.txt","ranges":[[19,327],[328,620],[621,913],[914,1190],[1191,1467],[1468,1728]],"claim":"All six templated final kernels include row guards and full CSR traversal/reduction/store for each possible selected group."}
+      ],
+      "notes":""
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

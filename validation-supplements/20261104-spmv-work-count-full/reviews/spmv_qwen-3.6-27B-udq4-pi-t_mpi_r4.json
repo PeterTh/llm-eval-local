@@ -1,0 +1,64 @@
+{
+  "id": "spmv_qwen-3.6-27B-udq4-pi-t_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The unchanged CLI repetition count controls timed loop 306–309. Quotient/remainder boundaries cover all rows; full row-delimiter broadcast and values/indices scatter provide rebased local CSR intervals, all of which are computed each repetition. The complete output is gathered. The end barrier adds synchronization rather than removing work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          51,
+          108
+        ],
+        [
+          157,
+          203
+        ],
+        [
+          221,
+          338
+        ]
+      ],
+      "claim": "The unchanged CLI repetition count controls timed loop 306–309. Quotient/remainder boundaries cover all rows; full row-delimiter broadcast and values/indices scatter provide rebased local CSR intervals, all of which are computed each repetition. The complete output is gathered. The end barrier adds synchronization rather than removing work.",
+      "sha256": "aefdacf1feded211e062710c45439248866bb24e3ece94f8ae036cb81a9d2587",
+      "git_blob": "372992ddf9492a4c80e4dc8aa8909eed123bc9d9"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "MPI_Wtime 9dd4/9ead encloses multiply/add 9e6d/9e75, nonzero backedge 9e7c->9e60, row 9e92->9e30, repetition 9e98->9e20, followed by the end barrier.",
+      "complete_dump_sha256": "c321014ba5dc835b8ad96c1a3fc186c713afe59f5436d778c7874884d3f23f10",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_qwen-3.6-27B-udq4-pi-t_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2033,
+          "last_line": 2095,
+          "text": "    9da5:\tmov    -0x250(%rbp),%eax\n    9dab:\tmov    -0x238(%rbp),%rdx\n    9db2:\tlea    -0xd0(%rbp),%rdi\n    9db9:\tmov    %rax,%rsi\n    9dbc:\tmov    %rax,-0x248(%rbp)\n    9dc3:\tcall   e750 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    9dc8:\tlea    0xa251(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9dcf:\tcall   8e70 <MPI_Barrier@plt>\n    9dd4:\tcall   91c0 <MPI_Wtime@plt>\n    9dd9:\tmov    -0x230(%rbp),%r8d\n    9de0:\tmov    -0xd0(%rbp),%r12\n    9de7:\tvmovsd %xmm0,-0x268(%rbp)\n    9def:\ttest   %r8d,%r8d\n    9df2:\tje     9ea1 <main+0x6d1>\n    9df8:\tmov    -0x250(%rbp),%edi\n    9dfe:\ttest   %edi,%edi\n    9e00:\tje     9ea1 <main+0x6d1>\n    9e06:\tmov    -0x248(%rbp),%r8\n    9e0d:\tmov    -0x230(%rbp),%esi\n    9e13:\txor    %ecx,%ecx\n    9e15:\tmov    -0x228(%rbp),%rdi\n    9e1c:\tshl    $0x2,%r8\n    9e20:\txor    %r9d,%r9d\n    9e23:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9e2e:\txchg   %ax,%ax\n    9e30:\tmov    (%rdi,%r9,1),%eax\n    9e34:\tmov    0x4(%rdi,%r9,1),%edx\n    9e39:\tmov    %rdi,%r11\n    9e3c:\tcmp    %edx,%eax\n    9e3e:\tjae    a250 <main+0xa80>\n    9e44:\tdec    %edx\n    9e46:\tlea    (%r14,%rax,4),%r10\n    9e4a:\tlea    0x0(%r13,%rax,8),%rdi\n    9e4f:\tvxorpd %xmm1,%xmm1,%xmm1\n    9e53:\tsub    %eax,%edx\n    9e55:\tmov    %r11,-0x228(%rbp)\n    9e5c:\txor    %eax,%eax\n    9e5e:\txchg   %ax,%ax\n    9e60:\tmov    (%r10,%rax,4),%r11d\n    9e64:\tvmovsd (%rbx,%r11,8),%xmm0\n    9e6a:\tmov    %rax,%r11\n    9e6d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9e72:\tinc    %rax\n    9e75:\tvaddsd %xmm0,%xmm1,%xmm1\n    9e79:\tcmp    %rdx,%r11\n    9e7c:\tjne    9e60 <main+0x690>\n    9e7e:\tmov    -0x228(%rbp),%rdi\n    9e85:\tvmovsd %xmm1,(%r12,%r9,2)\n    9e8b:\tadd    $0x4,%r9\n    9e8f:\tcmp    %r8,%r9\n    9e92:\tjne    9e30 <main+0x660>\n    9e94:\tinc    %ecx\n    9e96:\tcmp    %esi,%ecx\n    9e98:\tjne    9e20 <main+0x650>\n    9e9a:\tmov    %rdi,-0x228(%rbp)\n    9ea1:\tlea    0xa178(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9ea8:\tcall   8e70 <MPI_Barrier@plt>\n    9ead:\tcall   91c0 <MPI_Wtime@plt>\n    9eb2:\tvsubsd -0x268(%rbp),%xmm0,%xmm0\n    9eba:\tsub    $0x8,%rsp\n    9ebe:\tlea    0xa15b(%rip),%rax        # 14020 <ompi_mpi_comm_world@@Base>\n    9ec5:\tmovq   $0x0,-0x1f8(%rbp)\n    9ed0:\tlea    -0x1f8(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260529-150043/spmv_qwen-3.6-27B-udq4-pi-t_mpi_r4",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "0fad16a4d48a303a03eb58bba09b2bc7eb39831d9e9b037399be95f3a25975d5"
+  },
+  "binary_sha256": "9f7895ef458d0900d956f6eeb6113ba8e8dd62bff342368ec6a731dce6667ba6",
+  "binding_sha256": "c26c80bffdcda3b4a40c0904d517fb1f34a45ff1cdb57a5867de63e9a49473f5",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:39:37Z",
+  "review_finished_at": "2026-11-04T13:40:40Z",
+  "review_input_sha256": "b810f26cfae51b743d11fb5c357b2ed8d4ac2f4fe46db9e7d8d9a4a5470cb89a",
+  "pack_sha256": "6bb62e6d2b90e2b56fadd8cf49ba4d812a8c6f66bfa4ffa76c5a350d31cbdcbe",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

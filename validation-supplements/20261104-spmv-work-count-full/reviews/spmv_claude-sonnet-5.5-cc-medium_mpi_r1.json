@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-sonnet-5.5-cc-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Parallel skip-ahead initialization is outside timing; it does not replace timed products. All local CSR entries are multiplied on every requested repetition.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          123,
+          155
+        ],
+        [
+          173,
+          183
+        ],
+        [
+          247,
+          272
+        ],
+        [
+          292,
+          355
+        ],
+        [
+          358,
+          380
+        ]
+      ],
+      "claim": "Balanced complete row partitions construct their local CSR data before timing. The parsed -i count directly bounds full spmvCpu calls, separately from optional reference computation.",
+      "sha256": "ea6fdc6a5f90d452a40fa5bc3e26a00575e9fa05acaabf5ec4df6085e3b5d423",
+      "git_blob": "b3f79f58a0bbdcdfa1026fdb9d148b6ae7b29a4d"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Between clocks a067 and a159, multiply/add a10c/a114 is enclosed by entry a11b->a100, row a131->a0d0 and repetition a140->a0c0 backedges.",
+      "complete_dump_sha256": "d87ccb6015b65a963fd2bf759170dfeb40e21a69e9a4d3edd4da02e775b9f6c6",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-sonnet-5.5-cc-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2171,
+          "last_line": 2235,
+          "text": "    a03e:\ttest   %r11d,%r11d\n    a041:\tjne    a05b <main+0x8eb>\n    a043:\tlea    0x7098(%rip),%rdi        # 110e2 <_IO_stdin_used+0xe2>\n    a04a:\tcall   9370 <puts@plt>\n    a04f:\tmov    0xbfca(%rip),%rdi        # 16020 <stdout@GLIBC_2.2.5>\n    a056:\tcall   9130 <fflush@plt>\n    a05b:\tlea    0xc7de(%rip),%rdi        # 16840 <ompi_mpi_comm_world@@Base>\n    a062:\tcall   8e70 <MPI_Barrier@plt>\n    a067:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    a06c:\tmov    -0x148(%rbp),%r10d\n    a073:\tmov    %rax,-0x1a0(%rbp)\n    a07a:\tmov    -0x90(%rbp),%rax\n    a081:\tmov    %rax,-0x158(%rbp)\n    a088:\ttest   %r10d,%r10d\n    a08b:\tje     a14d <main+0x9dd>\n    a091:\tcmpl   $0x0,-0x178(%rbp)\n    a098:\tmov    -0xd0(%rbp),%r8\n    a09f:\tje     a14d <main+0x9dd>\n    a0a5:\tmov    -0x170(%rbp),%r9\n    a0ac:\tmov    -0x158(%rbp),%rdi\n    a0b3:\txor    %ecx,%ecx\n    a0b5:\tshl    $0x2,%r9\n    a0b9:\tnopl   0x0(%rax)\n    a0c0:\txor    %r11d,%r11d\n    a0c3:\tmov    %rdi,%rdx\n    a0c6:\tcs nopw 0x0(%rax,%rax,1)\n    a0d0:\tmov    (%r8,%r11,1),%eax\n    a0d4:\tmov    0x4(%r8,%r11,1),%esi\n    a0d9:\tcmp    %esi,%eax\n    a0db:\tjae    a3e0 <main+0xc70>\n    a0e1:\tdec    %esi\n    a0e3:\tlea    0x0(%r13,%rax,4),%r10\n    a0e8:\tlea    (%r12,%rax,8),%rdi\n    a0ec:\tvxorpd %xmm1,%xmm1,%xmm1\n    a0f0:\tsub    %eax,%esi\n    a0f2:\tmov    %rdx,-0x158(%rbp)\n    a0f9:\txor    %eax,%eax\n    a0fb:\tnopl   0x0(%rax,%rax,1)\n    a100:\tmov    (%r10,%rax,4),%edx\n    a104:\tvmovsd (%rbx,%rdx,8),%xmm0\n    a109:\tmov    %rax,%rdx\n    a10c:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a111:\tinc    %rax\n    a114:\tvaddsd %xmm0,%xmm1,%xmm1\n    a118:\tcmp    %rsi,%rdx\n    a11b:\tjne    a100 <main+0x990>\n    a11d:\tmov    -0x158(%rbp),%rdx\n    a124:\tvmovsd %xmm1,(%rdx,%r11,2)\n    a12a:\tadd    $0x4,%r11\n    a12e:\tcmp    %r9,%r11\n    a131:\tjne    a0d0 <main+0x960>\n    a133:\tmov    -0x148(%rbp),%eax\n    a139:\tinc    %ecx\n    a13b:\tmov    %rdx,%rdi\n    a13e:\tcmp    %eax,%ecx\n    a140:\tjne    a0c0 <main+0x950>\n    a146:\tmov    %rdx,-0x158(%rbp)\n    a14d:\tlea    0xc6ec(%rip),%rdi        # 16840 <ompi_mpi_comm_world@@Base>\n    a154:\tcall   8e70 <MPI_Barrier@plt>\n    a159:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    a15e:\tmov    -0x1a0(%rbp),%rcx\n    a165:\tmovabs $0x431bde82d7b634db,%rdx\n    a16f:\tlea    -0x138(%rbp),%rsi\n    a176:\tlea    0xc6c3(%rip),%r9        # 16840 <ompi_mpi_comm_world@@Base>\n    a17d:\tlea    0xc8bc(%rip),%r8        # 16a40 <ompi_mpi_op_max@@Base>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261014-212207/spmv_claude-sonnet-5.5-cc-medium_mpi_r1",
+    "source_commit": "8fe249fe2622f21b32faf8d13cd290ce902f78cd",
+    "staged_source_sha256": "4462c2b3d995ef2a9e7d1fb90d3f63c1a047167f90d0b03541afe433b4f43bef"
+  },
+  "binary_sha256": "05889a720d1ab64f05f0570b6a55df3b082f4a978f9fd0601f796986582acaca",
+  "binding_sha256": "1dce68ce42bcf90ae2e60e9d4a6d72ccf98170b0bcb4b43febe636daa354cbb3",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:05:34Z",
+  "review_finished_at": "2026-11-04T13:06:06Z",
+  "review_input_sha256": "0aea6a0e8cfebd507917794993fdc4e59f457ed7cdb1185141d00842fd1026b8",
+  "pack_sha256": "e7d00f5b8e997b8c8b7edce02a4d834e2bdbf9a77d0c5ad964eb8009987a7be2",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

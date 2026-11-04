@@ -1,0 +1,68 @@
+{
+  "id": "spmv_gpt-6.1-sol-oc-medium_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed 322–325 loop uses the unchanged -i count and performs all local CSR rows/nonzeros per iteration. Monotone nonzero-weighted boundaries span all global rows; tagged chunked transfers cover complete operand segments and outputs, with local CSR offsets rebased and the whole dense vector broadcast. No work-count omission identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          55,
+          112
+        ],
+        [
+          163,
+          217
+        ],
+        [
+          231,
+          357
+        ],
+        [
+          382,
+          396
+        ]
+      ],
+      "claim": "The timed 322–325 loop uses the unchanged -i count and performs all local CSR rows/nonzeros per iteration. Monotone nonzero-weighted boundaries span all global rows; tagged chunked transfers cover complete operand segments and outputs, with local CSR offsets rebased and the whole dense vector broadcast. No work-count omission identified.",
+      "sha256": "b74b75acba23f088a9e1b42c58464b32313a8486d2ffd283820497f7756e0f74",
+      "git_blob": "ac30454ec60eb05540850c33f6882fc8f337b71d"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "MPI_Wtime af14/afee encloses multiply/add afbe/afc7, nonzero backedge afce->afb0, row afdd->af80, repetition afe9->af70.",
+      "complete_dump_sha256": "21d279292bd2cf0390af152a7fc73fddac941a66195554979237816e9c450a9e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-sol-oc-medium_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2967,
+          "last_line": 3028,
+          "text": "    aeee:\tmov    -0x1c4(%rbp),%ebx\n    aef4:\tmov    %r12,-0x78(%rbp)\n    aef8:\ttest   %ebx,%ebx\n    aefa:\tjne    af08 <runBenchmark(int, char**, int, int)+0x11f8>\n    aefc:\tlea    0x5521(%rip),%rdi        # 10424 <_IO_stdin_used+0x424>\n    af03:\tcall   93e0 <puts@plt>\n    af08:\tlea    0xa311(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    af0f:\tcall   8ed0 <MPI_Barrier@plt>\n    af14:\tcall   9230 <MPI_Wtime@plt>\n    af19:\tmov    -0x1a4(%rbp),%r11d\n    af20:\tvmovsd %xmm0,-0x170(%rbp)\n    af28:\ttest   %r11d,%r11d\n    af2b:\tje     afee <runBenchmark(int, char**, int, int)+0x12de>\n    af31:\tmov    -0x180(%rbp),%r10d\n    af38:\tmov    -0x100(%rbp),%r9\n    af3f:\tmov    -0x120(%rbp),%rbx\n    af46:\tmov    -0x140(%rbp),%r11\n    af4d:\ttest   %r10d,%r10d\n    af50:\tje     afee <runBenchmark(int, char**, int, int)+0x12de>\n    af56:\tlea    0x0(,%r14,4),%r10\n    af5e:\txor    %edx,%edx\n    af60:\tmov    %r12,%rdi\n    af63:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    af6e:\txchg   %ax,%ax\n    af70:\txor    %r12d,%r12d\n    af73:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    af7e:\txchg   %ax,%ax\n    af80:\tmov    (%r9,%r12,1),%eax\n    af84:\tmov    0x4(%r9,%r12,1),%esi\n    af89:\tcmp    %esi,%eax\n    af8b:\tjae    b1a0 <runBenchmark(int, char**, int, int)+0x1490>\n    af91:\tdec    %esi\n    af93:\tlea    (%rbx,%rax,4),%r14\n    af97:\tlea    (%r11,%rax,8),%r8\n    af9b:\tvxorpd %xmm1,%xmm1,%xmm1\n    af9f:\tsub    %eax,%esi\n    afa1:\txor    %eax,%eax\n    afa3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    afae:\txchg   %ax,%ax\n    afb0:\tmov    (%r14,%rax,4),%ecx\n    afb4:\tvmovsd 0x0(%r13,%rcx,8),%xmm0\n    afbb:\tmov    %rax,%rcx\n    afbe:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    afc4:\tinc    %rax\n    afc7:\tvaddsd %xmm0,%xmm1,%xmm1\n    afcb:\tcmp    %rsi,%rcx\n    afce:\tjne    afb0 <runBenchmark(int, char**, int, int)+0x12a0>\n    afd0:\tvmovsd %xmm1,(%r15,%r12,2)\n    afd6:\tadd    $0x4,%r12\n    afda:\tcmp    %r12,%r10\n    afdd:\tjne    af80 <runBenchmark(int, char**, int, int)+0x1270>\n    afdf:\tmov    -0x1a4(%rbp),%eax\n    afe5:\tinc    %edx\n    afe7:\tcmp    %eax,%edx\n    afe9:\tjne    af70 <runBenchmark(int, char**, int, int)+0x1260>\n    afeb:\tmov    %rdi,%r12\n    afee:\tcall   9230 <MPI_Wtime@plt>\n    aff3:\tvsubsd -0x170(%rbp),%xmm0,%xmm0\n    affb:\tlea    0xa21e(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    b002:\tsub    $0x8,%rsp\n    b006:\tmovq   $0x0,-0x148(%rbp)\n    b011:\tlea    -0x148(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261017-192226/spmv_gpt-6.1-sol-oc-medium_mpi_r4",
+    "source_commit": "352c09d57e14ef93744aa8cc741ff52884079e5f",
+    "staged_source_sha256": "d3c01be12606867d1a02a92f160d04e1dfde0061291018ca84f0bef896b60fe0"
+  },
+  "binary_sha256": "f2a02189438ca4c93d37f75a87f45fed42609b357d8cab9ce5fcad0744c56d82",
+  "binding_sha256": "da03919b00790de3f80608bd4d5f178cdc98feeeb3db2793e6ec0e54b2de8b46",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:36:16Z",
+  "review_finished_at": "2026-11-04T13:37:08Z",
+  "review_input_sha256": "2575b63f374d036c61eb3313e8977265bfd07bf6ff2a3e8c727eb0b61b1a55e9",
+  "pack_sha256": "f0b51b90d1ec63487c24cce696750b2e502113aa30ce6c4e8d88aa26d7c63776",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

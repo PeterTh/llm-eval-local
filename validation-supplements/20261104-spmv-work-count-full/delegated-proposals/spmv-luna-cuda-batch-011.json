@@ -1,0 +1,142 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:52:23Z",
+  "review_finished_at": "2026-11-04T15:59:50Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI iteration counter is the compiled host loop bound; each pass launches the one selected scalar-row or warp-per-row kernel, with an event recorded after the loop and event synchronization before output retrieval. The scalar specialization grid-strides rows and loops through each row's CSR interval; the warp specialization grid-strides warps/rows and lane-strides through the same interval before reduction/store. Both are present in the sm_86 SASS.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,418]],"claim":"CLI dimensions, nnz and iteration parsing; CSR terminal offset; both complete kernels; threshold-selected launch; warmup distinct from timed loop and output retrieval."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"CUDA build configuration includes sm_86 code generation."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[941,1390],[1391,1800],[1801,1965],[2494,2560],[2561,2625]],"claim":"Compiled main includes setup, separate warmup, event-bounded iteration loop/backedge with runtime branch to the thread or warp launch stub on each pass, event wait and output path; both reached host launch stubs marshal arguments and call cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[4403,4850],[4851,5127],[5128,5566]],"claim":"sm_86 scalar and warp kernels: row/warp assignment is bounded by dim, CSR begin/end feed retained nonzero arithmetic loops (DFMA), and each assigned row stores its reduced result; complete bodies include row-stride and nonzero-loop control."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Host source and assembly retain one selected kernel launch in every timed iteration. The average-row-length branch chooses either the scalar one-thread-per-row kernel or warp-per-row kernel; both traverse the complete CSR interval and store each output row. The compiled sm_86 bodies retain nonzero arithmetic and their respective row/warp and item loops.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,396]],"claim":"CLI/configuration and CSR sentinel, complete scalar and warp kernels, density dispatch, separately synchronized warmup, timed iterations loop and result copy."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"Build targets sm_86."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[938,1380],[1381,1780],[1781,1888],[2417,2477],[2478,2535]],"claim":"Compiled main's event-bounded loop and backedge execute the scalar/warp branch each pass; stop event synchronization/elapsed retrieval follow. Both actual launch stubs marshal arguments to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[10,500],[501,750],[751,1170]],"claim":"Both final sm_86 kernels retain row bounds, CSR row offsets, nonzero-index loop/control with floating multiply-adds, reduction where applicable, and output stores; ranges cover the complete scalar and warp entries."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A separate warmup precedes the timed host loop. Each loop pass calls the compiled adaptive dispatcher, which selects one of five widths (2/4/8/16/32) from average nnz per row and launches a complete CSR row-vector kernel. The deployed sm_86 SASS contains all five selected specializations; each maps row groups across blocks, traverses row nonzeros by subgroup stride, reduces, and stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,401]],"claim":"Full CLI/CSR setup, row-vector kernel, width dispatcher and thresholds, warmup, timed iteration loop, event wait and output copy."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"sm_86 is among emitted CUDA architectures."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[951,1390],[1391,1780],[1781,1818],[2147,2540]],"claim":"Main's timed backedge calls launchSpmvAdaptive, with event synchronization after the loop; the complete compiled adaptive dispatcher branches among all five specializations and reaches their launch paths."},
+        {"file":"device-sass.txt","ranges":[[10,430],[431,835],[836,1224],[1225,1581],[1582,1906]],"claim":"All five sm_86 entries (32/16/8/4/2 lanes per row) retain row bound and CSR nonzero arithmetic/control, reduction, row-stride/coverage and output store through each complete specialization."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop's counter is the CLI iteration value and its body calls launchSpmv for the fixed density-selected group size. The compiled host dispatcher switches among all six widths (1/2/4/8/16/32) and launches the corresponding kernel. Each sm_86 specialization assigns groups to rows, uses row-stride coverage, consumes its row's CSR interval by group-stride arithmetic, reduces, and stores one result per row.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,394]],"claim":"CLI and CSR setup including terminal offset, group-size selection, six-way launch switch, warmup and per-iteration timed launch loop/synchronization/result transfer."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"sm_86 emitted architecture is configured."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[971,1390],[1391,1780],[1781,1817],[1976,2415]],"claim":"Compiled main retains the runtime-count loop and dispatch call; full launchSpmv body switches to each group-size stub and calls the CUDA launch path."},
+        {"file":"device-sass.txt","ranges":[[9195,9615],[9616,10020],[10021,10393],[10394,10734],[10735,11043],[11044,11500],[11501,11771]],"claim":"sm_86 final SASS for all six group widths: bounded row assignment plus CSR arithmetic, retained nonzero loops, reduction and result stores. The row-stride path covers rows beyond the initial grid assignment."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "After a separate warmup, every timed loop pass calls the same compiled launch branch. Mean row length chooses scalar rows or vector width 8/16/32; compiled launch paths reach those four kernels. The sm_86 scalar and vector bodies retain CSR nonzero arithmetic and row coverage, with vector specializations reducing lane sums before storing each row.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,403]],"claim":"Full source includes CSR sentinel construction, scalar and vector kernels, mean-density branch, timed loop, event synchronization and output path."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,22]],"claim":"sm_86 is in the configured architecture list."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[957,1390],[1391,1800],[1801,1948],[2077,2255],[2616,2675]],"claim":"Compiled main preserves per-iteration branch and event-bounded loop; its four launch stubs marshal their arguments into cudaLaunchKernel calls."},
+        {"file":"device-sass.txt","ranges":[[10,430],[431,835],[836,1224],[1225,1600],[1601,1949]],"claim":"All emitted sm_86 width-32/16/8 and scalar entries retain CSR arithmetic/control, row bounds/coverage, and stores; subgroup entries include the reduction path."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The selected kernel kind is computed from nnz/rows once; after a distinct warmup, the timed loop calls the launch switch once per requested iteration. The selector can choose scalar/subwarp widths 1/2/4/8/16/32 or a block-per-row long-row kernel. The sm_86 final SASS contains all reachable forms: subwarp kernels cover assigned rows and their full CSR ranges, while the block kernel traverses the row by block stride, reduces and writes its result.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,446]],"claim":"Full CLI/CSR setup and sentinel, density selector, all launch cases, row/subwarp and long-row kernels, warmup, requested iteration loop and output."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,27]],"claim":"sm_86 code is built."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[994,1390],[1391,1780],[1781,1827],[2229,2360],[2360,2420],[2421,2915],[2916,3281]],"claim":"Compiled main retains the selected dispatch in every timed iteration and event stop/wait; compiled selector, launch switch and reached launch helpers/stubs cover the subwarp widths and block kernel."},
+        {"file":"device-sass.txt","ranges":[[19,343],[344,668],[669,993],[994,1302],[1303,1611],[1612,1930],[2337,2517]],"claim":"Final sm_86 SASS for six subwarp widths and the block kernel retains row/nonzero bounds, floating arithmetic, reduction and output stores; full entries include their loop/coverage control."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source builds a graph containing launchCount copies of the selected SpMV launch, then divides CLI iterations into full graph batches plus a remainder graph. Compiled main launches the batch graph the computed number of times and the remainder when nonzero, with event synchronization afterward. The graph builder's compiled launch path dispatches to the selected width; sm_86 SASS for all six width variants retains row coverage, CSR interval traversal/arithmetic, reduction and stores. Graph batching changes submission, not the encoded launch count.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,499],[500,514]],"claim":"Full graph builder, width selector/launch dispatch, CLI iteration parsing, batch/remainder calculation and launch loop, event synchronization and result copy."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,23]],"claim":"sm_86 device code is configured."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1010,1390],[1391,1790],[1791,1926],[2534,2800],[2801,3152]],"claim":"Compiled main passes graph launch counts, launches the batch and remainder graphs under the event interval, and synchronizes; createSpmvGraph/launchSpmv compiled dispatch constructs the repeated kernel-launch sequence and reaches all width stubs."},
+        {"file":"device-sass.txt","ranges":[[10,302],[303,595],[596,872],[873,1149],[1150,1410],[1411,1850],[1851,2103]],"claim":"All six final sm_86 CSR-vector specializations retain their row and CSR-entry arithmetic/control, reduction and output store; graph invocation therefore replays actual SpMV kernels rather than a result-only operation."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "After a distinct warmup, every requested timed iteration invokes launchSpmv. The source computes a launch configuration from mean row length and dispatches to one of six group widths. Compiled host main retains the timed backedge and the launch switch; final sm_86 SASS contains all six configured kernels, each preserving row assignment, CSR nonzero loop/arithmetic, reduction and output store.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,492]],"claim":"CLI/CSR setup, width selection and launcher, complete row-vector kernel, warmup, event-bounded iterations loop and output retrieval."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,27]],"claim":"sm_86 is configured for device compilation."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[963,1390],[1391,1775],[1900,2399],[2400,2800]],"claim":"Main's actual timed iteration backedge calls the launch/configuration path; compiled width dispatch and launch stubs cover all six specializations."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1217],[1218,1558],[1559,1867],[1868,2300],[2301,2592]],"claim":"All final sm_86 group-width kernels retain bounded row mapping, per-row CSR nonzero arithmetic/backedges, reductions and row stores."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The fixed density-selected vector/block kernel is captured into a CUDA graph with one launch per requested iteration. The first graph replay is an extra warmup; the measured replay then executes that complete iteration graph. Compiled main calls the launch dispatcher while capturing and calls CudaGraph::launch for warmup and timed replay; event synchronization follows. sm_86 SASS covers vector widths 2/4/8/16/32 and block-per-row, all with CSR arithmetic, full row coverage, reduction and stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,499],[500,569]],"claim":"Full source includes graph wrapper, kernel selector and dispatch, CSR row/vector and block kernels, capture loop bounded by CLI iterations, warmup replay, timed replay and synchronization/result copy."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,21]],"claim":"sm_86 device architecture is emitted."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1017,1390],[1391,1800],[1801,1900],[2351,2361],[2784,3017]],"claim":"Compiled main calls the selected launch dispatcher during graph capture, then compiled CudaGraph::launch for warmup and measured replay within event boundaries; the reached launch dispatcher contains width/block branches and their CUDA-launch paths."},
+        {"file":"device-sass.txt","ranges":[[5955,6375],[6376,6780],[6781,7153],[7154,7494],[7495,7819],[7820,8150]],"claim":"Final sm_86 SASS for all five vector widths and block kernel retains row/nonzero work, floating arithmetic and reduction/store control."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A one-time calibration can compare vector-32 and block candidates for very long rows, followed by a distinct warmup. The measured loop still uses the CLI iteration count and invokes the chosen SpMV launcher on every pass. The density selection and compiled dispatcher can reach vector widths 1/2/4/8/16/32 or block; all sm_86 final SASS entries retain row/CSR arithmetic and result stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,499],[500,609]],"claim":"Full CLI and CSR construction, all row/vector and block kernels, selector and launcher, separate calibration/warmup, timed iteration loop/event wait and output handling."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,26]],"claim":"sm_86 is among the generated CUDA architectures."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1012,1390],[1391,1800],[1801,1903],[2032,2391],[2653,2692],[2786,3101],[3102,3554]],"claim":"Compiled main contains calibration/warmup separately from the requested timed loop; each timed backedge calls launchSpmv and event synchronization follows. The compiled selector, vector/block launch stubs and complete tuneLongRowKernel path substantiate candidate calibration and final dispatch."},
+        {"file":"device-sass.txt","ranges":[[19,359],[360,684],[685,993],[994,1302],[1303,1595],[1596,1950],[2321,2501]],"claim":"All final sm_86 vector-width and block kernels retain row and CSR bounds, floating multiply-add loops/reduction as applicable, and output stores."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

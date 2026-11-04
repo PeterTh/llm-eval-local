@@ -1,0 +1,168 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:39:37Z",
+  "review_finished_at": "2026-11-04T13:40:40Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls timed loop 395–398. Quotient/remainder row partitions span all rows; full CSR operand segments and delimiters are scattered and rebased, with full vector broadcast. spmvCpuLocal traverses every local row/nonzero per repetition; Gatherv collects complete output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              140
+            ],
+            [
+              189,
+              235
+            ],
+            [
+              257,
+              376
+            ],
+            [
+              387,
+              434
+            ]
+          ],
+          "claim": "The unchanged -i count controls timed loop 395–398. Quotient/remainder row partitions span all rows; full CSR operand segments and delimiters are scattered and rebased, with full vector broadcast. spmvCpuLocal traverses every local row/nonzero per repetition; Gatherv collects complete output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2054,
+              2113
+            ]
+          ],
+          "claim": "MPI_Wtime 9e7d/9f4a encloses multiply/add 9f1c/9f25, nonzero backedge 9f2c->9f10, row 9f3b->9ee0, repetition 9f41->9ed0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Both root and worker paths use the unchanged -i value in timed loops 349–352 and 463–466. For the existing rows-at-least-ranks configuration, quotient/remainder row ranges span all rows; complete operand scatters and packed rebased delimiters supply every local CSR interval, and Gatherv assembles full output. Both compiled paths retain full repetition work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              108
+            ],
+            [
+              158,
+              246
+            ],
+            [
+              264,
+              376
+            ],
+            [
+              404,
+              494
+            ]
+          ],
+          "claim": "Both root and worker paths use the unchanged -i value in timed loops 349–352 and 463–466. For the existing rows-at-least-ranks configuration, quotient/remainder row ranges span all rows; complete operand scatters and packed rebased delimiters supply every local CSR interval, and Gatherv assembles full output. Both compiled paths retain full repetition work."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2365,
+              2424
+            ],
+            [
+              2758,
+              2820
+            ]
+          ],
+          "claim": "Both MPI_Wtime pairs a3a7/a471 and aad4/abbc contain CSR multiply/add (a43d/a445 and ab7c/ab85), nonzero backedges a44c->a430 and ab8c->ab70, row backedges a462->a400 and aba3->ab40, and repetition backedges a468->a3f0 and abac->ab2e."
+        }
+      ],
+      "notes": "Static concern outside the existing rows-at-least-ranks configuration: computeRowRange's ranks>numRows branch leaves idle ranks' rowStart=rowEnd=rank. Later globalRowDelimiters[rStart/rEnd] accesses can exceed the numRows+1 allocation for rank>numRows (158–168, 272–276, 321–329, 412–420). No new execution performed and no demonstrated existing-result exclusion assigned. Existing spmv-shape-mpi128-v1 result remains passing."
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI repetition count controls timed loop 306–309. Quotient/remainder boundaries cover all rows; full row-delimiter broadcast and values/indices scatter provide rebased local CSR intervals, all of which are computed each repetition. The complete output is gathered. The end barrier adds synchronization rather than removing work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              108
+            ],
+            [
+              157,
+              203
+            ],
+            [
+              221,
+              338
+            ]
+          ],
+          "claim": "The unchanged CLI repetition count controls timed loop 306–309. Quotient/remainder boundaries cover all rows; full row-delimiter broadcast and values/indices scatter provide rebased local CSR intervals, all of which are computed each repetition. The complete output is gathered. The end barrier adds synchronization rather than removing work."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2033,
+              2095
+            ]
+          ],
+          "claim": "MPI_Wtime 9dd4/9ead encloses multiply/add 9e6d/9e75, nonzero backedge 9e7c->9e60, row 9e92->9e30, repetition 9e98->9e20, followed by the end barrier."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls timed loop 349–352. Quotient/remainder partitioning spans all rows; complete global delimiters and vector are broadcast, all nonzero segments scattered and offsets rebased. spmvLocal recomputes every local row/nonzero each iteration, and Gatherv assembles the full output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              52,
+              138
+            ],
+            [
+              187,
+              230
+            ],
+            [
+              248,
+              380
+            ]
+          ],
+          "claim": "The unchanged -i count controls timed loop 349–352. Quotient/remainder partitioning spans all rows; complete global delimiters and vector are broadcast, all nonzero segments scattered and offsets rebased. spmvLocal recomputes every local row/nonzero each iteration, and Gatherv assembles the full output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2076,
+              2136
+            ]
+          ],
+          "claim": "system_clock calls 9e95/9f61 enclose multiply/add 9f2d/9f35, nonzero backedge 9f3c->9f20, row 9f52->9ef0, repetition 9f58->9ee0."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "id": "spmv_gpt-6-astra-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          53,
+          110
+        ],
+        [
+          161,
+          182
+        ],
+        [
+          184,
+          226
+        ],
+        [
+          244,
+          318
+        ],
+        [
+          339,
+          353
+        ]
+      ],
+      "claim": "Unchanged CLI iterations control full local CSR. Monotone nnz-plus-row partitions span zero to numRows. Chunked Scatterv intersects every global chunk with each partition, transfers all elements, and reconstructs the final local offset. All requested repetitions are timed; full output is gathered separately.",
+      "sha256": "91ffc2c2f691d8a5106490ed2b18764a6c060c59bf9eff1615e0962199aeafaa",
+      "git_blob": "7231b1fe9659c48a5f8e7d9aa36f4efb82351f3e"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed mul/add ac8d/ac95 remain within nonzero ac9c->ac80, row acab->ac50 and iteration acb1->ac40 backedges.",
+      "complete_dump_sha256": "9fce3c81424d978bf0408f8522108a772af3db2e32ab07dc6124d4300de60fb3",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-astra-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2833,
+          "last_line": 2891,
+          "text": "    abcf:\tcall   90a0 <operator delete(void*, unsigned long)@plt>\n    abd4:\tmov    -0x1e8(%rbp),%r8d\n    abdb:\ttest   %r8d,%r8d\n    abde:\tjne    abec <run(int, char**, int, int)+0xeac>\n    abe0:\tlea    0x687f(%rip),%rdi        # 11466 <_IO_stdin_used+0x466>\n    abe7:\tcall   93b0 <puts@plt>\n    abec:\tlea    0xb62d(%rip),%rdi        # 16220 <ompi_mpi_comm_world@@Base>\n    abf3:\tcall   8eb0 <MPI_Barrier@plt>\n    abf8:\tcall   9200 <MPI_Wtime@plt>\n    abfd:\tmov    -0x1e4(%rbp),%esi\n    ac03:\tvmovq  %xmm0,%r13\n    ac08:\ttest   %esi,%esi\n    ac0a:\tje     acb8 <run(int, char**, int, int)+0xf78>\n    ac10:\tmov    -0x210(%rbp),%edi\n    ac16:\ttest   %edi,%edi\n    ac18:\tje     acb8 <run(int, char**, int, int)+0xf78>\n    ac1e:\tmov    -0x1e0(%rbp),%r8\n    ac25:\tmov    -0x290(%rbp),%r10\n    ac2c:\txor    %ecx,%ecx\n    ac2e:\tvmovsd %xmm0,%xmm0,%xmm4\n    ac32:\tshl    $0x2,%r8\n    ac36:\tcs nopw 0x0(%rax,%rax,1)\n    ac40:\txor    %r9d,%r9d\n    ac43:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    ac4e:\txchg   %ax,%ax\n    ac50:\tmov    (%r12,%r9,1),%eax\n    ac54:\tmov    0x4(%r12,%r9,1),%edx\n    ac59:\tcmp    %edx,%eax\n    ac5b:\tjae    b090 <run(int, char**, int, int)+0x1350>\n    ac61:\tdec    %edx\n    ac63:\tlea    (%r15,%rax,4),%r11\n    ac67:\tlea    (%r10,%rax,8),%rdi\n    ac6b:\tvxorpd %xmm1,%xmm1,%xmm1\n    ac6f:\tsub    %eax,%edx\n    ac71:\txor    %eax,%eax\n    ac73:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    ac7e:\txchg   %ax,%ax\n    ac80:\tmov    (%r11,%rax,4),%r13d\n    ac84:\tvmovsd (%rbx,%r13,8),%xmm2\n    ac8a:\tmov    %rax,%r13\n    ac8d:\tvmulsd (%rdi,%rax,8),%xmm2,%xmm2\n    ac92:\tinc    %rax\n    ac95:\tvaddsd %xmm2,%xmm1,%xmm1\n    ac99:\tcmp    %rdx,%r13\n    ac9c:\tjne    ac80 <run(int, char**, int, int)+0xf40>\n    ac9e:\tvmovsd %xmm1,(%r14,%r9,2)\n    aca4:\tadd    $0x4,%r9\n    aca8:\tcmp    %r8,%r9\n    acab:\tjne    ac50 <run(int, char**, int, int)+0xf10>\n    acad:\tinc    %ecx\n    acaf:\tcmp    %esi,%ecx\n    acb1:\tjne    ac40 <run(int, char**, int, int)+0xf00>\n    acb3:\tvmovq  %xmm4,%r13\n    acb8:\tcall   9200 <MPI_Wtime@plt>\n    acbd:\tvmovq  %r13,%xmm4\n    acc2:\tsub    $0x8,%rsp\n    acc6:\tlea    0xb553(%rip),%rax        # 16220 <ompi_mpi_comm_world@@Base>\n    accd:\tmovq   $0x0,-0x1b8(%rbp)\n    acd8:\tvsubsd %xmm4,%xmm0,%xmm0\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260929-135931/spmv_gpt-6-astra-medium_mpi_r1",
+    "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+    "staged_source_sha256": "1e290324cf8d40c0e91159fbd61a40eee3bca8c1a06216e94cf1d465b0d16b14"
+  },
+  "binary_sha256": "9ad0951a4a6cd7f43b2fc167b9f47931607a4a995289a8ce1f59af3772430963",
+  "binding_sha256": "56eb849edf25c8dd5e6899e0f700922c211d2a7639b49889f599bcaecb6c8122",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:29:38Z",
+  "review_finished_at": "2026-11-04T13:30:24Z",
+  "review_input_sha256": "cdbf0f6ea26fae133d4ff727020057388fd2cd3273578eea0c02c2dedb0fc354",
+  "pack_sha256": "1cc3ed1422bf10b34d9fed74762fb82dc9878062f19a05d6784bd86b29138cca",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

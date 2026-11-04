@@ -1,0 +1,816 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T16:03:33Z",
+  "review_finished_at": "2026-11-04T16:06:04Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-terra-low_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A separate warmup is followed by the compiled event-bounded loop whose counter is the CLI iteration value; each pass launches the same warp-per-row CSR kernel. The sm_86 entry bounds row assignment, loads row CSR endpoints, retains nonzero multiply-add loops and warp reduction, then stores the row result.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              345
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              910,
+              1350
+            ],
+            [
+              1351,
+              1775
+            ],
+            [
+              1776,
+              1875
+            ],
+            [
+              2372,
+              2432
+            ]
+          ],
+          "claim": "Complete compiled main shows distinct warmup, timer start, actual runtime-count backedge issuing a kernel launch each pass, timer stop/sync and output path; called stub marshals parameters and calls cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              47,
+              338
+            ]
+          ],
+          "claim": "Complete sm_86 kernel entry preserves row bound, CSR endpoints, nonzero DFMA loop/backedge, reduction and result store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed host loop uses the requested iteration count and launches one warp CSR kernel per pass. The final sm_86 body assigns one warp per row, traverses lane-strided CSR entries with retained multiply-add/backedge, reduces and stores each row.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              334
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              929,
+              1360
+            ],
+            [
+              1361,
+              1760
+            ],
+            [
+              1761,
+              1818
+            ],
+            [
+              2305,
+              2368
+            ]
+          ],
+          "claim": "Compiled main retains the timer-bounded runtime-count loop/backedge and post-loop event synchronization; actual kernel stub calls cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              310
+            ]
+          ],
+          "claim": "Complete sm_86 warp kernel retains row guard, CSR begin/end, nonzero arithmetic/backedge, reduction and row store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested iterations are individually issued as kernel launches inside the compiled event-bounded loop. The sm_86 warp-row kernel maps launched warps to rows, checks the row bound, traverses every CSR interval in lane strides, reduces and stores.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              321
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              378,
+              800
+            ],
+            [
+              801,
+              1193
+            ],
+            [
+              1591,
+              1653
+            ]
+          ],
+          "claim": "Compiled main contains the event-bounded requested-count loop and calls the kernel stub in its body; event wait and elapsed retrieval follow. The actual stub calls cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              301
+            ]
+          ],
+          "claim": "Complete sm_86 body retains row comparison, CSR nonzero DFMA/backedge, reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each requested iteration launches the same warp-per-row kernel inside the timed host loop. The final sm_86 code bounds row assignment, walks the row's lane-strided CSR interval with retained arithmetic/control, reduces the partial sum and stores one result.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              340
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              403,
+              850
+            ],
+            [
+              851,
+              1299
+            ],
+            [
+              1722,
+              1784
+            ]
+          ],
+          "claim": "Compiled main's timer-bounded loop retains its iteration backedge and kernel-stub call; event synchronization follows, and the called stub reaches cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              310
+            ]
+          ],
+          "claim": "Complete sm_86 entry retains row bounds, CSR endpoints, nonzero arithmetic/backedge, warp reduction and store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The event-bounded compiled loop launches once per requested iteration. The sm_86 warp kernel uses one warp per row with lane-strided CSR traversal, retained floating arithmetic/backedge, shuffle reduction and output store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              343
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              393,
+              840
+            ],
+            [
+              841,
+              1261
+            ],
+            [
+              1659,
+              1720
+            ]
+          ],
+          "claim": "Compiled main retains timer-bounded runtime iteration backedge and kernel stub call; event sync/elapsed retrieval follow, and stub calls cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              301
+            ]
+          ],
+          "claim": "Complete sm_86 entry retains row bound, CSR entry loop with DFMA, reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The compiled timed loop is bounded by CLI iterations and launches the same selected CSR kernel on each pass (skipped only when there are zero rows). The sm_86 warp row mapping and row bound, nonzero arithmetic/backedge, reduction and store are present.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              352
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              885,
+              1330
+            ],
+            [
+              1331,
+              1700
+            ],
+            [
+              1701,
+              1772
+            ],
+            [
+              2271,
+              2334
+            ]
+          ],
+          "claim": "Compiled main preserves numRows guard and runtime-count loop/backedge with a kernel stub call per iteration, then event synchronization; called stub reaches cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              47,
+              338
+            ]
+          ],
+          "claim": "Complete sm_86 kernel retains row-bound handling, CSR arithmetic loop/backedge, reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source/compiled timed loop launches the sole warp-per-row SpMV kernel once per requested iteration. The sm_86 cubin maps each warp to one row and retains CSR nonzero arithmetic, warp reduction and output storage; additional sm_89/sm_90 entries are separate architecture-specific builds of the kernel.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              345
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              926,
+              1350
+            ],
+            [
+              1351,
+              1750
+            ],
+            [
+              1751,
+              1801
+            ],
+            [
+              2282,
+              2345
+            ]
+          ],
+          "claim": "Compiled main retains the event-bounded repetition backedge and kernel stub launch on every pass; event wait follows and the stub calls cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1199,
+              1490
+            ]
+          ],
+          "claim": "Exact sm_86 cubin entry retains row guard/mapping, CSR nonzero arithmetic loop/backedge, reduction and row store. The sm_89 and sm_90 cubins have separate headers and are not conflated with this citation."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "For nonzero row count, the requested iteration loop launches the CSR kernel once per pass; zero rows correctly skip all empty-row work. The sm_86 warp-per-row body retains full CSR interval arithmetic/backedge, reduction and output store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              357
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              926,
+              1350
+            ],
+            [
+              1351,
+              1750
+            ],
+            [
+              1751,
+              1837
+            ],
+            [
+              2293,
+              2357
+            ]
+          ],
+          "claim": "Compiled main keeps the nonempty-row branch and runtime-count launch loop/backedge, followed by event wait and elapsed-time retrieval; the called stub invokes cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              301
+            ]
+          ],
+          "claim": "Complete sm_86 entry retains row bound, CSR arithmetic/backedge, reduction and row store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "When rows are nonempty, every CLI-requested iteration issues a separate kernel launch in the timed loop. The sm_86 warp-per-row SASS retains bounded row assignment, CSR entry arithmetic/backedge, reduction and row store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              24
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              355
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              397,
+              850
+            ],
+            [
+              851,
+              1256
+            ],
+            [
+              1660,
+              1726
+            ]
+          ],
+          "claim": "Compiled main retains row-count guard, timer boundaries and the requested loop/backedge that invokes the kernel stub on every pass; event wait follows and stub reaches cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              301
+            ]
+          ],
+          "claim": "Complete sm_86 kernel retains row guard, CSR interval DFMA loop/backedge, warp reduction and store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The compiled timed loop issues the sole warp CSR kernel once per CLI iteration. The sm_86 code retains bounded warp-row assignment, CSR begin/end work with multiply-add backedge, reduction and result store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              341
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              901,
+              1320
+            ],
+            [
+              1321,
+              1729
+            ],
+            [
+              2210,
+              2274
+            ]
+          ],
+          "claim": "Compiled main's event-bounded loop preserves the runtime iteration backedge and launches the stub each pass; event synchronization follows and stub reaches cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              310
+            ]
+          ],
+          "claim": "Complete sm_86 entry retains row mapping/bounds, CSR nonzero arithmetic/backedge, reduction and store."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "06ff351bf6cc156777e48d0f5a38e3793e4403bd2f1bd47fd31957a8825f9420",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T16:10:27Z",
+    "sampled_ids": [
+      "spmv_gpt-5.6-terra-medium_cuda_r2"
+    ],
+    "method": "Read every finding and evidence claim. Independently inspect sample complete relevant source/build, actual counted host loop with kernel-stub call and backedge, start/stop/synchronization and result transfer, complete called CUDA launch stub, and complete sm86 kernel from row mapping/CSR endpoints through unrolled arithmetic, remainder handling, warp reduction and result store. Distinguish other architectures in the fat binary. Other IDs and remaining host initialization inspected by Luna; bindings/ranges verified.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Stop sample sm86 excerpt before the following sm89 metadata.",
+      "Expand source references to complete pinned files."
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "id": "spmv_beam-1.0-oc-medium_omp_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The unmodified CLI iteration count controls the timed outer loop. Each iteration calls the OpenMP static row loop across all numRows; its inner loop traverses every CSR nonzero and overwrites the complete output. Initialization and the optional reference precede timing. No repetition shortcut or data-dependent omission was identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          50,
+          108
+        ],
+        [
+          157,
+          190
+        ],
+        [
+          202,
+          231
+        ]
+      ],
+      "claim": "The unmodified CLI iteration count controls the timed outer loop. Each iteration calls the OpenMP static row loop across all numRows; its inner loop traverses every CSR nonzero and overwrites the complete output. Initialization and the optional reference precede timing. No repetition shortcut or data-dependent omission was identified.",
+      "sha256": "b9fcc31865b128989641c388aedb427ef08bd8b17cac15160229f195a687c908",
+      "git_blob": "544645812557ea8f7bada001f9b520f9abe9dc92"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock calls 199f/1a1a surround GOMP_parallel 1a09 with iteration backedge 1a11->19e0. Worker 1fa0 partitions all rows using the OpenMP quotient/remainder calculation, retains multiply/add 204d/2055, nonzero backedge 205c->2040 and row backedge 206b->2020. Each executable was inspected separately.",
+      "complete_dump_sha256": "e36ded6a4171dcc3c5728c67b3b11b0fa72ec896e7733b6cf34b5c5c3acd64e2",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_omp_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 573,
+          "last_line": 612,
+          "text": "    196e:\tmov    %rcx,-0x188(%rbp)\n    1975:\tmov    %rcx,-0x140(%rbp)\n    197c:\tvpinsrq $0x1,%r14,%xmm5,%xmm1\n    1982:\tvinserti128 $0x1,%xmm0,%ymm1,%ymm7\n    1988:\tlea    0x1a5f(%rip),%rdi        # 33ee <_IO_stdin_used+0x3ee>\n    198f:\tvmovdqa %ymm7,-0x130(%rbp)\n    1997:\tvzeroupper\n    199a:\tcall   1210 <puts@plt>\n    199f:\tcall   1160 <std::chrono::_V2::system_clock::now()@plt>\n    19a4:\txor    %r14d,%r14d\n    19a7:\tmov    -0x90(%rbp),%rbx\n    19ae:\tlea    0x5eb(%rip),%r15        # 1fa0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>\n    19b5:\tmov    %rax,-0x180(%rbp)\n    19bc:\tmov    -0x148(%rbp),%eax\n    19c2:\ttest   %eax,%eax\n    19c4:\tje     1a1a <main+0x6ea>\n    19c6:\tmov    %r13,-0x170(%rbp)\n    19cd:\tmov    %r14d,%r13d\n    19d0:\tmov    -0x148(%rbp),%r14d\n    19d7:\tnopw   0x0(%rax,%rax,1)\n    19e0:\tvmovdqa -0x130(%rbp),%ymm1\n    19e8:\txor    %ecx,%ecx\n    19ea:\txor    %edx,%edx\n    19ec:\tmov    %rbx,-0x50(%rbp)\n    19f0:\tmov    -0x138(%rbp),%rsi\n    19f7:\tmov    %r12d,-0x48(%rbp)\n    19fb:\tmov    %r15,%rdi\n    19fe:\tvmovdqa %ymm1,-0x70(%rbp)\n    1a03:\tvzeroupper\n    1a06:\tinc    %r13d\n    1a09:\tcall   1200 <GOMP_parallel@plt>\n    1a0e:\tcmp    %r14d,%r13d\n    1a11:\tjne    19e0 <main+0x6b0>\n    1a13:\tmov    -0x170(%rbp),%r13\n    1a1a:\tcall   1160 <std::chrono::_V2::system_clock::now()@plt>\n    1a1f:\tmov    -0x180(%rbp),%rcx\n    1a26:\tmovabs $0x431bde82d7b634db,%rdx\n    1a30:\tlea    0x19c9(%rip),%rsi        # 3400 <_IO_stdin_used+0x400>\n    1a37:\tmov    $0x2,%edi\n    1a3c:\tsub    %rcx,%rax\n"
+        },
+        {
+          "first_line": 916,
+          "last_line": 995,
+          "text": "0000000000001fa0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>:\n    1fa0:\tendbr64\n    1fa4:\tpush   %r13\n    1fa6:\tpush   %r12\n    1fa8:\tpush   %rbp\n    1fa9:\tpush   %rbx\n    1faa:\tsub    $0x8,%rsp\n    1fae:\tmov    0x28(%rdi),%ebx\n    1fb1:\ttest   %ebx,%ebx\n    1fb3:\tje     206d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    1fb9:\tmov    %rdi,%r13\n    1fbc:\tcall   1240 <omp_get_num_threads@plt>\n    1fc1:\tmov    %eax,%ebp\n    1fc3:\tcall   1220 <omp_get_thread_num@plt>\n    1fc8:\txor    %edx,%edx\n    1fca:\tmov    %eax,%ecx\n    1fcc:\tmov    %ebx,%eax\n    1fce:\tdiv    %ebp\n    1fd0:\tcmp    %edx,%ecx\n    1fd2:\tjb     2095 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xf5>\n    1fd8:\timul   %eax,%ecx\n    1fdb:\tadd    %ecx,%edx\n    1fdd:\tlea    (%rax,%rdx,1),%ecx\n    1fe0:\tcmp    %ecx,%edx\n    1fe2:\tjae    206d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    1fe8:\tmov    0x10(%r13),%rcx\n    1fec:\tdec    %eax\n    1fee:\tmov    0x18(%r13),%rdi\n    1ff2:\txor    %r8d,%r8d\n    1ff5:\tlea    0x4(,%rax,4),%rbx\n    1ffd:\tmov    %edx,%eax\n    1fff:\tinc    %edx\n    2001:\tmov    0x8(%r13),%r12\n    2005:\tmov    0x0(%r13),%rbp\n    2009:\tlea    (%rcx,%rdx,4),%r10\n    200d:\tmov    0x20(%r13),%rdx\n    2011:\tlea    (%rcx,%rax,4),%r11\n    2015:\tlea    (%rdx,%rax,8),%r9\n    2019:\tnopl   0x0(%rax)\n    2020:\tmov    (%r11,%r8,1),%eax\n    2024:\tmov    (%r10,%r8,1),%edx\n    2028:\tcmp    %edx,%eax\n    202a:\tjae    2080 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    202c:\tdec    %edx\n    202e:\tlea    (%r12,%rax,4),%rsi\n    2032:\tlea    0x0(%rbp,%rax,8),%rcx\n    2037:\tvxorpd %xmm1,%xmm1,%xmm1\n    203b:\tsub    %eax,%edx\n    203d:\txor    %eax,%eax\n    203f:\tnop\n    2040:\tmov    (%rsi,%rax,4),%r13d\n    2044:\tvmovsd (%rdi,%r13,8),%xmm0\n    204a:\tmov    %rax,%r13\n    204d:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    2052:\tinc    %rax\n    2055:\tvaddsd %xmm0,%xmm1,%xmm1\n    2059:\tcmp    %rdx,%r13\n    205c:\tjne    2040 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xa0>\n    205e:\tvmovsd %xmm1,(%r9,%r8,2)\n    2064:\tadd    $0x4,%r8\n    2068:\tcmp    %r8,%rbx\n    206b:\tjne    2020 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    206d:\tadd    $0x8,%rsp\n    2071:\tpop    %rbx\n    2072:\tpop    %rbp\n    2073:\tpop    %r12\n    2075:\tpop    %r13\n    2077:\tret\n    2078:\tnopl   0x0(%rax,%rax,1)\n    2080:\tvxorpd %xmm1,%xmm1,%xmm1\n    2084:\tvmovsd %xmm1,(%r9,%r8,2)\n    208a:\tadd    $0x4,%r8\n    208e:\tcmp    %r8,%rbx\n    2091:\tjne    2020 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    2093:\tjmp    206d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    2095:\tinc    %eax\n    2097:\txor    %edx,%edx\n    2099:\tjmp    1fd8 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x38>\n    209e:\txchg   %ax,%ax\n\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170121/spmv_beam-1.0-oc-medium_omp_r4",
+    "source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+    "staged_source_sha256": "f903db9e43f7de31c2f402c5e924ff8eb229436cd66e8cd764ebd8e268d4e097"
+  },
+  "binary_sha256": "1ab76c19d9366f9ccd462858684e8fbe0dc14525c8f49604336138de8e7dd561",
+  "binding_sha256": "f0a6636a8fbdc2db22898bbe35fb795558e48c3a895f2b63fcaf2520764e4739",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:43:05Z",
+  "review_finished_at": "2026-11-04T13:46:07Z",
+  "review_input_sha256": "705b3c7b6a4469fb33f3abb5da7fbd9200df8d89cd18c6b466ab561f37abfa80",
+  "pack_sha256": "e57d826ce0b9daebb51f40353ebc5a9e46dfa80d60d61544bed6c4e203b3131d",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

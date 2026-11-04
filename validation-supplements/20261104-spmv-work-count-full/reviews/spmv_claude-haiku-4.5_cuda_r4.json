@@ -1,0 +1,131 @@
+{
+  "id": "spmv_claude-haiku-4.5_cuda_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed outer loop invokes the GPU helper exactly iterations times; its launch grid assigns a warp to each row, lanes traverse the row's nonzeros, and reduction writes one row result. The sole sm_75 SASS variant has the thread/warp bounds, retained DFMA traversal backedge and output store.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cu",
+      "ranges": [
+        [
+          1,
+          363
+        ]
+      ],
+      "claim": "Warp row mapping and lane-strided CSR traversal feed a warp reduction and row output. CLI iteration count and matrix setup flow into a timed loop calling spmvGpu once per iteration; the helper launches work for the dimension, synchronizes and copies output.",
+      "sha256": "2a2efbd971f05ce30518be0a24842980072f74f24531244de91ae59475f2e5b3",
+      "git_blob": "4d95e302e4fbb409400e61fc398ac097396b6637"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          20
+        ]
+      ],
+      "claim": "The selected CUDA target architecture is sm_75, the final SASS variant reviewed.",
+      "sha256": "9a5756928055ee4e1e0a3e25592019c6ff26f6a58d0e31a7e5036597c2bc9e93",
+      "git_blob": "de5667172c1bc1be49d363cebfd31a65bfb8d252"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed loop starts at 1272, calls spmvGpu at 1286, increments/compares/backedges at 1288-1290. Its compiled helper path launches the kernel, calls cudaDeviceSynchronize at ba15 and copies device output at ba37 before returning.",
+      "complete_dump_sha256": "c9cba4057c8b6c9932b2292a647d7c424ba210d31243979bc04d3a65f4f3788b",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_cuda_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1272,
+          "last_line": 1291,
+          "text": "    b1d0:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n    b1d5:\txor    %r12d,%r12d\n    b1d8:\tmov    0xd0(%rsp),%r13\n    b1e0:\tmov    %rax,0x28(%rsp)\n    b1e5:\tmov    0x18(%rsp),%eax\n    b1e9:\ttest   %eax,%eax\n    b1eb:\tje     b215 <main+0x635>\n    b1ed:\tnopl   (%rax)\n    b1f0:\tmov    0x8(%rsp),%rsi\n    b1f5:\tmov    %r13,%r9\n    b1f8:\tmov    %ebx,%r8d\n    b1fb:\tmov    %r15,%rcx\n    b1fe:\tmov    %r14,%rdx\n    b201:\tmov    %rbp,%rdi\n    b204:\tcall   b980 <spmvGpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b209:\tmov    0x18(%rsp),%eax\n    b20d:\tinc    %r12d\n    b210:\tcmp    %eax,%r12d\n    b213:\tjne    b1f0 <main+0x610>\n    b215:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 1710,
+          "last_line": 1724,
+          "text": "    b934:\tlea    -0x10b(%rip),%rdi        # b830 <spmv_kernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b93b:\tpush   -0x98(%rbp)\n    b941:\tmov    -0x78(%rbp),%rcx\n    b945:\tmov    -0x70(%rbp),%r8d\n    b949:\tmov    -0x88(%rbp),%rsi\n    b950:\tcall   75bd0 <cudaLaunchKernel>\n    b955:\tpop    %rax\n    b956:\tpop    %rdx\n    b957:\tmov    -0x18(%rbp),%rax\n    b95b:\tsub    %fs:0x28,%rax\n    b964:\tjne    b970 <spmv_kernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x140>\n    b966:\tmov    -0x8(%rbp),%r10\n    b96a:\tleave\n    b96b:\tlea    -0x8(%r10),%rsp\n    b96f:\tret\n"
+        },
+        {
+          "first_line": 1728,
+          "last_line": 1774,
+          "text": "000000000000b980 <spmvGpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    b980:\tendbr64\n    b984:\tlea    0x8(%rsp),%r10\n    b989:\tand    $0xffffffffffffffe0,%rsp\n    b98d:\tmov    %r8d,%edx\n    b990:\tmov    $0x1,%ecx\n    b995:\tpush   -0x8(%r10)\n    b999:\tpush   %rbp\n    b99a:\tmov    %rsp,%rbp\n    b99d:\tpush   %r12\n    b99f:\tpush   %r10\n    b9a1:\tpush   %rbx\n    b9a2:\tsub    $0xf8,%rsp\n    b9a9:\tmov    %r8d,%ebx\n    b9ac:\tmov    %r9,%r12\n    b9af:\tmov    %fs:0x28,%rax\n    b9b8:\tmov    %rax,-0x38(%rbp)\n    b9bc:\txor    %eax,%eax\n    b9be:\tadd    $0x7,%edx\n    b9c1:\tlea    0xe(%r8),%eax\n    b9c5:\tcmovns %edx,%eax\n    b9c8:\txor    %r9d,%r9d\n    b9cb:\txor    %r8d,%r8d\n    b9ce:\tmovabs $0x100000100,%rdx\n    b9d8:\tsar    $0x3,%eax\n    b9db:\tmov    %eax,-0x94(%rbp)\n    b9e1:\tmovabs $0x100000001,%rax\n    b9eb:\tmov    %rax,-0x90(%rbp)\n    b9f2:\tmov    -0x94(%rbp),%rdi\n    b9f9:\tmov    -0x8c(%rbp),%esi\n    b9ff:\tcall   20450 <__cudaPushCallConfiguration>\n    ba04:\ttest   %eax,%eax\n    ba06:\tje     ba70 <spmvGpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xf0>\n    ba08:\tcall   4e820 <cudaGetLastError>\n    ba0d:\ttest   %eax,%eax\n    ba0f:\tjne    bbaa <spmvGpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x22a>\n    ba15:\tcall   4bac0 <cudaDeviceSynchronize>\n    ba1a:\ttest   %eax,%eax\n    ba1c:\tjne    bbf3 <spmvGpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x273>\n    ba22:\tmov    0xa6667(%rip),%rsi        # b2090 <d_out>\n    ba29:\tmov    %ebx,%edx\n    ba2b:\tmov    $0x2,%ecx\n    ba30:\tmov    %r12,%rdi\n    ba33:\tshl    $0x3,%rdx\n    ba37:\tcall   709e0 <cudaMemcpy>\n    ba3c:\ttest   %eax,%eax\n    ba3e:\tjne    bbe2 <spmvGpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x262>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "The sm_75 kernel computes a warp's row index, compares it to dim and exits invalid rows. Separate lane/row-end predicates control CSR work; cited DFMA/body ranges include the nonzero-loop backedge, and the final range contains the row-result store.",
+      "complete_dump_sha256": "e10d5b3a5f2283da78fc2ab175d03f2ef7b1cc6fbc0a9f48058928542a3e61ae",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_cuda_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 19,
+          "last_line": 38,
+          "text": "\t\tFunction : _Z11spmv_kernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM75 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM75)\"\n        /*0000*/                   MOV R1, c[0x0][0x28] ;                             /* 0x00000a0000017a02 */\n                                                                                      /* 0x000fe40000000f00 */\n        /*0010*/                   S2R R2, SR_TID.X ;                                 /* 0x0000000000027919 */\n                                                                                      /* 0x000e220000002100 */\n        /*0020*/                   ULDC UR4, c[0x0][0x0] ;                            /* 0x0000000000047ab9 */\n                                                                                      /* 0x000fe40000000800 */\n        /*0030*/                   USHF.R.U32.HI UR4, URZ, 0x5, UR4 ;                 /* 0x000000053f047899 */\n                                                                                      /* 0x000fe20008011604 */\n        /*0040*/                   S2R R3, SR_CTAID.X ;                               /* 0x0000000000037919 */\n                                                                                      /* 0x000e620000002500 */\n        /*0050*/                   SHF.R.U32.HI R0, RZ, 0x5, R2 ;                     /* 0x00000005ff007819 */\n                                                                                      /* 0x001fca0000011602 */\n        /*0060*/                   IMAD R0, R3, UR4, R0 ;                             /* 0x0000000403007c24 */\n                                                                                      /* 0x002fca000f8e0200 */\n        /*0070*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;   /* 0x0000600000007a0c */\n                                                                                      /* 0x000fd80003f06070 */\n        /*0080*/               @P0 EXIT ;                                             /* 0x000000000000094d */\n                                                                                      /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 55,
+          "last_line": 63,
+          "text": "        /*0110*/                   IMAD.IADD R6, R2, 0x1, R3 ;                        /* 0x0000000102067824 */\n                                                                                      /* 0x004fe200078e0203 */\n        /*0120*/                   SHF.R.S32.HI R3, RZ, 0x1f, R0 ;                    /* 0x0000001fff037819 */\n                                                                                      /* 0x000fc80000011400 */\n        /*0130*/                   ISETP.GE.U32.AND P0, PT, R6, R9, PT ;              /* 0x000000090600720c */\n                                                                                      /* 0x008fd80003f06070 */\n        /*0140*/               @P0 BRA 0x700 ;                                        /* 0x000005b000000947 */\n                                                                                      /* 0x000fea0003800000 */\n        /*0150*/                   ISETP.GE.U32.AND P2, PT, R6, R9, PT ;              /* 0x000000090600720c */\n"
+        },
+        {
+          "first_line": 89,
+          "last_line": 99,
+          "text": "        /*0220*/                   BMOV.32.CLEAR RZ, B1 ;                             /* 0x0000000001ff7355 */\n                                                                                      /* 0x000fe20000100000 */\n        /*0230*/                   BSSY B1, 0x4d0 ;                                   /* 0x0000029000017945 */\n                                                                                      /* 0x000fe20003800000 */\n        /*0240*/                   PLOP3.LUT P0, PT, P2, PT, PT, 0x8, 0x0 ;           /* 0x000000000000781c */\n                                                                                      /* 0x000fc6000170e170 */\n        /*0250*/               @P2 DFMA R4, R14, R12, R4 ;                            /* 0x0000000c0e04222b */\n                                                                                      /* 0x0080480000000004 */\n        /*0260*/               @P1 BRA 0x4c0 ;                                        /* 0x0000025000001947 */\n                                                                                      /* 0x000fea0003800000 */\n        /*0270*/                   PLOP3.LUT P0, PT, PT, PT, PT, 0x8, 0x0 ;           /* 0x000000000000781c */\n"
+        },
+        {
+          "first_line": 159,
+          "last_line": 171,
+          "text": "        /*0450*/                   IADD3 R6, R6, 0x80, RZ ;                           /* 0x0000008006067810 */\n                                                                                      /* 0x000fc80007ffe0ff */\n        /*0460*/                   ISETP.GE.U32.AND P1, PT, R6, R11, PT ;             /* 0x0000000b0600720c */\n                                                                                      /* 0x000fe20003f26070 */\n        /*0470*/                   DFMA R12, R12, R14, R4 ;                           /* 0x0000000e0c0c722b */\n                                                                                      /* 0x006ed00000000004 */\n        /*0480*/                   DFMA R12, R16, R18, R12 ;                          /* 0x00000012100c722b */\n                                                                                      /* 0x008f10000000000c */\n        /*0490*/                   DFMA R12, R20, R22, R12 ;                          /* 0x00000016140c722b */\n                                                                                      /* 0x010f50000000000c */\n        /*04a0*/                   DFMA R4, R26, R24, R12 ;                           /* 0x000000181a04722b */\n                                                                                      /* 0x020062000000000c */\n        /*04b0*/              @!P1 BRA 0x290 ;                                        /* 0xfffffdd000009947 */\n"
+        },
+        {
+          "first_line": 281,
+          "last_line": 285,
+          "text": "        /*0820*/                   DADD R4, R12, R4 ;                                 /* 0x000000000c047229 */\n                                                                                      /* 0x006e460000000004 */\n        /*0830*/                   LEA.HI.X R3, R0, c[0x0][0x18c], R3, 0x3, P0 ;      /* 0x0000630000037a11 */\n                                                                                      /* 0x000fd000000f1c03 */\n        /*0840*/                   STG.E.64.SYS [R2], R4 ;                            /* 0x0000000402007386 */\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_cuda_r4",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "abe8cc2d47db2dd2f9522d1b22119958ad361519f2306d8ec160fbcb361d2655"
+  },
+  "binary_sha256": "5cd73bd1e9a4f0b316eb1fa8b0115afebffbb07fb0e3f1fa90f6c0139f0b012e",
+  "binding_sha256": "b8c3fa2fa409e080d6dce97f31e3e700bf05d3f9ed9b559ea43f5561d25e10c0",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "f61cfd067f451545a4c7cdce9cd1845dfd092383752722c42f665ff632b7bcfa",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:33:08 UTC",
+    "sampled_ids": [
+      "spmv_claude-haiku-5.5-cc-medium_cuda_r4"
+    ],
+    "method": "Primary read every submitted claim and independently inspected complete CC5.5 CUDA r4 source/build, exact measured host loop and full final SASS. Primary detected incorrect copied helper synchronization, row-guard and warp-mapping descriptions in the first proposal and returned the whole batch to Luna for exact-file reaudit. Version2 corrects these; other findings rely on Luna's reaudit plus primary report and pinned-evidence checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Used version2 after full batch reaudit; original proposal preserved.",
+      "Expanded references to complete cited source/build files.",
+      "Retained complete short r4 final SASS function so row guard, empty-CSR guard, arithmetic backedges and store remain together."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:29:20Z",
+  "review_finished_at": "2026-11-04T14:31:45Z",
+  "review_input_sha256": "a4af54af0a0b31166f2d1e2418688cdd5f5938ebf42bfbc26594cf55917b9740",
+  "pack_sha256": "cdc066fa0ddf45e9663b27b4ed42eb2a862cf20e40756c6d5e060fdb8f7b12a6",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

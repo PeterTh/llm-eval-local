@@ -1,0 +1,60 @@
+{
+  "id": "spmv_claude-haiku-4.5_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "All ranks parse the same count and recompute their complete contiguous row partitions on every iteration. The last rank receives the remainder; compiled code preserves the nested product/repetition loops.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          163,
+          179
+        ],
+        [
+          237,
+          276
+        ]
+      ],
+      "claim": "The full input is broadcast and all local nonzeros participate in every requested product.",
+      "sha256": "1de90e0f8c32fce085330604f91ca3e662ee297d0ad032de66728219afae3c20",
+      "git_blob": "628ae4df03b3dfb594d953a8ec33e60e99fb4739"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "0x9d70-0x9d8c retains dot-product arithmetic, enclosed by count increment/comparison and 0x9dd7 -> 0x9d30.",
+      "complete_dump_sha256": "08539f1c82f0d839c033d126ec28fd19a7e387f4d624c2b36a97b7f07329732f",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1977,
+          "last_line": 2045,
+          "text": "    9cc8:\tcall   8b50 <std::chrono::_V2::system_clock::now()@plt>\n    9ccd:\tmov    -0x90(%rbp),%rsi\n    9cd4:\tmov    -0x158(%rbp),%ecx\n    9cda:\tmov    %rax,-0x170(%rbp)\n    9ce1:\tmov    %rsi,-0x180(%rbp)\n    9ce8:\ttest   %ecx,%ecx\n    9cea:\tje     9deb <main+0x6bb>\n    9cf0:\tmov    -0x168(%rbp),%edi\n    9cf6:\tcmp    %edi,%r15d\n    9cf9:\tjae    9deb <main+0x6bb>\n    9cff:\tmov    -0x1b0(%rbp),%rdx\n    9d06:\tmov    %r15d,%eax\n    9d09:\tmov    %r14d,-0x180(%rbp)\n    9d10:\tlea    (%rdx,%rax,4),%r11\n    9d14:\tlea    0x1(%r15),%eax\n    9d18:\tlea    (%rdx,%rax,4),%r10\n    9d1c:\tmov    %edi,%eax\n    9d1e:\txor    %edx,%edx\n    9d20:\tmov    %rsi,%rdi\n    9d23:\tsub    %r15d,%eax\n    9d26:\tlea    -0x1(%rax),%r9d\n    9d2a:\tnopw   0x0(%rax,%rax,1)\n    9d30:\txor    %r14d,%r14d\n    9d33:\tmov    %rdi,%rsi\n    9d36:\tmov    (%r11,%r14,4),%eax\n    9d3a:\tmov    (%r10,%r14,4),%edi\n    9d3e:\tcmp    %edi,%eax\n    9d40:\tjae    9db3 <main+0x683>\n    9d42:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d4d:\tnopl   (%rax)\n    9d50:\tdec    %edi\n    9d52:\tlea    0x0(%r13,%rax,4),%r15\n    9d57:\tlea    (%r12,%rax,8),%r8\n    9d5b:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d5f:\tsub    %eax,%edi\n    9d61:\tmov    %rsi,-0x168(%rbp)\n    9d68:\txor    %eax,%eax\n    9d6a:\tnopw   0x0(%rax,%rax,1)\n    9d70:\tmov    (%r15,%rax,4),%esi\n    9d74:\tvmovsd (%rbx,%rsi,8),%xmm0\n    9d79:\tmov    %rax,%rsi\n    9d7c:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    9d82:\tinc    %rax\n    9d85:\tvaddsd %xmm0,%xmm1,%xmm1\n    9d89:\tcmp    %rdi,%rsi\n    9d8c:\tjne    9d70 <main+0x640>\n    9d8e:\tmov    -0x168(%rbp),%rsi\n    9d95:\tlea    0x1(%r14),%rax\n    9d99:\tvmovsd %xmm1,(%rsi,%r14,8)\n    9d9f:\tcmp    %r9,%r14\n    9da2:\tje     9dd0 <main+0x6a0>\n    9da4:\tmov    %rax,%r14\n    9da7:\tmov    (%r11,%r14,4),%eax\n    9dab:\tmov    (%r10,%r14,4),%edi\n    9daf:\tcmp    %edi,%eax\n    9db1:\tjb     9d50 <main+0x620>\n    9db3:\tvxorpd %xmm1,%xmm1,%xmm1\n    9db7:\tlea    0x1(%r14),%rax\n    9dbb:\tvmovsd %xmm1,(%rsi,%r14,8)\n    9dc1:\tcmp    %r9,%r14\n    9dc4:\tjne    9da4 <main+0x674>\n    9dc6:\tcs nopw 0x0(%rax,%rax,1)\n    9dd0:\tinc    %edx\n    9dd2:\tmov    %rsi,%rdi\n    9dd5:\tcmp    %ecx,%edx\n    9dd7:\tjne    9d30 <main+0x600>\n    9ddd:\tmov    -0x180(%rbp),%r14d\n    9de4:\tmov    %rsi,-0x180(%rbp)\n    9deb:\tcall   8b50 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_mpi_r2",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "1b48d44da8f309090d324f17b8b196b1fa97fc6e19bf17289f61ea85cc335865"
+  },
+  "binary_sha256": "fba13007a85dc73e72f026a863eda6123f9720e04682dab8ed5ddad9ed335e2f",
+  "binding_sha256": "df2f5a2a08e30202c68572c3a3673ff67872411eb9673af426197eb962ca38bc",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:47:34Z",
+  "review_finished_at": "2026-11-04T12:50:53Z",
+  "review_input_sha256": "3e0b1943a1c6edf8e1fd40c255868522c0df2163f70522bd63c413e6b43d46b9",
+  "pack_sha256": "f10f9f76d4f11732017a001fb4f96de753e9e3cde481e126ce293dd9d44a00f9",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

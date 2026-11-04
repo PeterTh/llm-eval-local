@@ -1,0 +1,85 @@
+{
+  "id": "spmv_gpt-6.1-terra-xhigh_omp_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The clocked main path directly invokes GOMP for the outlined worker. Its partitioned row traversal includes the CSR nonzero backedge, indexed multiplication and accumulation, and row output stores; count control repeats the complete work.",
+  "source_evidence": [
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          15
+        ]
+      ],
+      "claim": "Complete exact OpenMP build configuration.",
+      "sha256": "d49255e7c108bc4f67b5052ff8304b0481d7741d0f176cc989bec658f85294da",
+      "git_blob": "4c8d173b4f571e9f8fc9d935fd0efe5778f24aee"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          305
+        ]
+      ],
+      "claim": "Complete source includes runtime work/count, CSR setup and timed OpenMP computation.",
+      "sha256": "c5dcf607c5d5f84e9d707c2640c32f3ce2354529d30894c769c5652cfd9134f9",
+      "git_blob": "9da1228d95c3d5612d03de3c4b2139868bc67d4c"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock-bracketed direct GOMP and complete outlined worker with partition, CSR, arithmetic and store paths.",
+      "complete_dump_sha256": "c42bd3c3d3d5d9f76f73ecea5f65432eb9f199cc97e4d89e6372a3f243905880",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-terra-xhigh_omp_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 579,
+          "last_line": 592,
+          "text": "    1992:\tcall   1160 <std::chrono::_V2::system_clock::now()@plt>\n    1997:\tvmovdqa -0x170(%rbp),%ymm7\n    199f:\txor    %ecx,%ecx\n    19a1:\txor    %edx,%edx\n    19a3:\tmov    -0x90(%rbp),%r12\n    19aa:\tmov    -0x148(%rbp),%rsi\n    19b1:\tlea    0x538(%rip),%rdi        # 1ef0 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]>\n    19b8:\tmov    %rbx,-0x48(%rbp)\n    19bc:\tmov    %rax,%r15\n    19bf:\tmov    %r12,-0x50(%rbp)\n    19c3:\tvmovdqa %ymm7,-0x70(%rbp)\n    19c8:\tvzeroupper\n    19cb:\tcall   1200 <GOMP_parallel@plt>\n    19d0:\tcall   1160 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 886,
+          "last_line": 1019,
+          "text": "0000000000001ef0 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]>:\n    1ef0:\tendbr64\n    1ef4:\tpush   %r15\n    1ef6:\tpush   %r14\n    1ef8:\tpush   %r13\n    1efa:\tmov    %rdi,%r14\n    1efd:\tpush   %r12\n    1eff:\tpush   %rbp\n    1f00:\tpush   %rbx\n    1f01:\tsub    $0x8,%rsp\n    1f05:\tmov    0x28(%rdi),%ebx\n    1f08:\tmov    0x10(%rdi),%r15\n    1f0c:\tmov    0x2c(%rdi),%r12d\n    1f10:\tcall   1220 <omp_get_thread_num@plt>\n    1f15:\tmovslq %eax,%rbp\n    1f18:\tcall   1240 <omp_get_num_threads@plt>\n    1f1d:\txor    %ecx,%ecx\n    1f1f:\tmovslq %eax,%r8\n    1f22:\tmov    %rbp,%r9\n    1f25:\tmov    %rbp,%r10\n    1f28:\tmov    %ebx,%edx\n    1f2a:\tmov    %ebx,%r11d\n    1f2d:\tmov    (%r15,%rdx,4),%eax\n    1f31:\tadd    %rdx,%rax\n    1f34:\txor    %edx,%edx\n    1f36:\tdiv    %r8\n    1f39:\timul   %rdx,%r9\n    1f3d:\tmov    %rdx,%rsi\n    1f40:\tmov    %rax,%rdi\n    1f43:\txor    %edx,%edx\n    1f45:\timul   %rax,%r10\n    1f49:\tmov    %r9,%rax\n    1f4c:\tdiv    %r8\n    1f4f:\tlea    (%rax,%r10,1),%rbp\n    1f53:\tjmp    1f7e <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x8e>\n    1f55:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    1f60:\tmov    %r11d,%eax\n    1f63:\tsub    %ecx,%eax\n    1f65:\tshr    $1,%eax\n    1f67:\tlea    (%rax,%rcx,1),%r13d\n    1f6b:\tmov    (%r15,%r13,4),%edx\n    1f6f:\tadd    %r13,%rdx\n    1f72:\tcmp    %rbp,%rdx\n    1f75:\tjb     2099 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x1a9>\n    1f7b:\tmov    %r13d,%r11d\n    1f7e:\tcmp    %r11d,%ecx\n    1f81:\tjb     1f60 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x70>\n    1f83:\tlea    (%rsi,%r9,1),%rax\n    1f87:\txor    %edx,%edx\n    1f89:\tadd    %r10,%rdi\n    1f8c:\txor    %esi,%esi\n    1f8e:\tdiv    %r8\n    1f91:\tlea    (%rax,%rdi,1),%r8\n    1f95:\tjmp    1fbb <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xcb>\n    1f97:\tnopw   0x0(%rax,%rax,1)\n    1fa0:\tmov    %ebx,%eax\n    1fa2:\tsub    %esi,%eax\n    1fa4:\tshr    $1,%eax\n    1fa6:\tlea    (%rax,%rsi,1),%edi\n    1fa9:\tmov    (%r15,%rdi,4),%edx\n    1fad:\tadd    %rdi,%rdx\n    1fb0:\tcmp    %r8,%rdx\n    1fb3:\tjb     20a2 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x1b2>\n    1fb9:\tmov    %edi,%ebx\n    1fbb:\tcmp    %ebx,%esi\n    1fbd:\tjb     1fa0 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xb0>\n    1fbf:\ttest   %r12d,%r12d\n    1fc2:\tje     2064 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x174>\n    1fc8:\tcmp    %esi,%ecx\n    1fca:\tjae    2064 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x174>\n    1fd0:\tlea    0x1(%rcx),%edx\n    1fd3:\tsub    %ecx,%esi\n    1fd5:\tmov    0x18(%r14),%rdi\n    1fd9:\tmov    0x8(%r14),%r13\n    1fdd:\tlea    (%r15,%rdx,4),%r10\n    1fe1:\tmov    0x20(%r14),%rdx\n    1fe5:\tmov    (%r14),%rbp\n    1fe8:\tlea    -0x1(%rsi),%eax\n    1feb:\tlea    0x4(,%rax,4),%rbx\n    1ff3:\tmov    %ecx,%eax\n    1ff5:\txor    %ecx,%ecx\n    1ff7:\tlea    (%r15,%rax,4),%r11\n    1ffb:\tlea    (%rdx,%rax,8),%r9\n    1fff:\tnop\n    2000:\txor    %r14d,%r14d\n    2003:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    200e:\txchg   %ax,%ax\n    2010:\tmov    (%r11,%r14,1),%eax\n    2014:\tmov    (%r10,%r14,1),%edx\n    2018:\tcmp    %edx,%eax\n    201a:\tjae    2080 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x190>\n    201c:\tdec    %edx\n    201e:\tlea    0x0(%r13,%rax,4),%r8\n    2023:\tlea    0x0(%rbp,%rax,8),%rsi\n    2028:\tvxorpd %xmm1,%xmm1,%xmm1\n    202c:\tsub    %eax,%edx\n    202e:\txor    %eax,%eax\n    2030:\tmov    (%r8,%rax,4),%r15d\n    2034:\tvmovsd (%rdi,%r15,8),%xmm0\n    203a:\tmov    %rax,%r15\n    203d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    2042:\tinc    %rax\n    2045:\tvaddsd %xmm0,%xmm1,%xmm1\n    2049:\tcmp    %rdx,%r15\n    204c:\tjne    2030 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x140>\n    204e:\tvmovsd %xmm1,(%r9,%r14,2)\n    2054:\tadd    $0x4,%r14\n    2058:\tcmp    %r14,%rbx\n    205b:\tjne    2010 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x120>\n    205d:\tinc    %ecx\n    205f:\tcmp    %ecx,%r12d\n    2062:\tjne    2000 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x110>\n    2064:\tadd    $0x8,%rsp\n    2068:\tpop    %rbx\n    2069:\tpop    %rbp\n    206a:\tpop    %r12\n    206c:\tpop    %r13\n    206e:\tpop    %r14\n    2070:\tpop    %r15\n    2072:\tret\n    2073:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    207e:\txchg   %ax,%ax\n    2080:\tvxorpd %xmm1,%xmm1,%xmm1\n    2084:\tvmovsd %xmm1,(%r9,%r14,2)\n    208a:\tadd    $0x4,%r14\n    208e:\tcmp    %r14,%rbx\n    2091:\tjne    2010 <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x120>\n    2097:\tjmp    205d <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x16d>\n    2099:\tlea    0x1(%r13),%ecx\n    209d:\tjmp    1f7e <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x8e>\n    20a2:\tlea    0x1(%rdi),%esi\n    20a5:\tjmp    1fbb <spmvOpenMP(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xcb>\n    20aa:\tnopw   0x0(%rax,%rax,1)\n\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Direct main launch; wrapper symbol is not the timed call path.",
+  "source": {
+    "source_path": "20261102-030935/spmv_gpt-6.1-terra-xhigh_omp_r5",
+    "source_commit": "c070881d4b6186c32117ecd339e87d6f32db77e7",
+    "staged_source_sha256": "4512ebf259a7e5dceb73eb8b934e300f826afd4ba3287042b31e5513fa71d1f2"
+  },
+  "binary_sha256": "335097f33ce619fdb31cf58c0d8241704285b02ea2c3619b3cba079fcfd4bdce",
+  "binding_sha256": "3f11c9571e4e1746427997d7b0a95e2fd44ae76a8cb8383a1a1ad6f3ab4c1363",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "0e5db5497ba154aa1a07a547651f1c48803b9c3c584a13890d328697215986ee",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:03:15Z",
+    "sampled_ids": [
+      "spmv_qwen-3.6-27B-udq4_omp_r4"
+    ],
+    "method": "Read every proposal claim; independently read sample complete relevant source/build, complete timed host loop and both complete outlined workers. Each requested iteration launches a partitioned zero pass followed by full CSR row computation. The compute worker retains all indexed multiplication/accumulation and row stores, and the main count backedge encloses both GOMP launches. Other four inspections are Luna's with primary claim/provenance checks.",
+    "work_count_disagreement": false
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:59:23Z",
+  "review_finished_at": "2026-11-04T15:01:16Z",
+  "review_input_sha256": "650015ee06868c9e3f0e5b99191f23945c87d11a4f61257da61140f4c83db8db",
+  "pack_sha256": "04fb26e73f01cfbf9c220ba993fe9078412fabf277f825f03baf7742514fafb7",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

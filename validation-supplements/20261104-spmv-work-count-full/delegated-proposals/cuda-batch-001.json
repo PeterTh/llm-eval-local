@@ -1,0 +1,142 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:01:14Z",
+  "review_finished_at": "2026-11-04T14:07:10Z",
+  "reviews": [
+    {
+      "id": "spmv_beam-1.0-oc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI count controls the host's repeated kernel launches over a grid sized to cover all rows. Each row's CSR interval feeds a retained multiply-add traversal and writes its row output. The compiled host loop retains its iteration backedge and synchronizes before stopping the timer; final SASS retains both the within-row loop and row bound/store.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[98,120],[169,204],[213,260]],"claim":"Thread/block mapping covers rows below dim; each active row traverses rowDelimiters[i]..rowDelimiters[i+1] accumulating val[j]*vec[cols[j]] then stores out[i]. CLI parses iterations and initializes nItems, CSR and operands; timed loop launches for each iteration, synchronizes and copies the final vector."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,16]],"claim":"Build selects the CUDA implementation with optimization enabled."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1293,1385]],"claim":"The timed section begins at clock call line 1293; the loop count is tested at 1300, launch occurs at 1370, counter comparison/backedge at 1372-1376 returns to b353, then device synchronization at 1378 precedes stop-clock call 1385."},
+        {"file":"device-sass.txt","ranges":[[10,22],[90,104],[445,462],[675,685]],"claim":"SASS row-bound branch at 0x0100→0x1470 guards rows; DFMA at 0x0270 is inside the serial nonzero loop whose branch 0x0280→0x01d0 retains traversal; later DFMA at 0x0da0 and loop backedge 0x0db0→0x0590 retain further nonzero work; STG at 0x14a0 stores output."}
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested iteration count is used by a compiled host launch loop, with each launch covering the dimension. Kernel SASS retains the CSR nonzero reduction loop and per-row output store; synchronization follows the launch loop before the timer ends.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[98,120],[169,204],[213,263]],"claim":"Rows are mapped from block/thread indices and bounded by dim; active rows reduce their complete CSR intervals and store out[i]. CLI supplies iterations and nItems; initialized CSR/vector/value data feed the timed launch loop, followed by synchronization and output copy."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,14]],"claim":"CUDA target is built with optimization enabled."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1300,1384]],"claim":"Clock starts at 1300; iteration count is loaded/tested at 1301-1302, launches occur within the loop, and increment/compare/backedge at 1377-1381 returns to b38b. Device synchronization at 1383 precedes stop clock 1384."},
+        {"file":"device-sass.txt","ranges":[[10,22],[90,104],[445,462],[675,685]],"claim":"Row-bound branch 0x0100→0x1470; DFMA 0x0270 lies in the nonzero loop with backedge 0x0280→0x01d0; DFMA at 0x0da0 and backedge 0x0db0→0x0590 retain the later traversal; store at 0x14a0 writes the output row."}
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host keeps the runtime repetition loop around full-grid kernel launches. The bound executable's SASS includes the row guard, repeated nonzero arithmetic/backedges, and row store; the host synchronizes before completing the timed region.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[98,120],[169,204],[213,260]],"claim":"The kernel maps threads to rows, bounds by dim, reduces each CSR interval, and stores each output row. The parsed iteration count and initialized nItems/CSR/operands feed a repeated launch loop; synchronization/output copy follow."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,16]],"claim":"Optimized CUDA target configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1298,1400]],"claim":"Timed clock at 1298; loop counter setup at 1299-1301; kernel launch at 1375; increment/compare/backedge at 1377-1381 targets b38b; synchronization at 1383 and output copy follow before stop-clock 1400."},
+        {"file":"device-sass.txt","ranges":[[10,22],[90,104],[445,462],[675,685]],"claim":"SASS row guard 0x0100→0x1470; DFMA 0x0270 inside CSR loop and backedge 0x0280→0x01d0; later DFMA 0x0da0 and backedge 0x0db0→0x0590; STG 0x14a0 stores the row result."}
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A warm-up synchronization occurs before timing, then the runtime count drives the measured host launch loop. Each CUDA grid covers the row domain, and final SASS retains row-bounded CSR arithmetic and stores; the measured launches are synchronized before the stop clock.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[98,120],[169,204],[213,262]],"claim":"The active thread for each row accumulates all CSR nonzeros and stores out[i]. CLI and initialized CSR/values/vector determine the workload; after a separate warmup, the timed loop launches once per requested iteration and synchronizes before copying output."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"CUDA target is optimized."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1295,1380]],"claim":"Warmup sync is at 1295, start clock at 1296; requested count is loaded at 1297, launch at 1371, increment/compare/backedge at 1373-1377 returns to b35b; measured-work sync at 1379 precedes stop clock 1380."},
+        {"file":"device-sass.txt","ranges":[[10,22],[90,104],[445,462],[675,685]],"claim":"Row guard 0x0100→0x1470; DFMA at 0x0270 with CSR-loop branch 0x0280→0x01d0; later DFMA 0x0da0 and nonzero backedge 0x0db0→0x0590; STG at 0x14a0 stores output."}
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The kernel assigns each warp a row and lanes traverse that row's CSR entries in stride 32, reduce their partial sums, and lane 0 stores the result. The measured host loop retains one launch per requested iteration and synchronizes after it. In SASS, the lane nonzero loop retains DFMA operations and its backward branch.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[35,67],[209,242],[256,263],[294,319]],"claim":"Warp-per-row mapping and lane-strided CSR traversal/reduction produce each row output; CLI parses dimension, sparsity and iterations, initializes CSR/vector/value data; warmup is separate, while the timed loop launches for each iteration and later copies output."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,25]],"claim":"Optimized CUDA build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1380,1412],[1431,1437]],"claim":"The timed loop at 1380-1412 contains the repeated launch stub and iteration control/backedge; the completion sequence checks launch status, synchronizes, then stops the clock at 1437."},
+        {"file":"device-sass.txt","ranges":[[18,60],[89,95],[155,168],[270,283]],"claim":"Row guard at 0x0130→0x06d0; DFMA 0x0450-0x0480 perform lane nonzero products and branch 0x0490→0x0270 is the retained nonzero traversal backedge; STG at 0x0810 writes the row output."}
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The warp-per-row kernel covers row assignments, walks all entries assigned to each lane in the row's CSR interval, reduces, and stores. Compiled host control flow repeats the launch for the runtime count and synchronizes before timer completion; SASS preserves arithmetic and a backward nonzero-loop branch.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[37,67],[209,242],[256,263],[294,317]],"claim":"Warp/lane mapping, CSR interval and stride-32 loop feed the reduction and row store; command-line values define matrix and iteration count, initialized data is used in a separate warmup and each timed launch, then output is copied."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,25]],"claim":"Optimized CUDA build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1380,1412],[1431,1437]],"claim":"The timed host launch loop retains its count-controlled backedge; post-loop launch checking and synchronization precede stop-clock call 1437."},
+        {"file":"device-sass.txt","ranges":[[18,60],[89,95],[155,168],[270,283]],"claim":"Row predicate branches at 0x0130→0x06d0; DFMA 0x0450-0x0480 are retained in lane CSR traversal and branch 0x0490→0x0270 is its backward loop edge; STG 0x0810 writes the output row."}
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Warp lanes process the CSR entries for their assigned row, with reduction and lane-0 output. The compiled timed host path retains the requested number of launches and a post-loop synchronization. Final SASS retains the nonzero arithmetic and the loop backedge.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[37,68],[210,243],[257,264],[295,323]],"claim":"Kernel maps warps to rows and lanes to strided entries in each CSR interval, reduces and writes the row result; CLI/configuration and initialization set the operands and requested iteration count; warmup is outside the measured launch loop, with output copied after."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,25]],"claim":"Optimized CUDA compilation settings."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1351,1393]],"claim":"Clock starts at 1351, count/empty check at 1354-1357, launch stub call at 1382, increment/compare/backedge 1383-1386; launch error handling and device synchronization complete before stop clock at 1393."},
+        {"file":"device-sass.txt","ranges":[[18,60],[89,95],[155,168],[270,283]],"claim":"Row bound at 0x0130→0x06d0; lane nonzero DFMA sequence at 0x0450-0x0480 remains controlled by backward branch 0x0490→0x0270; store at 0x0810 writes output."}
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source assigns a warp per row and lanes to CSR entries, then reduces and writes one result per row. The timed host loop is count-controlled and synchronized; SASS contains lane-wise multiply-adds and a real backward loop edge through nonzeros.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[134,161],[208,241],[255,262],[293,319]],"claim":"Kernel's row mapping, lane-strided CSR loop, reduction and store cover each row's entries; CLI and initialized values/CSR establish input dimensions and iteration count; separate warmup precedes the repeated timed launches and output copy."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,23]],"claim":"Optimized CUDA target settings."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1369,1411]],"claim":"Timed loop uses count from 1371/1373, launches through stub at 1400, increments and branches back at 1401-1404; subsequent error check and synchronization precede stop clock at 1411."},
+        {"file":"device-sass.txt","ranges":[[18,60],[89,95],[155,168],[270,283]],"claim":"Row guard 0x0130→0x06d0; DFMA at 0x0450-0x0480 with backedge 0x0490→0x0270 retains nonzero work; STG at 0x0810 writes the row result."}
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each assigned warp covers a row, with lanes striding over its CSR entries, reducing and storing. The compiled host loop preserves the runtime launch count and waits for completion. Final SASS includes lane nonzero arithmetic plus a backward branch retaining the CSR traversal.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[41,66],[208,241],[255,262],[293,319]],"claim":"Warp/lane mapping traverses the row's CSR range and reduces to a lane-0 store; CLI and initialization establish all inputs and requested count; separate warmup, timed repeated launch loop and subsequent output handling are visible."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,25]],"claim":"Optimized CUDA build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1346,1389]],"claim":"Timed host section starts at 1346, takes count at 1349, invokes the launch stub at 1378, and increments/compares/backedges at 1379-1382; status checking and synchronization finish before stop clock 1389."},
+        {"file":"device-sass.txt","ranges":[[18,60],[89,95],[155,168],[270,283]],"claim":"Row bound 0x0130→0x06d0; DFMA instructions at 0x0450-0x0480 are in the retained CSR loop with backedge 0x0490→0x0270; STG 0x0810 writes the row output."}
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-4.5_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The kernel assigns a thread to each row below dim, iterates through rowDelimiters[row]..rowDelimiters[row+1], accumulates each stored product and writes out[row]. The runtime iteration count drives repeated launches in compiled host code with synchronization before the timer stops. All four configured architecture variants in the final SASS retain nonzero DFMA paths, CSR-loop backedges, row bounds and output stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[29,48],[190,223],[235,244],[265,299]],"claim":"Thread-to-row guard and full CSR reduction; CLI parses n/s/i, nItems derives matrix density, initialized CSR/value/vector data are copied to device; timed loop launches per iteration, synchronizes, then copies result."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[7,26]],"claim":"The build targets CUDA architectures 60, 70, 80, and 90 with optimization enabled; these are the SASS variants examined."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1313,1348]],"claim":"Clock begins at 1313; runtime count in ebp controls the loop (1318), launch stub is called at 1338 and counter increment/compare/backedge is 1342-1344 to b2d8; device synchronization at 1345 precedes stop clock at 1348."},
+        {"file":"device-sass.txt","ranges":[[19,95],[160,184],[510,523],[775,782],[810,892],[970,990],[1238,1255],[1470,1478],[1505,1590],[1665,1676],[1935,1943],[2158,2163],[2216,2318],[2380,2401],[2664,2672],[2897,2902]],"claim":"For sm_60/70/80/90 respectively, row-index guards are 0x0050/0x0050/0x0040/0x0060; each function contains DFMA CSR work and a retained backward nonzero-loop edge: sm_60 0x0f98→0x0570, sm_70 0x0dc0→0x05a0, sm_80 0x0d80→0x0560, sm_90 0x0e10→0x0600. Corresponding output stores are 0x17b8, 0x14c0, 0x1470 and 0x1550."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

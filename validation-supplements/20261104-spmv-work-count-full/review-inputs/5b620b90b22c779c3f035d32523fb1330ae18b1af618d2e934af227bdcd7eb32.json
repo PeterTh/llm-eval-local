@@ -1,0 +1,167 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:30:28Z",
+  "review_finished_at": "2026-11-04T13:31:06Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-luna-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              161,
+              194
+            ],
+            [
+              208,
+              251
+            ]
+          ],
+          "claim": "CLI count is unchanged. Every rank constructs the full same CSR, but timed arithmetic covers only its adjacent floor-scaled row interval, collectively spanning all rows. The row-delimiter pointer is offset while global values/columns remain unshifted, so all assigned nonzeros are addressed correctly. Every requested iteration computes the whole local partition and gathers it; timed allocation/count setup and per-iteration gathering add work rather than omit it."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1951,
+              2081
+            ]
+          ],
+          "claim": "Timed mul/add 9dfb/9e03 are inside nonzero 9e0a->9df0, row 9e1c->9dc0 and requested-iteration 9e76->9da0 backedges. MPI_Gatherv at 9e59 is also within the iteration loop."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              100,
+              110
+            ],
+            [
+              164,
+              202
+            ],
+            [
+              215,
+              260
+            ],
+            [
+              264,
+              285
+            ]
+          ],
+          "claim": "Unchanged positive CLI iterations control full local CSR. Adjacent floor-scaled row partitions cover all rows and their associated nonzeros are scattered. Scattered row lengths reconstruct complete local delimiters. The timed loop traverses the whole local partition on each repetition; full gathering follows timing."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2151,
+              2204
+            ]
+          ],
+          "claim": "Timed mul/add a16d/a175 remain in nonzero a17c->a160, row a18c->a130 and requested-iteration a192->a120 backedges."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              163,
+              194
+            ],
+            [
+              214,
+              248
+            ],
+            [
+              251,
+              275
+            ]
+          ],
+          "claim": "Unclipped CLI -i controls each full local CSR traversal. Floor-scaled adjacent intervals cover the matrix; all localRows+1 delimiters and corresponding nonzeros are scattered and rebased. Reference generation is separate, and the full output is gathered after all requested timed repetitions."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2125,
+              2183
+            ]
+          ],
+          "claim": "Timed mul/add a03d/a045 lie in nonzero a04c->a030, row a05c->a000 and requested-iteration a062->9ff0 backedges."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              163,
+              199
+            ],
+            [
+              211,
+              248
+            ],
+            [
+              253,
+              273
+            ]
+          ],
+          "claim": "Unchanged positive CLI iteration count drives explicit nested iteration/row/nonzero loops. Floor-scaled row partitions cover all rows; complete assigned values/columns and row lengths are scattered, reconstructing complete local CSR. Every timed iteration computes every local row, followed by full Gatherv."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2137,
+              2193
+            ]
+          ],
+          "claim": "Timed mul/add a0ad/a0b6 remain inside nonzero a0bd->a0a0, row a0cc->a070 and requested-iteration a0d2->a060 backedges."
+        }
+      ]
+    }
+  ]
+}

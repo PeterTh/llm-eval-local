@@ -1,0 +1,60 @@
+{
+  "id": "spmv_beam-1.0-oc-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Floor-divided row boundaries cover the entire matrix across ranks. Every requested iteration recomputes all local row products, with the compiled multiply/add loop remaining inside the count-bound backedge.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          163,
+          179
+        ],
+        [
+          230,
+          251
+        ]
+      ],
+      "claim": "Iteration parsing and full rank-local product repetition are explicit; no clamping, cached-result replay or divided count.",
+      "sha256": "f2d1bcf797f39e997a213426c57c86c7894658ac735bd857c6b191cc9f38b190",
+      "git_blob": "b2a72c65cc205906cf4d3ad91e191bb44cccbc0a"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Arithmetic at 0x9cf0-0x9d0c remains inside the outer repetition loop ending at 0x9d29 -> 0x9cb0.",
+      "complete_dump_sha256": "76016f0255dafdfba1519c97d777431c8d3ba95a3819aa76447f6e367a95c0c7",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1948,
+          "last_line": 2004,
+          "text": "    9c44:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9c49:\tmov    -0x90(%rbp),%rsi\n    9c50:\tmov    %rax,-0x198(%rbp)\n    9c57:\tmov    %rsi,-0x178(%rbp)\n    9c5e:\ttest   %r15d,%r15d\n    9c61:\tje     9d32 <main+0x612>\n    9c67:\tmov    -0x188(%rbp),%rdx\n    9c6e:\tcmp    %r14d,%edx\n    9c71:\tjae    9d32 <main+0x612>\n    9c77:\tmov    -0x180(%rbp),%rdi\n    9c7e:\tlea    -0x1(%r14),%eax\n    9c82:\tsub    %edx,%eax\n    9c84:\tlea    0x4(,%rax,4),%r14\n    9c8c:\tmov    %edx,%eax\n    9c8e:\tinc    %edx\n    9c90:\tlea    (%rsi,%rax,8),%r9\n    9c94:\tlea    (%rdi,%rdx,4),%r10\n    9c98:\tlea    (%rdi,%rax,4),%r11\n    9c9c:\tmov    -0x158(%rbp),%rdi\n    9ca3:\txor    %edx,%edx\n    9ca5:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9cb0:\txor    %r8d,%r8d\n    9cb3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9cbe:\txchg   %ax,%ax\n    9cc0:\tmov    (%r11,%r8,1),%eax\n    9cc4:\tmov    (%r10,%r8,1),%ecx\n    9cc8:\tcmp    %ecx,%eax\n    9cca:\tjae    a030 <main+0x910>\n    9cd0:\tmov    %rdi,%r13\n    9cd3:\tdec    %ecx\n    9cd5:\tlea    (%rdi,%rax,8),%rdi\n    9cd9:\tlea    (%r12,%rax,4),%rsi\n    9cdd:\tsub    %eax,%ecx\n    9cdf:\tvxorpd %xmm1,%xmm1,%xmm1\n    9ce3:\txor    %eax,%eax\n    9ce5:\tmov    %r13,-0x148(%rbp)\n    9cec:\tnopl   0x0(%rax)\n    9cf0:\tmov    (%rsi,%rax,4),%r13d\n    9cf4:\tvmovsd (%rbx,%r13,8),%xmm0\n    9cfa:\tmov    %rax,%r13\n    9cfd:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9d02:\tinc    %rax\n    9d05:\tvaddsd %xmm0,%xmm1,%xmm1\n    9d09:\tcmp    %r13,%rcx\n    9d0c:\tjne    9cf0 <main+0x5d0>\n    9d0e:\tmov    -0x148(%rbp),%rdi\n    9d15:\tvmovsd %xmm1,(%r9,%r8,2)\n    9d1b:\tadd    $0x4,%r8\n    9d1f:\tcmp    %r8,%r14\n    9d22:\tjne    9cc0 <main+0x5a0>\n    9d24:\tinc    %edx\n    9d26:\tcmp    %r15d,%edx\n    9d29:\tjne    9cb0 <main+0x590>\n    9d2b:\tmov    %rdi,-0x158(%rbp)\n    9d32:\tlea    0xa2e7(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9d39:\tcall   8e80 <MPI_Barrier@plt>\n    9d3e:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170121/spmv_beam-1.0-oc-medium_mpi_r2",
+    "source_commit": "cbe8dcd9a86fdc63b7c5f62980956f015725ccfc",
+    "staged_source_sha256": "fbeb457a2114efa60eca0d453046810541c011e38621c11d3ddb66b64c68c3f8"
+  },
+  "binary_sha256": "25b0130381e02d0bf6b62bba1139c67f072cf5b445b05f8af09eda4aa0e040f6",
+  "binding_sha256": "e1ea08a5139c9b9c27c87fbba458a9c67516a98a48cad13b6d49b431e818a839",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:38:07Z",
+  "review_finished_at": "2026-11-04T12:41:00Z",
+  "review_input_sha256": "f848009dc1c4cd48be3e158b2b6a9b07d104a4544d64f62fee16d2386eaf8ea4",
+  "pack_sha256": "dc9f3561973b11b723c1420e2aafb640f977917f51d9570fde6699803e61547b",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

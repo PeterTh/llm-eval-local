@@ -1,0 +1,229 @@
+{
+  "reviewer": "gpt-6-luna independent static review; primary agent independently checked all pilot cases and corrected cited instruction addresses/ranges.",
+  "review_started_at": "2026-11-04T13:52:23Z",
+  "review_finished_at": "2026-11-04T13:55:53Z",
+  "reviews": [
+    {
+      "id": "spmv_beam-1.0-oc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host assembly for the timed loop retains one full-grid kernel launch per requested iteration, a loop-counter comparison/backedge, and a device synchronization before ending timing. Device SASS for that kernel retains the row bound check, CSR loads, double-precision multiply-accumulate, nonzero-loop backedge, and row output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              166,
+              210
+            ],
+            [
+              98,
+              120
+            ],
+            [
+              247,
+              268
+            ]
+          ],
+          "claim": "CLI iteration count and global nItems are explicit; each pass launches ceil(numRows/256) blocks; each in-range row thread traverses rowDelimiters[i:i+1] and writes its result."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "CUDA source is compiled with -O3."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1285,
+              1384
+            ]
+          ],
+          "claim": "Timed loop initializes its counter, calls the CUDA kernel launch at 0xb4ab, increments/compares at 0xb4b7-0xb4bf and branches to launch setup at 0xb353; after loop exit it synchronizes at 0xb4c8."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              22
+            ],
+            [
+              84,
+              96
+            ],
+            [
+              435,
+              452
+            ],
+            [
+              658,
+              676
+            ]
+          ],
+          "claim": "Kernel bounds row index at SASS 0x0040-0x0050; DFMA at 0x0270 and loop branch at 0x0280 retain nonzero arithmetic; DFMA instructions continue through 0x0da0/branch 0x0db0; output is stored at 0x14a0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each MPI rank derives a contiguous row range, copies exactly the CSR values/columns covered by its endpoint row delimiters, and shifts local delimiters. The compiled timed host loop launches and synchronizes the local-row CUDA kernel once per CLI iteration, with a retained counter/backedge. Device SASS retains nonzero multiply-accumulate, CSR-loop backedge, and output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              170,
+              213
+            ],
+            [
+              113,
+              124
+            ],
+            [
+              238,
+              280
+            ],
+            [
+              282,
+              310
+            ]
+          ],
+          "claim": "Global nItems is derived from dimensions/sparsity; rank rowStart/rowEnd partition contiguous rows; localNnz is endpoint delimiter difference and local row delimiters are rebased; timed loop launches the local kernel and synchronizes each pass before collecting rank outputs."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              8,
+              21
+            ]
+          ],
+          "claim": "MPI/OpenMP are enabled and CUDA compilation uses -O3."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1449,
+              1456
+            ],
+            [
+              1464,
+              1539
+            ]
+          ],
+          "claim": "After timed start/barrier, compiled loop launches spmvKernel at 0xc73e, synchronizes at 0xc747, increments/compares at 0xc74c-0xc755 and backedges to 0xc5a0; loop exits to end timestamp at 0xc75b."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              105
+            ],
+            [
+              443,
+              462
+            ],
+            [
+              675,
+              685
+            ]
+          ],
+          "claim": "Final SASS bounds local row at 0x0040/0x0050, retains DFMA at 0x0270 and scalar nonzero backedge 0x0280->0x01d0, the unrolled nonzero backedge 0x0db0->0x0590, and output store at 0x14a0. These offsets are checked against this exact dump."
+        }
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank computes a contiguous local row range, slices the corresponding nonzero span and rebases row delimiters. The compiled timed host loop repeats launch, device synchronization, and output copy for each requested iteration. Device SASS retains the CSR loop's arithmetic/backedge and output store. Separate source concern: after timing, the code calls MPI_Allgather with sendcount myRows but receive count myRows?0:0 (always zero), then calls an otherwise appropriate MPI_Gatherv. The Allgather argument mismatch may raise an MPI truncation/error before Gatherv; this is not evidence of omitted SpMV iterations and was not run.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              174,
+              218
+            ],
+            [
+              113,
+              128
+            ],
+            [
+              244,
+              275
+            ],
+            [
+              276,
+              294
+            ],
+            [
+              296,
+              315
+            ]
+          ],
+          "claim": "Global nItems derives from dimensions/sparsity; each rank partitions rows, derives nnzStart/nnzEnd and myNnz, rebases local delimiters, and runs a synchronized local kernel each CLI iteration. Post-timing Allgather uses receive count myRows?0:0 (zero), followed by Gatherv with per-rank counts/displacements."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              4,
+              20
+            ]
+          ],
+          "claim": "MPI/OpenMP are enabled and CUDA compilation uses -O3."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              854,
+              967
+            ]
+          ],
+          "claim": "Timed host loop calls cudaLaunchKernel at 0x3051, synchronizes at 0x305a, copies local output, increments/compares its iteration counter at 0x3081-0x308c and backedges to 0x2eb0; after loop it reaches the barrier/timestamp."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              55
+            ],
+            [
+              90,
+              105
+            ],
+            [
+              445,
+              463
+            ],
+            [
+              675,
+              687
+            ]
+          ],
+          "claim": "Kernel has row-bound logic, DFMA arithmetic at 0x0d60-0x0db0 and CSR backedge 0x0dc0->0x05a0; it stores the output at 0x14b0."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0
+}

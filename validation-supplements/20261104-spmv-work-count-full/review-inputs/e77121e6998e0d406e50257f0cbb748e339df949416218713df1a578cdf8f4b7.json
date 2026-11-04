@@ -1,0 +1,224 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:13:05Z",
+  "review_finished_at": "2026-11-04T13:15:54Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.2_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All requested repetitions traverse the complete distributed CSR matrix; no work-count omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              128
+            ],
+            [
+              192,
+              226
+            ],
+            [
+              242,
+              244
+            ],
+            [
+              286,
+              324
+            ],
+            [
+              332,
+              345
+            ]
+          ],
+          "claim": "Root parses and broadcasts the requested iteration count unchanged. Remainder-aware rowRange covers every row; local delimiters and values/columns cover each partition. The timed outer loop calls the full local CSR kernel on every iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2097,
+              2154
+            ]
+          ],
+          "claim": "Between the two MPI_Wtime calls, mul/add at a0ad/a0b6 lie inside the nonzero loop; a0cc returns to the next row and a0d2 returns to a060 for the next requested iteration. The arithmetic is not hoisted out of the repetition loop."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All requested repetitions recompute every row of each distributed CSR partition; no work-count omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              146,
+              152
+            ],
+            [
+              185,
+              239
+            ],
+            [
+              274,
+              333
+            ],
+            [
+              343,
+              354
+            ]
+          ],
+          "claim": "CLI iterations are broadcast unchanged; balanced block decomposition plus full delimiter rebasing and Scatterv distribute all matrix entries. Unsupported MPI counts abort instead of clipping. The timed loop invokes the full local kernel for every requested iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              751,
+              809
+            ]
+          ],
+          "claim": "Timed mul/add at 1dcd/1dd5 are nested inside the nonzero and row loops. The outer backedge 1dfb -> 1d80 increments and compares the requested iteration counter, preserving arithmetic on every repetition."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified: complete row partitions are multiplied on every requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              100,
+              110
+            ],
+            [
+              189,
+              237
+            ],
+            [
+              299,
+              321
+            ],
+            [
+              340,
+              369
+            ],
+            [
+              379,
+              396
+            ]
+          ],
+          "claim": "CLI iteration count is broadcast unchanged. Floor-scaled consecutive row boundaries collectively cover all rows; their complete delimiters and nonzeros are scattered and rebased. The timed loop calls full spmvCpu on all local rows for every iteration; reference generation is separate."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2051,
+              2108
+            ]
+          ],
+          "claim": "Timed arithmetic at 9f8d/9f95 remains inside CSR nonzero traversal, with row backedge 9fab -> 9f50 and outer repetition backedge 9fb1 -> 9f40. Both zero-iteration and zero-local-row exits are ordinary empty-work guards."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified in the inlined distributed row/nonzero/repetition loops.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              159,
+              165
+            ],
+            [
+              184,
+              219
+            ],
+            [
+              282,
+              355
+            ],
+            [
+              373,
+              398
+            ]
+          ],
+          "claim": "computeRowRange handles the remainder and full CSR partitions are scattered. The original CLI iteration count is broadcast, then the timed iter/i/j nest recomputes every local row from every nonzero each iteration. No reference-output substitution or iteration shortcut is present."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2148,
+              2209
+            ]
+          ],
+          "claim": "mul/add a16d/a176 are inside the nonzero loop. Row backedge a193 -> a130 covers local rows; repetition backedge a19c -> a120 restarts them for each parsed iteration between MPI_Wtime calls."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified: each requested repetition executes the complete distributed local CSR multiply.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              160,
+              180
+            ],
+            [
+              200,
+              242
+            ],
+            [
+              311,
+              378
+            ],
+            [
+              384,
+              397
+            ]
+          ],
+          "claim": "Root parses and broadcasts iterations unchanged. Remainder-aware boundaries and complete row-delimiter/nonzero counts distribute all rows and values. The timed outer loop calls spmvCpuLocal, which traverses every local row and every entry of that row."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2001,
+              2060
+            ]
+          ],
+          "claim": "Bound executable retains mul/add at 9e7c/9e85, nonzero backedge 9e8c, row backedge 9e9b -> 9e40, and requested-iteration backedge 9ea1 -> 9e30 within the timing interval."
+        }
+      ]
+    }
+  ]
+}

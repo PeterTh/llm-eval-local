@@ -1,0 +1,68 @@
+{
+  "id": "spmv_gpt-5-mini_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Every requested iteration computes the full local CSR partition. Complete balanced row coverage is preserved by root's point-to-point distribution.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          171,
+          196
+        ],
+        [
+          243,
+          314
+        ],
+        [
+          317,
+          334
+        ]
+      ],
+      "claim": "Floor-scaled rank boundaries span all rows. Full values, columns and rebased delimiters are copied/sent before the original-count timed kernel loop.",
+      "sha256": "d7a732909037cf0d151e21addb5f497ccb19e8df31bb0d3796fd05417afea301",
+      "git_blob": "8426d40559c4154c0e6cc51152387b6c25ad4235"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add 9e7c/9e85 is inside entry 9e8c->9e70, row 9ea2->9e40 and iteration 9eab->9e30 backedges before ending barrier/clock.",
+      "complete_dump_sha256": "9d9613567b3c10361a40f732fa0957c0f6d6ca0a6799702796f0ae808f26b87e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5-mini_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2002,
+          "last_line": 2067,
+          "text": "    9da3:\tmov    -0x210(%rbp),%r14d\n    9daa:\tmov    -0x208(%rbp),%rdx\n    9db1:\tlea    -0x90(%rbp),%r13\n    9db8:\tmov    %r13,%rdi\n    9dbb:\tmov    %r14,%rsi\n    9dbe:\tcall   ea40 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    9dc3:\tlea    0xb456(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9dca:\tcall   8e90 <MPI_Barrier@plt>\n    9dcf:\tcall   91f0 <MPI_Wtime@plt>\n    9dd4:\tmov    -0x200(%rbp),%r8d\n    9ddb:\tvmovsd %xmm0,-0x1f8(%rbp)\n    9de3:\ttest   %r8d,%r8d\n    9de6:\tje     9eb4 <main+0x784>\n    9dec:\tmov    -0x210(%rbp),%edi\n    9df2:\tmov    -0x90(%rbp),%r11\n    9df9:\tmov    -0xb0(%rbp),%r9\n    9e00:\tmov    -0xd0(%rbp),%r12\n    9e07:\tmov    -0xf0(%rbp),%rax\n    9e0e:\ttest   %edi,%edi\n    9e10:\tje     9eb4 <main+0x784>\n    9e16:\tmov    -0x200(%rbp),%ecx\n    9e1c:\tlea    0x0(,%r14,4),%r10\n    9e24:\txor    %edx,%edx\n    9e26:\tmov    %r15d,-0x1d8(%rbp)\n    9e2d:\tnopl   (%rax)\n    9e30:\txor    %r14d,%r14d\n    9e33:\tmov    %rax,%rsi\n    9e36:\tcs nopw 0x0(%rax,%rax,1)\n    9e40:\tmov    (%r9,%r14,1),%eax\n    9e44:\tmov    0x4(%r9,%r14,1),%edi\n    9e49:\tcmp    %edi,%eax\n    9e4b:\tjae    a3d0 <main+0xca0>\n    9e51:\tdec    %edi\n    9e53:\tlea    (%r12,%rax,4),%r15\n    9e57:\tlea    (%rsi,%rax,8),%r8\n    9e5b:\tvxorpd %xmm1,%xmm1,%xmm1\n    9e5f:\tsub    %eax,%edi\n    9e61:\tmov    %rsi,-0x1e8(%rbp)\n    9e68:\txor    %eax,%eax\n    9e6a:\tnopw   0x0(%rax,%rax,1)\n    9e70:\tmov    (%r15,%rax,4),%esi\n    9e74:\tvmovsd (%rbx,%rsi,8),%xmm0\n    9e79:\tmov    %rax,%rsi\n    9e7c:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    9e82:\tinc    %rax\n    9e85:\tvaddsd %xmm0,%xmm1,%xmm1\n    9e89:\tcmp    %rdi,%rsi\n    9e8c:\tjne    9e70 <main+0x740>\n    9e8e:\tmov    -0x1e8(%rbp),%rsi\n    9e95:\tvmovsd %xmm1,(%r11,%r14,2)\n    9e9b:\tadd    $0x4,%r14\n    9e9f:\tcmp    %r10,%r14\n    9ea2:\tjne    9e40 <main+0x710>\n    9ea4:\tinc    %edx\n    9ea6:\tmov    %rsi,%rax\n    9ea9:\tcmp    %ecx,%edx\n    9eab:\tjne    9e30 <main+0x700>\n    9ead:\tmov    -0x1d8(%rbp),%r15d\n    9eb4:\tlea    0xb365(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9ebb:\tcall   8e90 <MPI_Barrier@plt>\n    9ec0:\tcall   91f0 <MPI_Wtime@plt>\n    9ec5:\tvsubsd -0x1f8(%rbp),%xmm0,%xmm0\n    9ecd:\tsub    $0x8,%rsp\n    9ed1:\tlea    0xb348(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    9ed8:\tmovq   $0x0,-0x1b8(%rbp)\n    9ee3:\tlea    -0x1b8(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_gpt-5-mini_mpi_r1",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "be4fb542bc427f8a365240feaccee049dce56ba433a0f68b0987259b81066792"
+  },
+  "binary_sha256": "57282acf29b3c950558f465a02d1b632bfe2ac8f45ce6193341368ef6220bfd6",
+  "binding_sha256": "09c2b136757be2a086d496a5caf27ee66db22ea9683e4c2878e8934dc244d827",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:09:32Z",
+  "review_finished_at": "2026-11-04T13:11:48Z",
+  "review_input_sha256": "3a13fa1888449505c7e597cbb247badc1caa7df205472f260579144678dc7501",
+  "pack_sha256": "23e9be870263d9908d38660c706ca90777deecea402b02b0cac362909c1e63e9",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

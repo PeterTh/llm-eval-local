@@ -1,0 +1,240 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:28:42Z",
+  "review_finished_at": "2026-11-04T13:29:33Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              100,
+              120
+            ],
+            [
+              177,
+              231
+            ],
+            [
+              258,
+              329
+            ],
+            [
+              334,
+              363
+            ]
+          ],
+          "claim": "Unclipped positive CLI iterations drive full local CSR multiplication. Monotone lower_bound nonzero partitions (row-balanced fallback for zero nonzeros) cover all rows. Complete values and columns are scattered, local row starts rebased, and the final delimiter restored from localNnz. Every requested iteration computes all assigned rows; complete results are gathered."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2088,
+              2144
+            ]
+          ],
+          "claim": "Timed mul/add 9fdd/9fe5 lie in nonzero 9fec->9fd0, row a001->9fa0 and requested-iteration a00a->9f90 backedges."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              100,
+              110
+            ],
+            [
+              164,
+              197
+            ],
+            [
+              207,
+              264
+            ],
+            [
+              291,
+              358
+            ],
+            [
+              362,
+              392
+            ],
+            [
+              408,
+              432
+            ]
+          ],
+          "claim": "Root parses and broadcasts CLI -i unchanged. Closest-nonzero row boundaries are clamped monotonically from zero through numRows. Every localRows+1 delimiter and corresponding nonzero is scattered/rebased. Separate local reference computation is outside timing; every requested timed iteration traverses full local CSR and full output is gathered."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2113,
+              2170
+            ]
+          ],
+          "claim": "Timed mul/add a05c/a065 remain inside nonzero a06c->a050, row a07a->a020 and iteration a084->a010 backedges; the prior reference call is separate."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              85
+            ],
+            [
+              103,
+              113
+            ],
+            [
+              165,
+              251
+            ],
+            [
+              274,
+              291
+            ],
+            [
+              299,
+              381
+            ],
+            [
+              385,
+              408
+            ]
+          ],
+          "claim": "Root CLI iterations are broadcast unchanged. Monotone nearest-nonzero boundaries cover every row. Complete values/columns and row starts are scattered and localNnz restores the last delimiter. Freeing original root storage follows complete distribution. Every timed iteration traverses the complete local CSR, then Gatherv collects every row."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2139,
+              2203
+            ]
+          ],
+          "claim": "Timed mul/add a1ec/a1f4 are inside nonzero a1fb->a1e0, row a210->a1b0 and requested-iteration a220->a1a0 backedges."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              21,
+              67
+            ],
+            [
+              92,
+              128
+            ],
+            [
+              150,
+              206
+            ],
+            [
+              235,
+              308
+            ],
+            [
+              311,
+              345
+            ]
+          ],
+          "claim": "CLI -i is retained without clipping; wider nonzero offsets preserve the complete CSR. Monotone nearest-nonzero boundaries cover all rows; all rows+1 offsets and nonzeros are scattered/rebased. Each timed iteration performs complete local arithmetic and a compiler memory barrier; Gatherv includes every output row."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2396,
+              2448
+            ]
+          ],
+          "claim": "Timed mul/add a5ca/a5d2 are in nonzero a5d9->a5c0, row a5e5->a5a0 and requested-iteration a5eb->a570 backedges. The compiler barrier keeps repeated full traversals observable."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              52,
+              151
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              238,
+              286
+            ],
+            [
+              307,
+              387
+            ],
+            [
+              391,
+              423
+            ],
+            [
+              439,
+              469
+            ]
+          ],
+          "claim": "Unchanged positive CLI iterations drive complete local CSR. Lower_bound partition starts run from zero through numRows and all nonzeros are assigned. Chunked send/receive loops transfer complete data; local delimiters include the restored final localNnz. Each requested timed iteration traverses all local rows/nonzeros; point-to-point gathering covers all row intervals."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2355,
+              2410
+            ]
+          ],
+          "claim": "Timed mul/add a50c/a514 remain in nonzero a51b->a500, row a52a->a4d0 and requested-iteration a536->a4c0 backedges."
+        }
+      ]
+    }
+  ]
+}

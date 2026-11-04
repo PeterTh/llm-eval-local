@@ -1,0 +1,68 @@
+{
+  "id": "spmv_gpt-6-sol-medium_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          137
+        ],
+        [
+          191,
+          227
+        ],
+        [
+          247,
+          331
+        ],
+        [
+          334,
+          355
+        ]
+      ],
+      "claim": "CLI iteration count is unchanged. Monotone nonzero-balanced partitions cover all rows with a row-balanced zero-nnz fallback. Chunked sends/receives/broadcasts transfer complete arrays, including both local row endpoints, and local CSR is rebased. Every requested timed iteration computes the complete local partition, then all outputs are gathered point to point.",
+      "sha256": "551319822df55bb808e4a1bdb723c55fcb5ced3579e9cd2ba6ea851edaee58bd",
+      "git_blob": "2bfe3bb29e0e65ac326ab421578a36612b46bf08"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed mul/add 9f9c/9fa5 remain in nonzero 9fac->9f90, row 9fba->9f60 and iteration 9fc8->9f50 backedges.",
+      "complete_dump_sha256": "78971c034bc44464dae6a66790ca0b20b6dafe9691c5bf94803a82d9561b8a8c",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-sol-medium_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2080,
+          "last_line": 2146,
+          "text": "    9ec7:\ttest   %r10d,%r10d\n    9eca:\tje     a799 <main+0x1099>\n    9ed0:\tlea    -0x150(%rbp),%rax\n    9ed7:\tlea    0xb342(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9ede:\tmov    %rax,-0x248(%rbp)\n    9ee5:\tcall   8e80 <MPI_Barrier@plt>\n    9eea:\tlea    -0x150(%rbp),%rax\n    9ef1:\tmov    %rax,-0x248(%rbp)\n    9ef8:\tcall   91d0 <MPI_Wtime@plt>\n    9efd:\tmov    -0x1f8(%rbp),%r9d\n    9f04:\tvmovq  %xmm0,%r15\n    9f09:\ttest   %r9d,%r9d\n    9f0c:\tje     9fd1 <main+0x8d1>\n    9f12:\tmov    -0x90(%rbp),%r10\n    9f19:\tmov    -0x88(%rbp),%r9\n    9f20:\tmov    -0xd0(%rbp),%r13\n    9f27:\tmov    -0xf0(%rbp),%r11\n    9f2e:\tsub    %r10,%r9\n    9f31:\tsar    $0x3,%r9\n    9f35:\ttest   %r9d,%r9d\n    9f38:\tje     9fd1 <main+0x8d1>\n    9f3e:\txor    %edx,%edx\n    9f40:\tmov    %r9d,%r9d\n    9f43:\tmov    %r14,-0x230(%rbp)\n    9f4a:\tnopw   0x0(%rax,%rax,1)\n    9f50:\txor    %r14d,%r14d\n    9f53:\tmov    %edx,%edi\n    9f55:\tmov    %r14,%rdx\n    9f58:\tnopl   0x0(%rax,%rax,1)\n    9f60:\tmov    (%r12,%rdx,4),%eax\n    9f64:\tmov    0x4(%r12,%rdx,4),%esi\n    9f69:\tcmp    %esi,%eax\n    9f6b:\tjae    a1a0 <main+0xaa0>\n    9f71:\tdec    %esi\n    9f73:\tlea    0x0(%r13,%rax,4),%r14\n    9f78:\tlea    (%r11,%rax,8),%r8\n    9f7c:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f80:\tsub    %eax,%esi\n    9f82:\txor    %eax,%eax\n    9f84:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f8f:\tnop\n    9f90:\tmov    (%r14,%rax,4),%ecx\n    9f94:\tvmovsd (%rbx,%rcx,8),%xmm0\n    9f99:\tmov    %rax,%rcx\n    9f9c:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    9fa2:\tinc    %rax\n    9fa5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9fa9:\tcmp    %rsi,%rcx\n    9fac:\tjne    9f90 <main+0x890>\n    9fae:\tvmovsd %xmm1,(%r10,%rdx,8)\n    9fb4:\tinc    %rdx\n    9fb7:\tcmp    %r9,%rdx\n    9fba:\tjne    9f60 <main+0x860>\n    9fbc:\tmov    -0x1f8(%rbp),%eax\n    9fc2:\tmov    %edi,%edx\n    9fc4:\tinc    %edx\n    9fc6:\tcmp    %eax,%edx\n    9fc8:\tjne    9f50 <main+0x850>\n    9fca:\tmov    -0x230(%rbp),%r14\n    9fd1:\tlea    -0x150(%rbp),%rax\n    9fd8:\tmov    %rax,-0x248(%rbp)\n    9fdf:\tcall   91d0 <MPI_Wtime@plt>\n    9fe4:\tvmovq  %r15,%xmm7\n    9fe9:\tlea    0xb230(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    9ff0:\tsub    $0x8,%rsp\n    9ff4:\tmovq   $0x0,-0x1d8(%rbp)\n    9fff:\tvsubsd %xmm7,%xmm0,%xmm0\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260929-135931/spmv_gpt-6-sol-medium_mpi_r4",
+    "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+    "staged_source_sha256": "642ca1fd82139cc5dad4a78da1ff0064a845b9ba1d628d6d942712f4fea56627"
+  },
+  "binary_sha256": "66163c4f7298399e11a837a6db249ecd570f0cd383801b270800cd5cb4c3fc9b",
+  "binding_sha256": "7284cc9f902cee86d043b9d6a01bc055154a03d9f0751d9442f105f71cb3ede0",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:32:03Z",
+  "review_finished_at": "2026-11-04T13:32:49Z",
+  "review_input_sha256": "4ffc07c9e8a5038fa38119f9e58bf2902b6f0d89cfac740b5179525df3f4d6b8",
+  "pack_sha256": "5144d87d6f915466cb30a3ac65e2ec21400148b67e373726c367a46973a5e0a1",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

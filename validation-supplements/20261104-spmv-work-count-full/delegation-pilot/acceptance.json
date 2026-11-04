@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-04T13:59:23Z",
+  "status": "accepted_with_primary_evidence_corrections",
+  "authorization": "../delegation-authorization.json",
+  "reviewer_model": "gpt-6-luna",
+  "pilot_ids": [
+    "spmv_claude-fable-5-cc-medium_omp_r1",
+    "spmv_claude-fable-5-cc-medium_omp_r3",
+    "spmv_beam-1.0-oc-medium_cuda_r1",
+    "spmv_deepseek-v4.1-flash-oc-high_cuda_r4",
+    "spmv_beam-1.0-oc-medium_hybrid_r1",
+    "spmv_beam-1.0-oc-medium_hybrid_r4"
+  ],
+  "findings_checked": 6,
+  "new_coverage": 3,
+  "reused_control_reviews": 3,
+  "work_count_disagreements": [],
+  "uncertain_ids": [],
+  "raw_reports": [
+    "raw-v1.json",
+    "raw-v2.json"
+  ],
+  "primary_check": "Independent source/control-flow and existing compiled-code checks for all six cases; agreement on work-count findings. Three controls were already reviewed. No program execution or compilation.",
+  "evidence_corrections": [
+    "v1 lacked compiled host repetition loops for CUDA/hybrid and final SASS for both persistent DeepSeek variants; v2 supplies those.",
+    "v2 Fable OpenMP r1 multiplication address is 0x28ad, not 0x288a; existing primary review has the correct address.",
+    "v2 Beam hybrid r1 claim copied hybrid r4 offsets: corrected to DFMA 0x0270, backedges 0x0280->0x01d0 and 0x0db0->0x0590, store 0x14a0.",
+    "Accepted new-case excerpts expanded to include clock/launch context and complete row-bound branches."
+  ],
+  "expansion_authorized_by_user": true,
+  "maximum_parallel_luna_reviewers": 3,
+  "ongoing_quality_policy": "Read every report, verify all hash/range bindings, independently check at least one case in each ten-ID batch and every novel control-flow pattern or suspicious claim; return incomplete evidence to Luna. Escalate only code/compiled-semantics uncertainty to Sol-6.1. Preserve raw reports and primary corrections separately.",
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

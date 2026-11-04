@@ -1,0 +1,764 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:45:16Z",
+  "review_finished_at": "2026-11-04T15:47:02Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI-controlled local CSR rows are launched once per requested iteration; the timed main loop's counter/backedge encloses the kernel stub call and is followed by device synchronization. The CUDA kernel assigns rows by global thread index, bounds each row by adjacent CSR delimiters, processes its nonzeros and stores the result.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              314
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1726,
+              1867
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              263
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2675,
+              2845
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2966,
+              3022
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The rank-local row CSR partition is used in a timed iteration loop, with the alternate long-row branch also launching the kernel; synchronization and timing end follow. The kernel uses warp lanes to traverse each selected row's nonzero interval in strides of 32, reduces, and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              314
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1600,
+              1665
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2728,
+              2902
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3023,
+              3075
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured loop repeats a kernel launch for each requested iteration when local rows exist, then checks and synchronizes before the ending clock. The kernel maps lanes to rows and traverses each row's complete delimiter interval in 32-wide strides before reduction/store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              310
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1604,
+              1653
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              679
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2781,
+              2955
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3076,
+              3130
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed main path launches the selected local-row kernel over the requested iteration count and synchronizes before ending measurement. Each warp handles a row, lanes walk its CSR range in strides of 32, and the warp reduces/stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              309
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1750,
+              1796
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2816,
+              2990
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3111,
+              3160
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed path repeats the local CSR kernel for the user iteration count and synchronizes before stopping the clock. Its kernel uses row bounds and lane-strided nonzero traversal followed by reduction/store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              285
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              12
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1709,
+              1755
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2626,
+              2796
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2917,
+              2965
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed main path uses its requested-iteration loop and per-row dispatch to short or warp CUDA work, followed by device synchronization. Both kernels cover assigned rows and full CSR intervals, with warp reduction/store where applicable.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1591,
+              1692
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1196
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2653,
+              2731
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3185,
+              3245
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed main loop increments to the requested count and invokes the actual captured launch lambda each time; the lambda dispatches the selected row-width kernel. Runtime dispatch includes widths 2, 4, 8, 16 and 32. Each SASS variant bounds rows, traverses CSR nonzeros and writes output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              408
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1648,
+              1671
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1800
+            ],
+            [
+              1801,
+              2250
+            ],
+            [
+              2251,
+              2700
+            ],
+            [
+              2701,
+              3150
+            ],
+            [
+              3151,
+              3291
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2630,
+              3410
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each measured iteration calls the dispatching launch path, which selects scalar or warp work based on the row/iteration strategy; stream/device synchronization precedes the ending clock. The device functions traverse all row delimiters and nonzeros and store outputs.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              294
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1734,
+              1795
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              956
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3461,
+              3521
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3742,
+              3802
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed main loop calls the outlined worker for requested repetitions and synchronizes before clock end. The worker dispatches the selected scalar/warp kernel for its assigned rows; both device paths cover full CSR row intervals and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              400
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1582,
+              1776
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1628
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2691,
+              2847
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3204,
+              3264
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured loop launches selected short/warp kernels once per requested iteration and synchronizes before ending measurement. The worker's dispatch paths cover row intervals and all stored nonzeros with arithmetic and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              345
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1592,
+              1739
+            ]
+          ],
+          "claim": "Timed host interval, launch/repetition control and synchronization around clock boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              900
+            ],
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1388
+            ]
+          ],
+          "claim": "Complete existing final sm86 SASS evidence, bounded in <500-line chunks, including the selectable kernel body/bodies, row/nonzero traversal, arithmetic and stores."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2952,
+              3031
+            ]
+          ],
+          "claim": "Exact compiled compute function/outlined worker called on this path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3390,
+              3450
+            ]
+          ],
+          "claim": "Exact called CUDA launch stub body through launch runtime call."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

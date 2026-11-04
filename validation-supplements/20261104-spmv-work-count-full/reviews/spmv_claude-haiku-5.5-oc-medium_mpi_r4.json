@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-haiku-5.5-oc-medium_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Root scatters complete nonzero-balanced CSR row partitions before timing. Each rank recomputes its entire partition for every requested iteration.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          100,
+          110
+        ],
+        [
+          129,
+          141
+        ],
+        [
+          199,
+          252
+        ],
+        [
+          287,
+          330
+        ],
+        [
+          333,
+          357
+        ]
+      ],
+      "claim": "Monotone partition boundaries span all rows; CSR offsets are rebased, with a localNnz final delimiter. The unmodified parsed iteration count controls repeated complete local products.",
+      "sha256": "7ab84b01f78a5f38f70eb68bd8e605c330a268de316fc7dc0d0086da1fa9b475",
+      "git_blob": "e73a336086d2248e032e15cba765aef6c11ed5cf"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Compiled timed multiply/add at a14d/a155 remains under nonzero a15c->a140, row a171->a110, and iteration a177->a100 backedges.",
+      "complete_dump_sha256": "43e5c1997855cb67194fb8d0d408832737788f14fbff92b959ef9d6596cfeef2",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-oc-medium_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2181,
+          "last_line": 2228,
+          "text": "    a0a9:\tlea    0xb170(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a0b0:\tcall   8e80 <MPI_Barrier@plt>\n    a0b5:\tcall   91d0 <MPI_Wtime@plt>\n    a0ba:\tcmpl   $0x0,-0x290(%rbp)\n    a0c1:\tmov    -0x70(%rbp),%r12\n    a0c5:\tvmovsd %xmm0,-0x2d0(%rbp)\n    a0cd:\tje     a180 <main+0x950>\n    a0d3:\tcmpl   $0x0,-0x2a0(%rbp)\n    a0da:\tje     a180 <main+0x950>\n    a0e0:\tmov    -0x290(%rbp),%esi\n    a0e6:\tmov    -0x2f8(%rbp),%r9\n    a0ed:\txor    %ecx,%ecx\n    a0ef:\tmov    -0x288(%rbp),%rdi\n    a0f6:\tcs nopw 0x0(%rax,%rax,1)\n    a100:\txor    %r8d,%r8d\n    a103:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a10e:\txchg   %ax,%ax\n    a110:\tmov    (%rdi,%r8,4),%eax\n    a114:\tmov    0x4(%rdi,%r8,4),%edx\n    a119:\tmov    %rdi,%r11\n    a11c:\tcmp    %edx,%eax\n    a11e:\tjae    a260 <main+0xa30>\n    a124:\tdec    %edx\n    a126:\tlea    (%r14,%rax,4),%r10\n    a12a:\tlea    (%r9,%rax,8),%rdi\n    a12e:\tvxorpd %xmm1,%xmm1,%xmm1\n    a132:\tsub    %eax,%edx\n    a134:\tmov    %r11,-0x288(%rbp)\n    a13b:\txor    %eax,%eax\n    a13d:\tnopl   (%rax)\n    a140:\tmov    (%r10,%rax,4),%r11d\n    a144:\tvmovsd (%rbx,%r11,8),%xmm0\n    a14a:\tmov    %rax,%r11\n    a14d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a152:\tinc    %rax\n    a155:\tvaddsd %xmm0,%xmm1,%xmm1\n    a159:\tcmp    %rdx,%r11\n    a15c:\tjne    a140 <main+0x910>\n    a15e:\tmov    -0x288(%rbp),%rdi\n    a165:\tvmovsd %xmm1,(%r12,%r8,8)\n    a16b:\tinc    %r8\n    a16e:\tcmp    %r13,%r8\n    a171:\tjne    a110 <main+0x8e0>\n    a173:\tinc    %ecx\n    a175:\tcmp    %esi,%ecx\n    a177:\tjne    a100 <main+0x8d0>\n    a179:\tmov    %rdi,-0x288(%rbp)\n    a180:\tcall   91d0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170040/spmv_claude-haiku-5.5-oc-medium_mpi_r4",
+    "source_commit": "24648e59045c3e8d7280119627a7bccde1da4f2f",
+    "staged_source_sha256": "38427b5c48603c9c22e749e03d6a991195a71c3e242dc1690a7c0324ebfd5a17"
+  },
+  "binary_sha256": "f5e00e726fa9032aeba133e602096f4ddfdb7f30cd4c2e897037583c8d2e410c",
+  "binding_sha256": "4f3ccb65f56781da12c7881766f14cef65e60b72d680e0a42f9cf3bc4846926c",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:55:40Z",
+  "review_finished_at": "2026-11-04T12:56:34Z",
+  "review_input_sha256": "457093fd7e0bdafc7bcdba53f805c4e8bdd06cd59dea7a976a957394c814f7c3",
+  "pack_sha256": "37ff9b7a6afe886136a20004702f0a4d5cb12848e8705bcaa99daf73f93d85e4",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

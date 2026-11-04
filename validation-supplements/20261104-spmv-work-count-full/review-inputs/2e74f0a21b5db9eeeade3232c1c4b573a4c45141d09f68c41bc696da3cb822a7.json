@@ -1,0 +1,32 @@
+{
+  "reviewer":"Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at":"2026-11-04T12:45:03Z",
+  "review_finished_at":"2026-11-04T12:47:34Z",
+  "reviews":[
+    {
+      "id":"spmv_deepseek-v4.1-flash-oc-high_cuda_r4",
+      "finding":"no_work_count_omission_identified",
+      "summary":"Both persistent-kernel variants receive the unchanged requested count and recompute complete CSR products on every pass. Grid-stride row coverage and lane-stride nonzero coverage are complete. Compilation retains the arithmetic within the outer repetition backedge in both the scalar and warp paths.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[110,163],[185,195],[236,273],[341,358],[407,417]],"claim":"No iteration reduction; the zero-count preparation launch does not replace the timed work."}],
+      "compiled_evidence":[
+        {"file":"host-assembly.txt","ranges":[[1378,1389]],"claim":"The timed launch forwards the requested count and synchronizes device completion."},
+        {"file":"device-sass.txt","ranges":[[19,111],[705,739],[776,870],[932,944],[1040,1074]],"claim":"Scalar count R0 compares against parameter 0x190 and branches 0x1660 -> 0x80. Warp count R26 compares against the same parameter and branches 0x930 -> 0xc0. Both enclosing loops retain fresh DFMA arithmetic."}
+      ]
+    },
+    {
+      "id":"spmv_gpt-5.6-luna-xhigh_cuda_r1",
+      "finding":"no_work_count_omission_identified",
+      "summary":"One warp per row repeats a full row product inside the persistent kernel for every requested iteration. The warm-up is a separate one-iteration invocation. The compiled kernel retains nonzero loads, DFMA, warp reduction and the output store inside the repetition loop.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[32,80],[222,239],[330,353]],"claim":"Every row is covered and the timed kernel receives the full CLI count after an additional warm-up."}],
+      "compiled_evidence":[{"file":"device-sass.txt","ranges":[[19,123],[185,199],[247,311]],"claim":"R24 increments and compares against iteration parameter 0x184. The 0x900 -> 0x1b0 backedge encloses CSR DFMA and reduction/store operations, rather than just cached-result stores."}]
+    },
+    {
+      "id":"spmv_gpt-5.6-luna-xhigh_cuda_r2",
+      "finding":"no_work_count_omission_identified",
+      "summary":"Both scalar and warp variants retain the full requested work count. The scalar path interchanges rows and repetitions, which is valid for the invariant input vector; it still recomputes every nonzero product. The warp path similarly recomputes its complete row on each device-side repetition.",
+      "source_evidence":[{"file":"spmv/spmv.cpp","ranges":[[39,105],[247,264],[354,380]],"claim":"The full CLI count is passed to the selected persistent kernel; warm-up adds work and no count is clamped or divided."}],
+      "compiled_evidence":[{"file":"device-sass.txt","ranges":[[19,133],[649,701],[728,860],[1480,1500]],"claim":"Warp count R6 compares against 0x184 and repeats at 0x1520 -> 0x2f0. Scalar count R4 likewise compares against 0x184 and repeats at 0x17d0 -> 0x370. Both loops enclose DFMA arithmetic, output stores and the corresponding complete CSR path."}],
+      "notes":"Row/repetition interchange and persistent kernels are work-preserving implementation choices, not omissions. This inspection covers both source-selected variants of the bound sm_86 validation executable."
+    }
+  ]
+}

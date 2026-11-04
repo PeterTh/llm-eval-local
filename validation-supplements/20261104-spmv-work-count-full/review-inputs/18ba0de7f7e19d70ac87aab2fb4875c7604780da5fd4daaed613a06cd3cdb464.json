@@ -1,0 +1,224 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:06:42Z",
+  "review_finished_at": "2026-11-04T13:07:29Z",
+  "reviews": [
+    {
+      "id": "spmv_deepseek-v4-flash_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Balanced complete row ranges are multiplied on every requested iteration. Local CSR reconstruction includes the final delimiter and all scattered entries.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              171,
+              196
+            ],
+            [
+              202,
+              215
+            ],
+            [
+              246,
+              282
+            ],
+            [
+              288,
+              319
+            ]
+          ],
+          "claim": "The original -i count controls the timed triple loop; its full row and nonzero ranges are independent of optional reference computation."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2100,
+              2159
+            ]
+          ],
+          "claim": "Between clocks 9fa1 and a05e, multiply/add a02d/a036 is enclosed by entry a03d->a020, row a053->9ff0 and iteration a05c->9fe0 backedges."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each balanced rank partition performs its complete CSR product for every requested repetition, with no iteration clipping or reference-result reuse.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              108
+            ],
+            [
+              172,
+              199
+            ],
+            [
+              243,
+              275
+            ],
+            [
+              278,
+              303
+            ]
+          ],
+          "claim": "Remainder-aware row boundaries cover the matrix and delimiters are fully rebased. The parsed iteration count directly bounds full timed spmvCpu calls."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2050,
+              2110
+            ]
+          ],
+          "claim": "Timed multiply/add 9f0c/9f14 remains inside entry 9f1b->9f00, row 9f31->9ed0 and iteration 9f3d->9ec0 loops, before end clock 9f3f."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All requested repetitions traverse the complete local CSR data. Rebuilding the local final delimiter from localNnz preserves the complete last row.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              171,
+              196
+            ],
+            [
+              214,
+              221
+            ],
+            [
+              258,
+              307
+            ],
+            [
+              313,
+              330
+            ]
+          ],
+          "claim": "Balanced partitions cover every row; all local values/columns are scattered. Each timed iteration invokes the complete kernel independently of the reference."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2128,
+              2183
+            ]
+          ],
+          "claim": "Multiply/add a0ad/a0b5 is inside entry a0bc->a0a0, row a0ca->a070 and iteration a0d0->a060 backedges, between clocks a027 and a0d2."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Root's original iteration count is broadcast unchanged and each rank repeats its complete balanced CSR partition that many times.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              108
+            ],
+            [
+              172,
+              209
+            ],
+            [
+              267,
+              318
+            ],
+            [
+              324,
+              336
+            ]
+          ],
+          "claim": "The root CLI value is broadcast at line 202. Complete local rows/nonzeros are scattered and rebased, then each timed iteration calls the full kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2142,
+              2199
+            ]
+          ],
+          "claim": "Clock-bounded multiply/add a0cd/a0d5 remains under entry a0dc->a0c0, row a0ee->a090 and iteration a0f7->a080 branches."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each balanced partition retains all its rows/nonzeros and recomputes them for the requested number of iterations. Setup/reference calculations do not replace timed work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              108
+            ],
+            [
+              173,
+              210
+            ],
+            [
+              256,
+              272
+            ],
+            [
+              282,
+              337
+            ],
+            [
+              343,
+              362
+            ]
+          ],
+          "claim": "The original iteration count is broadcast unchanged. Complete localRows+1 delimiters and value/column arrays feed every timed spmvCpu call."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2268,
+              2322
+            ]
+          ],
+          "claim": "Between clocks a346 and a3f2, multiply/add a3cd/a3d5 is enclosed by entry a3dc->a3c0, row a3ea->a390 and iteration a3f0->a380 backedges."
+        }
+      ]
+    }
+  ]
+}

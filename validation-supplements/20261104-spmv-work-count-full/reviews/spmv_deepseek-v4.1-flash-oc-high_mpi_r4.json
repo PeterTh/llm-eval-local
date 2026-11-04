@@ -1,0 +1,72 @@
+{
+  "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The nnz-balancing heuristic changes ownership but does not omit rows or repetitions. All complete local CSR products remain timed.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          109
+        ],
+        [
+          160,
+          197
+        ],
+        [
+          227,
+          254
+        ],
+        [
+          302,
+          341
+        ],
+        [
+          350,
+          371
+        ]
+      ],
+      "claim": "Partition bounds are monotone and span zero through dim, including the small-dimension fallback. Complete local arrays feed each full kernel call under the original iteration count.",
+      "sha256": "1d9deb49e596e9d9a21dab692937a5a5aded65eea94e2ab2fefd9906ba11efea",
+      "git_blob": "f14e8d9de81fb1d4e6a621cc505989a819930212"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Between clocks 9f19 and 9fde, multiply/add 9fad/9fb5 remains inside entry 9fbc->9fa0, row 9fd2->9f70 and iteration 9fdc->9f60 loops.",
+      "complete_dump_sha256": "33f3d1826a510dc71863e28c2113befb4aeac00844daac1d61553af6870d7693",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_deepseek-v4.1-flash-oc-high_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2070,
+          "last_line": 2130,
+          "text": "    9ef0:\tcall   eb30 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    9ef5:\tmov    -0x228(%rbp),%r8d\n    9efc:\ttest   %r8d,%r8d\n    9eff:\tjne    9f0d <main+0x7bd>\n    9f01:\tlea    0x64e6(%rip),%rdi        # 103ee <_IO_stdin_used+0x3ee>\n    9f08:\tcall   9390 <puts@plt>\n    9f0d:\tlea    0xb30c(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9f14:\tcall   8e90 <MPI_Barrier@plt>\n    9f19:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9f1e:\tmov    %rax,-0x270(%rbp)\n    9f25:\ttest   %r15d,%r15d\n    9f28:\tje     9fde <main+0x88e>\n    9f2e:\tmov    -0x27c(%rbp),%edx\n    9f34:\tmov    -0x70(%rbp),%r9\n    9f38:\ttest   %edx,%edx\n    9f3a:\tje     9fde <main+0x88e>\n    9f40:\tmov    -0x2b8(%rbp),%r8\n    9f47:\tmov    -0x2a0(%rbp),%rax\n    9f4e:\txor    %ecx,%ecx\n    9f50:\tshl    $0x2,%r8\n    9f54:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f5f:\tnop\n    9f60:\txor    %r10d,%r10d\n    9f63:\tmov    %rax,%rsi\n    9f66:\tcs nopw 0x0(%rax,%rax,1)\n    9f70:\tmov    (%rsi,%r10,1),%eax\n    9f74:\tmov    0x4(%rsi,%r10,1),%edx\n    9f79:\tmov    %rsi,%r11\n    9f7c:\tcmp    %edx,%eax\n    9f7e:\tjae    a350 <main+0xc00>\n    9f84:\tdec    %edx\n    9f86:\tlea    0x0(%r13,%rax,4),%rdi\n    9f8b:\tlea    (%r12,%rax,8),%rsi\n    9f8f:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f93:\tsub    %eax,%edx\n    9f95:\tmov    %r11,-0x248(%rbp)\n    9f9c:\txor    %eax,%eax\n    9f9e:\txchg   %ax,%ax\n    9fa0:\tmov    (%rdi,%rax,4),%r11d\n    9fa4:\tvmovsd (%rbx,%r11,8),%xmm0\n    9faa:\tmov    %rax,%r11\n    9fad:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    9fb2:\tinc    %rax\n    9fb5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9fb9:\tcmp    %rdx,%r11\n    9fbc:\tjne    9fa0 <main+0x850>\n    9fbe:\tmov    -0x248(%rbp),%rsi\n    9fc5:\tvmovsd %xmm1,(%r9,%r10,2)\n    9fcb:\tadd    $0x4,%r10\n    9fcf:\tcmp    %r10,%r8\n    9fd2:\tjne    9f70 <main+0x820>\n    9fd4:\tinc    %ecx\n    9fd6:\tmov    %rsi,%rax\n    9fd9:\tcmp    %r15d,%ecx\n    9fdc:\tjne    9f60 <main+0x810>\n    9fde:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9fe3:\tmov    -0x270(%rbp),%rcx\n    9fea:\tmovabs $0x431bde82d7b634db,%rdx\n    9ff4:\tsub    $0x8,%rsp\n    9ff8:\tmovq   $0x0,-0x218(%rbp)\n    a003:\tlea    -0x218(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261019-134042/spmv_deepseek-v4.1-flash-oc-high_mpi_r4",
+    "source_commit": "40ad0bc6da259d4584e75b8f23f43c77e9751b24",
+    "staged_source_sha256": "934680a7f9e9663ce9859a4decc3a16b205838a282776bfb314f268279ca7bf1"
+  },
+  "binary_sha256": "d8e807b171f5d6f7fe3d05528a2db4d5e3ff93ae57e14add1ba4182350a99674",
+  "binding_sha256": "49404c593511a72c52a3edde2012e52c857903ede10a753951a574a38286f020",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:07:32Z",
+  "review_finished_at": "2026-11-04T13:08:14Z",
+  "review_input_sha256": "949727d664ba9261f20d7c90f97bfe04139c57001b44d64b1189beb6a23116eb",
+  "pack_sha256": "5964a0392582495f51ed0f1b8a0a0439c229659e0dca50fffa37d5d1df5303b1",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

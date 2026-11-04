@@ -1,0 +1,169 @@
+{
+  "reviewer": "gpt-6.1-sol; independent static adjudication of one Luna external-library uncertainty",
+  "reviewer_model": "gpt-6.1-sol",
+  "review_started_at": "2026-11-04T16:00:34Z",
+  "review_finished_at": "2026-11-04T16:01:05Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No omission identified at the external cuSPARSE contract boundary for valid reviewed workload dimensions. MPI partitions all rows contiguously by quotient/remainder, derives each complete nonzero slice from its two global CSR row offsets, scatters all values/columns, rebases all localDim+1 offsets and broadcasts the entire x vector. Every rank with rows initializes localDim-by-globalDim double CSR and matching full-x/local-y descriptors. Timed compiled host code performs one non-transpose alpha=1/beta=0 CSR_ALG1 cuSPARSE SpMV per parsed iteration, synchronizes the device and copies all local output each time, before the ending clock. Zero-row ranks have no mathematical work and skip calls. There is no GPU-versus-CPU split or selected timed CPU fallback: the CPU function is used only for the optional untimed rank-zero reference. Static conclusion is at the documented external-library contract boundary: vendor device instructions and runtime behavior were not inspected. Retained source-level integer-range, unchecked cuSPARSE return-code and zero-size-allocation concerns are not observed work-count failures.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              57
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              574
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              560,
+              690
+            ]
+          ],
+          "claim": "CLI -i reaches conversion at 29ac and actual count store -0x3d8 at 29b7; dimension/sparsity arithmetic also retained."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              700,
+              960
+            ],
+            [
+              2227,
+              2313
+            ],
+            [
+              1383,
+              1435
+            ]
+          ],
+          "claim": "Actual partition helper computes quotient/remainder row start/end and reads CSR bounds; main builds all rank scatter counts/displacements, broadcasts full x, scatters complete values/columns (including separate nonroot path), and rebases all localDim+1 offsets."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2583,
+              2768
+            ],
+            [
+              2769,
+              2918
+            ]
+          ],
+          "claim": "Called init saves local/global dimensions and nnz, allocates full operands, converts/copies complete indices including sentinel, transfers complete values/x, passes actual CSR shape/pointers/index types/base/precision and matching dense descriptors, queries and allocates workspace; initialized flag set at 4fde."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              960,
+              1022
+            ],
+            [
+              1650,
+              1711
+            ],
+            [
+              2407,
+              2512
+            ]
+          ],
+          "claim": "Actual warmup uses called compute body. Timed start 3036 guards runtime count and local rows; inlined compute calls cusparseSpMV at 3d0b, synchronizes at 3d14, copies all local output at 3d3d, increments r13d and compares against parsed -0x3d8 at 3d57, backedge 3d5a to 3c68. Ending clock 3055 follows all repetitions. Full called warmup compute has matching SpMV/synchronize/copy semantics."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1361,
+              1382
+            ],
+            [
+              2112,
+              2163
+            ]
+          ],
+          "claim": "Optional CPU reference branch calls spmvCpu at 3746 before GPU setup/timing. Its compiled row loop covers CSR endpoints with mulsd/addsd, nonzero backedge and stores; this is not a timed CPU partition or alternate timed backend."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              9
+            ]
+          ],
+          "claim": "Only sm86 container header is present, no vendor device arithmetic instructions."
+        }
+      ],
+      "adjudication_rationale": "Luna escalated unavailable vendor device code. Independent inspection of this particular program establishes complete CSR/x partition inputs and actual count-controlled synchronized library calls. The documented SpMV contract supplies arithmetic semantics; legitimate external library use alone is not a work-count failure. Source contains no timed CPU selected branch despite hybrid naming.",
+      "limitations": "Contract-level static verdict only: vendor cuSPARSE kernel instructions and runtime behavior were not inspected or executed. Header-only embedded SASS is not vendor arithmetic proof. Source does not check cuSPARSE status returns, validate integer inputs/ranges generally, or guard signed MPI/index conversions; 32-bit dimension multiplication and zero-size allocation handling can be problematic outside valid workload domain. These are retained correctness/robustness concerns, not evidence of deliberate omitted repetitions or nonzeros for reviewed valid inputs. Timed memset, synchronization and host copies are extra work, not omissions. No persistent review was recorded.",
+      "primary_reference": {
+        "url": "https://docs.nvidia.com/cuda/archive/12.6.0/cusparse/generic-api/generic-api-functions.html#cusparsespmv",
+        "claim": "Previously inspected official documentation defines Y=alpha*op(A)*X+beta*Y with CSR, 32-bit indices, double computation and asynchronous execution."
+      }
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "f8a77285324ece7dfe6c46ea59344f52c2426db1a2838a5d7e22fe8aee6f705a",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T16:07:39Z",
+    "sampled_ids": [
+      "spmv_qwen-3.6-27B-udq4-pi-t_hybrid_r2"
+    ],
+    "method": "Read full independent Sol adjudication and limitations. Independently inspect complete relevant source/build, including MPI row/CSR/x distribution and library descriptors, timed iteration calls and optional untimed CPU reference. Inspect compiled warmup/start/end, full counted inlined cusparseSpMV/synchronize/copy loop, counter initialization, data transfer and CSR/dense descriptor setup. Remaining compiled partition/initialization paths inspected independently by Sol. Verdict relies on documented library semantics, not unseen vendor device instructions.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Include timed counter initialization in compiled excerpt.",
+      "Preserve vendor-contract limitation in accepted per-ID summary."
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  }
+}

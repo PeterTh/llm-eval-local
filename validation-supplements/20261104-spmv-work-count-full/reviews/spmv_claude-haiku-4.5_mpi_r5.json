@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-haiku-4.5_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each rank extracts a complete quotient/remainder CSR slice from the broadcast input and invokes spmvCpuLocal for every requested iteration. Redundant setup copies add work but do not replace timed products.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          125,
+          135
+        ],
+        [
+          191,
+          207
+        ],
+        [
+          242,
+          254
+        ],
+        [
+          287,
+          345
+        ]
+      ],
+      "claim": "The original count bounds complete local products after source-independent input extraction.",
+      "sha256": "12079bef2f1fe1ab9ccb98d8991a60a094bfb97dbc8dbdf1a86e888902ffaa1c",
+      "git_blob": "afa18eb6288317bb044124764214f735bcd4709a"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The product arithmetic at 0xa1a0-0xa1bb remains within 0xa1d1 -> 0xa160, repeating the whole local row pass.",
+      "complete_dump_sha256": "053d5ffd4fface977e9ab7de90a37b924f575ed058d10052ae763976e0ad82a8",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2199,
+          "last_line": 2247,
+          "text": "    a10f:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a114:\tmov    %rax,-0x208(%rbp)\n    a11b:\ttest   %r15d,%r15d\n    a11e:\tje     a1da <main+0xaba>\n    a124:\tmov    -0x218(%rbp),%edi\n    a12a:\tmov    -0x150(%rbp),%r10\n    a131:\tmov    -0xd0(%rbp),%r14\n    a138:\tmov    -0xf0(%rbp),%r11\n    a13f:\ttest   %edi,%edi\n    a141:\tje     a1da <main+0xaba>\n    a147:\tmov    -0x2a8(%rbp),%r9\n    a14e:\txor    %edx,%edx\n    a150:\tmov    %r13d,-0x238(%rbp)\n    a157:\tshl    $0x2,%r9\n    a15b:\tnopl   0x0(%rax,%rax,1)\n    a160:\txor    %r13d,%r13d\n    a163:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a16e:\txchg   %ax,%ax\n    a170:\tmov    (%r12,%r13,1),%eax\n    a174:\tmov    0x4(%r12,%r13,1),%esi\n    a179:\tcmp    %esi,%eax\n    a17b:\tjae    a4d0 <main+0xdb0>\n    a181:\tdec    %esi\n    a183:\tlea    (%r14,%rax,4),%r8\n    a187:\tlea    (%r11,%rax,8),%rdi\n    a18b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a18f:\tsub    %eax,%esi\n    a191:\txor    %eax,%eax\n    a193:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a19e:\txchg   %ax,%ax\n    a1a0:\tmov    (%r8,%rax,4),%ecx\n    a1a4:\tvmovsd (%rbx,%rcx,8),%xmm0\n    a1a9:\tmov    %rax,%rcx\n    a1ac:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a1b1:\tinc    %rax\n    a1b4:\tvaddsd %xmm0,%xmm1,%xmm1\n    a1b8:\tcmp    %rsi,%rcx\n    a1bb:\tjne    a1a0 <main+0xa80>\n    a1bd:\tvmovsd %xmm1,(%r10,%r13,2)\n    a1c3:\tadd    $0x4,%r13\n    a1c7:\tcmp    %r9,%r13\n    a1ca:\tjne    a170 <main+0xa50>\n    a1cc:\tinc    %edx\n    a1ce:\tcmp    %r15d,%edx\n    a1d1:\tjne    a160 <main+0xa40>\n    a1d3:\tmov    -0x238(%rbp),%r13d\n    a1da:\tlea    0xae3f(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a1e1:\tcall   8e90 <MPI_Barrier@plt>\n    a1e6:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_mpi_r5",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "bfe7a84e101dad57890dfc55f1969a8b7949de17bba7d120cbc8437ba80a5c58"
+  },
+  "binary_sha256": "15e5221651ee434a9307151cdb62ddb4ba6e629fcfed8693089527a4b1124abc",
+  "binding_sha256": "096c1d946bc651f99599229aa22b42521a24a91da4b5f5c15a111f78cb1df182",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:47:34Z",
+  "review_finished_at": "2026-11-04T12:50:53Z",
+  "review_input_sha256": "3e0b1943a1c6edf8e1fd40c255868522c0df2163f70522bd63c413e6b43d46b9",
+  "pack_sha256": "817c3fee10eb866b52085e3215aaeff5892df5ca6508c6f044beab199f2b692f",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

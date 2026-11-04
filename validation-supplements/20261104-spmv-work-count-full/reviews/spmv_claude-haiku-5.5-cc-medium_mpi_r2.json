@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-haiku-5.5-cc-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Every requested iteration computes all CSR entries in each rank's complete row interval. Validation and output flags do not select a reduced-work timed path.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          62,
+          65
+        ],
+        [
+          137,
+          147
+        ],
+        [
+          205,
+          238
+        ],
+        [
+          257,
+          288
+        ],
+        [
+          291,
+          319
+        ]
+      ],
+      "claim": "Local row offsets are rebased from the global CSR delimiters. The CLI iteration count directly controls repeated spmvCpu calls inside timing.",
+      "sha256": "51f8196f6e393aba7817573a850cd3cd3fddbce16df8928dfe853948d8861339",
+      "git_blob": "fc8c1a1a04759f42ed4e3bf01b6c0eb89070ceb0"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Compiled timed arithmetic at a78d/a795 is nested under nonzero, row, and iteration branches a79c->a780, a7af->a750, a7b5->a740; the iteration loop was not collapsed.",
+      "complete_dump_sha256": "57d9f75d3b532fc02469756c84885f2b6f87f40eafc49ed1edff5af9aa78518c",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-cc-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2629,
+          "last_line": 2677,
+          "text": "    a6f5:\tlea    0xb124(%rip),%rdi        # 15820 <ompi_mpi_comm_world@@Base>\n    a6fc:\tcall   8e70 <MPI_Barrier@plt>\n    a701:\tcall   91c0 <MPI_Wtime@plt>\n    a706:\tmov    -0xfc(%rbp),%eax\n    a70c:\tvmovsd %xmm0,-0xa8(%rbp)\n    a714:\ttest   %eax,%eax\n    a716:\tje     a7bb <runSpmv(int, char**)+0x94b>\n    a71c:\tmov    -0x100(%rbp),%eax\n    a722:\ttest   %eax,%eax\n    a724:\tje     a7bb <runSpmv(int, char**)+0x94b>\n    a72a:\tmov    -0xfc(%rbp),%esi\n    a730:\tmov    -0x78(%rbp),%rdi\n    a734:\tlea    0x0(,%r13,4),%r8\n    a73c:\txor    %ecx,%ecx\n    a73e:\txchg   %ax,%ax\n    a740:\txor    %r9d,%r9d\n    a743:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a74e:\txchg   %ax,%ax\n    a750:\tmov    (%rdi,%r9,1),%eax\n    a754:\tmov    0x4(%rdi,%r9,1),%edx\n    a759:\tmov    %rdi,%r11\n    a75c:\tcmp    %edx,%eax\n    a75e:\tjae    ae60 <runSpmv(int, char**)+0xff0>\n    a764:\tdec    %edx\n    a766:\tlea    (%r15,%rax,4),%r10\n    a76a:\tlea    (%r14,%rax,8),%rdi\n    a76e:\tvxorpd %xmm1,%xmm1,%xmm1\n    a772:\tsub    %eax,%edx\n    a774:\tmov    %r11,-0x78(%rbp)\n    a778:\txor    %eax,%eax\n    a77a:\tnopw   0x0(%rax,%rax,1)\n    a780:\tmov    (%r10,%rax,4),%r11d\n    a784:\tvmovsd (%rbx,%r11,8),%xmm0\n    a78a:\tmov    %rax,%r11\n    a78d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a792:\tinc    %rax\n    a795:\tvaddsd %xmm0,%xmm1,%xmm1\n    a799:\tcmp    %rdx,%r11\n    a79c:\tjne    a780 <runSpmv(int, char**)+0x910>\n    a79e:\tmov    -0x78(%rbp),%rdi\n    a7a2:\tvmovsd %xmm1,(%r12,%r9,2)\n    a7a8:\tadd    $0x4,%r9\n    a7ac:\tcmp    %r9,%r8\n    a7af:\tjne    a750 <runSpmv(int, char**)+0x8e0>\n    a7b1:\tinc    %ecx\n    a7b3:\tcmp    %esi,%ecx\n    a7b5:\tjne    a740 <runSpmv(int, char**)+0x8d0>\n    a7b7:\tmov    %rdi,-0x78(%rbp)\n    a7bb:\tcall   91c0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261012-111947/spmv_claude-haiku-5.5-cc-medium_mpi_r2",
+    "source_commit": "71ba7cc523997c8fd1537d7a8159b583f260793d",
+    "staged_source_sha256": "0681b7766e2d825e907c843a7871afd49402eb3c4bd01beedadceab248626da5"
+  },
+  "binary_sha256": "46470a1c10b9e56fd623ce476ce97c48285edbc2c3718911010e3bd912681379",
+  "binding_sha256": "4e1cf81162e2d80069130429637a783da52dac4797f304c5846c3ecc57a7bb51",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:54:48Z",
+  "review_finished_at": "2026-11-04T12:55:17Z",
+  "review_input_sha256": "7ebe82a12317fa6e47d93fb5336f5fdc3874a39a4ca3ec657332fd8972c264df",
+  "pack_sha256": "369e3fceb1b33085a24b828dbd12f0326bb9df86e80e7b8ffddc17202a28846e",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

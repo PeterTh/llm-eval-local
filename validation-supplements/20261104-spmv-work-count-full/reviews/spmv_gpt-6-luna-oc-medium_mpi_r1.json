@@ -1,0 +1,64 @@
+{
+  "id": "spmv_gpt-6-luna-oc-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          161,
+          195
+        ],
+        [
+          207,
+          253
+        ]
+      ],
+      "claim": "Unchanged CLI iterations drive explicit per-row/nonzero arithmetic. Every rank initializes the full same CSR; floor-scaled disjoint intervals cover all rows, with local outputs indexed relative to rowBegin. All requested iterations execute; Allgatherv reconstructs complete output afterward. Timed partition calculation/allocation add overhead.",
+      "sha256": "2b79dc3f1cc51fbd068c48e18340ea1ccc3ecc5874da0b7e719290f2701dd46a",
+      "git_blob": "81f074da022899ca77a6a07f8749fc682740784f"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Mul/add 9d2c/9d35 are inside nonzero 9d3c->9d20, row continuation 9d54->9d00 (empty-row path stores zero), and requested-iteration 9d87->9ce0.",
+      "complete_dump_sha256": "308dee30347c1b0664b8d78fa18ca73351e472f3a7a8dcbc8f5aaf0dd5ba8bca",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-luna-oc-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1926,
+          "last_line": 2026,
+          "text": "    9beb:\tjne    a083 <main+0x943>\n    9bf1:\txor    %r9d,%r9d\n    9bf4:\tmov    %r9,-0x178(%rbp)\n    9bfb:\tmov    %r9,-0x170(%rbp)\n    9c02:\tcmpl   $0x0,-0x148(%rbp)\n    9c09:\tjne    9c17 <main+0x4d7>\n    9c0b:\tlea    0x57dc(%rip),%rdi        # f3ee <_IO_stdin_used+0x3ee>\n    9c12:\tcall   9380 <puts@plt>\n    9c17:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9c1c:\tmovslq -0x148(%rbp),%rcx\n    9c23:\txor    %edx,%edx\n    9c25:\tlea    -0x90(%rbp),%rdi\n    9c2c:\tmovslq -0x144(%rbp),%rsi\n    9c33:\tmov    %rax,-0x1b0(%rbp)\n    9c3a:\timul   %r14,%rcx\n    9c3e:\tmov    %rcx,%rax\n    9c41:\tdiv    %rsi\n    9c44:\txor    %edx,%edx\n    9c46:\tmov    %rax,%r15\n    9c49:\tmov    %eax,-0x198(%rbp)\n    9c4f:\tlea    (%r14,%rcx,1),%rax\n    9c53:\tdiv    %rsi\n    9c56:\tmov    -0x190(%rbp),%rdx\n    9c5d:\tmov    %eax,%esi\n    9c5f:\tmov    %eax,-0x1a8(%rbp)\n    9c65:\tmov    %rax,-0x1b8(%rbp)\n    9c6c:\tsub    %r15d,%esi\n    9c6f:\tcall   e530 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    9c74:\tmov    -0x90(%rbp),%rdi\n    9c7b:\tmov    -0x17c(%rbp),%ecx\n    9c81:\tmov    %rdi,-0x168(%rbp)\n    9c88:\ttest   %ecx,%ecx\n    9c8a:\tje     9d9b <main+0x65b>\n    9c90:\tmov    -0x1b8(%rbp),%edx\n    9c96:\tcmp    %edx,%r15d\n    9c99:\tjae    9d9b <main+0x65b>\n    9c9f:\tmov    -0x188(%rbp),%rdx\n    9ca6:\tmov    %r15d,%eax\n    9ca9:\tlea    (%rdx,%rax,4),%r11\n    9cad:\tlea    0x1(%r15),%eax\n    9cb1:\tlea    (%rdx,%rax,4),%r10\n    9cb5:\tmov    -0x1a8(%rbp),%eax\n    9cbb:\txor    %edx,%edx\n    9cbd:\tlea    -0x1(%rax),%r9d\n    9cc1:\tmov    -0x198(%rbp),%eax\n    9cc7:\tmov    %r14,-0x198(%rbp)\n    9cce:\tsub    %eax,%r9d\n    9cd1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9cdc:\tnopl   0x0(%rax)\n    9ce0:\txor    %r14d,%r14d\n    9ce3:\tmov    %rdi,%rsi\n    9ce6:\tmov    (%r11,%r14,4),%eax\n    9cea:\tmov    (%r10,%r14,4),%edi\n    9cee:\tcmp    %edi,%eax\n    9cf0:\tjae    9d63 <main+0x623>\n    9cf2:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9cfd:\tnopl   (%rax)\n    9d00:\tdec    %edi\n    9d02:\tlea    (%r12,%rax,8),%r15\n    9d06:\tlea    0x0(%r13,%rax,4),%r8\n    9d0b:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d0f:\tsub    %eax,%edi\n    9d11:\tmov    %rsi,-0x168(%rbp)\n    9d18:\txor    %eax,%eax\n    9d1a:\tnopw   0x0(%rax,%rax,1)\n    9d20:\tmov    (%r8,%rax,4),%esi\n    9d24:\tvmovsd (%rbx,%rsi,8),%xmm0\n    9d29:\tmov    %rax,%rsi\n    9d2c:\tvmulsd (%r15,%rax,8),%xmm0,%xmm0\n    9d32:\tinc    %rax\n    9d35:\tvaddsd %xmm0,%xmm1,%xmm1\n    9d39:\tcmp    %rsi,%rdi\n    9d3c:\tjne    9d20 <main+0x5e0>\n    9d3e:\tmov    -0x168(%rbp),%rsi\n    9d45:\tlea    0x1(%r14),%rax\n    9d49:\tvmovsd %xmm1,(%rsi,%r14,8)\n    9d4f:\tcmp    %r14,%r9\n    9d52:\tje     9d80 <main+0x640>\n    9d54:\tmov    %rax,%r14\n    9d57:\tmov    (%r11,%r14,4),%eax\n    9d5b:\tmov    (%r10,%r14,4),%edi\n    9d5f:\tcmp    %edi,%eax\n    9d61:\tjb     9d00 <main+0x5c0>\n    9d63:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d67:\tlea    0x1(%r14),%rax\n    9d6b:\tvmovsd %xmm1,(%rsi,%r14,8)\n    9d71:\tcmp    %r14,%r9\n    9d74:\tjne    9d54 <main+0x614>\n    9d76:\tcs nopw 0x0(%rax,%rax,1)\n    9d80:\tinc    %edx\n    9d82:\tmov    %rsi,%rdi\n    9d85:\tcmp    %ecx,%edx\n    9d87:\tjne    9ce0 <main+0x5a0>\n    9d8d:\tmov    -0x198(%rbp),%r14\n    9d94:\tmov    %rsi,-0x168(%rbp)\n    9d9b:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9da0:\tlea    -0x70(%rbp),%rdi\n    9da4:\tmov    -0x190(%rbp),%r15\n    9dab:\tmovslq -0x144(%rbp),%rsi\n    9db2:\tmov    %rax,-0x1a8(%rbp)\n    9db9:\tmov    %r15,%rdx\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261018-224015/spmv_gpt-6-luna-oc-medium_mpi_r1",
+    "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+    "staged_source_sha256": "058d17935b34bf558dbca2a366f31c4933b7818172b94cb6a83f779f5d7078fe"
+  },
+  "binary_sha256": "ad9b99aa2e03effe8391577c60499c74b75f3744818a09280aedc8d48ca27762",
+  "binding_sha256": "8cf8829407f4826613c1e8f9022c773e5a1a9b0749bdb899f09d8d87371e27b6",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:31:09Z",
+  "review_finished_at": "2026-11-04T13:32:00Z",
+  "review_input_sha256": "09a6fb3f500bcbd9b57375540f13ce9cc197b8958962769c7fbe215c3b979c3f",
+  "pack_sha256": "43a8381aa9aee6f357bb79d25c7a269826258dd5a9adc00d6219876eac0f90e9",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

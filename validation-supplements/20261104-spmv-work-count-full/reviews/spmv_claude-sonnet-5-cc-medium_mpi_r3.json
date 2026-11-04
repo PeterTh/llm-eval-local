@@ -1,0 +1,76 @@
+{
+  "id": "spmv_claude-sonnet-5-cc-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Nonzero-balanced contiguous partitions cover every row, and all local nonzeros are multiplied on every requested iteration.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          100,
+          110
+        ],
+        [
+          157,
+          174
+        ],
+        [
+          197,
+          232
+        ],
+        [
+          278,
+          302
+        ],
+        [
+          306,
+          319
+        ],
+        [
+          326,
+          337
+        ]
+      ],
+      "claim": "Monotone partition boundaries start at zero and end at dim, including all rows. Full local CSR arrays feed each timed kernel call under the unmodified CLI iteration count; reference work is separate.",
+      "sha256": "2fc09adea905dd4f13da2139ec275773bf7f1258b18b4f7d02bdfe4a1304e5a3",
+      "git_blob": "119d0dc928746765f9ebfb8d44c06b9be835ac7d"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Between clocks 9f5f and a031, multiply/add 9ffd/a005 remains within entry a00c->9ff0, row a022->9fc0 and iteration a028->9fb0 backedges.",
+      "complete_dump_sha256": "15325b5bc2472c2ba5e92f628b9721f7798d935de12e0abb1417bfe0fb86f4b0",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-sonnet-5-cc-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2109,
+          "last_line": 2159,
+          "text": "    9f53:\tlea    0xb2c6(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9f5a:\tcall   8e80 <MPI_Barrier@plt>\n    9f5f:\tcall   91d0 <MPI_Wtime@plt>\n    9f64:\tmov    -0x238(%rbp),%eax\n    9f6a:\tmov    -0x70(%rbp),%r12\n    9f6e:\tvmovsd %xmm0,-0x298(%rbp)\n    9f76:\ttest   %eax,%eax\n    9f78:\tje     a031 <main+0x821>\n    9f7e:\tmov    -0x230(%rbp),%r11d\n    9f85:\ttest   %r11d,%r11d\n    9f88:\tje     a031 <main+0x821>\n    9f8e:\tmov    -0x228(%rbp),%r8\n    9f95:\tmov    -0x238(%rbp),%esi\n    9f9b:\txor    %ecx,%ecx\n    9f9d:\tmov    -0x280(%rbp),%rdi\n    9fa4:\tshl    $0x2,%r8\n    9fa8:\tnopl   0x0(%rax,%rax,1)\n    9fb0:\txor    %r9d,%r9d\n    9fb3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9fbe:\txchg   %ax,%ax\n    9fc0:\tmov    (%rdi,%r9,1),%eax\n    9fc4:\tmov    0x4(%rdi,%r9,1),%edx\n    9fc9:\tmov    %rdi,%r11\n    9fcc:\tcmp    %edx,%eax\n    9fce:\tjae    a400 <main+0xbf0>\n    9fd4:\tdec    %edx\n    9fd6:\tlea    (%r14,%rax,4),%r10\n    9fda:\tlea    0x0(%r13,%rax,8),%rdi\n    9fdf:\tvxorpd %xmm1,%xmm1,%xmm1\n    9fe3:\tsub    %eax,%edx\n    9fe5:\tmov    %r11,-0x228(%rbp)\n    9fec:\txor    %eax,%eax\n    9fee:\txchg   %ax,%ax\n    9ff0:\tmov    (%r10,%rax,4),%r11d\n    9ff4:\tvmovsd (%rbx,%r11,8),%xmm0\n    9ffa:\tmov    %rax,%r11\n    9ffd:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a002:\tinc    %rax\n    a005:\tvaddsd %xmm0,%xmm1,%xmm1\n    a009:\tcmp    %rdx,%r11\n    a00c:\tjne    9ff0 <main+0x7e0>\n    a00e:\tmov    -0x228(%rbp),%rdi\n    a015:\tvmovsd %xmm1,(%r12,%r9,2)\n    a01b:\tadd    $0x4,%r9\n    a01f:\tcmp    %r8,%r9\n    a022:\tjne    9fc0 <main+0x7b0>\n    a024:\tinc    %ecx\n    a026:\tcmp    %esi,%ecx\n    a028:\tjne    9fb0 <main+0x7a0>\n    a02a:\tmov    %rdi,-0x280(%rbp)\n    a031:\tcall   91d0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-sonnet-5-cc-medium_mpi_r3",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "e326853c4ef2d1d8c6dfa0d76ab89ccb479a25f771da30864afa60c396198986"
+  },
+  "binary_sha256": "73d14bd06ba8225d77eb61bf850258b0232de62b61decf4f960402250e07605c",
+  "binding_sha256": "9cbe78800ce5340ca3bdc70b9efc7ffd7c15d2af179d5d3b4421442d8820f560",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:01:43Z",
+  "review_finished_at": "2026-11-04T13:02:11Z",
+  "review_input_sha256": "cd2a047a9168d4b50232ba1f3b25bbf38f9ea86f3a204aaa883c559725bf6c72",
+  "pack_sha256": "40c788fa92cff8e25998df2d600237675008abb56dbe01f0c448d020d735d6f2",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

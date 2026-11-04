@@ -1,0 +1,144 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "backend": "cuda",
+  "batch": 4,
+  "review_started_at": "2026-11-04T14:50:12Z",
+  "review_finished_at": "2026-11-04T14:52:44Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-opus-5-cc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Runtime-count host loop repeats the dispatcher. Selected TPR subgroup kernel grid-strides rows, lanes traverse each CSR interval, reduce and store; inputs are reused. Separate warm-up precedes timing.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,20]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[65,94],[147,205],[254,287],[299,358],[363,378]],"claim":"CSR endpoints span nItems; TPR dispatch and row/nonzero strides cover work; runtime iterations control timed launches after input transfer and warm-up."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1462,1501],[1999,2066],[2646,2713],[2714,2781],[2782,2849],[2850,2917],[2918,2985]],"claim":"Main's timed backedge repeats launchSpmv to the iteration count, then synchronizes/copies output. The dispatcher and each emitted width wrapper reach cudaLaunchKernel for TPR32/2/4/8/16."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1217],[1218,1558],[1559,1867]],"claim":"Final SASS retains row progression, CSR nonzero arithmetic/backedges, reductions and stores in each dispatched TPR variant."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop repeats launchSpmv to the CLI count. Its selected subgroup variant row-strides across the matrix, covers each row's CSR interval, reduces and stores; output follows synchronization.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,20]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[64,93],[146,186],[196,214],[254,286],[298,378],[381,397]],"claim":"CSR initialization, subgroup row/nonzero traversal and dispatch; requested iteration count controls timed launches after input setup."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1457,1499],[2221,2289],[2766,2833],[2834,2901],[2902,2969],[2970,3037],[3038,3105],[3106,3173]],"claim":"Timed host loop repeats launcher to count then synchronizes/copies output. Compiled dispatcher and each emitted TPR1/2/4/8/16/32 wrapper contain the launch path to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1233],[1234,1590],[1591,1915],[1916,2310],[2311,2640]],"claim":"All final TPR specializations retain row/nonzero loops, accumulation, reductions and output stores."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host count loop calls the width dispatcher each repetition. Subgroups grid-stride rows and process each CSR interval in lane strides, then reduce and store. Synchronization and output transfer occur after timing.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,20]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[147,182],[185,215],[254,287],[299,358],[363,378]],"claim":"Kernel covers row and nonzero ranges; dispatcher selects widths 2/4/8/16/32; timed count loop reuses initialized inputs."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1414,1456],[2126,2193],[2678,2745],[2746,2813],[2814,2881],[2882,2949],[2950,3017]],"claim":"Timed loop repeats launchSpmv, then synchronizes and copies output. The named dispatcher and all emitted width wrappers carry selected launches through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1217],[1218,1558],[1559,1883]],"claim":"Each final TPR specialization retains row progression, nonzero multiply-accumulate/backedges, reduction and store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed count loop calls launchSpmv on every repetition. Width dispatch reaches a subgroup kernel that covers rows and all CSR entries, reduces and stores; output is transferred after the loop.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,20]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[147,181],[185,213],[254,287],[299,358],[363,378]],"claim":"TPR kernels and dispatch cover row/nonzero work; CLI iterations govern timed launcher calls after data setup."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1458,1498],[2177,2244],[2542,2609],[2610,2677],[2678,2745],[2746,2813],[2814,2881],[2882,2949]],"claim":"Main's timed backedge calls launchSpmv through the runtime count. The exact dispatcher and six emitted TPR wrappers include CUDA launch configuration and cudaLaunchKernel calls."},
+        {"file":"device-sass.txt","ranges":[[19,327],[328,620],[621,913],[914,1206],[1207,1483],[1484,1850],[1851,2192]],"claim":"Final TPR variants preserve row/nonzero arithmetic and control, reduction, and output store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed calls through the selected launcher are count-controlled; all TPR launch helpers submit the selected kernel. Each subgroup kernel covers rows and full CSR intervals with accumulation, reduction and stores.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,21]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[131,193],[205,224],[257,345]],"claim":"Selected subgroup variants traverse row/nonzero ranges; CLI loop repeats the selected launch after input setup and warm-up."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1425,1469],[2005,2113],[2114,2222],[2223,2331],[2332,2440],[2441,2549],[2550,2658]],"claim":"Main's indirect timed call is inside the runtime-count backedge. Each concrete TPR launch helper marshals and calls cudaLaunchKernel, substantiating the actual selected call target rather than only the indirect caller."},
+        {"file":"device-sass.txt","ranges":[[19,471],[472,892],[893,1281],[1282,1654],[1655,1995],[1996,2390],[2391,2752]],"claim":"Every final selected vector-width specialization retains row/nonzero traversal, arithmetic, reduction and store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed runSpmv iteration submits short-row and, when preprocessing found long rows, dedicated long-row work. These paths partition all rows. Event wait plus output-copy stream synchronization follows the counted loop.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,20]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[195,222],[232,280],[394,459]],"claim":"Threshold-exceeding rows are excluded from general kernel and collected for a dedicated full-CSR traversal; runSpmv launches both complementary paths when applicable in each timed iteration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1024,1074],[1622,1895],[1896,2173]],"claim":"Counted loop repeats the lambda; event ordering and async copy/stream synchronization follow. The full compiled lambda contains launch paths for the short-row TPR variants and dedicated longRowKernel."},
+        {"file":"device-sass.txt","ranges":[[19,359],[360,652],[653,1073],[1074,1462],[1463,1819],[1820,2160],[2161,2500],[2501,2853]],"claim":"Final code includes dedicated long-row arithmetic/store plus all general TPR variants, jointly preserving complete row coverage."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed host loop calls spmvGpu to the requested count. Compiled dispatcher selects a width-specific CUDA launch; that subgroup covers rows and every CSR interval, reduces and stores. Output retrieval follows completion.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,21]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[136,193],[205,224],[257,345]],"claim":"Vector-width kernels traverse rows/CSR entries and dispatch; CLI count governs repeated calls using the initialized inputs."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[920,963],[1403,1902]],"claim":"Main backedge repeats spmvGpu to count and transfers output before clock stop; the exact compiled spmvGpu dispatcher contains each width's call configuration and cudaLaunchKernel path."},
+        {"file":"device-sass.txt","ranges":[[19,320],[321,615],[616,915],[916,1212],[1213,1510],[1511,1777],[1778,2070],[2071,2310],[2311,2600],[2601,2811],[2812,3232]],"claim":"Every final specialization retains row and nonzero traversal, accumulation, reduction and output stores."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Main's timed loop repeats spmvGpu to count. Its compiled dispatcher selects one of six launch wrappers; each wrapper configures and submits its corresponding TPR kernel, which traverses complete CSR rows and stores results.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,21]],"claim":"Optimized CUDA build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[136,193],[205,224],[257,345]],"claim":"Selected TPR kernels cover row/nonzero work, and timed CLI repetitions repeat the dispatcher after initialization."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[858,900],[1370,1831],[2096,2163],[2164,2231],[2232,2299],[2300,2367],[2368,2435],[2436,2503]],"claim":"Timed host loop repeats spmvGpu; the named compiled dispatcher selects the relevant width wrapper, and all six emitted wrappers contain CUDA launch configuration and cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,343],[344,780],[781,1201],[1202,1590],[1591,1947],[1948,2290],[2291,2640]],"claim":"All final TPR variants retain row/nonzero work, accumulation, reduction and store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-sonnet-4.5_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed main loop calls the host helper once per requested iteration; helper configures, submits and synchronizes the one-thread-per-row kernel. Each in-range row covers its complete CSR interval and stores once.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,22]],"claim":"Optimized multi-architecture CUDA build."},
+        {"file":"spmv/spmv.cu","ranges":[[136,186],[235,288],[292,320]],"claim":"Per-row kernel covers complete CSR intervals; timed loop repeats the helper after one input copy/warm-up, then retrieves output."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[743,770],[1485,1545],[1546,1615]],"claim":"Timed main backedge repeats spmvGpu to count; compiled helper calls the generated device stub and synchronizes before returning. The stub assembles launch parameters and calls cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[10,23],[78,86],[768,773],[792,805],[865,876],[1455,1460],[1478,1490],[1549,1560],[2139,2144],[2164,2176],[2233,2244],[2817,2822],[2866,2878],[2935,2946],[3519,3524],[3568,3580],[3637,3648],[4221,4226],[4270,4286],[4347,4358],[4949,4954]],"claim":"Each selected sm60/70/75/80/86/89/90 function retains row guard, CSR arithmetic and loop control plus output store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-sonnet-4.5_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed main loop repeats launch configuration and kernel stub invocation to the CLI count, then synchronizes. Each in-range row thread loops through the complete CSR row and stores its sum.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,22]],"claim":"Optimized sm86 CUDA build."},
+        {"file":"spmv/spmv.cu","ranges":[[109,132],[209,250],[254,288],[292,320]],"claim":"Kernel row/CSR loops cover complete output; CLI count controls timed launches after initialization and a separate warm-up."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1347,1394],[2165,2225]],"claim":"Counted timed loop configures and calls the compiled kernel stub for each repetition, synchronizing before stop clock; the cited stub marshals kernel arguments and calls cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[21,297]],"claim":"Final sm86 kernel retains row guard, CSR arithmetic/backedge and output store."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

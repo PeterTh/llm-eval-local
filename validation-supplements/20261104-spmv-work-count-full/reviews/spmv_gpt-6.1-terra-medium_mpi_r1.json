@@ -1,0 +1,65 @@
+{
+  "id": "spmv_gpt-6.1-terra-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The unchanged -i value controls all iterations at 233–234. Quotient/remainder row partitioning covers all rows, with exact CSR segments scattered and the terminal local delimiter restored. Each call traverses every local row/nonzero, and Gatherv assembles the full output. Guards reject unsupported sizes rather than truncating work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          52,
+          109
+        ],
+        [
+          158,
+          241
+        ]
+      ],
+      "claim": "The unchanged -i value controls all iterations at 233–234. Quotient/remainder row partitioning covers all rows, with exact CSR segments scattered and the terminal local delimiter restored. Each call traverses every local row/nonzero, and Gatherv assembles the full output. Guards reject unsupported sizes rather than truncating work.",
+      "sha256": "ab86721168b3e455b9863493aedfbdaf6a568e08994ced9d29c2b5948e4e1276",
+      "git_blob": "d8ea8afc6258ccd8e19387b3f9b82bd05a03b213"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "MPI_Wtime a2e8/a368 encloses repeated spmvCpu call a351 and repetition backedge a359->a330. The abc0 callee retains multiply/add ac1c/ac24, nonzero backedge ac2b->ac10 and row backedge ac3a->abf0, including explicit empty-row zero stores.",
+      "complete_dump_sha256": "d3b7273ec08e142b8028523c5d32d2454a616715e6ccc2f6b22e234515583219",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-terra-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2282,
+          "last_line": 2320,
+          "text": "    a2bd:\tvmovdqa %xmm0,-0x50(%rbp)\n    a2c2:\tcall   eb30 <std::vector<unsigned int, std::allocator<unsigned int> >::~vector()>\n    a2c7:\tcmpl   $0x0,-0x228(%rbp)\n    a2ce:\tjne    a2dc <main+0xb1c>\n    a2d0:\tlea    0x616c(%rip),%rdi        # 10443 <_IO_stdin_used+0x443>\n    a2d7:\tcall   93a0 <puts@plt>\n    a2dc:\tlea    0xaf3d(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a2e3:\tcall   8e90 <MPI_Barrier@plt>\n    a2e8:\tcall   91e0 <MPI_Wtime@plt>\n    a2ed:\txor    %r13d,%r13d\n    a2f0:\tcmpl   $0x0,-0x248(%rbp)\n    a2f7:\tmov    -0x70(%rbp),%rax\n    a2fb:\tvmovsd %xmm0,-0x2b8(%rbp)\n    a303:\tmov    %rax,-0x250(%rbp)\n    a30a:\tje     a368 <main+0xba8>\n    a30c:\tmov    %ebx,-0x238(%rbp)\n    a312:\tmov    %r15,-0x2c8(%rbp)\n    a319:\tmov    -0x248(%rbp),%ebx\n    a31f:\tmov    %r13d,%r15d\n    a322:\tmov    -0x2c0(%rbp),%r13\n    a329:\tnopl   0x0(%rax)\n    a330:\tmov    -0x250(%rbp),%r9\n    a337:\tmov    -0x258(%rbp),%rcx\n    a33e:\tmov    %r14d,%r8d\n    a341:\tmov    %r12,%rdx\n    a344:\tmov    -0x260(%rbp),%rdi\n    a34b:\tmov    %r13,%rsi\n    a34e:\tinc    %r15d\n    a351:\tcall   abc0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    a356:\tcmp    %r15d,%ebx\n    a359:\tjne    a330 <main+0xb70>\n    a35b:\tmov    -0x238(%rbp),%ebx\n    a361:\tmov    -0x2c8(%rbp),%r15\n    a368:\tcall   91e0 <MPI_Wtime@plt>\n    a36d:\tvsubsd -0x2b8(%rbp),%xmm0,%xmm0\n    a375:\tmovq   $0x0,-0x50(%rbp)\n    a37d:\tlea    0xae9c(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    a384:\tlea    -0x218(%rbp),%rdi\n    a38b:\txor    %r9d,%r9d\n"
+        },
+        {
+          "first_line": 2816,
+          "last_line": 2868,
+          "text": "000000000000abc0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    abc0:\tendbr64\n    abc4:\ttest   %r8d,%r8d\n    abc7:\tje     ac65 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xa5>\n    abcd:\tmov    %r8d,%r8d\n    abd0:\tpush   %r12\n    abd2:\tmov    %rdi,%r11\n    abd5:\tpush   %rbp\n    abd6:\tmov    %r9,%r12\n    abd9:\tpush   %rbx\n    abda:\tlea    0x0(,%r8,4),%r9\n    abe2:\tmov    %rsi,%rbx\n    abe5:\tmov    %rdx,%rbp\n    abe8:\tmov    %rcx,%r10\n    abeb:\txor    %r8d,%r8d\n    abee:\txchg   %ax,%ax\n    abf0:\tmov    0x0(%rbp,%r8,1),%eax\n    abf5:\tmov    0x4(%rbp,%r8,1),%ecx\n    abfa:\tcmp    %ecx,%eax\n    abfc:\tjae    ac50 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x90>\n    abfe:\tdec    %ecx\n    ac00:\tlea    (%rbx,%rax,4),%rdi\n    ac04:\tlea    (%r11,%rax,8),%rsi\n    ac08:\tvxorpd %xmm1,%xmm1,%xmm1\n    ac0c:\tsub    %eax,%ecx\n    ac0e:\txor    %eax,%eax\n    ac10:\tmov    (%rdi,%rax,4),%edx\n    ac13:\tvmovsd (%r10,%rdx,8),%xmm0\n    ac19:\tmov    %rax,%rdx\n    ac1c:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    ac21:\tinc    %rax\n    ac24:\tvaddsd %xmm0,%xmm1,%xmm1\n    ac28:\tcmp    %rdx,%rcx\n    ac2b:\tjne    ac10 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x50>\n    ac2d:\tvmovsd %xmm1,(%r12,%r8,2)\n    ac33:\tadd    $0x4,%r8\n    ac37:\tcmp    %r8,%r9\n    ac3a:\tjne    abf0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    ac3c:\tpop    %rbx\n    ac3d:\tpop    %rbp\n    ac3e:\tpop    %r12\n    ac40:\tret\n    ac41:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    ac4c:\tnopl   0x0(%rax)\n    ac50:\tvxorpd %xmm1,%xmm1,%xmm1\n    ac54:\tvmovsd %xmm1,(%r12,%r8,2)\n    ac5a:\tadd    $0x4,%r8\n    ac5e:\tcmp    %r8,%r9\n    ac61:\tjne    abf0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    ac63:\tjmp    ac3c <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x7c>\n    ac65:\tret\n    ac66:\tcs nopw 0x0(%rax,%rax,1)\n\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261028-200951/spmv_gpt-6.1-terra-medium_mpi_r1",
+    "source_commit": "c94e9a7be1efbb0235af8cd31fdb9f5c7b994a36",
+    "staged_source_sha256": "da20a05060e100cd279aad7ba312e18bcff1276cab645c89f1f4499027549434"
+  },
+  "binary_sha256": "e02b221dba8d4a668137d582d2b5754bb62a04b9f32d3b61f3b154d0c1e67277",
+  "binding_sha256": "0e55bb538414c958e63c85170b91d3f37fd8b371cd2bb772c874da9aa04ab4a7",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:37:54Z",
+  "review_finished_at": "2026-11-04T13:38:43Z",
+  "review_input_sha256": "0c20a6e9dc390a752bbe9747a8e1d6a9bfb810bd725cccadf304ca0123f870e3",
+  "pack_sha256": "7d75464eebcaaa12aa7b490860af19242bf8b761e2727e48f60fe142ee550d89",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

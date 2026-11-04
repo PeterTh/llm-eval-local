@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-haiku-4.5_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The root-parsed iteration count is broadcast unchanged. Distributed CSR slices cover all rows, with the last rank taking the remainder, and every local product is recomputed for each requested iteration.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          163,
+          204
+        ],
+        [
+          222,
+          225
+        ],
+        [
+          273,
+          340
+        ],
+        [
+          351,
+          367
+        ]
+      ],
+      "claim": "Complete slice distribution and full repeated local product; the broadcast does not reduce or replace the requested count.",
+      "sha256": "7f751e87c3d8b9fcec21e0cbd2f82018e988275201606b5b1e2209488661121b",
+      "git_blob": "6994ff10c1e22cec96e92306e1e9994db70a5459"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Actual multiply/add at 0xa680-0xa69d is within the full local-product repetition backedge 0xa6be -> 0xa640.",
+      "complete_dump_sha256": "8aace89aff7b956e1d4acb385ecb7b5a0ba61fae419c3a823e9e53accd55b9d6",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2450,
+          "last_line": 2500,
+          "text": "    a5e6:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a5eb:\tmov    -0x1b0(%rbp),%esi\n    a5f1:\tmov    %rax,%r14\n    a5f4:\ttest   %esi,%esi\n    a5f6:\tje     a6c3 <main+0xf43>\n    a5fc:\tmov    -0x1ac(%rbp),%eax\n    a602:\tmov    -0x90(%rbp),%r11\n    a609:\tmov    -0xf0(%rbp),%r9\n    a610:\tmov    -0xd0(%rbp),%r12\n    a617:\tmov    -0xb0(%rbp),%rbx\n    a61e:\ttest   %eax,%eax\n    a620:\tje     a6c3 <main+0xf43>\n    a626:\tlea    0x0(,%rax,4),%r10\n    a62e:\txor    %edx,%edx\n    a630:\tmov    %esi,-0x1f0(%rbp)\n    a636:\tmov    %r15,%rcx\n    a639:\tnopl   0x0(%rax)\n    a640:\txor    %r15d,%r15d\n    a643:\tmov    %edx,-0x1e8(%rbp)\n    a649:\tnopl   0x0(%rax)\n    a650:\tmov    (%r9,%r15,1),%eax\n    a654:\tmov    0x4(%r9,%r15,1),%esi\n    a659:\tcmp    %esi,%eax\n    a65b:\tjae    a9e0 <main+0x1260>\n    a661:\tdec    %esi\n    a663:\tlea    (%r12,%rax,4),%r8\n    a667:\tlea    (%rbx,%rax,8),%rdi\n    a66b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a66f:\tsub    %eax,%esi\n    a671:\txor    %eax,%eax\n    a673:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a67e:\txchg   %ax,%ax\n    a680:\tmov    (%r8,%rax,4),%edx\n    a684:\tvmovsd 0x0(%r13,%rdx,8),%xmm0\n    a68b:\tmov    %rax,%rdx\n    a68e:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a693:\tinc    %rax\n    a696:\tvaddsd %xmm0,%xmm1,%xmm1\n    a69a:\tcmp    %rsi,%rdx\n    a69d:\tjne    a680 <main+0xf00>\n    a69f:\tvmovsd %xmm1,(%r11,%r15,2)\n    a6a5:\tadd    $0x4,%r15\n    a6a9:\tcmp    %r10,%r15\n    a6ac:\tjne    a650 <main+0xed0>\n    a6ae:\tmov    -0x1e8(%rbp),%edx\n    a6b4:\tmov    -0x1f0(%rbp),%eax\n    a6ba:\tinc    %edx\n    a6bc:\tcmp    %eax,%edx\n    a6be:\tjne    a640 <main+0xec0>\n    a6c0:\tmov    %rcx,%r15\n    a6c3:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_mpi_r1",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "4fa3add6f1b6bca580f61baa592474607e39720aebe59356a4ad4cb2a8843457"
+  },
+  "binary_sha256": "fcc97f3ef9430a2a123e1e4d1b22d8e51a30372ad7c4fb29ae878d24bd9baa7c",
+  "binding_sha256": "979851cc46adf3219c72ac7ad32e94b9810673b11b019e5522037deb29c59694",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:47:34Z",
+  "review_finished_at": "2026-11-04T12:50:53Z",
+  "review_input_sha256": "3e0b1943a1c6edf8e1fd40c255868522c0df2163f70522bd63c413e6b43d46b9",
+  "pack_sha256": "d32bc677dff6f17ad74c2964d303e875b144361470d51d6bc04f073b35acbfe6",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

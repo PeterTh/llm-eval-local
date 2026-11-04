@@ -1,0 +1,116 @@
+{
+  "id": "spmv_beam-1.0-oc-medium_hybrid_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each rank computes a contiguous local row range, slices the corresponding nonzero span and rebases row delimiters. The compiled timed host loop repeats launch, device synchronization, and output copy for each requested iteration. Device SASS retains the CSR loop's arithmetic/backedge and output store. Separate source concern: after timing, the code calls MPI_Allgather with sendcount myRows but receive count myRows?0:0 (always zero), then calls an otherwise appropriate MPI_Gatherv. The Allgather argument mismatch may raise an MPI truncation/error before Gatherv; this is not evidence of omitted SpMV iterations and was not run.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          174,
+          218
+        ],
+        [
+          113,
+          128
+        ],
+        [
+          244,
+          275
+        ],
+        [
+          276,
+          294
+        ],
+        [
+          296,
+          315
+        ]
+      ],
+      "claim": "Global nItems derives from dimensions/sparsity; each rank partitions rows, derives nnzStart/nnzEnd and myNnz, rebases local delimiters, and runs a synchronized local kernel each CLI iteration. Post-timing Allgather uses receive count myRows?0:0 (zero), followed by Gatherv with per-rank counts/displacements.",
+      "sha256": "83a12073e36213ef2687ca2eb9556aabe235351c6cfea6da09ec259367c32f2d",
+      "git_blob": "d668aad8a9a7118a7506e7c94104613307e1be3a"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          4,
+          20
+        ]
+      ],
+      "claim": "MPI/OpenMP are enabled and CUDA compilation uses -O3.",
+      "sha256": "3481c63c193541ce9d3a7ea9d63c8d2f7835de8c98c6ff6cedd1e07acf778e00",
+      "git_blob": "ba4d5e51c0df27593a8efcb2d068fefac3333553"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed host loop calls cudaLaunchKernel at 0x3051, synchronizes at 0x305a, copies local output, increments/compares its iteration counter at 0x3081-0x308c and backedges to 0x2eb0; after loop it reaches the barrier/timestamp.",
+      "complete_dump_sha256": "0c4b87f27df74b06b6951c6a1fefff6ec80ef870e285db7519a36e57fbfa0a32",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_hybrid_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 854,
+          "last_line": 967,
+          "text": "    2e24:\ttest   %ebx,%ebx\n    2e26:\tjne    2e3b <main+0x86b>\n    2e28:\tlea    0x25f0(%rip),%rsi        # 541f <_IO_stdin_used+0x41f>\n    2e2f:\tmov    $0x2,%edi\n    2e34:\txor    %eax,%eax\n    2e36:\tcall   2280 <__printf_chk@plt>\n    2e3b:\tlea    0x71fe(%rip),%rdi        # a040 <ompi_mpi_comm_world@@Base>\n    2e42:\tcall   2320 <MPI_Barrier@plt>\n    2e47:\tcall   22a0 <std::chrono::_V2::system_clock::now()@plt>\n    2e4c:\tmov    -0x280(%rbp),%r11d\n    2e53:\tmov    %rax,-0x2f0(%rbp)\n    2e5a:\ttest   %r11d,%r11d\n    2e5d:\tje     3092 <main+0xac2>\n    2e63:\tmov    -0x2e0(%rbp),%rax\n    2e6a:\tlea    -0x220(%rbp),%rdx\n    2e71:\tlea    0xff(%r15),%r12d\n    2e78:\txor    %ebx,%ebx\n    2e7a:\tmovq   %rdx,%xmm3\n    2e7f:\tmov    0x271a(%rip),%r14        # 55a0 <_IO_stdin_used+0x5a0>\n    2e86:\tshr    $0x8,%r12d\n    2e8a:\tlea    0x0(,%rax,8),%r13\n    2e92:\tlea    -0x218(%rbp),%rax\n    2e99:\tmovq   %rax,%xmm1\n    2e9e:\tpunpcklqdq %xmm1,%xmm3\n    2ea2:\tmovaps %xmm3,-0x2b0(%rbp)\n    2ea9:\tnopl   0x0(%rax)\n    2eb0:\tmovabs $0x100000001,%rax\n    2eba:\tmov    %r12d,-0xb0(%rbp)\n    2ec1:\txor    %r9d,%r9d\n    2ec4:\txor    %r8d,%r8d\n    2ec7:\tmov    %rax,-0xac(%rbp)\n    2ece:\tmov    -0xb0(%rbp),%rdi\n    2ed5:\tmovabs $0x100000100,%rdx\n    2edf:\tmov    $0x1,%ecx\n    2ee4:\tmov    -0xa8(%rbp),%esi\n    2eea:\tmov    %r14,-0x1e8(%rbp)\n    2ef1:\tmovl   $0x1,-0x1e0(%rbp)\n    2efb:\tcall   2480 <__cudaPushCallConfiguration@plt>\n    2f00:\ttest   %eax,%eax\n    2f02:\tjne    305a <main+0xa8a>\n    2f08:\tmov    -0x248(%rbp),%rax\n    2f0f:\tmovdqa -0x2b0(%rbp),%xmm3\n    2f17:\tlea    -0x1f0(%rbp),%rcx\n    2f1e:\tlea    -0x1f8(%rbp),%rdx\n    2f25:\tlea    -0xd0(%rbp),%rsi\n    2f2c:\tlea    -0xf0(%rbp),%rdi\n    2f33:\tmovl   $0x0,-0x250(%rbp)\n    2f3d:\tmov    %rax,-0x220(%rbp)\n    2f44:\tmov    -0x230(%rbp),%rax\n    2f4b:\tmov    %r15d,-0x24c(%rbp)\n    2f52:\tmov    %rax,-0x218(%rbp)\n    2f59:\tmov    -0x228(%rbp),%rax\n    2f60:\tmovl   $0x1,-0xe8(%rbp)\n    2f6a:\tmov    %rax,-0x210(%rbp)\n    2f71:\tmov    -0x240(%rbp),%rax\n    2f78:\tmovl   $0x1,-0xc8(%rbp)\n    2f82:\tmov    %rax,-0x208(%rbp)\n    2f89:\tmov    -0x238(%rbp),%rax\n    2f90:\tmovaps %xmm3,-0x70(%rbp)\n    2f94:\tmov    %rax,-0x200(%rbp)\n    2f9b:\tlea    -0x210(%rbp),%rax\n    2fa2:\tmovq   %rax,%xmm0\n    2fa7:\tlea    -0x208(%rbp),%rax\n    2fae:\tmovq   %rax,%xmm2\n    2fb3:\tlea    -0x250(%rbp),%rax\n    2fba:\tpunpcklqdq %xmm2,%xmm0\n    2fbe:\tmovaps %xmm0,-0x60(%rbp)\n    2fc2:\tmovq   %rax,%xmm0\n    2fc7:\tlea    -0x24c(%rbp),%rax\n    2fce:\tmovq   %rax,%xmm1\n    2fd3:\tlea    -0x200(%rbp),%rax\n    2fda:\tmov    %rax,-0x40(%rbp)\n    2fde:\tmov    0x257b(%rip),%rax        # 5560 <_IO_stdin_used+0x560>\n    2fe5:\tpunpcklqdq %xmm1,%xmm0\n    2fe9:\tmovaps %xmm0,-0x50(%rbp)\n    2fed:\tmov    %rax,-0xf0(%rbp)\n    2ff4:\tmov    %rax,-0xd0(%rbp)\n    2ffb:\tcall   2450 <__cudaPopCallConfiguration@plt>\n    3000:\ttest   %eax,%eax\n    3002:\tjne    305a <main+0xa8a>\n    3004:\tmov    -0xf0(%rbp),%rsi\n    300b:\tmov    -0xe8(%rbp),%edx\n    3011:\tlea    -0x70(%rbp),%r9\n    3015:\tlea    0x964(%rip),%rdi        # 3980 <spmvKernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)>\n    301c:\tmov    -0xd0(%rbp),%rcx\n    3023:\tmov    -0xc8(%rbp),%r8d\n    302a:\tmov    %rsi,-0x90(%rbp)\n    3031:\tmov    %edx,-0x88(%rbp)\n    3037:\tmov    %rcx,-0x1dc(%rbp)\n    303e:\tmov    %r8d,-0x1d4(%rbp)\n    3045:\tpush   -0x1f0(%rbp)\n    304b:\tpush   -0x1f8(%rbp)\n    3051:\tcall   22d0 <cudaLaunchKernel@plt>\n    3056:\tpop    %r9\n    3058:\tpop    %r10\n    305a:\tcall   2460 <cudaDeviceSynchronize@plt>\n    305f:\tmov    -0x150(%rbp),%rdi\n    3066:\tmov    -0x278(%rbp),%rdx\n    306d:\tmov    $0x2,%ecx\n    3072:\tmov    -0x238(%rbp),%rsi\n    3079:\tadd    %r13,%rdi\n    307c:\tcall   23d0 <cudaMemcpy@plt>\n    3081:\tmov    -0x280(%rbp),%eax\n    3087:\tadd    $0x1,%ebx\n    308a:\tcmp    %eax,%ebx\n    308c:\tjne    2eb0 <main+0x8e0>\n    3092:\tlea    0x6fa7(%rip),%rdi        # a040 <ompi_mpi_comm_world@@Base>\n    3099:\tcall   2320 <MPI_Barrier@plt>\n    309e:\tcall   22a0 <std::chrono::_V2::system_clock::now()@plt>\n    30a3:\tmov    -0x2f0(%rbp),%rbx\n    30aa:\tmovabs $0x431bde82d7b634db,%rdx\n    30b4:\tlea    -0x1e8(%rbp),%rsi\n    30bb:\tlea    0x6f7e(%rip),%r9        # a040 <ompi_mpi_comm_world@@Base>\n    30c2:\tlea    0x7177(%rip),%r8        # a240 <ompi_mpi_op_max@@Base>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "Kernel has row-bound logic, DFMA arithmetic at 0x0d60-0x0db0 and CSR backedge 0x0dc0->0x05a0; it stores the output at 0x14b0.",
+      "complete_dump_sha256": "26e8af66be6f663e1c7fa6573205ae4f0c155eb2f9039762a98f9655a3ade7bd",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_hybrid_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 19,
+          "last_line": 55,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jjPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   MOV R1, c[0x0][0x28] ;                                 /* 0x00000a0000017a02 */\n                                                                                          /* 0x000fe40000000f00 */\n        /*0010*/                   S2R R0, SR_CTAID.X ;                                   /* 0x0000000000007919 */\n                                                                                          /* 0x000e280000002500 */\n        /*0020*/                   S2R R3, SR_TID.X ;                                     /* 0x0000000000037919 */\n                                                                                          /* 0x000e240000002100 */\n        /*0030*/                   IMAD R0, R0, c[0x0][0x0], R3 ;                         /* 0x0000000000007a24 */\n                                                                                          /* 0x001fca00078e0203 */\n        /*0040*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x184], PT ;       /* 0x0000610000007a0c */\n                                                                                          /* 0x000fda0003f06070 */\n        /*0050*/               @P0 EXIT ;                                                 /* 0x000000000000094d */\n                                                                                          /* 0x000fea0003800000 */\n        /*0060*/                   IADD3 R5, R0, c[0x0][0x180], RZ ;                      /* 0x0000600000057a10 */\n                                                                                          /* 0x000fe20007ffe0ff */\n        /*0070*/                   ULDC.64 UR4, c[0x0][0x118] ;                           /* 0x0000460000047ab9 */\n                                                                                          /* 0x000fe20000000a00 */\n        /*0080*/                   MOV R2, 0x4 ;                                          /* 0x0000000400027802 */\n                                                                                          /* 0x000fe40000000f00 */\n        /*0090*/                   IADD3 R7, R5, 0x1, RZ ;                                /* 0x0000000105077810 */\n                                                                                          /* 0x000fc60007ffe0ff */\n        /*00a0*/                   IMAD.WIDE.U32 R4, R5, R2, c[0x0][0x170] ;              /* 0x00005c0005047625 */\n                                                                                          /* 0x000fc800078e0002 */\n        /*00b0*/                   IMAD.WIDE.U32 R6, R7, R2, c[0x0][0x170] ;              /* 0x00005c0007067625 */\n                                                                                          /* 0x000fe400078e0002 */\n        /*00c0*/                   LDG.E R5, [R4.64] ;                                    /* 0x0000000404057981 */\n                                                                                          /* 0x000ea8000c1e1900 */\n        /*00d0*/                   LDG.E R3, [R6.64] ;                                    /* 0x0000000406037981 */\n                                                                                          /* 0x000ea2000c1e1900 */\n        /*00e0*/                   BSSY B0, 0x1490 ;                                      /* 0x000013a000007945 */\n                                                                                          /* 0x000fe20003800000 */\n        /*00f0*/                   CS2R R26, SRZ ;                                        /* 0x00000000001a7805 */\n                                                                                          /* 0x000fe2000001ff00 */\n        /*0100*/                   ISETP.GE.U32.AND P0, PT, R5, R3, PT ;                  /* 0x000000030500720c */\n                                                                                          /* 0x004fda0003f06070 */\n        /*0110*/               @P0 BRA 0x1480 ;                                           /* 0x0000136000000947 */\n"
+        },
+        {
+          "first_line": 90,
+          "last_line": 105,
+          "text": "                                                                                          /* 0x000ee2000c1e1b00 */\n        /*0230*/                   IMAD.WIDE.U32 R10, R8, R10, c[0x0][0x178] ;            /* 0x00005e00080a7625 */\n                                                                                          /* 0x004fcc00078e000a */\n        /*0240*/                   LDG.E.64 R10, [R10.64] ;                               /* 0x000000040a0a7981 */\n                                                                                          /* 0x000ee2000c1e1b00 */\n        /*0250*/                   IADD3 R4, R4, -0x1, RZ ;                               /* 0xffffffff04047810 */\n                                                                                          /* 0x000fc80007ffe0ff */\n        /*0260*/                   ISETP.NE.AND P1, PT, R4, RZ, PT ;                      /* 0x000000ff0400720c */\n                                                                                          /* 0x000fe40003f25270 */\n        /*0270*/                   IADD3 R5, R5, 0x1, RZ ;                                /* 0x0000000105057810 */\n                                                                                          /* 0x000fe20007ffe0ff */\n        /*0280*/                   DFMA R26, R10, R6, R26 ;                               /* 0x000000060a1a722b */\n                                                                                          /* 0x00a054000000001a */\n        /*0290*/               @P1 BRA 0x1e0 ;                                            /* 0xffffff4000001947 */\n                                                                                          /* 0x000fea000383ffff */\n        /*02a0*/                   BSYNC B1 ;                                             /* 0x0000000000017941 */\n"
+        },
+        {
+          "first_line": 445,
+          "last_line": 463,
+          "text": "        /*0d40*/                   IADD3 R5, R5, 0x10, RZ ;                               /* 0x0000001005057810 */\n                                                                                          /* 0x000fc80007ffe0ff */\n        /*0d50*/                   ISETP.GE.U32.AND P1, PT, R5, R4, PT ;                  /* 0x000000040500720c */\n                                                                                          /* 0x000fe20003f26070 */\n        /*0d60*/                   DFMA R12, R24, R22, R12 ;                              /* 0x00000016180c722b */\n                                                                                          /* 0x004f4c000000000c */\n        /*0d70*/                   DFMA R12, R30, R34, R12 ;                              /* 0x000000221e0c722b */\n                                                                                          /* 0x020ecc000000000c */\n        /*0d80*/                   DFMA R12, R20, R18, R12 ;                              /* 0x00000012140c722b */\n                                                                                          /* 0x008f0c000000000c */\n        /*0d90*/                   DFMA R10, R10, R28, R12 ;                              /* 0x0000001c0a0a722b */\n                                                                                          /* 0x010e0c000000000c */\n        /*0da0*/                   DFMA R10, R32, R14, R10 ;                              /* 0x0000000e200a722b */\n                                                                                          /* 0x001e0c000000000a */\n        /*0db0*/                   DFMA R26, R6, R8, R10 ;                                /* 0x00000008061a722b */\n                                                                                          /* 0x001062000000000a */\n        /*0dc0*/              @!P1 BRA 0x5a0 ;                                            /* 0xfffff7d000009947 */\n                                                                                          /* 0x000fea000383ffff */\n        /*0dd0*/                   BSYNC B1 ;                                             /* 0x0000000000017941 */\n"
+        },
+        {
+          "first_line": 675,
+          "last_line": 687,
+          "text": "        /*1470*/                   DFMA R26, R8, R16, R2 ;                                /* 0x00000010081a722b */\n                                                                                          /* 0x01004c0000000002 */\n        /*1480*/                   BSYNC B0 ;                                             /* 0x0000000000007941 */\n                                                                                          /* 0x000fea0003800000 */\n        /*1490*/                   MOV R3, 0x8 ;                                          /* 0x0000000800037802 */\n                                                                                          /* 0x001fca0000000f00 */\n        /*14a0*/                   IMAD.WIDE.U32 R2, R0, R3, c[0x0][0x188] ;              /* 0x0000620000027625 */\n                                                                                          /* 0x000fca00078e0003 */\n        /*14b0*/                   STG.E.64 [R2.64], R26 ;                                /* 0x0000001a02007986 */\n                                                                                          /* 0x002fe2000c101b04 */\n        /*14c0*/                   EXIT ;                                                 /* 0x000000000000794d */\n                                                                                          /* 0x000fea0003800000 */\n        /*14d0*/                   BRA 0x14d0;                                            /* 0xfffffff000007947 */\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170121/spmv_beam-1.0-oc-medium_hybrid_r4",
+    "source_commit": "cbe8dcd9a86fdc63b7c5f62980956f015725ccfc",
+    "staged_source_sha256": "27661a2e09842227864d3f00b1243caca55039dce030cdfa0dc855095cad8f8d"
+  },
+  "binary_sha256": "2214f60bf30e247eda7bc475d6005cb36d041414ba7c57bf39e6a7475a475655",
+  "binding_sha256": "28478b85057b3a5d7f6b1dfd937109f59a017252e6955bdb19fa8e1cf68e363a",
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna independent static review; primary agent independently checked all pilot cases and corrected cited instruction addresses/ranges.",
+  "review_started_at": "2026-11-04T13:52:23Z",
+  "review_finished_at": "2026-11-04T13:55:53Z",
+  "review_input_sha256": "5d81b6ada0f6a6a759d5afbc0b1e8e3611387deae506c913c49800e01aa3978c",
+  "pack_sha256": "8cbaf8e00d764e00ad75771a1f296cf22ecbbc68a043791ac111b5c9029fc002",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

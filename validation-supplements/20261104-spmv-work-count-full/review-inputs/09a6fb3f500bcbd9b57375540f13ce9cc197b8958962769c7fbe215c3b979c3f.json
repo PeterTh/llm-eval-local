@@ -1,0 +1,192 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:31:09Z",
+  "review_finished_at": "2026-11-04T13:32:00Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              161,
+              195
+            ],
+            [
+              207,
+              253
+            ]
+          ],
+          "claim": "Unchanged CLI iterations drive explicit per-row/nonzero arithmetic. Every rank initializes the full same CSR; floor-scaled disjoint intervals cover all rows, with local outputs indexed relative to rowBegin. All requested iterations execute; Allgatherv reconstructs complete output afterward. Timed partition calculation/allocation add overhead."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1926,
+              2026
+            ]
+          ],
+          "claim": "Mul/add 9d2c/9d35 are inside nonzero 9d3c->9d20, row continuation 9d54->9d00 (empty-row path stores zero), and requested-iteration 9d87->9ce0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              162,
+              184
+            ],
+            [
+              191,
+              241
+            ]
+          ],
+          "claim": "Positive CLI iteration count is unmodified. Quotient/remainder row counts sum to numRows; all nonzeros and row lengths are scattered, reconstructing full local CSR. Every requested iteration invokes complete local CSR multiplication; one full Gatherv is additionally included in timing."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2161,
+              2232
+            ]
+          ],
+          "claim": "Mul/add a0bd/a0c5 remain inside nonzero a0cc->a0b0, row a0db->a080 and requested-iteration a0e1->a070. Full gather at a12b follows the repetition loop and precedes the end clock."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              161,
+              202
+            ],
+            [
+              216,
+              264
+            ]
+          ],
+          "claim": "CLI -i is unmodified. Matrix initialization/reference is replicated, while timed floor-scaled disjoint row intervals cover all rows exactly once per global repetition. Every row traverses every original CSR nonzero, and complete outputs are gathered after the timed repetitions."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1950,
+              2030
+            ]
+          ],
+          "claim": "Mul/add 9d1b/9d24 are inside nonzero 9d2b->9d10, row continuation 9d43->9cf0 (explicit zero-row path), and requested-iteration 9d75->9ce0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              161,
+              199
+            ],
+            [
+              212,
+              263
+            ]
+          ],
+          "claim": "CLI iteration count is unchanged and positive. Every rank initializes the full same matrix, while adjacent floor-scaled row partitions cover all rows. Each requested timed iteration performs complete assigned row/nonzero arithmetic; full Gatherv follows timing."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1951,
+              2028
+            ]
+          ],
+          "claim": "Mul/add 9d0b/9d14 remain inside nonzero 9d1b->9d00, row continuation 9d33->9ce0 (explicit zero-row path), and requested-iteration 9d65->9cd0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              120
+            ],
+            [
+              174,
+              208
+            ],
+            [
+              220,
+              268
+            ]
+          ],
+          "claim": "CLI -i is retained unchanged. Full matrix initialization is replicated; spmvRows traverses every nonzero for all rows in each adjacent floor-scaled partition. Each timed iteration calls that full partition kernel; gathered row counts cover all output rows."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1986,
+              2058
+            ]
+          ],
+          "claim": "Timed mul/add 9dec/9df5 are inside nonzero 9dfc->9de0, row 9e11->9da0 and requested-iteration 9e23->9d80 backedges."
+        }
+      ]
+    }
+  ]
+}

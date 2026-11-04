@@ -1,0 +1,254 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:09:32Z",
+  "review_finished_at": "2026-11-04T13:11:48Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-4.1_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested multiplication is omitted: each rank performs two full-matrix products and an additional local product on every timed iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              169,
+              190
+            ],
+            [
+              207,
+              224
+            ],
+            [
+              236,
+              269
+            ]
+          ],
+          "claim": "The original CLI iteration count encloses both full-dimensional kernel calls and the complete local row loop. Full replicas therefore provide more than the requested work, not fewer repetitions."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1965,
+              2135
+            ]
+          ],
+          "claim": "All three multiply/add bodies (9d6d/9d75, 9ddd/9de5, 9e9c/9ea5) remain in the timed outer loop, whose continuation returns through 9ef3->9d20. Gather and ending clock follow."
+        }
+      ],
+      "notes": "Redundant full-matrix computation on every rank is an implementation variation, not a work-count failure. The fixed-count final MPI_Gather uses local_rows despite the last rank owning remainder rows: with n=1025 and 128 ranks, root's count is 8 and the last rank's is 9. Existing shape evidence at spmv-shape-mpi128-v1/spmv_gpt-4.1_mpi_r4/result.json reports exit 0, internal pass and exact output hash match; stderr is empty. Retain this unequal-count collective concern separately, without overriding that observed pass or claiming a new external-validation failure."
+    },
+    {
+      "id": "spmv_gpt-5-mini_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Every requested iteration computes the full local CSR partition. Complete balanced row coverage is preserved by root's point-to-point distribution.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              171,
+              196
+            ],
+            [
+              243,
+              314
+            ],
+            [
+              317,
+              334
+            ]
+          ],
+          "claim": "Floor-scaled rank boundaries span all rows. Full values, columns and rebased delimiters are copied/sent before the original-count timed kernel loop."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2002,
+              2067
+            ]
+          ],
+          "claim": "Multiply/add 9e7c/9e85 is inside entry 9e8c->9e70, row 9ea2->9e40 and iteration 9eab->9e30 backedges before ending barrier/clock."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5-mini_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The full local CSR product repeats for each requested iteration; packing delimiters and root's in-place scatter do not remove work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              64
+            ],
+            [
+              116,
+              148
+            ],
+            [
+              182,
+              251
+            ],
+            [
+              257,
+              278
+            ]
+          ],
+          "claim": "Root broadcasts the original -i count. Remainder-aware ownership and packed localRows+1 delimiters preserve complete local CSR arrays feeding each timed kernel call."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2367,
+              2427
+            ]
+          ],
+          "claim": "Between clocks a4a0 and a567, multiply/add a52c/a535 remains under entry a53c->a520, row a54a->a4f0 and iteration a556->a4e0 branches."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5-mini_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All requested iterations traverse every nonzero in the rank's balanced global-row interval. Replicated inputs do not substitute for multiplication.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              172,
+              197
+            ],
+            [
+              234,
+              258
+            ],
+            [
+              261,
+              282
+            ]
+          ],
+          "claim": "Complete matrix data are broadcast before timing. The timed triple loop is directly bounded by the original iteration count and complete local row/nonzero ranges."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1940,
+              2018
+            ]
+          ],
+          "claim": "Multiply/add 9d5d/9d65 is inside entry 9d6c, row 9d91/9da4 and outer repetition 9db8->9d10 loops, before ending clock 9dca."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5-mini_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Complete local CSR products repeat for the unchanged requested count. Both compiled entry paths reach the same multiplication loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              45,
+              55
+            ],
+            [
+              104,
+              122
+            ],
+            [
+              169,
+              221
+            ],
+            [
+              224,
+              238
+            ]
+          ],
+          "claim": "Remainder-aware row ranges cover all rows. The complete localRows+1 delimiter ranges are scattered/rebased and passed to every timed kernel call."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2253,
+              2310
+            ],
+            [
+              2576,
+              2587
+            ]
+          ],
+          "claim": "Both start-clock paths a27e and a89b lead to multiply/add a30c/a314, enclosed by entry a31b->a300, row a329->a2d0 and iteration a335->a2c0 loops; the common ending clock is a343."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5-mini_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All local CSR rows and entries are recomputed for every requested iteration, independently of optional reference calculation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              170,
+              195
+            ],
+            [
+              247,
+              312
+            ],
+            [
+              315,
+              331
+            ]
+          ],
+          "claim": "Balanced complete row ranges and their full rebased CSR arrays are distributed before timing. The original -i count directly bounds full local kernel invocations."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2142,
+              2200
+            ]
+          ],
+          "claim": "Timed multiply/add a12c/a134 remains inside entry a13b->a120, row a14a->a0f0 and iteration a156->a0e0 backedges; the end barrier/clock follow."
+        }
+      ]
+    }
+  ]
+}

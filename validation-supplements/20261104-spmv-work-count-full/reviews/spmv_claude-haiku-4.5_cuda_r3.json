@@ -1,0 +1,176 @@
+{
+  "id": "spmv_claude-haiku-4.5_cuda_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed host loop launches the grid once for each requested repetition and synchronizes before ending timing. Every row below dim traverses its CSR interval and stores an output. Each of the four configured SASS architecture variants retains row guarding, DFMA nonzero arithmetic, backward traversal branches and stores.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cu",
+      "ranges": [
+        [
+          1,
+          331
+        ]
+      ],
+      "claim": "One thread maps to each row, bounds by dim, reduces the CSR interval and stores out[row]. CLI n/s/i and nItems establish dimensions and sparsity; initialized operands are used by the count-controlled timed kernel loop followed by synchronization and output copy.",
+      "sha256": "443639c030fb253e121f6f7f216d8b2329312b0f270692c56a72d2b56b37ad7b",
+      "git_blob": "275510d1461a96770c58a831a785136b48f8a559"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          21
+        ]
+      ],
+      "claim": "Configured architectures 60, 70, 80 and 90 correspond to the four inspected SASS variants.",
+      "sha256": "5d974ed92c28415635b79a65d6ab575ae6158fcd1f18b7ede0b543d776ccba8a",
+      "git_blob": "5d9b0b6262c30b58f8256d950950297b78cc541a"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock starts at 1332, runtime count is checked at 1335-1336, each iteration reaches cudaLaunchKernel at 1401, counter increments/compares/backedges at 1407-1410, and cudaDeviceSynchronize at 1411 precedes stop clock 1414.",
+      "complete_dump_sha256": "46c0a11f47595c7e4c23717edae1787c0daa0fb62a29bcc988c3c5858d0b6f1e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_cuda_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1332,
+          "last_line": 1414,
+          "text": "    b396:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n    b39b:\tmov    -0x1f8(%rbp),%ecx\n    b3a1:\tmov    %rax,%r15\n    b3a4:\ttest   %ecx,%ecx\n    b3a6:\tje     b55f <main+0x9df>\n    b3ac:\tlea    -0x1b8(%rbp),%rdx\n    b3b3:\tlea    -0x1b0(%rbp),%rax\n    b3ba:\tmov    0x844f7(%rip),%r14        # 8f8b8 <libcudart_static_8b9785e1dd14e6b6d7e4b61f0e9994d39e1b6281+0xa>\n    b3c1:\tmovq   %rdx,%xmm7\n    b3c6:\tmovq   %rax,%xmm5\n    b3cb:\tpunpcklqdq %xmm5,%xmm7\n    b3cf:\tmovaps %xmm7,-0x210(%rbp)\n    b3d6:\tcs nopw 0x0(%rax,%rax,1)\n    b3e0:\tmovabs $0x100000001,%rax\n    b3ea:\tmov    %r13d,-0x154(%rbp)\n    b3f1:\txor    %r9d,%r9d\n    b3f4:\txor    %r8d,%r8d\n    b3f7:\tmov    %rax,-0x150(%rbp)\n    b3fe:\tmov    -0x14c(%rbp),%esi\n    b404:\tmov    $0x1,%ecx\n    b409:\tmovabs $0x100000100,%rdx\n    b413:\tmov    -0x154(%rbp),%rdi\n    b41a:\tcall   20580 <__cudaPushCallConfiguration>\n    b41f:\ttest   %eax,%eax\n    b421:\tjne    b53f <main+0x9bf>\n    b427:\tmov    -0x1e0(%rbp),%rax\n    b42e:\tmovdqa -0x210(%rbp),%xmm4\n    b436:\tlea    -0x188(%rbp),%rcx\n    b43d:\tlea    -0x190(%rbp),%rdx\n    b444:\tlea    -0x160(%rbp),%rsi\n    b44b:\tlea    -0x170(%rbp),%rdi\n    b452:\tmov    %ebx,-0x1e4(%rbp)\n    b458:\tmov    %rax,-0x1b8(%rbp)\n    b45f:\tmov    -0x1d8(%rbp),%rax\n    b466:\tmov    %r14,-0x170(%rbp)\n    b46d:\tmov    %rax,-0x1b0(%rbp)\n    b474:\tmov    -0x1d0(%rbp),%rax\n    b47b:\tmovl   $0x1,-0x168(%rbp)\n    b485:\tmov    %rax,-0x1a8(%rbp)\n    b48c:\tmov    -0x1c8(%rbp),%rax\n    b493:\tmov    %r14,-0x160(%rbp)\n    b49a:\tmov    %rax,-0x1a0(%rbp)\n    b4a1:\tmov    -0x1c0(%rbp),%rax\n    b4a8:\tmovl   $0x1,-0x158(%rbp)\n    b4b2:\tmov    %rax,-0x198(%rbp)\n    b4b9:\tlea    -0x1a8(%rbp),%rax\n    b4c0:\tmovq   %rax,%xmm0\n    b4c5:\tlea    -0x1a0(%rbp),%rax\n    b4cc:\tmovaps %xmm4,-0x70(%rbp)\n    b4d0:\tmovq   %rax,%xmm5\n    b4d5:\tlea    -0x1e4(%rbp),%rax\n    b4dc:\tpunpcklqdq %xmm5,%xmm0\n    b4e0:\tmovaps %xmm0,-0x60(%rbp)\n    b4e4:\tmovq   %rax,%xmm0\n    b4e9:\tlea    -0x198(%rbp),%rax\n    b4f0:\tmovq   %rax,%xmm6\n    b4f5:\tpunpcklqdq %xmm6,%xmm0\n    b4f9:\tmovaps %xmm0,-0x50(%rbp)\n    b4fd:\tcall   20610 <__cudaPopCallConfiguration>\n    b502:\ttest   %eax,%eax\n    b504:\tjne    b53f <main+0x9bf>\n    b506:\tpush   -0x188(%rbp)\n    b50c:\tmov    -0x160(%rbp),%rcx\n    b513:\tlea    -0x70(%rbp),%r9\n    b517:\tlea    0x822(%rip),%rdi        # bd40 <spmvKernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b51e:\tmov    -0x158(%rbp),%r8d\n    b525:\tpush   -0x190(%rbp)\n    b52b:\tmov    -0x170(%rbp),%rsi\n    b532:\tmov    -0x168(%rbp),%edx\n    b538:\tcall   75d00 <cudaLaunchKernel>\n    b53d:\tpop    %rax\n    b53e:\tpop    %rdx\n    b53f:\tcall   4e950 <cudaGetLastError>\n    b544:\ttest   %eax,%eax\n    b546:\tjne    b999 <main+0xe19>\n    b54c:\tmov    -0x1f8(%rbp),%eax\n    b552:\tadd    $0x1,%r12d\n    b556:\tcmp    %eax,%r12d\n    b559:\tjne    b3e0 <main+0x860>\n    b55f:\tcall   4bbf0 <cudaDeviceSynchronize>\n    b564:\ttest   %eax,%eax\n    b566:\tjne    bac6 <main+0xf46>\n    b56c:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "For each sm_60/70/80/90 variant, the cited function head shows row-index-versus-dim exit; body ranges include retained DFMA work and backward CSR control flow; trailing ranges show each row-result store.",
+      "complete_dump_sha256": "1d6c35897010354664ec0cb9d23c705c97f3bd54fe169d9b7cf70c1ca8ebfa80",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_cuda_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 19,
+          "last_line": 32,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM60 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM60)\"\n                                                                                      /* 0x001cfc00e22007f6 */\n        /*0008*/                   MOV R1, c[0x0][0x20] ;                             /* 0x4c98078000870001 */\n        /*0010*/                   S2R R0, SR_CTAID.X ;                               /* 0xf0c8000002570000 */\n        /*0018*/                   S2R R2, SR_TID.X ;                                 /* 0xf0c8000002170002 */\n                                                                                      /* 0x001fd842fec20ff1 */\n        /*0028*/                   XMAD.MRG R3, R0.reuse, c[0x0] [0x8].H1, RZ ;       /* 0x4f107f8000270003 */\n        /*0030*/                   XMAD R2, R0.reuse, c[0x0] [0x8], R2 ;              /* 0x4e00010000270002 */\n        /*0038*/                   XMAD.PSL.CBCC R0, R0.H1, R3.H1, R2 ;               /* 0x5b30011800370000 */\n                                                                                      /* 0x001ff400fd4007ed */\n        /*0048*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x160], PT ;   /* 0x4b6c038005870007 */\n        /*0050*/                   NOP ;                                              /* 0x50b0000000070f00 */\n        /*0058*/               @P0 EXIT ;                                             /* 0xe30000000000000f */\n"
+        },
+        {
+          "first_line": 90,
+          "last_line": 95,
+          "text": "        /*0228*/                   ISETP.NE.AND P1, PT, R10, RZ, PT ;                 /* 0x5b6b03800ff70a0f */\n        /*0230*/                   IADD32I R3, R3, 0x1 ;                              /* 0x1c00000000170303 */\n        /*0238*/                   DFMA R12, R6, R4, R12 ;                            /* 0x5b7006000047060c */\n                                                                                      /* 0x001ff400ffa007fe */\n        /*0248*/               @P1 BRA 0x198 ;                                        /* 0xe2400ffff481000f */\n        /*0250*/                   SYNC ;                                             /* 0xf0f800000007000f */\n"
+        },
+        {
+          "first_line": 515,
+          "last_line": 521,
+          "text": "        /*0f70*/                   DEPBAR.LE SB5, 0x1 ;                               /* 0xf0f0000034170000 */\n        /*0f78*/                   DFMA R6, R10, R8, R6 ;                             /* 0x5b70030000870a06 */\n                                                                                      /* 0x001ff82106000f18 */\n        /*0f88*/                   DFMA R6, R18, R20, R6 ;                            /* 0x5b70030001471206 */\n        /*0f90*/                   DFMA R12, R26, R24, R6 ;                           /* 0x5b70030001871a0c */\n        /*0f98*/              @!P1 BRA 0x570 ;                                        /* 0xe2400fff5d09000f */\n                                                                                      /* 0x001fc4c0fe0007fd */\n"
+        },
+        {
+          "first_line": 779,
+          "last_line": 780,
+          "text": "        /*17b0*/                   LEA.HI.X R3, R0, c[0x0][0x16c], RZ, 0x3 ;          /* 0x1a1f7f8005b70003 */\n        /*17b8*/                   STG.E.64 [R2], R12 ;                               /* 0xeedd20000007020c */\n"
+        },
+        {
+          "first_line": 810,
+          "last_line": 825,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM70 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM70)\"\n        /*0000*/                   MOV R1, c[0x0][0x28] ;                             /* 0x00000a0000017a02 */\n                                                                                      /* 0x000fe40000000f00 */\n        /*0010*/              @!PT SHFL.IDX PT, RZ, RZ, RZ, RZ ;                      /* 0x000000fffffff389 */\n                                                                                      /* 0x000fe200000e00ff */\n        /*0020*/                   S2R R0, SR_CTAID.X ;                               /* 0x0000000000007919 */\n                                                                                      /* 0x000e280000002500 */\n        /*0030*/                   S2R R3, SR_TID.X ;                                 /* 0x0000000000037919 */\n                                                                                      /* 0x000e240000002100 */\n        /*0040*/                   IMAD R0, R0, c[0x0][0x0], R3 ;                     /* 0x0000000000007a24 */\n                                                                                      /* 0x001fca00078e0203 */\n        /*0050*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;   /* 0x0000600000007a0c */\n                                                                                      /* 0x000fd80003f06070 */\n        /*0060*/               @P0 EXIT ;                                             /* 0x000000000000094d */\n                                                                                      /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 884,
+          "last_line": 892,
+          "text": "        /*0240*/                   ISETP.NE.AND P1, PT, R4, RZ, PT ;                  /* 0x000000ff0400720c */\n                                                                                      /* 0x000fe40003f25270 */\n        /*0250*/                   IADD3 R5, R5, 0x1, RZ ;                            /* 0x0000000105057810 */\n                                                                                      /* 0x000fe20007ffe0ff */\n        /*0260*/                   DFMA R12, R10, R8, R12 ;                           /* 0x000000080a0c722b */\n                                                                                      /* 0x00a052000000000c */\n        /*0270*/               @P1 BRA 0x1c0 ;                                        /* 0xffffff4000001947 */\n                                                                                      /* 0x000fea000383ffff */\n        /*0280*/                   BSYNC B1 ;                                         /* 0x0000000000017941 */\n"
+        },
+        {
+          "first_line": 1237,
+          "last_line": 1255,
+          "text": "                                                                                      /* 0x000f6200001eeb00 */\n        /*0d50*/                   DFMA R10, R20, R18, R10 ;                          /* 0x00000012140a722b */\n                                                                                      /* 0x010ea2000000000a */\n        /*0d60*/                   IADD3 R5, R5, 0x10, RZ ;                           /* 0x0000001005057810 */\n                                                                                      /* 0x000fc80007ffe0ff */\n        /*0d70*/                   ISETP.GE.U32.AND P1, PT, R5, R4, PT ;              /* 0x000000040500720c */\n                                                                                      /* 0x000fc60003f26070 */\n        /*0d80*/                   DFMA R10, R12, R24, R10 ;                          /* 0x000000180c0a722b */\n                                                                                      /* 0x004ed0000000000a */\n        /*0d90*/                   DFMA R10, R26, R14, R10 ;                          /* 0x0000000e1a0a722b */\n                                                                                      /* 0x008f50000000000a */\n        /*0da0*/                   DFMA R10, R16, R6, R10 ;                           /* 0x00000006100a722b */\n                                                                                      /* 0x020e10000000000a */\n        /*0db0*/                   DFMA R12, R22, R28, R10 ;                          /* 0x0000001c160c722b */\n                                                                                      /* 0x001062000000000a */\n        /*0dc0*/              @!P1 BRA 0x5a0 ;                                        /* 0xfffff7d000009947 */\n                                                                                      /* 0x000fea000383ffff */\n        /*0dd0*/                   BSYNC B1 ;                                         /* 0x0000000000017941 */\n                                                                                      /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 1460,
+          "last_line": 1464,
+          "text": "        /*1440*/                   LDG.E.64.SYS R6, [R6] ;                            /* 0x0000000006067381 */\n                                                                                      /* 0x000f6200001eeb00 */\n        /*1450*/                   DFMA R2, R4, R2, R12 ;                             /* 0x000000020402722b */\n                                                                                      /* 0x006ed0000000000c */\n        /*1460*/                   DFMA R2, R14, R10, R2 ;                            /* 0x0000000a0e02722b */\n"
+        },
+        {
+          "first_line": 1505,
+          "last_line": 1522,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM80 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM80)\"\n        /*0000*/                   MOV R1, c[0x0][0x28] ;                             /* 0x00000a0000017a02 */\n                                                                                      /* 0x000fe40000000f00 */\n        /*0010*/                   S2R R0, SR_CTAID.X ;                               /* 0x0000000000007919 */\n                                                                                      /* 0x000e280000002500 */\n        /*0020*/                   S2R R3, SR_TID.X ;                                 /* 0x0000000000037919 */\n                                                                                      /* 0x000e240000002100 */\n        /*0030*/                   IMAD R0, R0, c[0x0][0x0], R3 ;                     /* 0x0000000000007a24 */\n                                                                                      /* 0x001fca00078e0203 */\n        /*0040*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;   /* 0x0000600000007a0c */\n                                                                                      /* 0x000fda0003f06070 */\n        /*0050*/               @P0 EXIT ;                                             /* 0x000000000000094d */\n                                                                                      /* 0x000fea0003800000 */\n        /*0060*/                   HFMA2.MMA R3, -RZ, RZ, 0, 2.384185791015625e-07 ;  /* 0x00000004ff037435 */\n                                                                                      /* 0x000fe200000001ff */\n        /*0070*/                   IADD3 R6, R0, 0x1, RZ ;                            /* 0x0000000100067810 */\n                                                                                      /* 0x000fe20007ffe0ff */\n"
+        },
+        {
+          "first_line": 1575,
+          "last_line": 1586,
+          "text": "        /*0220*/                   ISETP.NE.AND P1, PT, R4, RZ, PT ;                  /* 0x000000ff0400720c */\n                                                                                      /* 0x000fe40003f25270 */\n        /*0230*/                   IADD3 R5, R5, 0x1, RZ ;                            /* 0x0000000105057810 */\n                                                                                      /* 0x000fe20007ffe0ff */\n        /*0240*/                   DFMA R24, R10, R8, R24 ;                           /* 0x000000080a18722b */\n                                                                                      /* 0x00a0540000000018 */\n        /*0250*/               @P1 BRA 0x1a0 ;                                        /* 0xffffff4000001947 */\n                                                                                      /* 0x000fea000383ffff */\n        /*0260*/                   BSYNC B1 ;                                         /* 0x0000000000017941 */\n                                                                                      /* 0x000fea0003800000 */\n        /*0270*/              @!P0 BRA 0x1440 ;                                       /* 0x000011c000008947 */\n                                                                                      /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 1928,
+          "last_line": 1942,
+          "text": "                                                                                      /* 0x000fc80007ffe0ff */\n        /*0d30*/                   ISETP.GE.U32.AND P1, PT, R5, R4, PT ;              /* 0x000000040500720c */\n                                                                                      /* 0x000fe20003f26070 */\n        /*0d40*/                   DFMA R8, R10, R14, R8 ;                            /* 0x0000000e0a08722b */\n                                                                                      /* 0x004ecc0000000008 */\n        /*0d50*/                   DFMA R8, R12, R16, R8 ;                            /* 0x000000100c08722b */\n                                                                                      /* 0x008f0c0000000008 */\n        /*0d60*/                   DFMA R8, R18, R24, R8 ;                            /* 0x000000181208722b */\n                                                                                      /* 0x010f4c0000000008 */\n        /*0d70*/                   DFMA R24, R6, R20, R8 ;                            /* 0x000000140618722b */\n                                                                                      /* 0x0200620000000008 */\n        /*0d80*/              @!P1 BRA 0x560 ;                                        /* 0xfffff7d000009947 */\n                                                                                      /* 0x000fea000383ffff */\n        /*0d90*/                   BSYNC B1 ;                                         /* 0x0000000000017941 */\n                                                                                      /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 2159,
+          "last_line": 2162,
+          "text": "        /*1460*/                   LEA.HI.X R3, R0, c[0x0][0x18c], RZ, 0x3, P0 ;      /* 0x0000630000037a11 */\n                                                                                      /* 0x000fca00000f1cff */\n        /*1470*/                   STG.E.64 [R2.64], R24 ;                            /* 0x0000001802007986 */\n                                                                                      /* 0x002fe2000c101b04 */\n"
+        },
+        {
+          "first_line": 2216,
+          "last_line": 2235,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM90 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM90)\"\n        /*0000*/                   LDC R1, c[0x0][0x28] ;                             /* 0x00000a00ff017b82 */\n                                                                                      /* 0x000e240000000800 */\n        /*0010*/                   S2R R0, SR_CTAID.X ;                               /* 0x0000000000007919 */\n                                                                                      /* 0x000e620000002500 */\n        /*0020*/                   ULDC UR4, c[0x0][0x0] ;                            /* 0x0000000000047ab9 */\n                                                                                      /* 0x000fe20000000800 */\n        /*0030*/                   S2R R3, SR_TID.X ;                                 /* 0x0000000000037919 */\n                                                                                      /* 0x000e640000002100 */\n        /*0040*/                   IMAD R0, R0, UR4, R3 ;                             /* 0x0000000400007c24 */\n                                                                                      /* 0x002fe2000f8e0203 */\n        /*0050*/                   ULDC UR4, c[0x0][0x230] ;                          /* 0x00008c0000047ab9 */\n                                                                                      /* 0x000fc80000000800 */\n        /*0060*/                   ISETP.GE.U32.AND P0, PT, R0, UR4, PT ;             /* 0x0000000400007c0c */\n                                                                                      /* 0x000fda000bf06070 */\n        /*0070*/               @P0 EXIT ;                                             /* 0x000000000000094d */\n                                                                                      /* 0x000fea0003800000 */\n        /*0080*/                   LDC.64 R4, c[0x0][0x220] ;                         /* 0x00008800ff047b82 */\n                                                                                      /* 0x000e620000000a00 */\n"
+        },
+        {
+          "first_line": 2290,
+          "last_line": 2318,
+          "text": "        /*0240*/                   IADD3 R16, R16, -0x1, RZ ;                         /* 0xffffffff10107810 */\n                                                                                      /* 0x000fe20007ffe0ff */\n        /*0250*/                   IMAD.WIDE.U32 R14, R11, 0x8, R4 ;                  /* 0x000000080b0e7825 */\n                                                                                      /* 0x018fcc00078e0004 */\n        /*0260*/                   LDG.E.64 R14, desc[UR4][R14.64] ;                  /* 0x000000040e0e7981 */\n                                                                                      /* 0x000ea2000c1e1b00 */\n        /*0270*/                   ISETP.NE.AND P1, PT, R16, RZ, PT ;                 /* 0x000000ff1000720c */\n                                                                                      /* 0x000fe40003f25270 */\n        /*0280*/                   IADD3 R3, R3, 0x1, RZ ;                            /* 0x0000000103037810 */\n                                                                                      /* 0x000fe20007ffe0ff */\n        /*0290*/                   DFMA R22, R14, R12, R22 ;                          /* 0x0000000c0e16722b */\n                                                                                      /* 0x004fd40000000016 */\n        /*02a0*/               @P1 BRA 0x200 ;                                        /* 0xfffffffc00d41947 */\n                                                                                      /* 0x000fea000383ffff */\n        /*02b0*/                   BSYNC B1 ;                                         /* 0x0000000000017941 */\n                                                                                      /* 0x000fea0003800000 */\n        /*02c0*/              @!P0 BRA 0x1510 ;                                       /* 0x0000001000908947 */\n                                                                                      /* 0x000fea0003800000 */\n        /*02d0*/                   ISETP.GE.U32.AND P1, PT, R3, R2, PT ;              /* 0x000000020300720c */\n                                                                                      /* 0x000fe20003f26070 */\n        /*02e0*/                   BSSY B1, 0x560 ;                                   /* 0x0000027000017945 */\n                                                                                      /* 0x000fe20003800000 */\n        /*02f0*/                   PLOP3.LUT P0, PT, PT, PT, PT, 0x80, 0x0 ;          /* 0x000000000000781c */\n                                                                                      /* 0x000fd60003f0f070 */\n        /*0300*/              @!P1 BRA 0x550 ;                                        /* 0x0000000000909947 */\n                                                                                      /* 0x000fea0003800000 */\n        /*0310*/                   LDC.64 R24, c[0x0][0x218] ;                        /* 0x00008600ff187b82 */\n                                                                                      /* 0x000e620000000a00 */\n        /*0320*/                   IADD3 R11, R3.reuse, 0x1, RZ ;                     /* 0x00000001030b7810 */\n"
+        },
+        {
+          "first_line": 2658,
+          "last_line": 2671,
+          "text": "        /*0dc0*/                   IADD3 R3, R3, 0x10, RZ ;                           /* 0x0000001003037810 */\n                                                                                      /* 0x000fe20007ffe0ff */\n        /*0dd0*/                   DFMA R14, R24, R16, R14 ;                          /* 0x00000010180e722b */\n                                                                                      /* 0x020fc6000000000e */\n        /*0de0*/                   ISETP.GE.U32.AND P1, PT, R3, R4, PT ;              /* 0x000000040300720c */\n                                                                                      /* 0x000fca0003f26070 */\n        /*0df0*/                   DFMA R14, R18, R20, R14 ;                          /* 0x00000014120e722b */\n                                                                                      /* 0x004fd0000000000e */\n        /*0e00*/                   DFMA R22, R12, R26, R14 ;                          /* 0x0000001a0c16722b */\n                                                                                      /* 0x008fe2000000000e */\n        /*0e10*/              @!P1 BRA 0x600 ;                                        /* 0xfffffff400f89947 */\n                                                                                      /* 0x000ff4000383ffff */\n        /*0e20*/                   BSYNC B1 ;                                         /* 0x0000000000017941 */\n                                                                                      /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 2897,
+          "last_line": 2901,
+          "text": "                                                                                      /* 0x000fc8000f8018ff */\n        /*1540*/                   LEA.HI.X R3, R0, UR7, RZ, 0x3, P0 ;                /* 0x0000000700037c11 */\n                                                                                      /* 0x000fca00080f1cff */\n        /*1550*/                   STG.E.64 desc[UR4][R2.64], R22 ;                   /* 0x0000001602007986 */\n                                                                                      /* 0x000fe2000c101b04 */\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_cuda_r3",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "7078f9d9e4376de467a73efc17802a524c1039d5595800f2ee6cd66b59098baf"
+  },
+  "binary_sha256": "4155787aeb2f813dbf7ccc1ac3b60405c98755c15dc6156123d72a289232dcdd",
+  "binding_sha256": "782a1b8fe79843c1384eecad39e99dad3a32ece2aff6f1befb6507ec9669b940",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "f61cfd067f451545a4c7cdce9cd1845dfd092383752722c42f665ff632b7bcfa",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:33:08 UTC",
+    "sampled_ids": [
+      "spmv_claude-haiku-5.5-cc-medium_cuda_r4"
+    ],
+    "method": "Primary read every submitted claim and independently inspected complete CC5.5 CUDA r4 source/build, exact measured host loop and full final SASS. Primary detected incorrect copied helper synchronization, row-guard and warp-mapping descriptions in the first proposal and returned the whole batch to Luna for exact-file reaudit. Version2 corrects these; other findings rely on Luna's reaudit plus primary report and pinned-evidence checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Used version2 after full batch reaudit; original proposal preserved.",
+      "Expanded references to complete cited source/build files.",
+      "Retained complete short r4 final SASS function so row guard, empty-CSR guard, arithmetic backedges and store remain together."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:29:20Z",
+  "review_finished_at": "2026-11-04T14:31:45Z",
+  "review_input_sha256": "a4af54af0a0b31166f2d1e2418688cdd5f5938ebf42bfbc26594cf55917b9740",
+  "pack_sha256": "c7ac14b883c1648ce02754b6fc2839e91a2b7451ecfada5f4fb59c5f9c407178",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

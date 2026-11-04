@@ -1,0 +1,620 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T16:23:21Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Chrono timing starts at 0xb736 and ends at 0xb763 (not CUDA events). The measured repetition loop starts at 0xc022, launches the actual `spmvCudaKernel` stub beginning 0xcb60 at callsite 0xc08f, increments r12d at 0xc016, compares with the requested count at 0xc019, and repeats via 0xc022; the end path synchronizes before taking the end clock. A block maps to each local row, threads process the entire row-nnz interval in block-size strides, shared reduction combines partials and thread 0 stores. The runtime device identity is absent; sm_80 and sm_86 bodies both inspected.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              25
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              501
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1561,
+              1570
+            ],
+            [
+              2035,
+              2097
+            ],
+            [
+              2748,
+              2815
+            ]
+          ],
+          "claim": "Exact chrono start/end, counted loop/backedge and full called launch stub through runtime call."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              390,
+              531
+            ],
+            [
+              532,
+              670
+            ]
+          ],
+          "claim": "Complete sm_80 and sm_86 native kernel bodies respectively, including row guard, block-stride CSR arithmetic, shared reduction and result store."
+        }
+      ],
+      "notes": "The prior register_tm_clones citation was unrelated and is not used. The pack also contains sm_60/70/75 bodies; actual GPU identity is not recorded."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CUDA events bound the measured work: start event is recorded at 0x34ca, stop event at 0x34ed, then synchronized at 0x34f9. With local rows, the compiled loop enters at 0x396f, calls the kernel stub at 0x39e3 (function starts 0x4f00), increments at 0x3960, compares to requested iterations at 0x3963, and loops to 0x396f; completion exits to stop-event recording. The selected sm_86 kernel gives each row to a thread, loops from row start to row end across every stored nonzero, and stores the sum.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              34
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              470
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1224,
+              1239
+            ],
+            [
+              1447,
+              1478
+            ],
+            [
+              2698,
+              2758
+            ]
+          ],
+          "claim": "Exact event start/stop/sync calls, timed counter/backedge and called launch stub's complete body through CUDA runtime launch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              498
+            ],
+            [
+              499,
+              711
+            ]
+          ],
+          "claim": "Complete sm_86 body for the selected `spmvCsrKernel`, including row guard, CSR interval traversal, multiply/accumulate and store."
+        }
+      ],
+      "notes": "CPU OpenMP reference/verification workers are not part of the timed GPU path."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CUDA events bound the timed loop: start recording at 0x38cd, the stub launch at 0x3974 (function starts 0x52c0), counter increment/compare at 0x397f–0x3981 and backedge 0x3983→0x390c, stop recording at 0x398e and stop-event synchronization at 0x39e7. Each iteration launches the selected sm_86 one-thread-per-row kernel; each thread visits the complete CSR row interval, accumulates products and stores its row result.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              36
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              544
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1467,
+              1510
+            ],
+            [
+              1528,
+              1552
+            ],
+            [
+              2943,
+              3009
+            ]
+          ],
+          "claim": "Exact start event, counted launch/backedge, stop-event/synchronization, and full called CUDA stub body."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              498
+            ],
+            [
+              499,
+              711
+            ]
+          ],
+          "claim": "Complete sm_86 `spmv_cuda_kernel` body, including row bounds, nonzero arithmetic and store."
+        }
+      ],
+      "notes": "The OpenMP CPU reference worker is not treated as timed GPU computation."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Chrono timing starts at host call 0x3418 and ends at 0x36b0. The measured counter loop starts at 0x346d, calls the `spmvCsrWarpKernel` stub at 0x34e1 (stub starts 0x4e90), synchronizes each completed launch, increments at 0x3463, compares with the requested count at 0x3465, and returns to 0x346d until done. Its selected sm_86 warp-per-row kernel has lanes traverse each row's CSR interval in 32-entry strides, reduce and store lane 0's result.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              431
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1192,
+              1230
+            ],
+            [
+              1288,
+              1332
+            ],
+            [
+              2660,
+              2726
+            ]
+          ],
+          "claim": "Exact chrono boundaries, counted loop/backedge, per-iteration synchronization and complete actual stub body."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ]
+          ],
+          "claim": "Complete sm_86 warp-kernel native body with row/lane bounds, CSR traversal, reduction/store and loop control."
+        }
+      ],
+      "notes": "OpenMP workers shown in the executable belong to reference/verification code, not the timed GPU arithmetic."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Chrono timing starts at 0x363d and ends at 0x3792. The nonempty-row/count path enters the timed loop at 0x36ae, launches the only source-selected `spmv_csr_warp_kernel` through stub 0x4e70 at callsite 0x3727, increments at 0x372c, compares at 0x372e, and branches back to 0x36ae at 0x3734. After requested repetitions, main checks launch status, synchronizes, then takes the ending clock. The sm_86 kernel uses a warp per row; lane-strides span each entire CSR interval, followed by reduction and one row store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              29
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              426
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1301,
+              1366
+            ],
+            [
+              2695,
+              2762
+            ]
+          ],
+          "claim": "Exact chrono start/end, counted launch loop and its complete actual stub body."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ]
+          ],
+          "claim": "Complete sm_86 warp kernel body with row/lane assignment, CSR interval traversal, reduction and store."
+        }
+      ],
+      "notes": "CPU reference/validation functions are excluded from the timed compute path."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Chrono timing starts at 0x3637 and ends at 0x390c. The runtime selector is `useWarpKernel = (avgNnzPerRow >= 8)`. Its scalar path loops from 0x36ad, calls scalar stub 0x5270 at 0x3711, synchronizes at 0x3690, increments/compares at 0x369d–0x36a7, and returns to 0x36ad. The warp path loops from 0x435d, calls warp stub 0x5110 at 0x43c1, synchronizes at 0x4340, increments/compares at 0x434d–0x4357, and returns to 0x435d. Both variants cover their selected rows' full CSR intervals and store each row sum; warp uses 32-lane strides/reduction. The exact runtime GPU architecture is absent from the pack, so both sm_80 and sm_86 bodies for both selector choices were reviewed.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              31
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              582
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1335,
+              1390
+            ],
+            [
+              1468,
+              1474
+            ],
+            [
+              2008,
+              2045
+            ],
+            [
+              2866,
+              2936
+            ],
+            [
+              2937,
+              3007
+            ]
+          ],
+          "claim": "Exact chrono start/end, both timed count/backedge and launch paths, and complete warp/scalar stubs."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1995,
+              2474
+            ],
+            [
+              2475,
+              2687
+            ],
+            [
+              2688,
+              2998
+            ],
+            [
+              2999,
+              3478
+            ],
+            [
+              3479,
+              3691
+            ],
+            [
+              3692,
+              3984
+            ]
+          ],
+          "claim": "Complete sm_80 and sm_86 bodies for both selectable variants in bounded chunks; scalar and warp row/nonzero traversal, arithmetic/reduction and stores."
+        }
+      ],
+      "notes": "The pack also includes sm_70/sm_75 code, while runtime device identity is not included; sm_80 and sm_86 variants are the final compatible bodies inspected here."
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Chrono timing starts at host call 0x33e5 and ends at 0x35dd. Main initializes the counter at 0x3413, issues each kernel launch through `cudaLaunchKernel` with function pointer `spmvCudaKernel` (entry 0x40c0; timed launch construction at 0x3560–0x359b), then copies/synchronizes the stream at 0x35bd–0x35c9, increments at 0x35ce, compares to requested iterations at 0x35d1 and branches back to 0x3430 at 0x35d7. One block handles each local row; its threads stride over the row's complete CSR range, reduce shared partials and thread 0 stores. The bundle has sm_80 and sm_86 variants; both were checked because runtime GPU identity is not recorded.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              34
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              484
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report(s)."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1165,
+              1250
+            ]
+          ],
+          "claim": "Exact timed start/end, direct CUDA launch runtime call and passed kernel pointer, stream synchronization, loop increment/bound/backedge."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              305,
+              455
+            ],
+            [
+              456,
+              588
+            ]
+          ],
+          "claim": "Complete sm_80 and sm_86 `spmvCudaKernel` bodies; each row's CSR traversal, arithmetic/reduction, store and control flow."
+        }
+      ],
+      "notes": "No out-of-line device stub call occurs in this timed path; the main body directly calls CUDA launch runtime with the kernel function pointer."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "review_finished_at": "2026-11-04T16:25:52Z",
+  "timing_note": "These timestamps bound primary acceptance in this session only. Luna's exact inspection start is unknown and preserved in the raw proposal; this interval is not a throughput/cost estimate.",
+  "reinspection_note": "For each ID, exact source timing/selector/CSR path and host timer, iteration loop/backedge, callsites, and actual helper bodies were re-read in this correction pass. Prior per-ID native SASS body analysis is reused where applicable; architecture headers and exact body ranges are checked again here. Multi-architecture packs do not identify the runtime device; sm_80 and sm_86 compatible native bodies are both cited where present.",
+  "proposal_sha256": "2c247626b96024e22831c50b706de31048fbb769f0dfb7f57edd736d22e7ddc3",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T16:25:52Z",
+    "sampled_ids": [
+      "spmv_qwen-3.6-27B-udq4_hybrid_r3"
+    ],
+    "method": "Read all seven unique findings and exact per-ID evidence claims. Independently inspect sample complete source/build, quotient/remainder MPI partition with rebased full local CSR and full dense-vector broadcast, compiled chrono timing/count loop and full actual called stub, and complete sm86 block-row kernel through CSR stride/reduction/store. Other IDs inspected by Luna. Reject duplicate and missing-ID coverage rather than relabel copied evidence; missing pi-t r3 requires a separate report.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Accept only seven unique IDs from this eight-entry proposal; duplicate udq4 r3 cannot cover missing pi-t r3.",
+      "Preserve exact unknown Luna start in raw metadata; acceptance interval is not a measured inspection interval.",
+      "Expand source references to complete pinned files.",
+      "Retain explicit distinction between reviewed embedded architectures and runtime device selection."
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  }
+}

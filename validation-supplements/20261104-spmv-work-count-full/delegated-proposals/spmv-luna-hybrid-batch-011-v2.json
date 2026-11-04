@@ -1,0 +1,38 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:36:50Z",
+  "review_finished_at": "2026-11-04T15:38:43Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed MPI_Wtime loop executes launchSpmv once per requested iteration. Source selection is by local mean NNZ: scalar below 16, warp through 512, otherwise block. I verified the compiled launcher branches and tail-calls the actual scalar, warp and block device stubs; each complete stub calls cudaLaunchKernel. The three selected sm_86 SASS kernels cover their rows and CSR elements, reduce as required, and store output.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,51]],"claim":"Build config includes CUDA architecture targets and optimization flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,400],[401,808]],"claim":"Full source: all three CSR kernels, selection and grid sizing, MPI row/NNZ partitioning and rebasing, requested timed repetitions and output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1217,1260],[4063,4215],[4216,4373],[3862,3928],[3929,3995],[3996,4062]],"claim":"Timed counted launch loop and backedge; both compiled launchSpmv bodies; complete scalar, warp and block kernel stubs each pass their corresponding kernel symbol/arguments to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[18,343],[344,764],[765,1264],[1265,1505]],"claim":"All three sm_86 kernel bodies through CSR traversal/backedges, arithmetic/reductions and output stores."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source captures iterations launchSpmv calls into a CUDA graph before timed events are recorded. Timed execution launches the captured graph once, which replays the captured repeated SpMV work. I verified the compiled capture loop and its iterations backedge precede the timed event record/graph launch. The complete compiled dispatcher reaches both thread- and warp-kernel stubs, and each stub calls cudaLaunchKernel. Both selected sm_86 SASS kernels traverse CSR work and store outputs.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,37]],"claim":"CUDA/MPI/OpenMP build and device compilation configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,400],[401,529]],"claim":"Full source: complete partitioned CSR input and local delimiters, selector, thread/warp CSR kernels, graph capture for the requested iteration count before event-timed graph replay, and result gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1480,1555],[1560,1595],[3126,3192],[3193,3250],[3260,3350]],"claim":"Complete timed graph preparation/capture loop and backedge precede event-timed graph launch; complete launch dispatcher and both actual kernel stubs, each passing its kernel symbol and arguments to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[18,311],[312,556]],"claim":"sm_86 warp- and thread-row kernel bodies through CSR arithmetic loops/backedges and final output stores."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

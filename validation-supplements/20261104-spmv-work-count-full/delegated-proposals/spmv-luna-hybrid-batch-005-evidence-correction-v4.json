@@ -1,0 +1,35 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:51:10Z",
+  "review_finished_at": "2026-11-04T14:51:10Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-005-evidence-correction-v3.json compiled host evidence for Sonnet5 CC r2/r3",
+  "reviews": [
+    {
+      "id": "spmv_claude-sonnet-5-cc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed caller configures a GOMP team and enters main._omp_fn.2, not the nearby setup/verification worker. That actual worker selects its GPU, loops to the requested iteration count, submits the warp kernel stub on each pass and synchronizes before returning. Its disjoint per-device row chunk comes from the source partition; complete warp SASS includes the row store.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[342,382],[404,432],[446,475]],"claim":"MPI local CSR slice, disjoint device chunks, timed GOMP repetition, per-device iteration loop and output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1411,1421],[2984,3053],[2917,2977]],"claim":"Timed main call targets main._omp_fn.2; that actual worker uses an iterations counter/backedge, submits the warp stub each pass and synchronizes; stub forwards to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,311]],"claim":"Complete warp kernel row bounds, CSR traversal/reduction and result store/exit at 305–311."}
+      ],
+      "notes":"Earlier cited host range 2390–2490 was not the timed worker."
+    },
+    {
+      "id": "spmv_claude-sonnet-5-cc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed main loop has an outer requested-iteration counter and calls GOMP with main._omp_fn.2. That worker maps threads to disjoint chunks, launches a kernel for each nonempty chunk and returns to the outer iteration backedge; the caller synchronizes every stream before ending timing. The final kernel SASS path is cited through its store.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[339,366],[374,407],[409,451],[468,520]],"claim":"Rank-local CSR data and chunk partition; timed iteration invokes the chunk worker and synchronizes streams before result handling."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1706,1732],[3654,3766],[3583,3647],[1732,1765]],"claim":"Timed outer loop passes main._omp_fn.2 to GOMP with an iteration backedge; actual outlined worker covers its assigned chunk IDs and invokes the kernel stub for each nonempty chunk; caller synchronizes streams after the repetition loop; stub submits CUDA kernel."},
+        {"file":"device-sass.txt","ranges":[[19,350],[351,689]],"claim":"Full final row kernel including row bounds, CSR traversal/arithmetic and store at 683."}
+      ],
+      "notes":"Earlier cited host range 2450–2540 preceded the outlined workers and did not include the timed worker body."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

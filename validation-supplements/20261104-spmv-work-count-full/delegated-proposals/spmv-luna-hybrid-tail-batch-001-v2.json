@@ -1,0 +1,142 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:23:15Z",
+  "review_finished_at": "2026-11-04T15:25:23Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-terra-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: verified the timed main path reaches the exact CUDA device stub, which submits the named kernel through cudaLaunchKernel; paired with the original complete row/nonzero SASS evidence. The original source/build and SASS evidence is retained in batch001.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,211]],"claim":"Full exact source for dimensions, CSR/MPI partition, kernel dispatch and timed iteration loop."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,22]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1405,1485],[2273,2333]],"claim":"Timed main repetition/call path plus the complete exact device stub, including its cudaLaunchKernel call to spmvKernel."},
+        {"file":"device-sass.txt","ranges":[[1,142]],"claim":"Original report's complete final-sm86 arithmetic/coverage evidence."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: verified the measured main loop and the exact spmvCsrKernel device stub it invokes; the stub forwards the launch to cudaLaunchKernel. Original source/build and complete compatible SASS references remain in batch001.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,223]],"claim":"Full source for CLI dimensions/count, MPI row/nonzero partition, kernel dispatch and repetition control."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,17]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[971,1009],[1170,1181],[1981,2049]],"claim":"Measured main path and complete exact spmvCsrKernel stub through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[1,400],[401,750]],"claim":"Original complete compatible SASS evidence."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: the exact timed main loop calls the compiled spmvCsrWarpKernel device stub; the full stub body forwards the kernel function and launch arguments to cudaLaunchKernel. Original row/nonzero SASS coverage remains in batch001.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,230]],"claim":"Full exact source for CSR distribution, warp kernel and measured repetition."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[965,1061],[1897,1957]],"claim":"Measured main loop and complete exact device stub, including its cudaLaunchKernel call to spmvCsrWarpKernel."},
+        {"file":"device-sass.txt","ranges":[[1,339]],"claim":"Original complete final-sm86 warp-kernel evidence."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: independently checked this ID's own host dump (not the similarly named xhigh variant). Its chrono-bounded main loop calls the exact spmvKernel device stub, which in turn calls cudaLaunchKernel. The source and compatible SASS evidence in batch001 apply to this ID.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,207]],"claim":"Full exact source for MPI partition, runtime repetition loop and warp-stride CSR kernel."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1615,1875],[2816,2876]],"claim":"This binary's own chrono-bounded main loop/call path and complete exact device stub through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[1,339]],"claim":"Original complete final-sm86 kernel evidence."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: host inspection confirms a single full-kernel graph node is captured through the device stub, then the timed main path launches that graph according to the runtime iteration count; remainder/direct path is also in the timing region. The exact compiled stub calls cudaLaunchKernel. Original source and final-SASS evidence remains in batch001.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,400],[401,557]],"claim":"Full source, chunked under 500 lines, including graph-node capture, runtime timed replay/remainder, and MPI data partition."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,29]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[873,932],[1145,1172],[2762,2828]],"claim":"Exact main capture/instantiate, timed graph loop and event boundaries, plus complete exact warp-kernel stub through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[1,327]],"claim":"Original complete final-sm86 kernel evidence."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: verified the event-bounded main path's iteration-counted device-stub calls and the complete exact stub forwarding the named kernel to cudaLaunchKernel. Original source and SASS evidence remains in batch001.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,479]],"claim":"Full exact source for runtime inputs, MPI CSR partition and measured iteration loop."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,25]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1095,1177],[2694,2760]],"claim":"Event start/repetition/stop and complete exact spmvKernel stub through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[1,302]],"claim":"Original complete final-sm86 kernel evidence."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: distinguished the setup/capture worker from the measured replay worker. The setup OpenMP worker builds each device's graph by launching the kernel once per requested iteration through the exact device stub; the timed OpenMP worker then launches each completed graph and records/synchronizes device events. The clock in main surrounds the OpenMP timed worker. Original SASS evidence remains in batch001.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,499],[500,667]],"claim":"Full source, chunked under 500 lines, covering per-worker graph capture, exact iteration node count, timed graph execution and MPI row partition."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,39]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1745,1766],[3220,3415],[3934,4200],[4201,4437],[3873,3933]],"claim":"Main clock/GOMP boundary, complete timed outlined worker, complete per-device setup/capture worker split into bounded spans, and the exact device stub through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[1,302]],"claim":"Original complete final-sm86 kernel evidence."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_hybrid_r4",
+      "finding": "uncertain",
+      "summary": "The host main loop repeatedly calls the external cusparseSpMV entry point within recorded CUDA events, then synchronizes the stop event. The prepared SASS dump is blank, so final device arithmetic/row/nonzero coverage is not inspectable from the supplied compiled evidence; leave for adjudication rather than infer from the API name/source alone.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,499],[500,535]],"claim":"Full source, chunked under 500 lines, for MPI CSR partition and measured cuSPARSE SpMV calls."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,22]],"claim":"Full exact build configuration including cuSPARSE linkage."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2560,2610]],"claim":"Exact event-bounded main repetition loop with the repeated cusparseSpMV call and event synchronization."},
+        {"file":"device-sass.txt","ranges":[[1,1]],"claim":"Prepared SASS file contains no device instructions."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: verified this separate binary's event-bounded loop and direct spmvCsrKernel stub. The event start/stop region and repetition backedge were read in this exact file; the stub calls cudaLaunchKernel. The original compatible sm80/sm86 SASS evidence remains in batch001. The prior [1615,1875] host citation was copied from the medium r5 binary and is not used here.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,441]],"claim":"Full exact source for runtime count, MPI row partition and measured per-iteration kernel loop."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,45]],"claim":"Full exact multi-architecture build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1786,1815],[2106,2135],[3140,3200]],"claim":"This binary's exact event boundaries, count-controlled loop/backedge and device-stub body through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[370,666],[709,1004]],"claim":"Original complete compatible sm80 and sm86 kernel bodies."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-astra-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction supplement: verified per-ID helper/capture/clock path. The setup code captures up to 32 complete launches through launch(DeviceData,...); that exact compiled helper dispatches among all width kernels and the long-row kernel. The measured clock surrounds graph quotient replay and the remainder path, which calls the same helper; stream synchronization and clock end are included in the cited ranges. Original complete source and all selectable SASS variants remain in batch001.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,477]],"claim":"Full exact source for MPI CSR partition, width/long-row dispatch, bounded graph capture and timed quotient/remainder launches."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,25]],"claim":"Full exact build configuration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[3632,3663],[3684,3733],[3033,3042],[1680,2177]],"claim":"Exact graph capture loop and helper call, timed MPI_Wtime start/graph quotient/remainder helper path and the exact end-clock/synchronization block, plus complete launch dispatch helper through device-kernel launch stubs."},
+        {"file":"device-sass.txt","ranges":[[19,400],[401,871],[872,1300],[1301,1692],[1693,2100],[2101,2481],[2482,2900],[2901,3238],[3239,3600],[3601,3979],[3980,4300],[4301,4640],[4641,5100],[5101,5525]],"claim":"Original complete final-sm86 evidence for selectable widths 32/16/8/4/2/1 and long-row kernel."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

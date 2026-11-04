@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-opus-5-cc-medium_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Nonzero-balanced contiguous row partitions collectively cover the complete matrix and are multiplied for each requested iteration. The final gather is timed in addition to all products.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          84,
+          120
+        ],
+        [
+          138,
+          148
+        ],
+        [
+          208,
+          243
+        ],
+        [
+          276,
+          330
+        ],
+        [
+          333,
+          369
+        ]
+      ],
+      "claim": "Monotonically advanced rowStart boundaries begin at zero and terminate at numRows, including potentially empty partitions. Complete local CSR products are inside the original CLI iteration loop, with validation references separate.",
+      "sha256": "f19d0a6e2aaf7dd739c333d704296bb9d857cf9e89e3226dd61b04fe6a399c38",
+      "git_blob": "15716167d15cdf1caf643f63de16bc86c4525301"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add 9eed/9ef5 is nested under entry 9efc->9ee0, row 9f13->9eb0, and repetition 9f19->9ea0 branches. The gather and stop clock follow the repetition loop.",
+      "complete_dump_sha256": "308787a3b78cc7216f8bd0ddec7afff0996064eb60f234fab227db82edd25c92",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5-cc-medium_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2071,
+          "last_line": 2136,
+          "text": "    9e3e:\tlea    0xa9fb(%rip),%rdi        # 14840 <ompi_mpi_comm_world@@Base>\n    9e45:\tcall   8e90 <MPI_Barrier@plt>\n    9e4a:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9e4f:\tmov    -0x1b0(%rbp),%edi\n    9e55:\tmov    -0xd0(%rbp),%r13\n    9e5c:\tmov    %rax,-0x200(%rbp)\n    9e63:\ttest   %edi,%edi\n    9e65:\tje     9f22 <main+0x782>\n    9e6b:\tmov    -0x1c4(%rbp),%esi\n    9e71:\ttest   %esi,%esi\n    9e73:\tje     9f22 <main+0x782>\n    9e79:\tmov    -0x1e0(%rbp),%r8\n    9e80:\tmov    -0x1b0(%rbp),%esi\n    9e86:\txor    %ecx,%ecx\n    9e88:\tmov    -0x1a8(%rbp),%rdi\n    9e8f:\tshl    $0x2,%r8\n    9e93:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9e9e:\txchg   %ax,%ax\n    9ea0:\txor    %r9d,%r9d\n    9ea3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9eae:\txchg   %ax,%ax\n    9eb0:\tmov    (%rdi,%r9,1),%eax\n    9eb4:\tmov    0x4(%rdi,%r9,1),%edx\n    9eb9:\tmov    %rdi,%r11\n    9ebc:\tcmp    %edx,%eax\n    9ebe:\tjae    a190 <main+0x9f0>\n    9ec4:\tdec    %edx\n    9ec6:\tlea    (%r14,%rax,4),%r10\n    9eca:\tlea    (%r15,%rax,8),%rdi\n    9ece:\tvxorpd %xmm1,%xmm1,%xmm1\n    9ed2:\tsub    %eax,%edx\n    9ed4:\tmov    %r11,-0x1a8(%rbp)\n    9edb:\txor    %eax,%eax\n    9edd:\tnopl   (%rax)\n    9ee0:\tmov    (%r10,%rax,4),%r11d\n    9ee4:\tvmovsd (%rbx,%r11,8),%xmm0\n    9eea:\tmov    %rax,%r11\n    9eed:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9ef2:\tinc    %rax\n    9ef5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9ef9:\tcmp    %rdx,%r11\n    9efc:\tjne    9ee0 <main+0x740>\n    9efe:\tmov    -0x1a8(%rbp),%rdi\n    9f05:\tvmovsd %xmm1,0x0(%r13,%r9,2)\n    9f0c:\tadd    $0x4,%r9\n    9f10:\tcmp    %r8,%r9\n    9f13:\tjne    9eb0 <main+0x710>\n    9f15:\tinc    %ecx\n    9f17:\tcmp    %esi,%ecx\n    9f19:\tjne    9ea0 <main+0x700>\n    9f1b:\tmov    %rdi,-0x1a8(%rbp)\n    9f22:\tmov    -0x50(%rbp),%rcx\n    9f26:\tsub    $0x8,%rsp\n    9f2a:\tlea    0xa90f(%rip),%rax        # 14840 <ompi_mpi_comm_world@@Base>\n    9f31:\tlea    0xb308(%rip),%rdx        # 15240 <ompi_mpi_double@@Base>\n    9f38:\tmov    -0x1d8(%rbp),%r9\n    9f3f:\tmov    -0x1f8(%rbp),%r8\n    9f46:\tmov    %r13,%rdi\n    9f49:\tmov    -0x1c4(%rbp),%esi\n    9f4f:\tmov    %rcx,-0x1e0(%rbp)\n    9f56:\tpush   %rax\n    9f57:\tpush   $0x0\n    9f59:\tpush   %rdx\n    9f5a:\tcall   9560 <MPI_Gatherv@plt>\n    9f5f:\tadd    $0x20,%rsp\n    9f63:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-opus-5-cc-medium_mpi_r5",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "aad742e4e5673aa5b1ffa11523a9fda5a487b9571465a80a262812f04c70300e"
+  },
+  "binary_sha256": "b7f38ad8cdec9e0e26873e949513460b41aef1410e2f9b7c4f56583a9a86aa24",
+  "binding_sha256": "8263f6e2e842394b8f157cfd99f1f46defaa7531ae68391bff949f66bb883311",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:58:10Z",
+  "review_finished_at": "2026-11-04T12:58:34Z",
+  "review_input_sha256": "410767b7dc916b01a424a777905e59da336d4457e25cc8d13aa92d926a529215",
+  "pack_sha256": "56a872b43e32f5f7a4e9e2e5a36adb4e051a37bd64af6def117c9107f3d2b476",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

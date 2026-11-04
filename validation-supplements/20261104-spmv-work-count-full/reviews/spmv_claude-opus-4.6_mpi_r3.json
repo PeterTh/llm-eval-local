@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-opus-4.6_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The complete distributed CSR product runs for all requested iterations, with remainder rows included in the rank partition.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          163,
+          196
+        ],
+        [
+          233,
+          277
+        ],
+        [
+          280,
+          306
+        ]
+      ],
+      "claim": "Local CSR boundaries cover each rank's full row range, and spmvCpu is called on every timed iteration regardless of validation/output flags.",
+      "sha256": "dd55bd9b9f890e72fb13f36cd2a38391f3a205a77fd1dbea1aa3a9d3cdd6f90e",
+      "git_blob": "bd1090417649f684fd178e4bbdc9324d234e8ff7"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add 9f7d/9f85 remains nested under CSR-entry 9f8c, row 9f9d, and iteration 9fa3->9f30 branches, before the timed end barrier.",
+      "complete_dump_sha256": "19f59ee3b2a9bbf255677773f42eade23513541091a65d2a596f09b1140079d1",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-4.6_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2098,
+          "last_line": 2145,
+          "text": "    9ef1:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9ef6:\tmov    -0x214(%rbp),%ecx\n    9efc:\tmov    -0x50(%rbp),%r12\n    9f00:\tmov    %rax,-0x250(%rbp)\n    9f07:\ttest   %ecx,%ecx\n    9f09:\tje     9fac <main+0x7ec>\n    9f0f:\tmov    -0x22c(%rbp),%edx\n    9f15:\ttest   %edx,%edx\n    9f17:\tje     9fac <main+0x7ec>\n    9f1d:\tmov    -0x214(%rbp),%esi\n    9f23:\tmov    -0x240(%rbp),%rdi\n    9f2a:\txor    %ecx,%ecx\n    9f2c:\tnopl   0x0(%rax)\n    9f30:\txor    %r8d,%r8d\n    9f33:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f3e:\txchg   %ax,%ax\n    9f40:\tmov    (%rdi,%r8,4),%eax\n    9f44:\tmov    0x4(%rdi,%r8,4),%edx\n    9f49:\tmov    %rdi,%r11\n    9f4c:\tcmp    %edx,%eax\n    9f4e:\tjae    a2a0 <main+0xae0>\n    9f54:\tdec    %edx\n    9f56:\tlea    (%r15,%rax,4),%r9\n    9f5a:\tlea    (%r14,%rax,8),%rdi\n    9f5e:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f62:\tsub    %eax,%edx\n    9f64:\txor    %eax,%eax\n    9f66:\tcs nopw 0x0(%rax,%rax,1)\n    9f70:\tmov    (%r9,%rax,4),%r10d\n    9f74:\tvmovsd (%rbx,%r10,8),%xmm0\n    9f7a:\tmov    %rax,%r10\n    9f7d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9f82:\tinc    %rax\n    9f85:\tvaddsd %xmm0,%xmm1,%xmm1\n    9f89:\tcmp    %rdx,%r10\n    9f8c:\tjne    9f70 <main+0x7b0>\n    9f8e:\tmov    %r11,%rdi\n    9f91:\tvmovsd %xmm1,(%r12,%r8,8)\n    9f97:\tinc    %r8\n    9f9a:\tcmp    %r13,%r8\n    9f9d:\tjne    9f40 <main+0x780>\n    9f9f:\tinc    %ecx\n    9fa1:\tcmp    %esi,%ecx\n    9fa3:\tjne    9f30 <main+0x770>\n    9fa5:\tmov    %rdi,-0x240(%rbp)\n    9fac:\tlea    0xa26d(%rip),%rdi        # 14220 <ompi_mpi_comm_world@@Base>\n    9fb3:\tcall   8e80 <MPI_Barrier@plt>\n    9fb8:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-opus-4.6_mpi_r3",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "27ad770be4e755ef4a8aa263465c097d889cf29b092fcb8c9caecc86afc03d2a"
+  },
+  "binary_sha256": "a31aa42c4511c3cdd261381906918c4f05d7e31d8fd3bfb0ddda68a3a2f6e31b",
+  "binding_sha256": "16daf2b8cd74274d5d78f34d3d8c653e5cf45c87e96df496fe13863159bd1074",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:57:07Z",
+  "review_finished_at": "2026-11-04T12:57:41Z",
+  "review_input_sha256": "b1641dfb264c9b31b9fbb96bc7eb12e84d4f769cf3eade5e5b45c7519466667a",
+  "pack_sha256": "9048619533e82affda6c7ebcb682a2e3d3cadf635b78d052331aca91f356d7ed",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

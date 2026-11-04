@@ -1,0 +1,45 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:11:58Z",
+  "review_finished_at": "2026-11-04T15:11:58Z",
+  "reviews": [
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The runtime-count timed main loop calls the selector `launchSpMV`; its full host body chooses the thread- or warp-per-row device variant and tail-jumps to the corresponding actual device stub. Both selected stubs reach cudaLaunchKernel. The two final SASS variants cover their complete row/nonzero work and stores, as documented in correction-v2.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[118,194],[390,421],[432,458],[461,493]],"claim":"Both CSR kernel variants, dispatch based on mean row length, warmup, and counted timed loop/output retrieval."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1241,1320],[1726,1740],[2521,2587],[2588,2654],[2655,2749]],"claim":"Clocked counted loop calls launchSpMV; its dispatch helper tail-calls both selected stubs, each of which issues its CUDA launch; sync/end-time follows."},
+        {"file":"device-sass.txt","ranges":[[19,499],[500,998],[999,1059]],"claim":"Both final variants through row bounds, complete CSR interval traversal/backedges and terminal stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed path processes GPU and CPU row sets on each requested pass. Compiled main has a counted GPU launch path through stub e790 and a counted GOMP path for spmvCpuRows; the actual outlined worker loops selected row IDs and each full CSR interval, computes products and stores the output. The full e790 stub calls cudaLaunchKernel. Final GPU SASS reaches its row-map kernel store.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[148,215],[440,478],[481,510],[536,577]],"claim":"CPU selected-row worker and GPU row-map kernel both scan full row CSR intervals; disjoint row partition, timed repeated paths and result merge."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1646,1674],[2000,2020],[2392,2452],[2844,2922],[3328,3398]],"claim":"Timed clock bracket; actual repeated e790 GPU launch path and complete stub; runtime-count GOMP wrapper for CPU-selected rows and complete spmvCpuRows worker arithmetic/store."},
+        {"file":"device-sass.txt","ranges":[[10,206]],"claim":"Complete GPU subset kernel through its final output store."}
+      ],
+      "notes":"The CPU and GPU own disjoint row lists; the CPU path is not redundant full-matrix work." 
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed count loop dispatches the GPU thread/warp variants for the GPU row subset and calls the OpenMP spmvCpuRange worker for the complementary CPU suffix on every pass. The main GOMP wrapper has a runtime-count backedge; the outlined worker calculates each owned row across its complete CSR interval and stores the result. Both GPU stubs and terminal SASS stores are included in correction-v2.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[110,142],[151,193],[430,468],[481,538]],"claim":"Full CPU suffix CSR worker, both GPU kernel variants, row split and counted dual-path computation/result merge."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1225,1387],[1387,1440],[1308,1338],[1694,1710],[2267,2352],[2820,2954]],"claim":"Timed runtime-count branch and GPU stub dispatch, plus the actual counted GOMP call path and full spmvCpuRange outlined worker; both GPU stubs launch their selected kernels."},
+        {"file":"device-sass.txt","ranges":[[19,311],[312,580],[581,1004]],"claim":"Both selected final kernels through complete row/nonzero traversal and terminal stores."}
+      ],
+      "notes":"CPU suffix and GPU prefix are complementary; this is not a failure merely because the GPU kernel processes only its selected subset." 
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

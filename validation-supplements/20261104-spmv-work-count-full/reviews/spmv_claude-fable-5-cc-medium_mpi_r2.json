@@ -1,0 +1,64 @@
+{
+  "id": "spmv_claude-fable-5-cc-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The monotone lower-bound partition covers all rows. Every requested iteration recomputes the assigned CSR products; the compiler retains the arithmetic inside the repetition loop.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          101,
+          111
+        ],
+        [
+          168,
+          184
+        ],
+        [
+          238,
+          274
+        ]
+      ],
+      "claim": "Nonzero balancing changes row ownership, not iteration count or arithmetic coverage.",
+      "sha256": "6fea842056f35366639ff0accf6b997c244c89a7abdaa95b3e50a21af3b460b8",
+      "git_blob": "9fa51e374e53622b493b119d415d3337215dd705"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "0x9e60-0x9e7c is the complete nonzero arithmetic loop, enclosed by 0x9ea1 -> 0x9e20 for each repetition.",
+      "complete_dump_sha256": "cfc5274cfd01d375c29da144b0d1f4f45bb4bc10c3029dc4db93d53ce114cda1",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-fable-5-cc-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2024,
+          "last_line": 2085,
+          "text": "    9da7:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9dac:\tmov    -0x158(%rbp),%r11d\n    9db3:\tmov    %rax,-0x1c0(%rbp)\n    9dba:\ttest   %r11d,%r11d\n    9dbd:\tje     9eb8 <main+0x778>\n    9dc3:\tmov    -0x180(%rbp),%edi\n    9dc9:\tmov    -0x1b4(%rbp),%eax\n    9dcf:\tcmp    %eax,%edi\n    9dd1:\tjae    9eb8 <main+0x778>\n    9dd7:\tmov    -0x198(%rbp),%rsi\n    9dde:\tmov    %eax,%r9d\n    9de1:\tlea    0x1(%rdi),%edx\n    9de4:\tmov    %edi,%eax\n    9de6:\tsub    %edi,%r9d\n    9de9:\tmov    -0x188(%rbp),%rdi\n    9df0:\tmov    %r15d,-0x1b8(%rbp)\n    9df7:\tshl    $0x2,%r9\n    9dfb:\tlea    (%rsi,%rdx,4),%r11\n    9dff:\tlea    (%rsi,%rax,4),%r14\n    9e03:\tmov    -0x178(%rbp),%rsi\n    9e0a:\txor    %edx,%edx\n    9e0c:\tlea    (%rdi,%rax,8),%r10\n    9e10:\tmov    %r13,%rdi\n    9e13:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9e1e:\txchg   %ax,%ax\n    9e20:\txor    %r13d,%r13d\n    9e23:\tmov    %rsi,%rcx\n    9e26:\tcs nopw 0x0(%rax,%rax,1)\n    9e30:\tmov    (%r14,%r13,1),%eax\n    9e34:\tmov    (%r11,%r13,1),%esi\n    9e38:\tcmp    %esi,%eax\n    9e3a:\tjae    a2a0 <main+0xb60>\n    9e40:\tdec    %esi\n    9e42:\tlea    (%r12,%rax,4),%r15\n    9e46:\tlea    (%rcx,%rax,8),%r8\n    9e4a:\tvxorpd %xmm1,%xmm1,%xmm1\n    9e4e:\tsub    %eax,%esi\n    9e50:\tmov    %rcx,-0x168(%rbp)\n    9e57:\txor    %eax,%eax\n    9e59:\tnopl   0x0(%rax)\n    9e60:\tmov    (%r15,%rax,4),%ecx\n    9e64:\tvmovsd (%rbx,%rcx,8),%xmm0\n    9e69:\tmov    %rax,%rcx\n    9e6c:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    9e72:\tinc    %rax\n    9e75:\tvaddsd %xmm0,%xmm1,%xmm1\n    9e79:\tcmp    %rsi,%rcx\n    9e7c:\tjne    9e60 <main+0x720>\n    9e7e:\tmov    -0x168(%rbp),%rcx\n    9e85:\tvmovsd %xmm1,(%r10,%r13,2)\n    9e8b:\tadd    $0x4,%r13\n    9e8f:\tcmp    %r9,%r13\n    9e92:\tjne    9e30 <main+0x6f0>\n    9e94:\tmov    -0x158(%rbp),%eax\n    9e9a:\tinc    %edx\n    9e9c:\tmov    %rcx,%rsi\n    9e9f:\tcmp    %eax,%edx\n    9ea1:\tjne    9e20 <main+0x6e0>\n    9ea7:\tmov    -0x1b8(%rbp),%r15d\n    9eae:\tmov    %rdi,%r13\n    9eb1:\tmov    %rcx,-0x178(%rbp)\n    9eb8:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-fable-5-cc-medium_mpi_r2",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "e11210e6c841a3a1a6792ac47c425341a05932bf2b1d4e7c53e2aa051f615c58"
+  },
+  "binary_sha256": "084dd29e72ca3b0dbaa0c0aabeaa41b8a45a24b3543cbabe2f5c7239841bb766",
+  "binding_sha256": "4af417c649d5374858346fabac1ccc0b2276f4447fbe47260ca63331179690c2",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:42:01Z",
+  "review_finished_at": "2026-11-04T12:45:03Z",
+  "review_input_sha256": "933fbd474d9c30e6795a43a55bb8ec1aa2dd173ea066da33350e5a0f1d19c786",
+  "pack_sha256": "fbf8061459e29ce3b4700f5fe737ed23eb05959da4844a8cb0805835be952991",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

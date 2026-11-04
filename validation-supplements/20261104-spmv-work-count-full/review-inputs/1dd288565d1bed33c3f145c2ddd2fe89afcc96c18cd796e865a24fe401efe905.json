@@ -1,0 +1,465 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:50:22Z",
+  "review_finished_at": "2026-11-04T14:59:23Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Clocked main invokes the count-taking OpenMP wrapper, whose GOMP worker partitions rows; count/row/CSR loops perform indexed products, accumulation and output stores for the requested work.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              309
+            ]
+          ],
+          "claim": "Complete source includes runtime count/extent, CSR setup and timed call."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              570,
+              582
+            ],
+            [
+              876,
+              1002
+            ],
+            [
+              1169,
+              1230
+            ]
+          ],
+          "claim": "Clock-bounded wrapper call, full worker and complete wrapper through GOMP launch/return."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed main directly calls GOMP for the outlined worker. The worker partitions rows, traverses each CSR interval, performs indexed multiply/accumulate and stores row outputs under the count control.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              278
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              886,
+              998
+            ]
+          ],
+          "claim": "Clock-bounded direct GOMP and complete outlined worker with repetition/row/nonzero control, arithmetic and stores."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed main directly launches its outlined worker. Worker row partition and CSR backedges encompass indexed products, accumulation and output stores for each requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              278
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              886,
+              998
+            ]
+          ],
+          "claim": "Clock-bounded direct GOMP and complete worker arithmetic/loop/store path."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured main launch targets the outlined worker, whose row and CSR nonzero loops perform indexed multiplication and accumulation and store each row result; count control encloses this work.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              278
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              593
+            ],
+            [
+              883,
+              995
+            ]
+          ],
+          "claim": "Clock-bounded direct GOMP and full worker."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Measured main directly launches the outlined worker. Its repetition and row partition control surround complete CSR nonzero traversal, indexed arithmetic, accumulation and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              277
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              886,
+              998
+            ]
+          ],
+          "claim": "Clock-bounded direct launch and complete worker."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Measured main directly launches the exact outlined worker. Worker count/row/CSR loops execute full indexed multiply-accumulate and output stores per requested repetition.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              280
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              886,
+              998
+            ]
+          ],
+          "claim": "Clocked direct GOMP and full worker loop/arithmetic/store path."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed main directly launches the outlined worker. Worker row partition and CSR interval control cover all assigned entries, indexed multiplication/accumulation and row stores under repetition control.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              281
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              889,
+              1001
+            ]
+          ],
+          "claim": "Clocked direct GOMP and complete worker."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Measured main directly launches the worker, whose count/partition control traverses each assigned CSR row and nonzero, multiplies indexed values, accumulates and stores outputs.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              284
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              886,
+              974
+            ]
+          ],
+          "claim": "Clock-bounded direct launch and full worker."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Measured main launches the outlined worker directly. Worker repetition and row/CSR backedges encompass indexed product accumulation and result stores for complete assigned work.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              279
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              886,
+              998
+            ]
+          ],
+          "claim": "Clocked direct GOMP and complete worker."
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Measured main directly launches the outlined worker; count/row/CSR controls traverse complete assigned rows/nonzeros, perform indexed multiplication and accumulation, then store outputs.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              292
+            ]
+          ],
+          "claim": "Complete source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              890,
+              1024
+            ]
+          ],
+          "claim": "Clocked direct GOMP and complete outlined worker."
+        }
+      ],
+      "notes": ""
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "e25c7d2e1eabe1a012d58a51082cc6f771adff30eb0c8501b915ac8668e77da6",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:00:25Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-xhigh_omp_r3"
+    ],
+    "method": "Read all proposal claims; independently inspected sample complete relevant source and build, main argument packing and clock-bounded direct GOMP call, and entire outlined worker. Its fixed static row partition repeats complete CSR multiplication and stores including empty rows; the nowait iterations reuse fixed disjoint output ownership. Inspected clock-bounded call regions and exact worker/wrapper function boundaries for all ten; other nine full source/worker reviews are Luna's with primary claims and provenance checks.",
+    "work_count_disagreement": false
+  }
+}

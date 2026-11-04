@@ -1,0 +1,72 @@
+{
+  "id": "spmv_gpt-6.1-sol-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The requested iteration count is retained through the timed loop at 340–343. Each invocation computes every assigned CSR row/nonzero; monotone weighted boundaries cover the global row range. Windowed transfers cover every segment intersection, vector broadcasts cover the full vector, and complete local delimiters/output gathering preserve full work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          53,
+          82
+        ],
+        [
+          100,
+          110
+        ],
+        [
+          161,
+          190
+        ],
+        [
+          199,
+          246
+        ],
+        [
+          268,
+          353
+        ]
+      ],
+      "claim": "The requested iteration count is retained through the timed loop at 340–343. Each invocation computes every assigned CSR row/nonzero; monotone weighted boundaries cover the global row range. Windowed transfers cover every segment intersection, vector broadcasts cover the full vector, and complete local delimiters/output gathering preserve full work.",
+      "sha256": "45bd5c1e16dddc353423de5bba04023b003b6818a7cad696fd6b48d5a4f3d9df",
+      "git_blob": "53cdb2e2ee1e86dd2a04e5076d8f27e9e9cceaa9"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Between MPI_Wtime a15f and a213, retained multiply/add a1ed/a1f5 is enclosed by nonzero a1fc->a1e0, row a20b->a1b0, and repetition a211->a1a0 backedges.",
+      "complete_dump_sha256": "a5929423a470ac7ffe08473facb8fec2c352f2dd4b9cb1abb59ea919063f7d4c",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-sol-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2210,
+          "last_line": 2264,
+          "text": "    a134:\tvmovdqa %xmm0,-0x50(%rbp)\n    a139:\tcall   f000 <std::vector<unsigned int, std::allocator<unsigned int> >::~vector()>\n    a13e:\tcmpl   $0x0,-0x210(%rbp)\n    a145:\tjne    a153 <main+0x993>\n    a147:\tlea    0x72fe(%rip),%rdi        # 1144c <_IO_stdin_used+0x44c>\n    a14e:\tcall   93a0 <puts@plt>\n    a153:\tlea    0xc0c6(%rip),%rdi        # 16220 <ompi_mpi_comm_world@@Base>\n    a15a:\tcall   8e90 <MPI_Barrier@plt>\n    a15f:\tcall   91e0 <MPI_Wtime@plt>\n    a164:\tcmpl   $0x0,-0x218(%rbp)\n    a16b:\tmov    -0x70(%rbp),%r13\n    a16f:\tvmovsd %xmm0,-0x268(%rbp)\n    a177:\tje     a213 <main+0xa53>\n    a17d:\tcmpl   $0x0,-0x260(%rbp)\n    a184:\tje     a213 <main+0xa53>\n    a18a:\tmov    -0x218(%rbp),%esi\n    a190:\tmov    -0x2d0(%rbp),%r9\n    a197:\txor    %ecx,%ecx\n    a199:\tnopl   0x0(%rax)\n    a1a0:\txor    %r8d,%r8d\n    a1a3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a1ae:\txchg   %ax,%ax\n    a1b0:\tmov    (%r12,%r8,4),%eax\n    a1b4:\tmov    0x4(%r12,%r8,4),%edx\n    a1b9:\tcmp    %edx,%eax\n    a1bb:\tjae    a7a0 <main+0xfe0>\n    a1c1:\tdec    %edx\n    a1c3:\tlea    (%r9,%rax,4),%r10\n    a1c7:\tlea    (%r15,%rax,8),%rdi\n    a1cb:\tvxorpd %xmm1,%xmm1,%xmm1\n    a1cf:\tsub    %eax,%edx\n    a1d1:\txor    %eax,%eax\n    a1d3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a1de:\txchg   %ax,%ax\n    a1e0:\tmov    (%r10,%rax,4),%r11d\n    a1e4:\tvmovsd (%rbx,%r11,8),%xmm0\n    a1ea:\tmov    %rax,%r11\n    a1ed:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a1f2:\tinc    %rax\n    a1f5:\tvaddsd %xmm0,%xmm1,%xmm1\n    a1f9:\tcmp    %r11,%rdx\n    a1fc:\tjne    a1e0 <main+0xa20>\n    a1fe:\tvmovsd %xmm1,0x0(%r13,%r8,8)\n    a205:\tinc    %r8\n    a208:\tcmp    %r14,%r8\n    a20b:\tjne    a1b0 <main+0x9f0>\n    a20d:\tinc    %ecx\n    a20f:\tcmp    %esi,%ecx\n    a211:\tjne    a1a0 <main+0x9e0>\n    a213:\tcall   91e0 <MPI_Wtime@plt>\n    a218:\tvsubsd -0x268(%rbp),%xmm0,%xmm0\n    a220:\tmovq   $0x0,-0x1f8(%rbp)\n    a22b:\tlea    0xbfee(%rip),%rax        # 16220 <ompi_mpi_comm_world@@Base>\n    a232:\tlea    -0x1f8(%rbp),%rsi\n    a239:\tlea    -0x200(%rbp),%rdi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261006-204623/spmv_gpt-6.1-sol-medium_mpi_r3",
+    "source_commit": "6adaf64dc195651e5b3da3575738874e09fdc72d",
+    "staged_source_sha256": "3df064b0e9e31c660c3c7067c493b36bd5c39a97d4dd361ed5f96e53f35c6899"
+  },
+  "binary_sha256": "f4d1edcfaa8748c3dc8045f0cb975d273ff3d087d5bb74cace6341f18bb156e9",
+  "binding_sha256": "a4c7fb41274a516bf8df5e311db351121dea71c6d2a3f9018f635aa160a39e02",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:32:52Z",
+  "review_finished_at": "2026-11-04T13:36:11Z",
+  "review_input_sha256": "f3e60ef33fc82bdb4a309a0aa9eb360fea37c8e392726b8b4c8e575bf24df8e5",
+  "pack_sha256": "1aa30e7881d97967f7b8b115aba1c30d9b4f7e821d269c80d5192c86510d7f33",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

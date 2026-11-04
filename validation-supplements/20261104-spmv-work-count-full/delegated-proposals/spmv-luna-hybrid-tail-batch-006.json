@@ -1,0 +1,563 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:53:27Z",
+  "review_finished_at": "2026-11-04T15:55:42Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_hybrid_r2",
+      "finding": "uncertain",
+      "summary": "The requested-iteration loop is present in main and, on the GPU rank, invokes the cuSPARSE context's compute path; compiled main's timed loop calls cusparseSpMV, synchronizes, copies the output, and increments/backedges for the requested count. However the bound pack contains no final device SASS for the external libcusparse implementation, so I cannot independently verify that each opaque library call traverses every CSR row/nonzero. This is a code/compiled-semantics uncertainty, not an observed omission.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              574
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              57
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1013,
+              1020
+            ],
+            [
+              1650,
+              1695
+            ],
+            [
+              2407,
+              2494
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CUDA-event timed interval encloses the iteration loop; compiled main's loop invokes the spmvCuda helper once per iteration and increments/branches to the loop header until the runtime count is exhausted. The helper launches the compiled kernel; final sm86 SASS is present for its row/nonzero traversal and output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              659
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              34
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1729,
+              1790
+            ],
+            [
+              2336,
+              2351
+            ],
+            [
+              3448,
+              3732
+            ],
+            [
+              3733,
+              3792
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              151
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed clock/event region contains one kernel launch per requested iteration, with a compiled loop counter/backedge and synchronization before the end timestamp. The called launch stub forwards the row/vector/CSR arguments to the kernel. Final sm86 SASS bounds each row, traverses its full delimiter interval, performs products/reduction and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              484
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              34
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1165,
+              1250
+            ],
+            [
+              1439,
+              1470
+            ],
+            [
+              2217,
+              2276
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              455,
+              588
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured interval is bounded by the CUDA-event calls; the loop path launches the kernel stub for each requested iteration and the counter branch returns for the next pass. The final sm86 kernel covers its assigned rows and full CSR intervals and writes row results.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              501
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              25
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1561,
+              1570
+            ],
+            [
+              2336,
+              2351
+            ],
+            [
+              2748,
+              2810
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              537,
+              670
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CUDA-event timed main path repeats the called kernel stub for the requested count; host control shows the loop counter/backedge and stop-event synchronization. The sm86 SASS kernel covers rows by thread index, traverses each complete CSR row interval and stores its sum.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              470
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              34
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1224,
+              1239
+            ],
+            [
+              1439,
+              1470
+            ],
+            [
+              2698,
+              2760
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              711
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The event-bounded timed loop contains one CUDA stub launch per repetition and increments/compares the iteration counter before recording the stop event. The called kernel's final sm86 SASS covers all passed local rows, traverses each CSR range and stores the product sum.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              544
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              36
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1467,
+              1552
+            ],
+            [
+              1480,
+              1510
+            ],
+            [
+              2943,
+              3005
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              711
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The compiled timed loop calls the warp-kernel stub, synchronizes, increments and compares the iteration counter before looping; a final synchronization and end clock follow. The sm86 warp kernel's row and CSR traversal, multiply-accumulate/reduction and store path are in the final SASS.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              431
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1192,
+              1230
+            ],
+            [
+              1320,
+              1332
+            ],
+            [
+              2660,
+              2720
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured host loop repeats the warp-kernel stub for the requested count and synchronizes before the ending clock; compiled counter control is included in the cited interval. Final sm86 SASS bounds rows, traverses complete CSR intervals with lane strides, reduces and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              426
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              29
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1301,
+              1366
+            ],
+            [
+              2695,
+              2755
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop repeats to the requested iteration count and dispatches by the rank-local average row length to either scalar-row or warp-row kernel, then synchronizes. Compiled host evidence includes both called launch stubs and their dispatch/backedge path. Both compatible sm86 SASS bodies are cited: each covers assigned rows and complete CSR intervals, accumulates, reduces as appropriate, and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              582
+            ]
+          ],
+          "claim": "Complete exact source in bounded chunks: CLI/runtime dimensions and iteration count, MPI/CSR partition, kernel/work path, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              31
+            ]
+          ],
+          "claim": "Exact build configuration for the inspected source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1335,
+              1474
+            ],
+            [
+              1370,
+              1390
+            ],
+            [
+              2010,
+              2048
+            ],
+            [
+              2866,
+              2936
+            ],
+            [
+              2937,
+              2997
+            ]
+          ],
+          "claim": "Exact timed host path/call chain, repetition counter/backedge, and applicable synchronization or event boundaries."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              2998,
+              3490
+            ],
+            [
+              3491,
+              3984
+            ]
+          ],
+          "claim": "Final compatible sm86 SASS for the called kernel variant(s), including row bounds, CSR nonzero traversal, arithmetic/reduction and stores."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

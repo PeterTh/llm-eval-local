@@ -1,0 +1,144 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:27:34Z",
+  "review_finished_at": "2026-11-04T14:38:26Z",
+  "backend": "cuda",
+  "batch": 3,
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "reviews": [
+    {
+      "id": "spmv_claude-haiku-5.5-oc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI count controls repeated calls to the compiled GPU helper; the setup initializes and transfers the same CSR/value/vector inputs, and each helper launches the kernel over a ceil-divided grid. The final sm_86 SASS retains row bounds, CSR-controlled multiply-add work/backedges, warp reduction, and the row output store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,22]],"claim":"The CUDA source is built with optimized CUDA flags and the native architecture configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[137,181],[187,199],[248,302],[314,350]],"claim":"The kernel assigns one warp per row, has lanes stride through the row's CSR interval, reduces and stores the row result. CLI iterations, numRows and sparsity determine the count/dimension/nItems; CSR and operands are initialized and copied. A pre-timing launch is followed by synchronization; the timed loop calls spmvGpu once per requested iteration, and a post-loop synchronization precedes output retrieval."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1341,1360],[1479,1489],[2190,2249],[2257,2307]],"claim":"The main path performs its separate pre-timing helper call and sync, starts timing, calls the helper within a counter-controlled loop with a backward edge, then synchronizes before the stop clock. The helper reaches the device stub and the stub calls cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,327]],"claim":"The sm_86 function compares the computed row index against dim and exits out-of-range rows; distinct row-end predicates delimit empty/per-lane CSR work. DFMA instructions remain in CSR traversal paths with backward branches, followed by warp reduction and STG of the row result."}
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-oc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed host loop submits the warp-per-row grid once per CLI iteration, then synchronizes before stopping the timer. The compiled grid-stride kernel covers rows and each lane traverses its row's CSR slice; final sm_86 code retains arithmetic, work-loop control flow and stores.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,23]],"claim":"The CUDA source is optimized and configured for the native target architecture."},
+        {"file":"spmv/spmv.cpp","ranges":[[137,163],[212,266],[278,322]],"claim":"One warp maps to each row with lanes striding across rowDelimiters[row]..rowDelimiters[row+1]; warp count/grid sizing covers all rows. CLI iterations/dim/sparsity and initialized CSR and operands set the workload. The source performs a pre-timing launch/sync, then the counted launch loop, post-loop sync, and output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1360,1377],[1532,1557],[1572,1579]],"claim":"Compiled control flow includes the pre-timing launch path, timed counted loop reaching the CUDA stub with its counter backedge, and post-loop synchronization before the stop clock."},
+        {"file":"device-sass.txt","ranges":[[19,439]],"claim":"The sm_86 kernel compares row index with dim, separately tests lane/nonzero bounds, retains DFMA arithmetic and backward CSR traversal edges, stores the row reduction, and advances through grid-stride rows."}
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-oc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed iteration calls a helper that launches the warp-per-row kernel; the main path synchronizes after the counted loop. Grid sizing and the kernel's grid-stride row loop cover all rows, and lanes traverse complete CSR row slices.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,22]],"claim":"The CUDA source is optimized and uses the native architecture configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[165,193],[205,216],[264,318],[330,361]],"claim":"The kernel maps each warp to a row, lanes stride through the CSR row range, reduce, and store. CLI and nItems establish rows, sparsity and iterations; inputs are initialized/copied. A warmup is synchronized before the timed count-controlled helper-launch loop, which is synchronized before output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1340,1354],[1461,1471],[2141,2200],[2208,2258]],"claim":"The compiled path has a separate helper launch and synchronization before timing, then a count-controlled repeated helper call with backedge and post-loop sync/stop clock. The helper reaches the device stub, whose body launches the kernel."},
+        {"file":"device-sass.txt","ranges":[[19,439]],"claim":"The sm_86 code tests the computed row against dim; distinct CSR interval tests govern work. Retained DFMA arithmetic and backward nonzero traversal branches lead to warp reduction and the row-result store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-oc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "For nonzero dimensions the timed counted loop launches the kernel each iteration and synchronizes before the stop clock. Each warp handles one row and lanes cover its CSR interval; sm_86 SASS retains the row bound, nonzero arithmetic/backedges and output store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,22]],"claim":"The optimized CUDA build uses the native target architecture."},
+        {"file":"spmv/spmv.cpp","ranges":[[148,181],[230,284],[297,354]],"claim":"The kernel bounds row index against dim, lanes traverse the row's CSR slice, reduce and store. CLI n/s/i and nItems set the workload, and source initializes and transfers inputs. A pre-timing launch is synchronized; the timed loop launches per requested iteration, synchronizes, and copies the final vector."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1461,1491],[1491,1517],[1343,1348]],"claim":"The positive-dimension path includes a pre-timing launch/sync, then the timed kernel-stub loop with its count-controlled backedge and post-loop synchronization before the stop-clock path."},
+        {"file":"device-sass.txt","ranges":[[19,343]],"claim":"The sm_86 function checks row index against dim, maintains CSR-range predicates around DFMA and backward traversal edges, reduces lane results, and stores the row output."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-4.6_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI-controlled host loop submits the kernel for every requested repetition and synchronizes before ending timing. Each warp handles a row with lanes striding the entire CSR slice; the bound SASS retains the row test, arithmetic loops and store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,18]],"claim":"The CUDA source is built with optimized CUDA flags for the configured native target."},
+        {"file":"spmv/spmv.cu","ranges":[[92,109],[170,224],[243,271]],"claim":"A warp maps to a row, lanes stride through rowDelimiters[row]..rowDelimiters[row+1], and lane zero stores the reduction. CLI iterations and nItems derive from the requested dimensions/sparsity; initialized arrays are copied before the timed count-controlled launch loop and post-loop synchronization/output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1339,1375],[2109,2164]],"claim":"The timed host loop increments/compares the requested count, calls the kernel stub each iteration, and synchronizes before the stop clock; the stub reaches cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,31],[445,453],[599,603],[669,677]],"claim":"In the sm_86 function the row-index/dim predicate rejects out-of-range rows; CSR loop bodies contain DFMA work and a backward branch, row traversal has its own continuation edge, and the final lane-zero path stores the result."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-4.6_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop launches once per requested iteration and synchronizes before stopping timing. The warp-per-row kernel traverses all row nonzeros using lane-strided CSR work, reduction and store; compiled sm_86 retains these operations and traversal branches.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[4,16]],"claim":"The optimized CUDA build configures the listed device architectures, including the sm_86 bound dump."},
+        {"file":"spmv/spmv.cpp","ranges":[[121,149],[198,252],[264,304]],"claim":"One warp is assigned per row and lanes traverse each row's CSR interval. CLI and nItems determine iterations and workload; input structures are initialized/copied, then the timed counted launch loop and synchronization precede the final copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1351,1390],[2171,2226]],"claim":"The count-checked loop calls the CUDA stub each iteration, increments and branches until the requested count, synchronizes and stops timing. The stub calls cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,311]],"claim":"The sm_86 kernel's row-index/dim test, CSR interval arithmetic loops with backward branches, warp reduction, and row output store remain in final SASS."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-4.6_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The counted host loop invokes the CUDA stub for each requested iteration and synchronizes before stopping timing. Each configured architecture's warp-per-row SASS retains row bounds, CSR arithmetic/backedges, row reduction and stores.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[4,15]],"claim":"The configured sm_70/75/80/86/89/90 architectures match the six final SASS functions inspected."},
+        {"file":"spmv/spmv.cpp","ranges":[[113,142],[186,219],[231,265],[268,289]],"claim":"One warp per row traverses rowDelimiters[warpId]..rowDelimiters[warpId+1] by lane strides, reduces and stores. CLI count/dim/sparsity, initialized and copied operands, and the timed launch/sync path are explicit."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1343,1379],[2113,2168]],"claim":"The timed loop submits the stub under a count-controlled backward edge, then synchronizes before the stop clock; the stub invokes cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,328],[330,623],[625,934],[936,1245],[1247,1556],[1558,1867]],"claim":"Each of the six separate architecture functions retains its own row/dim predicate, CSR-controlled DFMA and backward work branches, warp reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-4.6_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured counted loop launches the warp-per-row kernel once per requested iteration, with a synchronization before stopping the clock. The selected sm_86 SASS retains CSR lane-stride arithmetic, control flow, row reduction and stores.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[7,15]],"claim":"The configured CUDA targets include the sm_86 final executable variant reviewed."},
+        {"file":"spmv/spmv.cpp","ranges":[[118,145],[194,227],[239,248],[260,300]],"claim":"The kernel assigns a warp to each row and lanes cover the complete CSR interval before reduction/store. CLI inputs and nItems establish the workload; initialized operands are copied before the counted launch loop and post-loop sync/output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1339,1375],[2109,2164]],"claim":"The timed count loop reaches the kernel stub each iteration, increments and branches on the count, synchronizes before the stop clock, and the stub launches the kernel."},
+        {"file":"device-sass.txt","ranges":[[19,311]],"claim":"The sm_86 row bound, CSR interval-controlled DFMA loops and backward branches, reduction, and row-result STG remain present in final SASS."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-4.6_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host count loop reaches the CUDA stub once per requested iteration and synchronizes before stopping timing. The warp-per-row kernel's compiled sm_86 code retains row bounds, all CSR traversal work, reduction and output store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,18]],"claim":"The optimized CUDA target uses the configured native architecture."},
+        {"file":"spmv/spmv.cpp","ranges":[[120,148],[197,230],[242,251],[263,296]],"claim":"One warp handles each row, lanes stride across its CSR interval, and the output is reduced/stored. CLI and nItems establish workload size; arrays are initialized/copied and the timed count loop launches per iteration before synchronization and output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1320,1354],[2123,2182]],"claim":"The timed counter-controlled loop reaches the kernel stub, increments and branches through the requested count, then synchronizes before the stop clock; the stub invokes cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,311]],"claim":"The sm_86 SASS retains the row-index/dim test, CSR-work predicates, DFMA and backward traversal branches, warp reduction, and output store."}
+      ]
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI-selected vector width dispatches to a matching compiled kernel, and the timed host loop invokes that launcher for each requested repetition before synchronizing. Each selected SASS specialization retains row/grid-stride coverage, CSR lane work, arithmetic/backedges and stores.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[9,21]],"claim":"The optimized CUDA source targets the native architecture represented by the final sm_86 template-specialization dump."},
+        {"file":"spmv/spmv.cpp","ranges":[[145,176],[186,206],[258,288],[300,318],[321,378]],"claim":"Each selected VECTOR_SIZE specialization distributes rows through firstRow/rowStride and lanes stride through the CSR interval; lane zero stores. CLI inputs and nItems establish workload; device setup copies full arrays. vectorSize is selected from average row nonzeros, launch parameters cover rows, and the timed counted loop calls the dispatching launcher followed by synchronization and output copy."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1453,1489],[2177,2510]],"claim":"The measured loop calls launchSpmv per iteration and has a counter increment/compare/backedge, then synchronizes before the stop-clock call. The compiled launch helper dispatches among the runtime vector-width cases, with each path reaching cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,439],[440,844],[845,1217],[1218,1558],[1559,1867]],"claim":"Each of the five selected sm_86 template functions (VECTOR_SIZE 32/16/8/4/2) retains its own row/dim comparison, CSR-controlled multiply-add and backward traversal, row reduction and output store."}
+      ]
+    }
+  ]
+}

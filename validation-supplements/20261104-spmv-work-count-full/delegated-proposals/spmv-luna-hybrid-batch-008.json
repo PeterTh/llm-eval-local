@@ -1,0 +1,122 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:33:31Z",
+  "review_finished_at": "2026-11-04T14:36:37Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.2-codex_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive contiguous row-aligned CSR slices and rebase local delimiters. The timed loop issues one row kernel per requested iteration and then synchronizes/copies/gathers. Final SASS bounds local rows and covers each row's CSR interval with accumulation and output store.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[265,285],[304,350],[359,390],[400,420]],"claim":"Rank-local CSR data, timed runtime-count launch and output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1010,1051],[1051,1100]],"claim":"Runtime loop surrounds kernel stub and synchronization follows before timing ends."},
+        {"file":"device-sass.txt","ranges":[[21,120],[121,220],[221,360]],"claim":"Final SASS row bound, complete CSR traversal and store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank gets a contiguous CSR slice with rebased delimiters. Timed host count loop launches one kernel per active-rank iteration, then copies/gathers all local output rows. Final SASS guards row bounds, traverses row nonzeros and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[320,383],[390,441],[445,468]],"claim":"MPI row/CSR slice, local pointer rebasing, timed repeated launches and result gathering."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1474,1488],[1488,1540]],"claim":"Clocked runtime-count loop invokes kernel stub and later synchronization/copy completes local result."},
+        {"file":"device-sass.txt","ranges":[[19,100],[101,190],[191,280],[281,360]],"claim":"Final kernel bounds local rows, scans CSR and stores computed values."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.2_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive contiguous row/CSR blocks, and each timed active-rank loop launches a warp-per-row vector kernel for every requested repetition. Final SASS bounds rows, lane-strides through full row intervals, reduces and stores; output transfer/gather follows synchronization.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[285,308],[359,391],[419,447]],"claim":"Rank-local CSR distribution, timed per-iteration vector-kernel launches and output gathering."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[992,1199]],"claim":"Clock region includes runtime iteration launch loop and post-loop sync/copy/gather."},
+        {"file":"device-sass.txt","ranges":[[21,115],[116,215],[216,313]],"claim":"Final vector kernel row guard, CSR lane traversal/reduction and store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.2_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows and matching CSR values/columns are assigned per rank; local delimiters are rebased. CUDA events bracket the timed runtime-count loop, whose compiled counter backedge surrounds each device-stub invocation; event synchronization follows. Final SASS processes the local row's full CSR interval and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[303,325],[329,352],[367,416]],"claim":"Rank-local CSR setup, CUDA-event timed iteration loop and output copy/gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1435,1518]],"claim":"Start event is recorded, runtime counter loop repeatedly calls kernel stub, stop event is recorded/synchronized, elapsed time is collected."},
+        {"file":"device-sass.txt","ranges":[[10,100],[101,190],[191,300]],"claim":"Final kernel guards local rows, traverses CSR entries and stores each result."}
+      ],
+      "notes":"The timing mechanism is CUDA events rather than the clock viewer's host wall-clock pair." 
+    },
+    {
+      "id": "spmv_gpt-5.2_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Local rows and CSR values are reconstructed per rank. Timed loop repeats the row kernel for the runtime count; output copy/gather follows. Final SASS contains multiple architecture images of the warp kernel, each with row guards, full CSR arithmetic and output stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[360,388],[415,455],[462,490]],"claim":"MPI local CSR setup and rebasing, runtime-count warp-kernel loop and gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1221,1233],[1233,1285]],"claim":"Timed launch loop repeated to requested iterations and sync/copy follows."},
+        {"file":"device-sass.txt","ranges":[[10,287],[288,565],[587,865],[1118,1395],[1396,1700]],"claim":"Final architecture kernel variants contain local row bounds, CSR traversal, warp reduction and stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.2_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-local CSR ranges are rebased; timed loop launches the warp-vector kernel for each runtime iteration and then copies/gathers local rows. Final SASS follows local rows, accumulates full CSR entries and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[311,354],[364,390],[394,430]],"claim":"Rank-local row/CSR slice, timed repetitions and output gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1046,1139],[1139,1190]],"claim":"Timed counter loop encloses device launches and synchronization/copy follows."},
+        {"file":"device-sass.txt","ranges":[[11,105],[106,205],[206,303]],"claim":"Final warp-vector kernel bounds rows, traverses complete CSR intervals and stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI row partition and rank-local CSR data feed one warp-per-row kernel per requested timed iteration. SASS maps lane threads to row entries, loops full CSR ranges, reduces and stores. Output copy/gather follows synchronization.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[75,140],[185,207],[216,230]],"claim":"Warp-per-row CSR calculation and timed per-iteration launches on rank-local rows."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[869,1022],[1022,1060]],"claim":"Timed host count loop includes repeated kernel launches and synchronization/output retrieval."},
+        {"file":"device-sass.txt","ranges":[[47,130],[131,220]],"claim":"Final kernel local row/warp bounds, CSR traversal/reduction and store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-local CSR delimiters and data are used by a one-thread-per-row kernel. The timed runtime loop launches once per iteration and copies/allgathers local output within each pass; SASS guards rows, iterates each CSR interval and stores results.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[113,128],[230,258],[268,280]],"claim":"Full CSR kernel, rank-local row partition and timed launch plus copy/gather loop."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[884,910],[910,950]],"claim":"Clocked runtime loop contains kernel launches and per-pass copy/allgather before its backedge."},
+        {"file":"device-sass.txt","ranges":[[19,110],[111,210],[211,360]],"claim":"Final kernel row bounds, full CSR nonzero loop and output store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank receives local CSR rows and rebases row pointers. The timed loop repeats the row kernel, synchronizes/copies and communicates outputs as specified. Final SASS bounds local rows, traverses CSR and stores each local result.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[114,124],[240,267],[270,295]],"claim":"CSR arithmetic, MPI row/nnz distribution and timed per-iteration launch/copy/gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[885,1049],[1049,1090]],"claim":"Timed runtime-count launches and output copies are within host control flow before clock completion."},
+        {"file":"device-sass.txt","ranges":[[10,110],[111,210],[211,360]],"claim":"Final row kernel guard, CSR traversal/arithmetic and store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source calls GPU SpMV and CPU SpMV over the same rank-local rows in every timed repetition; CPU computes full CSR rows and overwrites corresponding output after GPU result. This is redundant, not an omitted repetition. Compiled host branch executes both paths each pass. Final SASS GPU kernel has full row/nonzero coverage and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[128,155],[273,296],[297,309]],"claim":"GPU and CPU per-iteration paths, each performing full local-row CSR work."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1248,1373],[1373,1440]],"claim":"Timed runtime loop calls the GPU launcher and compiled CPU worker each iteration; output gather follows."},
+        {"file":"device-sass.txt","ranges":[[10,110],[111,210],[211,360]],"claim":"Final GPU row kernel bounds rows, traverses CSR entries and stores output."}
+      ],
+      "notes":"Redundant GPU/CPU work on the same rows each iteration; not a missing-work finding." 
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

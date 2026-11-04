@@ -1,0 +1,73 @@
+{
+  "id": "spmv_qwen3.7-plus_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The unchanged -i count controls both root loop 302–305 and worker loop 389–392. Quotient/remainder row partitions cover all rows; each branch receives complete nonzero segments and row starts, rebases and restores the final delimiter, and uses the full vector. Both paths recompute every local CSR interval per repetition, then gather full output.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          50,
+          107
+        ],
+        [
+          156,
+          197
+        ],
+        [
+          213,
+          319
+        ],
+        [
+          349,
+          409
+        ]
+      ],
+      "claim": "The unchanged -i count controls both root loop 302–305 and worker loop 389–392. Quotient/remainder row partitions cover all rows; each branch receives complete nonzero segments and row starts, rebases and restores the final delimiter, and uses the full vector. Both paths recompute every local CSR interval per repetition, then gather full output.",
+      "sha256": "bc16ab80a2082cb55b2b01b1b9ed5fbb15995abd0f9feea8ee25511fe11b2a51",
+      "git_blob": "0af7cd23fbd8f38de49bb0839c92facc700f91a9"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Root MPI_Wtime a1ea/a29e encloses multiply/add a26d/a275, nonzero a27c->a260, row a28a->a230 and repetition a290->a220. Worker pair a6e1/a79e encloses multiply/add a76d/a775, nonzero a77c->a760, row a78a->a730 and repetition a790->a720. Both end barriers add synchronization.",
+      "complete_dump_sha256": "2035dd923ba8b2c438698abd20dfbdf78f1425cf497cfdcb57435f8f801688f1",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_qwen3.7-plus_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2216,
+          "last_line": 2270,
+          "text": "    a1c0:\tmov    %rbx,%rdi\n    a1c3:\tadd    %rbx,%rax\n    a1c6:\tmov    %rax,-0x188(%rbp)\n    a1cd:\tcall   8bf0 <MPI_Bcast@plt>\n    a1d2:\tlea    0x6228(%rip),%rdi        # 10401 <_IO_stdin_used+0x401>\n    a1d9:\tcall   93b0 <puts@plt>\n    a1de:\tlea    0xae3b(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a1e5:\tcall   8e90 <MPI_Barrier@plt>\n    a1ea:\tcall   91f0 <MPI_Wtime@plt>\n    a1ef:\tcmpl   $0x0,-0x258(%rbp)\n    a1f6:\tvmovsd %xmm0,-0x268(%rbp)\n    a1fe:\tje     a292 <main+0xaf2>\n    a204:\txor    %ecx,%ecx\n    a206:\tcmpl   $0x0,-0x270(%rbp)\n    a20d:\tje     a292 <main+0xaf2>\n    a213:\tmov    -0x258(%rbp),%esi\n    a219:\tmov    -0x330(%rbp),%r9\n    a220:\txor    %r8d,%r8d\n    a223:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a22e:\txchg   %ax,%ax\n    a230:\tmov    0x0(%r13,%r8,4),%eax\n    a235:\tmov    0x4(%r13,%r8,4),%edx\n    a23a:\tcmp    %edx,%eax\n    a23c:\tjae    ab80 <main+0x13e0>\n    a242:\tdec    %edx\n    a244:\tlea    (%r14,%rax,4),%r10\n    a248:\tlea    (%r9,%rax,8),%rdi\n    a24c:\tvxorpd %xmm1,%xmm1,%xmm1\n    a250:\tsub    %eax,%edx\n    a252:\txor    %eax,%eax\n    a254:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a25f:\tnop\n    a260:\tmov    (%r10,%rax,4),%r11d\n    a264:\tvmovsd (%rbx,%r11,8),%xmm0\n    a26a:\tmov    %rax,%r11\n    a26d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a272:\tinc    %rax\n    a275:\tvaddsd %xmm0,%xmm1,%xmm1\n    a279:\tcmp    %rdx,%r11\n    a27c:\tjne    a260 <main+0xac0>\n    a27e:\tvmovsd %xmm1,(%r15,%r8,8)\n    a284:\tinc    %r8\n    a287:\tcmp    %r12,%r8\n    a28a:\tjne    a230 <main+0xa90>\n    a28c:\tinc    %ecx\n    a28e:\tcmp    %esi,%ecx\n    a290:\tjne    a220 <main+0xa80>\n    a292:\tlea    0xad87(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a299:\tcall   8e90 <MPI_Barrier@plt>\n    a29e:\tcall   91f0 <MPI_Wtime@plt>\n    a2a3:\tvsubsd -0x268(%rbp),%xmm0,%xmm0\n    a2ab:\tmov    -0x2b0(%rbp),%rsi\n    a2b2:\tlea    -0x238(%rbp),%rbx\n    a2b9:\tmov    -0x290(%rbp),%rdi\n    a2c0:\tmov    %rbx,%rdx\n"
+        },
+        {
+          "first_line": 2468,
+          "last_line": 2523,
+          "text": "    a6bd:\tmov    -0x26c(%rbp),%esi\n    a6c3:\tmov    (%rcx,%rax,4),%eax\n    a6c6:\txor    %ecx,%ecx\n    a6c8:\tmov    %rbx,%rdi\n    a6cb:\tmov    %eax,0x0(%r13,%r12,4)\n    a6d0:\tcall   8bf0 <MPI_Bcast@plt>\n    a6d5:\tlea    0xa944(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a6dc:\tcall   8e90 <MPI_Barrier@plt>\n    a6e1:\tcall   91f0 <MPI_Wtime@plt>\n    a6e6:\tcmpl   $0x0,-0x258(%rbp)\n    a6ed:\tvmovsd %xmm0,-0x268(%rbp)\n    a6f5:\tje     a792 <main+0xff2>\n    a6fb:\txor    %ecx,%ecx\n    a6fd:\tcmpl   $0x0,-0x270(%rbp)\n    a704:\tje     a792 <main+0xff2>\n    a70a:\tmov    -0x258(%rbp),%esi\n    a710:\tmov    -0x280(%rbp),%r9\n    a717:\tnopw   0x0(%rax,%rax,1)\n    a720:\txor    %r8d,%r8d\n    a723:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a72e:\txchg   %ax,%ax\n    a730:\tmov    0x0(%r13,%r8,4),%eax\n    a735:\tmov    0x4(%r13,%r8,4),%edx\n    a73a:\tcmp    %edx,%eax\n    a73c:\tjae    a900 <main+0x1160>\n    a742:\tdec    %edx\n    a744:\tlea    (%r9,%rax,4),%r10\n    a748:\tlea    (%r14,%rax,8),%rdi\n    a74c:\tvxorpd %xmm1,%xmm1,%xmm1\n    a750:\tsub    %eax,%edx\n    a752:\txor    %eax,%eax\n    a754:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a75f:\tnop\n    a760:\tmov    (%r10,%rax,4),%r11d\n    a764:\tvmovsd (%rbx,%r11,8),%xmm0\n    a76a:\tmov    %rax,%r11\n    a76d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a772:\tinc    %rax\n    a775:\tvaddsd %xmm0,%xmm1,%xmm1\n    a779:\tcmp    %r11,%rdx\n    a77c:\tjne    a760 <main+0xfc0>\n    a77e:\tvmovsd %xmm1,(%r15,%r8,8)\n    a784:\tinc    %r8\n    a787:\tcmp    %r12,%r8\n    a78a:\tjne    a730 <main+0xf90>\n    a78c:\tinc    %ecx\n    a78e:\tcmp    %esi,%ecx\n    a790:\tjne    a720 <main+0xf80>\n    a792:\tlea    0xa887(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a799:\tcall   8e90 <MPI_Barrier@plt>\n    a79e:\tcall   91f0 <MPI_Wtime@plt>\n    a7a3:\tvsubsd -0x268(%rbp),%xmm0,%xmm0\n    a7ab:\tlea    0xa86e(%rip),%r14        # 15020 <ompi_mpi_comm_world@@Base>\n    a7b2:\txor    %r9d,%r9d\n    a7b5:\txor    %r8d,%r8d\n    a7b8:\tmov    %r15,%rdi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260618-110425/spmv_qwen3.7-plus_mpi_r2",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "6d4cdde63b6e6a69b79dab4e2d42758a144fee4096401b26a4a49d36c18c1967"
+  },
+  "binary_sha256": "5cda9f55163dc0c0ca9128f4e3c6b3e740a7543fda63bac095e6ccc231fa1531",
+  "binding_sha256": "aafe6cf59e3368d1e4d3b7be6ec7b2070ed21eaa61b2879084735d4ffc2edaf0",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:41:33Z",
+  "review_finished_at": "2026-11-04T13:42:29Z",
+  "review_input_sha256": "7d1b78f31733ae3ae94b857ba2d10c17ce65733c7207c947d9977c7641b8af7c",
+  "pack_sha256": "20cf9efd19cca926f36049060db3d566bb382b1fc53673ed963525957fb44351",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

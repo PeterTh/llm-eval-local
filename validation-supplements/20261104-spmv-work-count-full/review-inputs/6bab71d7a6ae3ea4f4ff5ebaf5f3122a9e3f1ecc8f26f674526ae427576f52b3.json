@@ -1,0 +1,212 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:16:52Z",
+  "review_finished_at": "2026-11-04T13:17:39Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-luna-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified: complete distributed CSR arithmetic is retained for every requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              174,
+              227
+            ],
+            [
+              255,
+              290
+            ],
+            [
+              302,
+              313
+            ]
+          ],
+          "claim": "Every rank parses iterations without modification. Remainder-aware partitioning, complete local delimiters, and cumulative nonzero displacements cover all rows and entries. Timed repetitions call the complete local kernel; unsupported count sizes fail rather than truncate."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2206,
+              2262
+            ]
+          ],
+          "claim": "mul/add a1cd/a1d5 remain within nonzero traversal, a1ec -> a190 repeats local rows and a1f2 -> a180 restarts the arithmetic for each requested iteration."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified: complete distributed CSR arithmetic is retained for every requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              108
+            ],
+            [
+              173,
+              212
+            ],
+            [
+              239,
+              286
+            ],
+            [
+              298,
+              316
+            ]
+          ],
+          "claim": "Each rank parses original -i. Remainder-aware partitioning packs every localRows+1 delimiter with exact rebasing; all corresponding values and columns are scattered. Every timed iteration calls spmvCpu for all localRows."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2224,
+              2282
+            ]
+          ],
+          "claim": "mul/add a1ed/a1f5 stay in nonzero and row loops; a217 -> a1a0 is the outer requested-iteration backedge, enclosing all local arithmetic."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified: complete distributed CSR arithmetic is retained for every requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              100,
+              110
+            ],
+            [
+              175,
+              213
+            ],
+            [
+              246,
+              279
+            ],
+            [
+              291,
+              313
+            ]
+          ],
+          "claim": "Iterations are unchanged from CLI. Consecutive floor-scaled partitions include all rows; each local end delimiter is reconstructed as localNnz after rebasing. All timed iterations traverse all local rows/nonzeros; reference calculation is not substituted."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2262,
+              2318
+            ]
+          ],
+          "claim": "mul/add a36c/a374 lie within nonzero traversal; row loop a38a -> a330 and outer iteration a394 -> a320 retain arithmetic on every repetition."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-medium_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified: complete distributed CSR arithmetic is retained for every requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              174,
+              212
+            ],
+            [
+              248,
+              297
+            ],
+            [
+              309,
+              330
+            ]
+          ],
+          "claim": "All ranks parse -i unchanged. Point-to-point sends distribute complete consecutive row ranges, all delimiters, and all corresponding nonzeros; root copies its exact slice. The timed outer loop calls the full local CSR kernel on every iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2274,
+              2336
+            ]
+          ],
+          "claim": "mul/add a34c/a354 are nested in nonzero traversal, local row loop a36a -> a310, and requested-iteration backedge a376 -> a300. The work is not hoisted out of repetitions."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified: complete distributed CSR arithmetic is retained for every requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              174,
+              218
+            ],
+            [
+              251,
+              294
+            ],
+            [
+              314,
+              332
+            ]
+          ],
+          "claim": "Unchanged CLI iteration count controls the timed loop. Rank-scaled boundaries cover all rows; separately scattered row ends/bases reconstruct each complete local delimiter slice and corresponding values/columns. Every iteration calls the full kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2385,
+              2439
+            ]
+          ],
+          "claim": "mul/add a58d/a595 stay inside nonzero traversal, row backedge a5ab -> a550 and iteration backedge a5b1 -> a540. Every requested repetition includes arithmetic, not only output stores."
+        }
+      ]
+    }
+  ]
+}

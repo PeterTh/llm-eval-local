@@ -1,0 +1,85 @@
+{
+  "id": "spmv_qwen3.7-plus_omp_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The clocked host repetition loop launches the exact outlined dynamic-schedule worker once per requested iteration. Its GOMP dynamic worksharing chunk loop covers rows; each row traverses its CSR interval, accumulates indexed value/vector products and stores the row output.",
+  "source_evidence": [
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          16
+        ]
+      ],
+      "claim": "Complete exact OpenMP build configuration.",
+      "sha256": "780e72bed2889e583ed9d7dd33dd7ee7581bb6017cbd7bfb9cbd0c53b6697ccf",
+      "git_blob": "1cb780d94f4da7fe4dc4745016838da4a71de36c"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          263
+        ]
+      ],
+      "claim": "Complete source shows dynamic schedule, runtime dimensions/count, CSR setup and timed repeated call.",
+      "sha256": "97b62e8159b883bdce34b3ac9b1a590a0d792ba5ddfe63a7648961bce85b6b2c",
+      "git_blob": "92c5de5401fa9f8be34e584bd08b5429e47cfc83"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clocked repeated GOMP launch and complete dynamic worksharing worker show chunk-next control, row and nonzero loops, indexed arithmetic and stores.",
+      "complete_dump_sha256": "4459f0d76bfb7eba3e69ed6d0c3e9ec87669e4dd35fa4e7f339115c1488350f2",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_qwen3.7-plus_omp_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 590,
+          "last_line": 616,
+          "text": "    19bf:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n    19c4:\txor    %r14d,%r14d\n    19c7:\tmov    -0x90(%rbp),%rbx\n    19ce:\tlea    0x5eb(%rip),%r15        # 1fc0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>\n    19d5:\tmov    %rax,-0x180(%rbp)\n    19dc:\tmov    -0x148(%rbp),%eax\n    19e2:\ttest   %eax,%eax\n    19e4:\tje     1a3a <main+0x6ea>\n    19e6:\tmov    %r13,-0x170(%rbp)\n    19ed:\tmov    %r14d,%r13d\n    19f0:\tmov    -0x148(%rbp),%r14d\n    19f7:\tnopw   0x0(%rax,%rax,1)\n    1a00:\tvmovdqa -0x130(%rbp),%ymm1\n    1a08:\txor    %ecx,%ecx\n    1a0a:\txor    %edx,%edx\n    1a0c:\tmov    %rbx,-0x50(%rbp)\n    1a10:\tmov    -0x138(%rbp),%rsi\n    1a17:\tmov    %r12d,-0x48(%rbp)\n    1a1b:\tmov    %r15,%rdi\n    1a1e:\tvmovdqa %ymm1,-0x70(%rbp)\n    1a23:\tvzeroupper\n    1a26:\tinc    %r13d\n    1a29:\tcall   1230 <GOMP_parallel@plt>\n    1a2e:\tcmp    %r14d,%r13d\n    1a31:\tjne    1a00 <main+0x6b0>\n    1a33:\tmov    -0x170(%rbp),%r13\n    1a3a:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 925,
+          "last_line": 1015,
+          "text": "0000000000001fc0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>:\n    1fc0:\tendbr64\n    1fc4:\tpush   %r15\n    1fc6:\tpush   %r14\n    1fc8:\tpush   %r13\n    1fca:\tmov    $0x40,%ecx\n    1fcf:\tpush   %r12\n    1fd1:\tpush   %rbp\n    1fd2:\tpush   %rbx\n    1fd3:\tmov    $0x1,%edx\n    1fd8:\tsub    $0x38,%rsp\n    1fdc:\tmov    0x28(%rdi),%esi\n    1fdf:\tmov    0x20(%rdi),%rbp\n    1fe3:\tmov    0x18(%rdi),%rbx\n    1fe7:\tmov    0x10(%rdi),%r12\n    1feb:\tlea    0x20(%rsp),%r9\n    1ff0:\tlea    0x18(%rsp),%r8\n    1ff5:\tmov    0x8(%rdi),%r14\n    1ff9:\tmov    (%rdi),%r13\n    1ffc:\txor    %edi,%edi\n    1ffe:\tmov    %fs:0x28,%rax\n    2007:\tmov    %rax,0x28(%rsp)\n    200c:\txor    %eax,%eax\n    200e:\tmov    %r9,0x8(%rsp)\n    2013:\tmov    %r8,(%rsp)\n    2017:\tcall   1250 <GOMP_loop_nonmonotonic_dynamic_start@plt>\n    201c:\ttest   %al,%al\n    201e:\tjne    2082 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xc2>\n    2020:\tcall   1190 <GOMP_loop_end_nowait@plt>\n    2025:\tmov    0x28(%rsp),%rax\n    202a:\tsub    %fs:0x28,%rax\n    2033:\tjne    2102 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x142>\n    2039:\tadd    $0x38,%rsp\n    203d:\tpop    %rbx\n    203e:\tpop    %rbp\n    203f:\tpop    %r12\n    2041:\tpop    %r13\n    2043:\tpop    %r14\n    2045:\tpop    %r15\n    2047:\tret\n    2048:\tnopl   0x0(%rax,%rax,1)\n    2050:\tvxorpd %xmm1,%xmm1,%xmm1\n    2054:\tadd    $0x4,%r10\n    2058:\tvmovsd %xmm1,0x0(%rbp,%rdi,8)\n    205e:\tcmp    %r15d,%r8d\n    2061:\tjb     20a0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    2063:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    206e:\txchg   %ax,%ax\n    2070:\tmov    0x8(%rsp),%rsi\n    2075:\tmov    (%rsp),%rdi\n    2079:\tcall   1210 <GOMP_loop_nonmonotonic_dynamic_next@plt>\n    207e:\ttest   %al,%al\n    2080:\tje     2020 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x60>\n    2082:\tmov    0x18(%rsp),%rax\n    2087:\tmov    0x20(%rsp),%r15d\n    208c:\tmov    %eax,%edx\n    208e:\tmov    %eax,%r8d\n    2091:\tinc    %eax\n    2093:\tmov    (%r12,%rdx,4),%r9d\n    2097:\tlea    (%r12,%rax,4),%r10\n    209b:\tnopl   0x0(%rax,%rax,1)\n    20a0:\tmov    %r9d,%eax\n    20a3:\tmov    (%r10),%r9d\n    20a6:\tmov    %r8d,%edi\n    20a9:\tinc    %r8d\n    20ac:\tcmp    %r9d,%eax\n    20af:\tjae    2050 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x90>\n    20b1:\tmov    %r9d,%edx\n    20b4:\tlea    (%r14,%rax,4),%rcx\n    20b8:\tvxorpd %xmm1,%xmm1,%xmm1\n    20bc:\tsub    %eax,%edx\n    20be:\tlea    -0x1(%rdx),%esi\n    20c1:\tlea    0x0(%r13,%rax,8),%rdx\n    20c6:\txor    %eax,%eax\n    20c8:\tnopl   0x0(%rax,%rax,1)\n    20d0:\tmov    (%rcx,%rax,4),%r11d\n    20d4:\tvmovsd (%rbx,%r11,8),%xmm0\n    20da:\tmov    %rax,%r11\n    20dd:\tvmulsd (%rdx,%rax,8),%xmm0,%xmm0\n    20e2:\tinc    %rax\n    20e5:\tvaddsd %xmm0,%xmm1,%xmm1\n    20e9:\tcmp    %r11,%rsi\n    20ec:\tjne    20d0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x110>\n    20ee:\tvmovsd %xmm1,0x0(%rbp,%rdi,8)\n    20f4:\tadd    $0x4,%r10\n    20f8:\tcmp    %r15d,%r8d\n    20fb:\tjb     20a0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    20fd:\tjmp    2070 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xb0>\n    2102:\tcall   1200 <__stack_chk_fail@plt>\n    2107:\tnopw   0x0(%rax,%rax,1)\n\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Dynamic nonmonotonic scheduling.",
+  "source": {
+    "source_path": "20260618-110425/spmv_qwen3.7-plus_omp_r2",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "452f330a4e67a0d9c9d059bea1fd482b1f55f364c2a82ac1278724599399ab6b"
+  },
+  "binary_sha256": "9f9ae178ea05435c63909144ddd21478c192fd1401605b95c36a0e941bb0a81e",
+  "binding_sha256": "7fa765f7d2f38e731e14af1f7dd1148c74ac6f06737f66bb837f8fa30b72b111",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "0e5db5497ba154aa1a07a547651f1c48803b9c3c584a13890d328697215986ee",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:03:15Z",
+    "sampled_ids": [
+      "spmv_qwen-3.6-27B-udq4_omp_r4"
+    ],
+    "method": "Read every proposal claim; independently read sample complete relevant source/build, complete timed host loop and both complete outlined workers. Each requested iteration launches a partitioned zero pass followed by full CSR row computation. The compute worker retains all indexed multiplication/accumulation and row stores, and the main count backedge encloses both GOMP launches. Other four inspections are Luna's with primary claim/provenance checks.",
+    "work_count_disagreement": false
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:59:23Z",
+  "review_finished_at": "2026-11-04T15:01:16Z",
+  "review_input_sha256": "650015ee06868c9e3f0e5b99191f23945c87d11a4f61257da61140f4c83db8db",
+  "pack_sha256": "c15f532c9a55b94798b6c10c3904fcf4aa15a93e1f71b4b88b93303575efeb83",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

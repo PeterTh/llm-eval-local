@@ -1,0 +1,64 @@
+{
+  "id": "spmv_gpt-6-luna-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          161,
+          194
+        ],
+        [
+          208,
+          251
+        ]
+      ],
+      "claim": "CLI count is unchanged. Every rank constructs the full same CSR, but timed arithmetic covers only its adjacent floor-scaled row interval, collectively spanning all rows. The row-delimiter pointer is offset while global values/columns remain unshifted, so all assigned nonzeros are addressed correctly. Every requested iteration computes the whole local partition and gathers it; timed allocation/count setup and per-iteration gathering add work rather than omit it.",
+      "sha256": "ed291c6ae879a9847c6defe779cbae8c8c5e2ba2e94f41ab58e3f7b78ed74aa3",
+      "git_blob": "b496920802961d6fb5069db6c4e14cfe3cb67c14"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed mul/add 9dfb/9e03 are inside nonzero 9e0a->9df0, row 9e1c->9dc0 and requested-iteration 9e76->9da0 backedges. MPI_Gatherv at 9e59 is also within the iteration loop.",
+      "complete_dump_sha256": "a80b69303ca2203539f1d91c6b283406b2ddcc79ea1e3b0f6c1bd4d28d876b6c",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-luna-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1951,
+          "last_line": 2081,
+          "text": "    9c30:\tjne    a21b <main+0xadb>\n    9c36:\tmovq   $0x0,-0x1c0(%rbp)\n    9c41:\tmovq   $0x0,-0x1b0(%rbp)\n    9c4c:\tmovq   $0x0,-0x1a8(%rbp)\n    9c57:\ttest   %esi,%esi\n    9c59:\tje     a0f9 <main+0x9b9>\n    9c5f:\tlea    0xa3ba(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9c66:\tcall   8e80 <MPI_Barrier@plt>\n    9c6b:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9c70:\tmov    -0x178(%rbp),%edi\n    9c76:\tmov    %rax,-0x1d0(%rbp)\n    9c7d:\tmov    %r12d,%eax\n    9c80:\tmov    -0x188(%rbp),%r12\n    9c87:\tsub    %edi,%eax\n    9c89:\tlea    -0x90(%rbp),%rdi\n    9c90:\tmov    %eax,%esi\n    9c92:\tmov    %r12,%rdx\n    9c95:\tmov    %eax,-0x170(%rbp)\n    9c9b:\tmov    %rsi,-0x168(%rbp)\n    9ca2:\tcall   e4b0 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    9ca7:\tmovslq -0x144(%rbp),%rsi\n    9cae:\tlea    -0x70(%rbp),%rdi\n    9cb2:\tmov    %r12,%rdx\n    9cb5:\tcall   e630 <std::vector<int, std::allocator<int> >::vector(unsigned long, std::allocator<int> const&)>\n    9cba:\tmovslq -0x144(%rbp),%rsi\n    9cc1:\tlea    -0x138(%rbp),%rax\n    9cc8:\tmov    %r12,%rdi\n    9ccb:\tmov    %rax,%rdx\n    9cce:\tmov    %rax,-0x1d8(%rbp)\n    9cd5:\tcall   e630 <std::vector<int, std::allocator<int> >::vector(unsigned long, std::allocator<int> const&)>\n    9cda:\tmov    -0x50(%rbp),%rax\n    9cde:\tmovslq -0x144(%rbp),%rcx\n    9ce5:\txor    %esi,%esi\n    9ce7:\txor    %edi,%edi\n    9ce9:\tmov    %rax,-0x180(%rbp)\n    9cf0:\tmov    -0x70(%rbp),%rax\n    9cf4:\tmov    %rax,-0x190(%rbp)\n    9cfb:\ttest   %ecx,%ecx\n    9cfd:\tjle    9d3f <main+0x5ff>\n    9cff:\tmov    -0x180(%rbp),%r9\n    9d06:\tmov    %rax,%r10\n    9d09:\tnopl   0x0(%rax)\n    9d10:\tmov    %rsi,%rax\n    9d13:\txor    %edx,%edx\n    9d15:\tadd    %r14,%rsi\n    9d18:\tdiv    %rcx\n    9d1b:\txor    %edx,%edx\n    9d1d:\tmov    %rax,%r8\n    9d20:\tmov    %rsi,%rax\n    9d23:\tdiv    %rcx\n    9d26:\tsub    %r8d,%eax\n    9d29:\tmov    %eax,(%r10,%rdi,4)\n    9d2d:\tmov    %r8d,(%r9,%rdi,4)\n    9d31:\tmovslq -0x144(%rbp),%rcx\n    9d38:\tinc    %rdi\n    9d3b:\tcmp    %edi,%ecx\n    9d3d:\tjg     9d10 <main+0x5d0>\n    9d3f:\tmov    -0xb0(%rbp),%rax\n    9d46:\tmov    -0x158(%rbp),%edi\n    9d4c:\tmov    -0x90(%rbp),%r12\n    9d53:\tmov    %rax,-0x188(%rbp)\n    9d5a:\ttest   %edi,%edi\n    9d5c:\tje     a29b <main+0xb5b>\n    9d62:\tmov    -0x178(%rbp),%r14d\n    9d69:\tmov    -0x1b8(%rbp),%rax\n    9d70:\tlea    (%rax,%r14,4),%rax\n    9d74:\tmov    -0x168(%rbp),%r14\n    9d7b:\tmovl   $0x0,-0x168(%rbp)\n    9d85:\tmov    %rax,-0x178(%rbp)\n    9d8c:\tlea    0xac8d(%rip),%rax        # 14a20 <ompi_mpi_double@@Base>\n    9d93:\tmov    %rax,-0x198(%rbp)\n    9d9a:\tshl    $0x2,%r14\n    9d9e:\txchg   %ax,%ax\n    9da0:\tmov    -0x170(%rbp),%eax\n    9da6:\tmov    -0x178(%rbp),%rdi\n    9dad:\txor    %r8d,%r8d\n    9db0:\ttest   %eax,%eax\n    9db2:\tje     9e25 <main+0x6e5>\n    9db4:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9dbf:\tnop\n    9dc0:\tmov    (%rdi,%r8,1),%eax\n    9dc4:\tmov    0x4(%rdi,%r8,1),%ecx\n    9dc9:\tmov    %rdi,%rdx\n    9dcc:\tcmp    %ecx,%eax\n    9dce:\tjae    a0f0 <main+0x9b0>\n    9dd4:\tdec    %ecx\n    9dd6:\tlea    (%r15,%rax,4),%rdi\n    9dda:\tlea    0x0(%r13,%rax,8),%rsi\n    9ddf:\tvxorpd %xmm1,%xmm1,%xmm1\n    9de3:\tsub    %eax,%ecx\n    9de5:\tmov    %rdx,%r11\n    9de8:\txor    %eax,%eax\n    9dea:\tnopw   0x0(%rax,%rax,1)\n    9df0:\tmov    (%rdi,%rax,4),%edx\n    9df3:\tvmovsd (%rbx,%rdx,8),%xmm0\n    9df8:\tmov    %rax,%rdx\n    9dfb:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    9e00:\tinc    %rax\n    9e03:\tvaddsd %xmm0,%xmm1,%xmm1\n    9e07:\tcmp    %rcx,%rdx\n    9e0a:\tjne    9df0 <main+0x6b0>\n    9e0c:\tmov    %r11,%rdi\n    9e0f:\tvmovsd %xmm1,(%r12,%r8,2)\n    9e15:\tadd    $0x4,%r8\n    9e19:\tcmp    %r14,%r8\n    9e1c:\tjne    9dc0 <main+0x680>\n    9e1e:\tmov    %rdi,-0x178(%rbp)\n    9e25:\tmov    -0x198(%rbp),%rdx\n    9e2c:\tsub    $0x8,%rsp\n    9e30:\tlea    0xa1e9(%rip),%rax        # 14020 <ompi_mpi_comm_world@@Base>\n    9e37:\tmov    %r12,%rdi\n    9e3a:\tmov    -0x180(%rbp),%r9\n    9e41:\tmov    -0x190(%rbp),%r8\n    9e48:\tpush   %rax\n    9e49:\tmov    -0x188(%rbp),%rcx\n    9e50:\tmov    -0x170(%rbp),%esi\n    9e56:\tpush   $0x0\n    9e58:\tpush   %rdx\n    9e59:\tcall   9540 <MPI_Gatherv@plt>\n    9e5e:\tincl   -0x168(%rbp)\n    9e64:\tmov    -0x158(%rbp),%esi\n    9e6a:\tadd    $0x20,%rsp\n    9e6e:\tmov    -0x168(%rbp),%eax\n    9e74:\tcmp    %esi,%eax\n    9e76:\tjne    9da0 <main+0x660>\n    9e7c:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9e81:\tmov    -0x1d0(%rbp),%rdi\n    9e88:\tvxorpd %xmm3,%xmm3,%xmm3\n    9e8c:\tsub    $0x8,%rsp\n    9e90:\tmov    -0x198(%rbp),%rcx\n    9e97:\tmov    -0x1d8(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260929-135931/spmv_gpt-6-luna-medium_mpi_r1",
+    "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+    "staged_source_sha256": "d59b9007e0b527b5d20eaadefcd2031959dd3291f852f42d62ac2fa2824f1a06"
+  },
+  "binary_sha256": "a92a0c2b323e9b5643f52f27116e0b58a3cbc496fcccb45d4209713ecbf45fde",
+  "binding_sha256": "e7bd5f690e9d42b43b15c6fc1c8e1e459775caccd9f9b90125180677a7c9cb83",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:30:28Z",
+  "review_finished_at": "2026-11-04T13:31:06Z",
+  "review_input_sha256": "5b620b90b22c779c3f035d32523fb1330ae18b1af618d2e934af227bdcd7eb32",
+  "pack_sha256": "e854e17133ea8a3ad838f1b2f6181452fd677cef9043ec34a3dd94186a3a5759",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

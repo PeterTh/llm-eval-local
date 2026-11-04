@@ -1,0 +1,74 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T16:24:45Z",
+  "review_finished_at": "2026-11-04T16:25:42Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen-3.6-27B-udq4-pi-t_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "This exact pi-t r3 source uses CUDA events, not chrono-only timing: main records the start event at host address 0xca77, enters the timed launch loop at 0xd4a0 when local rows and iterations are nonzero, calls `spmvCuda` at 0xd4c3 (function entry 0xe860), increments ebx at 0xd4ce, compares it to the runtime iteration count at 0xd4d0, and branches back to loop entry 0xca94 at 0xd4d2. It then records the stop event at 0xcaad and synchronizes it at 0xcb07. `spmvCuda` configures one block per local row with 256 threads, passes the kernel entry 0xe5b0 to CUDA launch runtime at 0xea42–0xea44, and checks launch status. The sm_86 kernel bounds blockIdx.x by localDim; threads stride through the complete row length by blockDim.x, multiply and accumulate each CSR value/vector entry, reduce in shared memory, and thread 0 stores the row output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              659
+            ]
+          ],
+          "claim": "Complete exact pi-t r3 source: CLI/runtime iteration and local CSR partition, kernel arithmetic, `spmvCuda` launch configuration, warmup outside timing, event-bounded timed loop, synchronization and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              34
+            ]
+          ],
+          "claim": "Exact per-ID build configuration sets CUDA architecture 86 and the actual source target."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1720,
+              1766
+            ],
+            [
+              2335,
+              2348
+            ],
+            [
+              3448,
+              3584
+            ]
+          ],
+          "claim": "Exact per-ID start/stop event path and synchronization; timed counter/loop backedge and callsite to `spmvCuda`; complete actual called launch helper from entry 0xe860 through `cudaLaunchKernel`, with kernel function pointer 0xe5b0."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              151
+            ]
+          ],
+          "claim": "Complete final sm_86 SASS body for this executable's `spmvCudaKernel`, including local-row bound, CSR nonzero loop, product accumulation, shared reduction and result store."
+        }
+      ],
+      "notes": "This is the pi-t r3 ID listed at tail-manifest position 52, not the separate `spmv_qwen-3.6-27B-udq4_hybrid_r3` ID. The direct called host launch path is `spmvCuda`; its `__device_stub__` symbol is not the timed call target."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

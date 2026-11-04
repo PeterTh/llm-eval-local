@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-haiku-4.5_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The broadcast iteration count bounds complete products over quotient/remainder CSR slices. Received row delimiters are rebased correctly; the executable recomputes arithmetic on each repetition rather than copying a precomputed reference.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          164,
+          205
+        ],
+        [
+          246,
+          314
+        ],
+        [
+          331,
+          343
+        ]
+      ],
+      "claim": "Unchanged count reaches the complete local CSR computation; scatter and validation are outside the timed repeated products.",
+      "sha256": "db562d5b4ba76aa52a8c1251b5cd91f20660b74b72b737c4b690160d7a4af250",
+      "git_blob": "54fd3d505ce4ac4370039562a2cc6af30bca4d66"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The dot-product loop at 0xa400-0xa41c is enclosed by the full-row repetition backedge 0xa432 -> 0xa3c0.",
+      "complete_dump_sha256": "c7c406819e36e45cbf20c43e76d37faef2b4d0a1b64a9dc1dbe7fe2276f0d4c0",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2339,
+          "last_line": 2383,
+          "text": "    a375:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a37a:\tmov    -0x24c(%rbp),%esi\n    a380:\tmov    -0x90(%rbp),%r13\n    a387:\tmov    %rax,-0x2e8(%rbp)\n    a38e:\ttest   %esi,%esi\n    a390:\tje     a434 <main+0xc54>\n    a396:\tmov    -0x268(%rbp),%ecx\n    a39c:\ttest   %ecx,%ecx\n    a39e:\tje     a434 <main+0xc54>\n    a3a4:\tmov    -0x2c8(%rbp),%r8\n    a3ab:\txor    %ecx,%ecx\n    a3ad:\tshl    $0x2,%r8\n    a3b1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a3bc:\tnopl   0x0(%rax)\n    a3c0:\txor    %r10d,%r10d\n    a3c3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a3ce:\txchg   %ax,%ax\n    a3d0:\tmov    (%r12,%r10,1),%eax\n    a3d4:\tmov    0x4(%r12,%r10,1),%edx\n    a3d9:\tcmp    %edx,%eax\n    a3db:\tjae    a690 <main+0xeb0>\n    a3e1:\tdec    %edx\n    a3e3:\tlea    (%r15,%rax,4),%r9\n    a3e7:\tlea    (%r14,%rax,8),%rdi\n    a3eb:\tvxorpd %xmm1,%xmm1,%xmm1\n    a3ef:\tsub    %eax,%edx\n    a3f1:\txor    %eax,%eax\n    a3f3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a3fe:\txchg   %ax,%ax\n    a400:\tmov    (%r9,%rax,4),%r11d\n    a404:\tvmovsd (%rbx,%r11,8),%xmm0\n    a40a:\tmov    %rax,%r11\n    a40d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a412:\tinc    %rax\n    a415:\tvaddsd %xmm0,%xmm1,%xmm1\n    a419:\tcmp    %r11,%rdx\n    a41c:\tjne    a400 <main+0xc20>\n    a41e:\tvmovsd %xmm1,0x0(%r13,%r10,2)\n    a425:\tadd    $0x4,%r10\n    a429:\tcmp    %r8,%r10\n    a42c:\tjne    a3d0 <main+0xbf0>\n    a42e:\tinc    %ecx\n    a430:\tcmp    %ecx,%esi\n    a432:\tjne    a3c0 <main+0xbe0>\n    a434:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_mpi_r3",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "44d026dd6c33c8919c7a7348c4eeb3ca5d2ab759873b5b4d7544d4f2c8441e15"
+  },
+  "binary_sha256": "6f21e75373ba6b3e2ac7798d1333faf00d0ad1d89a5d446d4001041e40d50f1f",
+  "binding_sha256": "367f605567a3a20867f6f7832754d885746f45edee04d736047429eb9426d027",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:47:34Z",
+  "review_finished_at": "2026-11-04T12:50:53Z",
+  "review_input_sha256": "3e0b1943a1c6edf8e1fd40c255868522c0df2163f70522bd63c413e6b43d46b9",
+  "pack_sha256": "266ee494782f7e9b03339d5e59ae8f48610a7e6c4b314c819b3a5b8bd0ad6304",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

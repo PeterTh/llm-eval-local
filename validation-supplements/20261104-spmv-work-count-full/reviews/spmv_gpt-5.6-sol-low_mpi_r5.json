@@ -1,0 +1,73 @@
+{
+  "id": "spmv_gpt-5.6-sol-low_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No work-count omission identified: requested repetitions retain the full distributed CSR multiply.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          108
+        ],
+        [
+          172,
+          212
+        ],
+        [
+          252,
+          297
+        ],
+        [
+          305,
+          330
+        ]
+      ],
+      "claim": "Unchanged positive -i controls timed calls. Nonzero-balanced consecutive boundaries cover all rows; all nonzeros and localRows+1 delimiters are distributed and rebased. No repeated-work reduction or reference substitution occurs.",
+      "sha256": "a20481ed8df1edb30539e404d5ddb9bcaf545ba321042730e42c0a5d6b17cda0",
+      "git_blob": "b64310f0f04cd293ecaa3abde03a1372eb815053"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Each timed iteration calls spmvCpu at a290, with outer counter backedge a298 -> a270. The callee retains mul/add ad7c/ad84 inside every row's nonzero loop, and ad9a -> ad50 traverses all local rows.",
+      "complete_dump_sha256": "9bda91ecf3df70cadc6d9bc68c16fd6a5b5805499648397da39aa7fd5d06ffc8",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-sol-low_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2251,
+          "last_line": 2294,
+          "text": "    a1e0:\tmov    -0x290(%rbp),%rdi\n    a1e7:\tcall   af30 <std::__shrink_to_fit_aux<std::vector<unsigned int, std::allocator<unsigned int> >, true>::_S_do_it(std::vector<unsigned int, std::allocator<unsigned int> >&) [clone .isra.0]>\n    a1ec:\tcmpl   $0x0,-0x214(%rbp)\n    a1f3:\tjne    a201 <main+0xa21>\n    a1f5:\tlea    0x6299(%rip),%rdi        # 10495 <_IO_stdin_used+0x495>\n    a1fc:\tcall   93f0 <puts@plt>\n    a201:\tlea    0xb018(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a208:\tcall   8ed0 <MPI_Barrier@plt>\n    a20d:\tcall   9230 <MPI_Wtime@plt>\n    a212:\tmov    -0x20c(%rbp),%eax\n    a218:\txor    %r13d,%r13d\n    a21b:\tmov    %ebx,-0x238(%rbp)\n    a221:\tmov    %r14b,-0x2f1(%rbp)\n    a228:\tmov    %r13d,%ebx\n    a22b:\tmov    %r12,%r13\n    a22e:\tvmovsd %xmm0,-0x2e0(%rbp)\n    a236:\tmov    -0x2e8(%rbp),%r14\n    a23d:\tmov    %r15,-0x2e8(%rbp)\n    a244:\tmov    -0x24c(%rbp),%r12d\n    a24b:\tmov    %eax,-0x268(%rbp)\n    a251:\tmov    -0x70(%rbp),%rax\n    a255:\tmov    -0x2f0(%rbp),%r15\n    a25c:\tmov    %rax,-0x258(%rbp)\n    a263:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a26e:\txchg   %ax,%ax\n    a270:\tmov    -0x258(%rbp),%r9\n    a277:\tmov    %r13,%rdx\n    a27a:\tmov    %r15,%rsi\n    a27d:\tmov    %r14,%rdi\n    a280:\tmov    -0x268(%rbp),%r8d\n    a287:\tmov    -0x260(%rbp),%rcx\n    a28e:\tinc    %ebx\n    a290:\tcall   ad20 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    a295:\tcmp    %r12d,%ebx\n    a298:\tjb     a270 <main+0xa90>\n    a29a:\tmov    -0x238(%rbp),%ebx\n    a2a0:\tmovzbl -0x2f1(%rbp),%r14d\n    a2a8:\tmov    -0x2e8(%rbp),%r15\n    a2af:\tcall   9230 <MPI_Wtime@plt>\n    a2b4:\tvsubsd -0x2e0(%rbp),%xmm0,%xmm0\n    a2bc:\tlea    0xaf5d(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    a2c3:\tmovq   $0x0,-0x1f8(%rbp)\n    a2ce:\tlea    -0x1f8(%rbp),%rsi\n    a2d5:\tlea    -0x200(%rbp),%rdi\n"
+        },
+        {
+          "first_line": 2887,
+          "last_line": 2939,
+          "text": "000000000000ad20 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    ad20:\tendbr64\n    ad24:\ttest   %r8d,%r8d\n    ad27:\tje     adc5 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xa5>\n    ad2d:\tmov    %r8d,%r8d\n    ad30:\tpush   %r12\n    ad32:\tmov    %rdi,%r11\n    ad35:\tpush   %rbp\n    ad36:\tmov    %r9,%r12\n    ad39:\tpush   %rbx\n    ad3a:\tlea    0x0(,%r8,4),%r9\n    ad42:\tmov    %rsi,%rbx\n    ad45:\tmov    %rdx,%rbp\n    ad48:\tmov    %rcx,%r10\n    ad4b:\txor    %r8d,%r8d\n    ad4e:\txchg   %ax,%ax\n    ad50:\tmov    0x0(%rbp,%r8,1),%eax\n    ad55:\tmov    0x4(%rbp,%r8,1),%ecx\n    ad5a:\tcmp    %ecx,%eax\n    ad5c:\tjae    adb0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x90>\n    ad5e:\tdec    %ecx\n    ad60:\tlea    (%rbx,%rax,4),%rdi\n    ad64:\tlea    (%r11,%rax,8),%rsi\n    ad68:\tvxorpd %xmm1,%xmm1,%xmm1\n    ad6c:\tsub    %eax,%ecx\n    ad6e:\txor    %eax,%eax\n    ad70:\tmov    (%rdi,%rax,4),%edx\n    ad73:\tvmovsd (%r10,%rdx,8),%xmm0\n    ad79:\tmov    %rax,%rdx\n    ad7c:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    ad81:\tinc    %rax\n    ad84:\tvaddsd %xmm0,%xmm1,%xmm1\n    ad88:\tcmp    %rdx,%rcx\n    ad8b:\tjne    ad70 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x50>\n    ad8d:\tvmovsd %xmm1,(%r12,%r8,2)\n    ad93:\tadd    $0x4,%r8\n    ad97:\tcmp    %r8,%r9\n    ad9a:\tjne    ad50 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    ad9c:\tpop    %rbx\n    ad9d:\tpop    %rbp\n    ad9e:\tpop    %r12\n    ada0:\tret\n    ada1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    adac:\tnopl   0x0(%rax)\n    adb0:\tvxorpd %xmm1,%xmm1,%xmm1\n    adb4:\tvmovsd %xmm1,(%r12,%r8,2)\n    adba:\tadd    $0x4,%r8\n    adbe:\tcmp    %r8,%r9\n    adc1:\tjne    ad50 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    adc3:\tjmp    ad9c <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x7c>\n    adc5:\tret\n    adc6:\tcs nopw 0x0(%rax,%rax,1)\n\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260805-120633/spmv_gpt-5.6-sol-low_mpi_r5",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "afbeefd043edf934f952c352f32790c011da3248b7ac5019a514c10e40d44bad"
+  },
+  "binary_sha256": "703689086b996523d9862bb4120d21e9a29a04b5a5ef931e34a3adc6f161553c",
+  "binding_sha256": "da6a873d4a17503d631f82b06d33677b2824b45f38b29590acf805a0b7e20028",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:18:49Z",
+  "review_finished_at": "2026-11-04T13:19:57Z",
+  "review_input_sha256": "eabf3725c08523a8e228c3a5c27d7264ec1df66fe0ffdce52131c515b35dbfbd",
+  "pack_sha256": "ca9ac8222de9fcba7daf57b2512d4306483296e93a75c0a3d3dc8e4e9e5dea9d",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

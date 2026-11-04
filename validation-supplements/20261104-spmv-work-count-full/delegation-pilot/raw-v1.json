@@ -1,0 +1,82 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and existing bound-executable review",
+  "review_started_at": "2026-11-04T13:50:21Z",
+  "review_finished_at": "2026-11-04T13:51:18Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-fable-5-cc-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI -i value controls a timed outer loop; each iteration calls the OpenMP worksharing SpMV over all rows, and each row consumes its CSR interval. Existing host assembly retains the iteration counter/backedge and call to spmvCpu, whose compiled inner loop multiplies and accumulates values and writes row outputs. nItems is numRows squared divided by sparsity.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[154,204],[86,121],[283,301]],"claim":"CLI iteration setting and matrix dimensions/sparsity establish the requested work; timed loop repeats spmvCpu, whose row and nonzero loops compute outputs."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[7,15]],"claim":"OpenMP is enabled and optimization flags are -O3 -march=native."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1417,1496],[1499,1526]],"claim":"Compiled spmvCpu contains multiply/add arithmetic and row/nonzero backedges; outlined timed worker increments and compares the iteration counter, calls spmvCpu each pass, and branches back until the requested count."}
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI -i controls the timed outer loop; each iteration invokes OpenMP worksharing across all rows and CSR nonzeros. Existing assembly keeps both the outlined iteration loop/call and the callee's multiply-accumulate loop. The row result is overwritten each pass, but arithmetic is retained rather than collapsed.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[199,239],[87,121],[306,338]],"claim":"CLI supplies iterations; nItems derives from numRows and sparsity; timed loop repeatedly calls spmvCpu, whose row/nonzero loops compute the result."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[7,15]],"claim":"OpenMP is enabled with -O3 -march=native optimization."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1381,1457],[1463,1490]],"claim":"Compiled spmvCpu loads operands, multiplies and accumulates under the CSR backedge and stores each row; the timed OpenMP worker loops over its iteration count and calls spmvCpu on each pass."}
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed host loop launches a full-grid SpMV kernel once per requested iteration, then synchronizes before stopping timing. The kernel maps threads to rows, traverses each CSR interval, accumulates val[j]*vec[cols[j]], and stores each row. Existing device SASS retains the nonzero-loop backedge and double-precision fused multiply-add instructions.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[166,210],[98,120],[247,268]],"claim":"CLI iteration count and nItems are explicit; timed loop launches over ceil(numRows/256) blocks each pass and synchronizes; the kernel computes one complete CSR row per in-range thread."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA compilation uses -O3."}
+      ],
+      "compiled_evidence": [
+        {"file":"device-sass.txt","ranges":[[10,22],[84,96],[435,452],[658,676]],"claim":"Bound kernel checks row bounds, loads CSR operands, executes DFMA arithmetic across a data-dependent loop backedge, and stores output; host source controls repeated full-grid launches."}
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The selected row or warp kernel receives the CLI iteration count and encloses the full row/nonzero SpMV computation in that loop. Timed launch is followed by device synchronization. The existing PTX for the compiled warp kernel retains nonzero/row and iteration backedges, double arithmetic, and output store; the alternative row kernel is likewise a full CSR reduction by source.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[110,163],[180,194],[342,380],[406,421]],"claim":"Both kernel variants repeat complete CSR reductions for each requested iteration; launcher passes iterations and timed execution synchronizes before stopping."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[14,24]],"claim":"CUDA source is compiled with -O3."}
+      ],
+      "compiled_evidence": [
+        {"file":"device-ptx.txt","ranges":[[60,105],[158,178],[182,220],[245,310]],"claim":"Compiled warp kernel retains f64 multiply-accumulate, the nonzero/row loop branches, output store, and iteration backedge; compiled row-kernel entry and reduction body also carry the iteration parameter and arithmetic."}
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank partitions contiguous rows, materializes its local CSR slice, launches a CUDA kernel over localRows on every timed iteration, and synchronizes. The kernel performs the full CSR reduction for each assigned local row. The collected local outputs cover the rank partitions; repeated launches are explicit and compiled device SASS retains row arithmetic and its nonzero loop.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[170,213],[113,124],[238,280],[282,310]],"claim":"CLI iteration count and global nItems are set; rows and their CSR intervals are distributed by rank; each timed pass launches the local-row kernel and synchronizes before final gather/reduction."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[8,21]],"claim":"Hybrid target enables MPI/OpenMP and CUDA -O3 compilation."}
+      ],
+      "compiled_evidence": [
+        {"file":"device-sass.txt","ranges":[[10,22],[84,96],[438,452],[660,681]],"claim":"Compiled kernel performs double-precision fused multiply-adds in a retained loop and writes row output; timed host source repeats its local-grid launch and synchronization for each iteration."}
+      ]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank derives a contiguous row slice and shifted local row delimiters, then launches the CUDA kernel over its local rows and synchronizes inside the timed CLI iteration loop. The kernel indexes those local CSR intervals and computes each row's complete reduction; the per-pass output copy is extra work, not a skipped repetition. Existing device SASS retains multiply-accumulate arithmetic and the CSR loop backedge.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[174,218],[113,128],[244,275],[276,294]],"claim":"CLI iteration and matrix work are set; rank partition/CSR slicing feeds the local kernel; each timed iteration launches and synchronizes then copies output, followed by collective gathering."},
+        {"file":"spmv/CMakeLists.txt","ranges":[[4,20]],"claim":"Hybrid target enables MPI/OpenMP and CUDA -O3 compilation."}
+      ],
+      "compiled_evidence": [
+        {"file":"device-sass.txt","ranges":[[19,30],[84,96],[438,452],[661,687]],"claim":"Compiled kernel bounds rows, retains DFMA work and CSR loop backedge, and stores the row result; host source repeats launch/synchronization for all requested iterations."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0
+}

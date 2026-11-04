@@ -1,0 +1,26 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:44:10Z",
+  "review_finished_at": "2026-11-04T15:50:30Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI iterations are passed unchanged to spmvGpu; CSR generation assigns n=floor(dim²/sparsity) entries and closes rowDelimiters[dim] at n. The selected short-row kernel is chosen by average n/dim into widths 2/4/8/16/32, with the long-row kernel selected at average>=256. Width-kernel grid is ceil(dim*width/128) and each active row accumulates j from rows[row]+lane to rows[row+1] in width strides before lane 0 stores; the long path launches one 128-thread block per row and accumulates j in 128 strides before reducing/storing. A warmup is synchronized before timing. If iterations>1, capture batch=min(iterations,128) launch calls. The timed host loop subtracts batch after each graph launch while remaining>=batch, then launches exactly the remaining direct calls; the event stop/sync follows. Compiled host code at c720 preserves the batch comparison/decrement/backedge and invokes the capture/launch closure; the closure contains the five width-specific cudaLaunchKernel paths and long-row launch. Inspected all six native sm86 variants: each short-row function has a bounded CSR traversal/backedge and output store; longRows has the 128-stride traversal, reduction and row store. No omission identified. The exceptional empty-dimension/zero-iteration early return does not enter timed work.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"CUDA/C++ build and optimization flags for the inspected program."},
+        {"file":"spmv/spmv.cpp","ranges":[[51,80],[135,245],[295,402]],"claim":"CSR construction/count, selected width and long-row dispatch, complete row/nonzero arithmetic, warmup/capture and quotient/remainder timed repetitions, CLI iterations and full input setup."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2032,2493],[2494,2992],[2993,3008]],"claim":"Actual launch closure and all selected CUDA stubs; spmvGpu setup, width dispatch, warmup/sync, batch capture, timed graph quotient loop and decrement/backedge, direct remainder, event stop/sync and output copy."},
+        {"file":"device-sass.txt","ranges":[[19,500],[501,743],[744,1200],[1201,1468],[1469,1967],[1968,2177],[2178,2676],[2677,2886],[2887,3385],[3386,3595],[3596,3968]],"claim":"All six selected native sm86 kernels through their final instructions: guarded CSR bounds and multiply-accumulate loop/backedges, reductions, final row stores and exits."}
+      ],
+      "notes": "No external runtime or benchmark evidence used."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

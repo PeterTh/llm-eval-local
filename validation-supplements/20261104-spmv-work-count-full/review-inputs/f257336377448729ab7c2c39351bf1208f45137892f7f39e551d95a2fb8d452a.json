@@ -1,0 +1,224 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:12:16Z",
+  "review_finished_at": "2026-11-04T13:13:02Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.2-codex_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All complete balanced local CSR products repeat for the requested count. MPI size checks abort unsupported counts instead of silently truncating work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              108
+            ],
+            [
+              145,
+              160
+            ],
+            [
+              192,
+              230
+            ],
+            [
+              266,
+              340
+            ],
+            [
+              343,
+              367
+            ]
+          ],
+          "claim": "The parsed -i value directly controls every full timed kernel invocation. Remainder-aware partition boundaries and complete localRows+1 scattered delimiters preserve all rows/nonzeros."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2096,
+              2156
+            ]
+          ],
+          "claim": "Between clocks 9f5f and a036, multiply/add 9ffc/a005 remains inside entry a00c->9ff0, row a01b->9fc0 and iteration a021->9fb0 backedges."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Every requested iteration performs the full local CSR product. Separately scattering the base offset only rebases indices and does not skip entries.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              100,
+              110
+            ],
+            [
+              176,
+              221
+            ],
+            [
+              226,
+              229
+            ],
+            [
+              284,
+              337
+            ],
+            [
+              340,
+              354
+            ]
+          ],
+          "claim": "Root broadcasts the original CLI count. Balanced complete row ranges and all local values/columns/delimiters are supplied to the unchanged repeated kernel calls."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2148,
+              2209
+            ]
+          ],
+          "claim": "Timed multiply/add a1dc/a1e4 is inside entry a1eb->a1d0, row a1fa->a1a0 and iteration a20a->a190 branches before clock a20f."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Complete local CSR products remain repeated for the requested iteration count, without reference reuse or clipped work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              176,
+              222
+            ],
+            [
+              254,
+              326
+            ],
+            [
+              328,
+              351
+            ]
+          ],
+          "claim": "Root broadcasts the original iteration value. Balanced partition boundaries cover every row, and rebased full delimiter ranges determine all local values/columns used by each timed call."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2036,
+              2092
+            ]
+          ],
+          "claim": "Between clocks 9e9e and 9f54, multiply/add 9f2d/9f35 remains inside entry 9f3c->9f20, row 9f4c->9ef0 and iteration 9f52->9ee0 loops."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The complete balanced local CSR multiplication executes for each requested repetition. Reference calculations and data scattering precede timing.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              98,
+              108
+            ],
+            [
+              172,
+              215
+            ],
+            [
+              258,
+              311
+            ],
+            [
+              314,
+              329
+            ]
+          ],
+          "claim": "Root's -i value is broadcast unchanged. Full local rows/nonzeros, with complete rebased delimiters, are traversed by every timed spmvCpu invocation."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1951,
+              2013
+            ]
+          ],
+          "claim": "Multiply/add 9d9c/9da5 remains enclosed by entry 9dac->9d90, row 9dc2->9d60 and iteration 9dcf->9d50 backedges between clocks 9cfd and 9dd8."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each requested repetition traverses the complete balanced local CSR partition; no requested iterations or local entries are omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              156,
+              167
+            ],
+            [
+              187,
+              263
+            ],
+            [
+              309,
+              376
+            ],
+            [
+              379,
+              391
+            ]
+          ],
+          "claim": "The original parsed count is broadcast to all ranks. Remainder-aware row boundaries and complete local CSR distribution feed the full timed kernel on every iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2086,
+              2144
+            ]
+          ],
+          "claim": "Clock-bounded multiply/add a02c/a035 is inside entry a03c->a020, row a04b->9ff0 and iteration a057->9fe0 loops."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T16:12:49Z",
+  "review_finished_at": "2026-11-04T16:14:54Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-luna-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI-derived nItems and row delimiters feed device arrays; each block handles one row and its 256 threads stride across [rowStart,rowEnd), accumulate val*vec products, reduce within warps and across the block, and one lane stores the row result. Compiled main's counted loop invokes cudaLaunchKernel for every requested trip, increments and compares the iteration counter, then synchronizes before stopping the host timer. The pinned build explicitly targets sm_60 and the available final SASS is the sm_60 kernel; I do not infer compatibility with another architecture.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,135],[192,300]],"claim":"complete CSR construction, row-per-block cooperative kernel with all-nonzero loop and reduction, CLI iteration parsing, device copies, timed loop and synchronization"},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"CUDA target and explicit CUDA_ARCHITECTURES 60 setting"}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1300,1425]],"claim":"compiled timed counter/backedge encloses each cudaLaunchKernel call and is followed by cudaDeviceSynchronize before end-clock retrieval"},
+        {"file":"device-sass.txt","ranges":[[18,157]],"claim":"complete final sm60 kernel: row bound, CSR row bounds, thread-strided index progression and DFMA backedge, block reduction, and output store"}
+      ],
+      "notes": "Architecture-specific deployment compatibility is a separate configuration concern; this review makes no claim that the sm_60 cubin is compatible with sm_86. The work-count finding is based on the actual sm_60 code emitted by the pinned build."
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source creates every CSR row interval, transfers all operands, and launches 128 threads with four warps per block and ceil(numRows/4) blocks. Each warp maps to one row; lanes cover the full CSR interval in 32-entry strides, reduce and lane zero stores. The compiled host loop compares the incremented count with the CLI iteration count and branches back to the launch configuration/stub on every remaining trip; device synchronization precedes the end clock. Final sm86 code retains the nonzero arithmetic/backedges, and its emitted shuffle helper is also present.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,40],[185,300]],"claim":"warp-per-row CSR kernel, full CSR/data initialization and copies, four-warp grid, CLI repetition loop, synchronization and post-loop output copy"},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,21]],"claim":"CUDA source target and optimization configuration"}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1310,1355],[2165,2220]],"claim":"compiled requested-count backedge encloses the stub call; the called stub dispatches the kernel through cudaLaunchKernel, followed by device synchronization"},
+        {"file":"device-sass.txt","ranges":[[10,337]],"claim":"complete sm86 helper and selected kernel: block/warp row mapping and row bound, CSR bounds, DFMA work with retained loop backedges, reduction, and store at 0x0810"}
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All row delimiters and matrix/vector operands are initialized and copied before timing. The grid formula covers rows using eight warps per 256-thread block; the kernel bounds rows, walks each CSR interval by warp-lane strides, multiplies every entry, reduces and stores lane zero. Compiled main performs the launch, increments the repetition counter, compares to the requested value and branches back; device synchronization follows the loop. The output copy occurs before the end-clock read (a separate timing-boundary variation, not a missing SpMV repetition).",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,36],[181,300]],"claim":"warp-per-row kernel and row/CSR coverage, CLI-derived matrix and repetitions, device transfer, timed repeated calls, synchronization and output copy"},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"CUDA target/build configuration"}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1310,1445]],"claim":"compiled start/end clock calls, timed iteration count/backedge around cudaLaunchKernel followed by device synchronization and output transfer"},
+        {"file":"device-sass.txt","ranges":[[19,311]],"claim":"complete sm86 selected kernel: row bound, CSR interval entry checks and DFMA loops/backedges, warp reduction, and output store at 0x0830"}
+      ],
+      "notes": "The host copies the result before taking the end timestamp, so the reported interval includes that copy; this timing-boundary issue is separate from the work-count finding."
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Source constructs complete CSR row intervals and transfers inputs before timing. The grid covers ceil(numRows/256) blocks; each in-range thread owns one row, loops through all indices from rowDelimiters[row] to rowDelimiters[row+1], accumulates products, and stores output. Compiled main's requested-count backedge encloses the kernel launch, then calls cudaDeviceSynchronize before stopping the clock and copying results. The full final sm86 machine-code body includes the CSR interval loop, several retained full-chunk/remainder arithmetic paths, and the output store.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[1,32],[179,300]],"claim":"one-thread-per-row CSR kernel and full row interval, CSR setup/copies, CLI iteration loop, synchronization and output retrieval"},
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"CUDA target and optimization settings"}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1315,1440]],"claim":"compiled timed repetition counter/backedge surrounds launch dispatch and is followed by device synchronization before end-clock read"},
+        {"file":"device-sass.txt","ranges":[[19,499],[500,711]],"claim":"complete selected sm86 kernel through store at 0x14a0, including row-bound check, repeated nonzero loads/DFMAs and CSR-loop backedges"}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

@@ -1,0 +1,26 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:50:40Z",
+  "review_finished_at": "2026-11-04T15:52:00Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed iteration count is passed to spmvGpu, and the constructed CSR has n=floor(dim²/sparsity) stored entries with the terminal row offset n. The chosen short-row variant has width 2/4/8/16/32 selected from average nnz per row; the long-row variant is selected at average>=256. Short rows use 128-thread groups with a capped grid and a row grid-stride loop, and each group accumulates the whole CSR interval in width strides before one lane stores the row. Long rows use 128 threads, a row grid-stride loop and per-thread nonzero stride of blockDim.x, followed by reduction and store. The host builds a graph of 64 launches when iterations>1, warms up once outside timing, then times iterations/64 graph launches and iterations%64 direct launches; with no graph it times exactly iterations direct launches. Compiled spmvGpu retains these branch/count paths and calls cudaLaunchKernel with the selected kernel pointer, block/grid and argument array; the timed event end and synchronization follow the final launches. All five width-specific and the long-row native sm86 kernels inspected through their arithmetic backedges, reductions/stores and function exits. No omission identified.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA build target and optimization flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[53,82],[114,165],[191,260],[311,416]],"claim":"CSR initialization/count; short and long kernel coverage; actual selected kernel/grid/argument dispatch; graph batch, warmup, timed quotient/remainder and output handling; CLI iteration parsing and full input setup."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1845,2340],[2341,2460]],"claim":"Complete optimized spmvGpu host function: selected kernel pointer and cudaLaunchKernel calls, capture and warmup/synchronization, timed graph quotient loop and direct remainder, event stop/synchronization and result transfer."},
+        {"file":"device-sass.txt","ranges":[[19,500],[501,711],[712,1200],[1201,1404],[1405,1903],[1904,2097],[2098,2596],[2597,2774],[2775,3273],[3274,3451],[3452,3670]],"claim":"All five selected native sm86 short-row kernels and the long-row kernel through arithmetic/backedges, reductions, row stores and exits."}
+      ],
+      "notes": "Capped short-row grid is paired with the kernel row grid-stride loop; no rows are dropped by the cap. No runtime tests or benchmark evidence used."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

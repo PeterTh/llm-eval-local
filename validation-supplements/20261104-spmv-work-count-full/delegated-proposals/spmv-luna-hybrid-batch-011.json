@@ -1,0 +1,130 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:23:28Z",
+  "review_finished_at": "2026-11-04T15:30:50Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI distributes contiguous complete row intervals and matching NNZ boundaries, with local CSR pointers rebased. The timed host loop repeats launchSpmv for iterations. Runtime average-NNZ dispatch selects scalar, warp or block kernels; their grid/row and lane/element loops cover full local rows and CSR intervals, and store each row result.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,51]],"claim":"Build flags and CUDA/MPI/OpenMP target."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,400],[401,808]],"claim":"Full source: CLI iterations, balanced row/NNZ partitioning and local CSR, all three complete kernels, average-based selector and clamped grid-stride launch, timed loop and output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1217,1260],[4063,4215],[4216,4373]],"claim":"MPI_Wtime timed region includes counted launchSpmv loop/backedge and end boundary; both compiled selector/launcher bodies branch to concrete kernel launch paths."},
+        {"file":"device-sass.txt","ranges":[[18,343],[344,764],[765,1264],[1265,1505]],"claim":"sm_86 block-, warp- and scalar-kernel SASS, including row/element loops, arithmetic, reduction where applicable, and final output stores."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r4",
+      "finding": "uncertain",
+      "summary": "Source and compiled host show each requested timed iteration calling GpuSpmv::multiply, which calls cuSPARSE SpMV on the local CSR descriptors. MPI assigns complete row and corresponding NNZ ranges with rebased local row offsets. The bound device-SASS dump contains only its header and no cuSPARSE kernel body, so the final device CSR work cannot be verified from the allowed artifacts; no work omission is established.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,43]],"claim":"Build and cuSPARSE-linked CUDA/MPI target."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,350],[351,647]],"claim":"Source includes row/NNZ distribution and rebasing, cuSPARSE CSR descriptors and multiply call, timed iteration loop and output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1330,1357],[2340,2362]],"claim":"Timed MPI_Wtime bounds and counted loop call GpuSpmv::multiply; the complete compiled multiply routine calls cusparseSpMV and returns."},
+        {"file":"device-sass.txt","ranges":[[1,18]],"claim":"The available dump contains no device kernel body for the external cuSPARSE implementation."}
+      ],
+      "notes": "External cuSPARSE implementation is outside the bound device-SASS artifact; later adjudication would need an allowed device implementation artifact to resolve."
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed stream-capture loop issues iterations calls to launchSpmv; the graph is then replayed inside CUDA event timing. MPI sends contiguous complete row partitions, corresponding values/columns, and rebased delimiters. The average-based selector chooses warp-row or thread-row kernel; both SASS paths cover rows and CSR elements and store outputs.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,30]],"claim":"CUDA/MPI/OpenMP build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,400],[401,529]],"claim":"Full source: CLI count, MPI CSR partition, launch selector and both kernels, graph capture with iterations launches, timed graph execution and gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1480,1595],[3260,3338]],"claim":"Timed graph/event region includes capture/replay control and the actual launchSpmv helper with dispatch to both launch variants."},
+        {"file":"device-sass.txt","ranges":[[18,311],[312,556]],"claim":"sm_86 warp-row and thread-row kernels through their loop backedges and output stores."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source partitions complete row intervals and matching NNZ slices, rebases local row delimiters, then launches the scalar CSR kernel for every iteration between CUDA event records. The kernel assigns each local row to a thread and traverses its full CSR interval. The actual compiled timed call reaches the kernel stub; SASS reaches each row's terminal delimiter and stores its result.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,16]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,212]],"claim":"Full source: runtime iterations, row/NNZ partition and rebase, event-timed launch loop, scalar CSR kernel, output collection."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2190,2245],[2748,2815]],"claim":"Timed main path's kernel-stub call/backedge and full stub launch path."},
+        {"file":"device-sass.txt","ranges":[[9,400],[401,702]],"claim":"sm_86 scalar CSR kernel with complete row and element control, arithmetic, and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive balanced contiguous complete rows and corresponding NNZ ranges; local CSR pointers are rebased. The event-timed loop repeats the scalar kernel for the requested count, and each launched thread iterates from that row's CSR start to end before storing the dot product.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,14]],"claim":"CUDA/MPI build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,157]],"claim":"Full source: CLI count, MPI partition/scatter and pointer rebase, timed event loop, complete scalar kernel and gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1210,1265],[1648,1670],[2189,2250]],"claim":"Event timed region, actual compiled launch-stub callsite, and complete stub launch function."},
+        {"file":"device-sass.txt","ranges":[[9,254]],"claim":"sm_86 scalar CSR kernel includes row bound, nonzero arithmetic loop and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI partitions complete contiguous rows and their exact NNZ intervals; local delimiters are rebased. The CUDA-event timed loop repeats the scalar kernel for iterations, guarded only for ranks with zero rows. SASS processes each launched row's full CSR interval and stores one result.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,206]],"claim":"Full source: argument count, complete row/NNZ distribution and local rebase, kernel, event bounds, repeated launch and gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1170,1185],[1205,1235],[1460,1495],[2353,2410]],"claim":"Event start, actual repeated kernel-stub call, event stop/synchronization, and full actual kernel stub path."},
+        {"file":"device-sass.txt","ranges":[[9,400],[401,702]],"claim":"sm_86 scalar kernel reaches CSR row end, performs multiply-accumulate work and stores output."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source distributes contiguous full rows with the corresponding nonzero interval and rebases delimiters. The steady-clock interval contains the iterations loop and kernel launch; the kernel's row and element bounds cover the full local CSR. The compiled loop has its backedge and calls the actual stub, whose launch path reaches cudaLaunchKernel; SASS includes the row arithmetic and output store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,187]],"claim":"Full source: CLI iterations, row/NNZ partition and rebase, timed launch loop and scalar CSR kernel/output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1545,1640],[2656,2720]],"claim":"Steady-clock loop and backedge include the actual stub call; complete stub path dispatches cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[9,400],[401,702]],"claim":"sm_86 kernel SASS includes complete CSR row traversal, arithmetic and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive complete contiguous row blocks plus the corresponding NNZ values/columns, and local row delimiters are rebased. The timed loop is bounded by iterations and calls the one-block-per-row kernel for nonempty row partitions. Each block's lanes stride through the full row CSR range, reduce and store the row sum.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,175]],"claim":"Full source: count broadcast, MPI row/NNZ partition, local CSR, timed iteration loop, lane-strided kernel/reduction and gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1113,1140],[1575,1610],[2105,2170]],"claim":"Timed host region contains actual stub call and iteration branch; full stub path launches the kernel."},
+        {"file":"device-sass.txt","ranges":[[18,151]],"claim":"sm_86 kernel contains row bounds, lane-strided CSR arithmetic/reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are partitioned contiguously; each rank's local values/columns cover exactly the global CSR interval for those rows, and the kernel indexes values/columns by subtracting the interval base. The CUDA event interval includes the iterations loop and kernel launches. Each thread covers one local row and traverses its full CSR bounds; final output is gathered by row partition.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,194]],"claim":"Full source: runtime count, row/NNZ partition and scatter, base-adjusted full CSR row loop, event-timed repetition and gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1225,1280],[1618,1640],[2290,2360]],"claim":"Event-timed region, actual repeated stub call, synchronization, plus complete launch stub path."},
+        {"file":"device-sass.txt","ranges":[[9,400],[401,718]],"claim":"sm_86 scalar CSR kernel includes row bounds, base-adjusted nonzero arithmetic loop and store."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

@@ -1,0 +1,74 @@
+{
+  "id": "spmv_qwen-3.6-27B-udq4-pi-t_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Both root and worker paths use the unchanged -i value in timed loops 349–352 and 463–466. For the existing rows-at-least-ranks configuration, quotient/remainder row ranges span all rows; complete operand scatters and packed rebased delimiters supply every local CSR interval, and Gatherv assembles full output. Both compiled paths retain full repetition work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          51,
+          108
+        ],
+        [
+          158,
+          246
+        ],
+        [
+          264,
+          376
+        ],
+        [
+          404,
+          494
+        ]
+      ],
+      "claim": "Both root and worker paths use the unchanged -i value in timed loops 349–352 and 463–466. For the existing rows-at-least-ranks configuration, quotient/remainder row ranges span all rows; complete operand scatters and packed rebased delimiters supply every local CSR interval, and Gatherv assembles full output. Both compiled paths retain full repetition work.",
+      "sha256": "c6a36f36e2dadf495ee04e928be1c26a90be7d964030e888082ec73c53f51fb7",
+      "git_blob": "de85bf4c90e0cdfa84a0b330b055665d0c9e9191"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Both MPI_Wtime pairs a3a7/a471 and aad4/abbc contain CSR multiply/add (a43d/a445 and ab7c/ab85), nonzero backedges a44c->a430 and ab8c->ab70, row backedges a462->a400 and aba3->ab40, and repetition backedges a468->a3f0 and abac->ab2e.",
+      "complete_dump_sha256": "0b00d787c9d869e7a359d21ded711e51fd4f672df804cb6bdbf8f80ab8aebed5",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_qwen-3.6-27B-udq4-pi-t_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2365,
+          "last_line": 2424,
+          "text": "    a37a:\tmov    -0x260(%rbp),%rdx\n    a381:\tadd    $0x20,%rsp\n    a385:\tlea    -0x90(%rbp),%rdi\n    a38c:\tmov    %rax,%rsi\n    a38f:\tmov    %rax,-0x248(%rbp)\n    a396:\tcall   f460 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    a39b:\tlea    0xae7e(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a3a2:\tcall   8e90 <MPI_Barrier@plt>\n    a3a7:\tcall   91e0 <MPI_Wtime@plt>\n    a3ac:\tcmpl   $0x0,-0x228(%rbp)\n    a3b3:\tmov    -0x90(%rbp),%r12\n    a3ba:\tvmovsd %xmm0,-0x258(%rbp)\n    a3c2:\tje     a471 <main+0xb01>\n    a3c8:\tcmpl   $0x0,-0x280(%rbp)\n    a3cf:\tje     a471 <main+0xb01>\n    a3d5:\tmov    -0x248(%rbp),%r8\n    a3dc:\tmov    -0x228(%rbp),%esi\n    a3e2:\txor    %ecx,%ecx\n    a3e4:\tmov    -0x238(%rbp),%rdi\n    a3eb:\tshl    $0x2,%r8\n    a3ef:\tnop\n    a3f0:\txor    %r9d,%r9d\n    a3f3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a3fe:\txchg   %ax,%ax\n    a400:\tmov    (%rdi,%r9,1),%eax\n    a404:\tmov    0x4(%rdi,%r9,1),%edx\n    a409:\tmov    %rdi,%r11\n    a40c:\tcmp    %edx,%eax\n    a40e:\tjae    a5a0 <main+0xc30>\n    a414:\tdec    %edx\n    a416:\tlea    (%r14,%rax,4),%r10\n    a41a:\tlea    0x0(%r13,%rax,8),%rdi\n    a41f:\tvxorpd %xmm1,%xmm1,%xmm1\n    a423:\tsub    %eax,%edx\n    a425:\tmov    %r11,-0x238(%rbp)\n    a42c:\txor    %eax,%eax\n    a42e:\txchg   %ax,%ax\n    a430:\tmov    (%r10,%rax,4),%r11d\n    a434:\tvmovsd (%rbx,%r11,8),%xmm0\n    a43a:\tmov    %rax,%r11\n    a43d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a442:\tinc    %rax\n    a445:\tvaddsd %xmm0,%xmm1,%xmm1\n    a449:\tcmp    %r11,%rdx\n    a44c:\tjne    a430 <main+0xac0>\n    a44e:\tmov    -0x238(%rbp),%rdi\n    a455:\tvmovsd %xmm1,(%r12,%r9,2)\n    a45b:\tadd    $0x4,%r9\n    a45f:\tcmp    %r9,%r8\n    a462:\tjne    a400 <main+0xa90>\n    a464:\tinc    %ecx\n    a466:\tcmp    %esi,%ecx\n    a468:\tjne    a3f0 <main+0xa80>\n    a46a:\tmov    %rdi,-0x238(%rbp)\n    a471:\tcall   91e0 <MPI_Wtime@plt>\n    a476:\tlea    0xada3(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a47d:\tvmovsd %xmm0,-0x248(%rbp)\n    a485:\tcall   8e90 <MPI_Barrier@plt>\n    a48a:\tvmovsd -0x248(%rbp),%xmm2\n    a492:\tlea    0xad87(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n"
+        },
+        {
+          "first_line": 2758,
+          "last_line": 2820,
+          "text": "    aaaa:\tcall   93a0 <puts@plt>\n    aaaf:\tmov    -0x260(%rbp),%rdx\n    aab6:\tmov    %r13d,%r12d\n    aab9:\tlea    -0xb0(%rbp),%rdi\n    aac0:\tmov    %r12,%rsi\n    aac3:\tcall   f460 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    aac8:\tlea    0xa751(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    aacf:\tcall   8e90 <MPI_Barrier@plt>\n    aad4:\tcall   91e0 <MPI_Wtime@plt>\n    aad9:\tcmpl   $0x0,-0x228(%rbp)\n    aae0:\tmov    -0xb0(%rbp),%r13\n    aae7:\tvmovsd %xmm0,-0x248(%rbp)\n    aaef:\tje     abbc <main+0x124c>\n    aaf5:\tcmpl   $0x0,-0x280(%rbp)\n    aafc:\tje     abbc <main+0x124c>\n    ab02:\tlea    0x0(,%r12,4),%r8\n    ab0a:\tmov    -0x228(%rbp),%edx\n    ab10:\tmov    -0x238(%rbp),%rdi\n    ab17:\txor    %ecx,%ecx\n    ab19:\tmov    -0x2f0(%rbp),%r11\n    ab20:\tmov    -0x2f8(%rbp),%r12\n    ab27:\tmov    %r15d,-0x258(%rbp)\n    ab2e:\txor    %r10d,%r10d\n    ab31:\tmov    %rdi,%rsi\n    ab34:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    ab3f:\tnop\n    ab40:\tmov    (%rsi,%r10,1),%eax\n    ab44:\tmov    0x4(%rsi,%r10,1),%edi\n    ab49:\tcmp    %edi,%eax\n    ab4b:\tjae    ad90 <main+0x1420>\n    ab51:\tdec    %edi\n    ab53:\tlea    (%r12,%rax,4),%r15\n    ab57:\tlea    (%r11,%rax,8),%r9\n    ab5b:\tvxorpd %xmm1,%xmm1,%xmm1\n    ab5f:\tsub    %eax,%edi\n    ab61:\tmov    %rsi,-0x238(%rbp)\n    ab68:\txor    %eax,%eax\n    ab6a:\tnopw   0x0(%rax,%rax,1)\n    ab70:\tmov    (%r15,%rax,4),%esi\n    ab74:\tvmovsd (%rbx,%rsi,8),%xmm0\n    ab79:\tmov    %rax,%rsi\n    ab7c:\tvmulsd (%r9,%rax,8),%xmm0,%xmm0\n    ab82:\tinc    %rax\n    ab85:\tvaddsd %xmm0,%xmm1,%xmm1\n    ab89:\tcmp    %rdi,%rsi\n    ab8c:\tjne    ab70 <main+0x1200>\n    ab8e:\tmov    -0x238(%rbp),%rsi\n    ab95:\tvmovsd %xmm1,0x0(%r13,%r10,2)\n    ab9c:\tadd    $0x4,%r10\n    aba0:\tcmp    %r10,%r8\n    aba3:\tjne    ab40 <main+0x11d0>\n    aba5:\tinc    %ecx\n    aba7:\tmov    %rsi,%rdi\n    abaa:\tcmp    %edx,%ecx\n    abac:\tjne    ab2e <main+0x11be>\n    abae:\tmov    -0x258(%rbp),%r15d\n    abb5:\tmov    %rsi,-0x238(%rbp)\n    abbc:\tcall   91e0 <MPI_Wtime@plt>\n    abc1:\tlea    0xa658(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    abc8:\tvmovq  %xmm0,%r12\n    abcd:\tcall   8e90 <MPI_Barrier@plt>\n    abd2:\tvmovq  %r12,%xmm6\n    abd7:\tvsubsd -0x248(%rbp),%xmm6,%xmm0\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Static concern outside the existing rows-at-least-ranks configuration: computeRowRange's ranks>numRows branch leaves idle ranks' rowStart=rowEnd=rank. Later globalRowDelimiters[rStart/rEnd] accesses can exceed the numRows+1 allocation for rank>numRows (158–168, 272–276, 321–329, 412–420). No new execution performed and no demonstrated existing-result exclusion assigned. Existing spmv-shape-mpi128-v1 result remains passing.",
+  "source": {
+    "source_path": "20260529-150043/spmv_qwen-3.6-27B-udq4-pi-t_mpi_r2",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "0def08b854b6db7fb0a548eade13decd5165752d7a2db2fe9fcd1e7bfb2ad785"
+  },
+  "binary_sha256": "be503566096ffae3f8b5e638b478d36107d48d0a61cd14a26e495660c4a5b532",
+  "binding_sha256": "4cfdb24327a9003d17814bd8003dcf1266c09913a517c7bc033b7f4e94a2012a",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:39:37Z",
+  "review_finished_at": "2026-11-04T13:40:40Z",
+  "review_input_sha256": "b810f26cfae51b743d11fb5c357b2ed8d4ac2f4fe46db9e7d8d9a4a5470cb89a",
+  "pack_sha256": "2031604e1b831ac0c7e4ceae5ac9f2434e1a6ec848c0812ead670c14f00b374c",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

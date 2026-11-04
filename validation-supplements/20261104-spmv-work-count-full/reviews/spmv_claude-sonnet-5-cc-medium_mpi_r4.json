@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-sonnet-5-cc-medium_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "All complete balanced local CSR products are repeated as requested; overlapping boundary delimiters preserve complete rows during scattering.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          100,
+          110
+        ],
+        [
+          168,
+          175
+        ],
+        [
+          185,
+          220
+        ],
+        [
+          272,
+          326
+        ],
+        [
+          333,
+          344
+        ]
+      ],
+      "claim": "Each rank receives localRows+1 delimiters and all corresponding values and columns, rebases their offsets, then calls the full CSR kernel for the original requested iteration count.",
+      "sha256": "c5e1a97b8c845799f133e77cb76f79c64f30f538a12df688522c146783ff7a05",
+      "git_blob": "52632a848c0963b52412af080f490b9b19fd7cae"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add 9edd/9ee5 is retained inside entry 9eec->9ed0, row 9efb->9ea0 and iteration 9f01->9e90 backedges, between clocks 9e56 and 9f03.",
+      "complete_dump_sha256": "1f00120e7bd50b4169adbf71bd2ace4c712b0acdbac86358f797e099bc0baf47",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-sonnet-5-cc-medium_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2039,
+          "last_line": 2083,
+          "text": "    9e4a:\tlea    0xb3cf(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9e51:\tcall   8e80 <MPI_Barrier@plt>\n    9e56:\tcall   91d0 <MPI_Wtime@plt>\n    9e5b:\tmov    -0x268(%rbp),%r10d\n    9e62:\tvmovsd %xmm0,-0x2d8(%rbp)\n    9e6a:\ttest   %r10d,%r10d\n    9e6d:\tje     9f03 <main+0x7e3>\n    9e73:\tmov    -0x270(%rbp),%r9d\n    9e7a:\tmov    -0x90(%rbp),%r8\n    9e81:\ttest   %r9d,%r9d\n    9e84:\tje     9f03 <main+0x7e3>\n    9e86:\tmov    -0x268(%rbp),%esi\n    9e8c:\txor    %ecx,%ecx\n    9e8e:\txchg   %ax,%ax\n    9e90:\txor    %r9d,%r9d\n    9e93:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9e9e:\txchg   %ax,%ax\n    9ea0:\tmov    (%r12,%r9,1),%eax\n    9ea4:\tmov    0x4(%r12,%r9,1),%edx\n    9ea9:\tcmp    %edx,%eax\n    9eab:\tjae    a430 <main+0xd10>\n    9eb1:\tdec    %edx\n    9eb3:\tlea    (%r15,%rax,4),%r10\n    9eb7:\tlea    (%r14,%rax,8),%rdi\n    9ebb:\tvxorpd %xmm1,%xmm1,%xmm1\n    9ebf:\tsub    %eax,%edx\n    9ec1:\txor    %eax,%eax\n    9ec3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9ece:\txchg   %ax,%ax\n    9ed0:\tmov    (%r10,%rax,4),%r11d\n    9ed4:\tvmovsd (%rbx,%r11,8),%xmm0\n    9eda:\tmov    %rax,%r11\n    9edd:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9ee2:\tinc    %rax\n    9ee5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9ee9:\tcmp    %r11,%rdx\n    9eec:\tjne    9ed0 <main+0x7b0>\n    9eee:\tvmovsd %xmm1,(%r8,%r9,2)\n    9ef4:\tadd    $0x4,%r9\n    9ef8:\tcmp    %r9,%r13\n    9efb:\tjne    9ea0 <main+0x780>\n    9efd:\tinc    %ecx\n    9eff:\tcmp    %ecx,%esi\n    9f01:\tjne    9e90 <main+0x770>\n    9f03:\tcall   91d0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-sonnet-5-cc-medium_mpi_r4",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "0ce9745b579d7372692be92281e4a1a05718d51293e8b2ee3516b386c23f365e"
+  },
+  "binary_sha256": "e3a4da52d8da9903c1a278f94e73f0cc9fd67e3fecf39e0e88c711781c7caf30",
+  "binding_sha256": "d687602249d7c4dc80b4026c39734b851bbfc853affae753ff57a467da230f64",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:01:43Z",
+  "review_finished_at": "2026-11-04T13:02:11Z",
+  "review_input_sha256": "cd2a047a9168d4b50232ba1f3b25bbf38f9ea86f3a204aaa883c559725bf6c72",
+  "pack_sha256": "407852d48472a1bd8aa2584c0c877b7fd9d8ffbb1c1aa3cc026241eb11c6f227",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

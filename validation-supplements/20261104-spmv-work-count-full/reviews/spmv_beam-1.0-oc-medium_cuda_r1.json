@@ -1,0 +1,108 @@
+{
+  "id": "spmv_beam-1.0-oc-medium_cuda_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The host assembly for the timed loop retains one full-grid kernel launch per requested iteration, a loop-counter comparison/backedge, and a device synchronization before ending timing. Device SASS for that kernel retains the row bound check, CSR loads, double-precision multiply-accumulate, nonzero-loop backedge, and row output store.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          166,
+          210
+        ],
+        [
+          98,
+          120
+        ],
+        [
+          247,
+          268
+        ]
+      ],
+      "claim": "CLI iteration count and global nItems are explicit; each pass launches ceil(numRows/256) blocks; each in-range row thread traverses rowDelimiters[i:i+1] and writes its result.",
+      "sha256": "5568ebbebc51cbfa7a489e7c4371864b56c77a5572c1fc5c1896aefda388e994",
+      "git_blob": "9c77fb58ca7cceb68c46dd60fc9b6b5ba323b890"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          19
+        ]
+      ],
+      "claim": "CUDA source is compiled with -O3.",
+      "sha256": "faacee99cde4327251dbbb6ae6b0195c46145f77ea6d07f813546b069f001a68",
+      "git_blob": "d93622f9fc6478c0a2335f866f6e1a98c88d83d1"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed loop initializes its counter, calls the CUDA kernel launch at 0xb4ab, increments/compares at 0xb4b7-0xb4bf and branches to launch setup at 0xb353; after loop exit it synchronizes at 0xb4c8.",
+      "complete_dump_sha256": "373a166d56d72ac9bae8ed69cb89a16471c08cda8f23ea195f1564ac3647697b",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_cuda_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1285,
+          "last_line": 1384,
+          "text": "    b2c7:\tmov    -0x1d8(%rbp),%rdi\n    b2ce:\tmov    $0x1,%ecx\n    b2d3:\tmov    %r13,%rdx\n    b2d6:\tcall   70840 <cudaMemcpy>\n    b2db:\tlea    0x7f65b(%rip),%rsi        # 8a93d <libcudart_static_17cb5f807914dde50de9f48427f24567f09ed95c+0xd5>\n    b2e2:\tmov    $0x2,%edi\n    b2e7:\txor    %eax,%eax\n    b2e9:\tcall   a030 <__printf_chk@plt>\n    b2ee:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n    b2f3:\tmov    -0x208(%rbp),%ecx\n    b2f9:\tlea    0xff(%rbx),%r13d\n    b300:\txor    %r12d,%r12d\n    b303:\tmov    %rax,%r15\n    b306:\tshr    $0x8,%r13d\n    b30a:\ttest   %ecx,%ecx\n    b30c:\tje     b4c8 <main+0x968>\n    b312:\tlea    -0x1b8(%rbp),%rdx\n    b319:\tlea    -0x1b0(%rbp),%rax\n    b320:\tmov    0x84509(%rip),%r14        # 8f830 <libcudart_static_8b9785e1dd14e6b6d7e4b61f0e9994d39e1b6281+0xa>\n    b327:\tmovq   %rdx,%xmm2\n    b32c:\tmovq   %rax,%xmm4\n    b331:\tpunpcklqdq %xmm4,%xmm2\n    b335:\tmovaps %xmm2,-0x200(%rbp)\n    b33c:\tjmp    b353 <main+0x7f3>\n    b33e:\txchg   %ax,%ax\n    b340:\tmov    -0x208(%rbp),%eax\n    b346:\tadd    $0x1,%r12d\n    b34a:\tcmp    %eax,%r12d\n    b34d:\tje     b4c8 <main+0x968>\n    b353:\tmovabs $0x100000001,%rax\n    b35d:\tmov    %r13d,-0x154(%rbp)\n    b364:\txor    %r9d,%r9d\n    b367:\txor    %r8d,%r8d\n    b36a:\tmov    %rax,-0x150(%rbp)\n    b371:\tmov    -0x14c(%rbp),%esi\n    b377:\tmov    $0x1,%ecx\n    b37c:\tmovabs $0x100000100,%rdx\n    b386:\tmov    -0x154(%rbp),%rdi\n    b38d:\tcall   202b0 <__cudaPushCallConfiguration>\n    b392:\ttest   %eax,%eax\n    b394:\tjne    b340 <main+0x7e0>\n    b396:\tmov    -0x1e0(%rbp),%rax\n    b39d:\tmovdqa -0x200(%rbp),%xmm3\n    b3a5:\tlea    -0x188(%rbp),%rcx\n    b3ac:\tlea    -0x190(%rbp),%rdx\n    b3b3:\tlea    -0x160(%rbp),%rsi\n    b3ba:\tlea    -0x170(%rbp),%rdi\n    b3c1:\tmov    %ebx,-0x1e4(%rbp)\n    b3c7:\tmov    %rax,-0x1b8(%rbp)\n    b3ce:\tmov    -0x1c8(%rbp),%rax\n    b3d5:\tmovaps %xmm3,-0x70(%rbp)\n    b3d9:\tmov    %rax,-0x1b0(%rbp)\n    b3e0:\tmov    -0x1c0(%rbp),%rax\n    b3e7:\tmov    %r14,-0x170(%rbp)\n    b3ee:\tmov    %rax,-0x1a8(%rbp)\n    b3f5:\tmov    -0x1d8(%rbp),%rax\n    b3fc:\tmovl   $0x1,-0x168(%rbp)\n    b406:\tmov    %rax,-0x1a0(%rbp)\n    b40d:\tmov    -0x1d0(%rbp),%rax\n    b414:\tmov    %r14,-0x160(%rbp)\n    b41b:\tmov    %rax,-0x198(%rbp)\n    b422:\tlea    -0x1a8(%rbp),%rax\n    b429:\tmovl   $0x1,-0x158(%rbp)\n    b433:\tmovq   %rax,%xmm0\n    b438:\tlea    -0x1a0(%rbp),%rax\n    b43f:\tmovq   %rax,%xmm2\n    b444:\tlea    -0x1e4(%rbp),%rax\n    b44b:\tpunpcklqdq %xmm2,%xmm0\n    b44f:\tmovaps %xmm0,-0x60(%rbp)\n    b453:\tmovq   %rax,%xmm0\n    b458:\tlea    -0x198(%rbp),%rax\n    b45f:\tmovq   %rax,%xmm3\n    b464:\tpunpcklqdq %xmm3,%xmm0\n    b468:\tmovaps %xmm0,-0x50(%rbp)\n    b46c:\tcall   20340 <__cudaPopCallConfiguration>\n    b471:\ttest   %eax,%eax\n    b473:\tjne    b340 <main+0x7e0>\n    b479:\tpush   -0x188(%rbp)\n    b47f:\tmov    -0x160(%rbp),%rcx\n    b486:\tlea    -0x70(%rbp),%r9\n    b48a:\tlea    0x5df(%rip),%rdi        # ba70 <spmvKernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b491:\tmov    -0x158(%rbp),%r8d\n    b498:\tpush   -0x190(%rbp)\n    b49e:\tmov    -0x170(%rbp),%rsi\n    b4a5:\tmov    -0x168(%rbp),%edx\n    b4ab:\tcall   75a30 <cudaLaunchKernel>\n    b4b0:\tpop    %rax\n    b4b1:\tmov    -0x208(%rbp),%eax\n    b4b7:\tadd    $0x1,%r12d\n    b4bb:\tpop    %rdx\n    b4bc:\tcmp    %eax,%r12d\n    b4bf:\tjne    b353 <main+0x7f3>\n    b4c5:\tnopl   (%rax)\n    b4c8:\tcall   4b920 <cudaDeviceSynchronize>\n    b4cd:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n    b4d2:\tmov    -0xb0(%rbp),%r13\n    b4d9:\tmov    $0x2,%ecx\n    b4de:\tmov    -0x240(%rbp),%rdx\n    b4e5:\tmov    -0x1d0(%rbp),%rsi\n    b4ec:\tmov    %rax,%r12\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "Kernel bounds row index at SASS 0x0040-0x0050; DFMA at 0x0270 and loop branch at 0x0280 retain nonzero arithmetic; DFMA instructions continue through 0x0da0/branch 0x0db0; output is stored at 0x14a0.",
+      "complete_dump_sha256": "0b51c42f2c14054838b90592b1bdb6b84d9697b325b9993da040b641bc996c1f",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_cuda_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 10,
+          "last_line": 22,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   MOV R1, c[0x0][0x28] ;                                 /* 0x00000a0000017a02 */\n                                                                                          /* 0x000fe40000000f00 */\n        /*0010*/                   S2R R0, SR_CTAID.X ;                                   /* 0x0000000000007919 */\n                                                                                          /* 0x000e280000002500 */\n        /*0020*/                   S2R R3, SR_TID.X ;                                     /* 0x0000000000037919 */\n                                                                                          /* 0x000e240000002100 */\n        /*0030*/                   IMAD R0, R0, c[0x0][0x0], R3 ;                         /* 0x0000000000007a24 */\n                                                                                          /* 0x001fca00078e0203 */\n        /*0040*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;       /* 0x0000600000007a0c */\n                                                                                          /* 0x000fda0003f06070 */\n        /*0050*/               @P0 EXIT ;                                                 /* 0x000000000000094d */\n"
+        },
+        {
+          "first_line": 84,
+          "last_line": 96,
+          "text": "        /*0240*/                   IADD3 R4, R4, -0x1, RZ ;                               /* 0xffffffff04047810 */\n                                                                                          /* 0x000fc80007ffe0ff */\n        /*0250*/                   ISETP.NE.AND P1, PT, R4, RZ, PT ;                      /* 0x000000ff0400720c */\n                                                                                          /* 0x000fe40003f25270 */\n        /*0260*/                   IADD3 R5, R5, 0x1, RZ ;                                /* 0x0000000105057810 */\n                                                                                          /* 0x000fe20007ffe0ff */\n        /*0270*/                   DFMA R26, R10, R6, R26 ;                               /* 0x000000060a1a722b */\n                                                                                          /* 0x00a054000000001a */\n        /*0280*/               @P1 BRA 0x1d0 ;                                            /* 0xffffff4000001947 */\n                                                                                          /* 0x000fea000383ffff */\n        /*0290*/                   BSYNC B1 ;                                             /* 0x0000000000017941 */\n                                                                                          /* 0x000fea0003800000 */\n        /*02a0*/              @!P0 BRA 0x1470 ;                                           /* 0x000011c000008947 */\n"
+        },
+        {
+          "first_line": 435,
+          "last_line": 452,
+          "text": "                                                                                          /* 0x000fc80007ffe0ff */\n        /*0d40*/                   ISETP.GE.U32.AND P1, PT, R5, R4, PT ;                  /* 0x000000040500720c */\n                                                                                          /* 0x000fe20003f26070 */\n        /*0d50*/                   DFMA R12, R24, R22, R12 ;                              /* 0x00000016180c722b */\n                                                                                          /* 0x004f4c000000000c */\n        /*0d60*/                   DFMA R12, R30, R34, R12 ;                              /* 0x000000221e0c722b */\n                                                                                          /* 0x020ecc000000000c */\n        /*0d70*/                   DFMA R12, R20, R18, R12 ;                              /* 0x00000012140c722b */\n                                                                                          /* 0x008f0c000000000c */\n        /*0d80*/                   DFMA R10, R10, R28, R12 ;                              /* 0x0000001c0a0a722b */\n                                                                                          /* 0x010e0c000000000c */\n        /*0d90*/                   DFMA R10, R32, R14, R10 ;                              /* 0x0000000e200a722b */\n                                                                                          /* 0x001e0c000000000a */\n        /*0da0*/                   DFMA R26, R6, R8, R10 ;                                /* 0x00000008061a722b */\n                                                                                          /* 0x001062000000000a */\n        /*0db0*/              @!P1 BRA 0x590 ;                                            /* 0xfffff7d000009947 */\n                                                                                          /* 0x000fea000383ffff */\n        /*0dc0*/                   BSYNC B1 ;                                             /* 0x0000000000017941 */\n"
+        },
+        {
+          "first_line": 658,
+          "last_line": 676,
+          "text": "        /*1430*/                   DFMA R2, R4, R2, R26 ;                                 /* 0x000000020402722b */\n                                                                                          /* 0x006ecc000000001a */\n        /*1440*/                   DFMA R2, R10, R6, R2 ;                                 /* 0x000000060a02722b */\n                                                                                          /* 0x008f4c0000000002 */\n        /*1450*/                   DFMA R2, R14, R12, R2 ;                                /* 0x0000000c0e02722b */\n                                                                                          /* 0x020f0c0000000002 */\n        /*1460*/                   DFMA R26, R8, R16, R2 ;                                /* 0x00000010081a722b */\n                                                                                          /* 0x01004c0000000002 */\n        /*1470*/                   BSYNC B0 ;                                             /* 0x0000000000007941 */\n                                                                                          /* 0x000fea0003800000 */\n        /*1480*/                   LEA R2, P0, R0, c[0x0][0x188], 0x3 ;                   /* 0x0000620000027a11 */\n                                                                                          /* 0x001fc800078018ff */\n        /*1490*/                   LEA.HI.X R3, R0, c[0x0][0x18c], RZ, 0x3, P0 ;          /* 0x0000630000037a11 */\n                                                                                          /* 0x000fca00000f1cff */\n        /*14a0*/                   STG.E.64 [R2.64], R26 ;                                /* 0x0000001a02007986 */\n                                                                                          /* 0x002fe2000c101b04 */\n        /*14b0*/                   EXIT ;                                                 /* 0x000000000000794d */\n                                                                                          /* 0x000fea0003800000 */\n        /*14c0*/                   BRA 0x14c0;                                            /* 0xfffffff000007947 */\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170121/spmv_beam-1.0-oc-medium_cuda_r1",
+    "source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+    "staged_source_sha256": "69032754164b5d7725bf378c25612f2b7c8a8463b023039714e2769aa32dfb26"
+  },
+  "binary_sha256": "d210c83bd51f652e31fd8104d82351e49889834a2122dee36d521659d07bfaae",
+  "binding_sha256": "a37385a6bb83129db78efc774dfc15075ef924e93ada7333628324802b8808dd",
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna independent static review; primary agent independently checked all pilot cases and corrected cited instruction addresses/ranges.",
+  "review_started_at": "2026-11-04T13:52:23Z",
+  "review_finished_at": "2026-11-04T13:55:53Z",
+  "review_input_sha256": "5d81b6ada0f6a6a759d5afbc0b1e8e3611387deae506c913c49800e01aa3978c",
+  "pack_sha256": "bd6c491b8bea9773d399cb4c2e7b17f88607be43c70a7cbbcd75b266db493bf2",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

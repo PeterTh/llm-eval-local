@@ -1,0 +1,79 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:41:49Z",
+  "review_finished_at": "2026-11-04T14:41:49Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-008.json compiled evidence for the IDs listed below, except spmv_gpt-5.2_hybrid_r4 which is covered by v2",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.2-codex_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Existing source and timed-loop reasoning stands. The compiled citation is extended through the actual tail of the sole kernel and the separately emitted CUDA launch stub called by the timed path.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[265,285],[304,350],[359,390],[400,420]],"claim":"Rank-local CSR data and rebased delimiters; runtime-count timed loop and output handling."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1010,1051],[1051,1100],[2289,2348]],"claim":"Timed caller loop and synchronization plus the emitted device stub's cudaLaunchKernel call."},
+        {"file":"device-sass.txt","ranges":[[21,250],[251,500],[501,685]],"claim":"Sole kernel image through full row/nonzero path, unrolled-loop branches and actual output store/exit at lines 683–685."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The runtime-count host loop and rank-local work conclusion stand; evidence now includes the full SASS kernel through its final row store and the separately emitted launch stub.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[320,383],[390,441],[445,468]],"claim":"Rank-local CSR slice and rebasing, timed repetitions, and result collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1474,1540],[2914,2969]],"claim":"Timed host loop calls the device stub; the stub builds the launch and calls cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,250],[251,500],[501,683]],"claim":"Exact selected kernel through long-row chunk/remainder control, arithmetic, and final store/exit at lines 681–683."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.2_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CUDA-event timing and the repetition conclusion stand; cited SASS and host stub now reach the actual end of the kernel's work path and launch dispatch.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[303,325],[329,352],[367,416]],"claim":"Rank-local CSR setup, event-timed loop and result transfer/gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1435,1518],[3044,3099]],"claim":"Event-bracketed runtime counter path invokes the emitted kernel stub; stub forwards to cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[10,250],[251,500],[501,668]],"claim":"Kernel row bounds, complete CSR loop/unrolled remainder, arithmetic, output store at 666 and exit at 668."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed repetition and rank-local coverage conclusion stand. The compiled citations now include the complete selected kernel and emitted launch stub.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[75,140],[185,207],[216,230]],"claim":"Warp CSR arithmetic and rank-local timed launch/result handling."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[869,1022],[1022,1060],[1856,1912]],"claim":"Timed repetition/copy path and emitted CUDA stub that launches the kernel."},
+        {"file":"device-sass.txt","ranges":[[47,313]],"claim":"Selected kernel row/warp bounds, complete nonzero loop/remainder, reduction, and actual result store/exit at 311–313."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The full final kernel work path and emitted launch stub are included; existing source and timed-loop findings stand.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[113,128],[230,258],[268,280]],"claim":"CSR kernel, rank-local data and timed launch/output path."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[884,950],[1908,1970]],"claim":"Timed launch/repetition path plus the device stub's cudaLaunchKernel dispatch."},
+        {"file":"device-sass.txt","ranges":[[10,250],[251,500],[501,676]],"claim":"Exact kernel row bounds, full CSR chunk/backedge/remainder arithmetic, and result store/exit at 674–676."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The original host repetition finding is retained; compiled evidence now reaches the complete kernel store and emitted CUDA stub.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[114,124],[240,267],[270,295]],"claim":"CSR arithmetic, MPI row/nonzero distribution and repeated timed launches/output handling."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[885,1090],[1983,2041]],"claim":"Timed loop/copy flow and separately emitted stub's cudaLaunchKernel launch call."},
+        {"file":"device-sass.txt","ranges":[[10,250],[251,500],[501,676]],"claim":"Kernel row coverage, CSR chunks/backedges/remainder, arithmetic and result store/exit at 674–676."}
+      ],
+      "notes":""
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

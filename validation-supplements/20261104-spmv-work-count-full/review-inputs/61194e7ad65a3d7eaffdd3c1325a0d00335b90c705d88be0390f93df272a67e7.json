@@ -1,0 +1,228 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:08:17Z",
+  "review_finished_at": "2026-11-04T13:09:29Z",
+  "reviews": [
+    {
+      "id": "spmv_gemini-3-pro-preview_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Every requested repetition performs the full local product and an additional vector all-gather. Repeated communication adds work; it does not replace multiplication.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              97,
+              107
+            ],
+            [
+              176,
+              199
+            ],
+            [
+              217,
+              221
+            ],
+            [
+              309,
+              360
+            ],
+            [
+              395,
+              450
+            ]
+          ],
+          "claim": "Balanced row ownership covers all rows. Complete local CSR ranges are computed under the unchanged -i count; the input vector is gathered anew on each repetition."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2166,
+              2327
+            ]
+          ],
+          "claim": "Timed multiply/add a2ac/a2b4 is enclosed by entry a2bb->a2a0, row a2d1->a270 and iteration a31f->a09b branches; that outer loop also contains both all-gather calls."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gemini-3-pro-preview_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All complete local CSR products repeat for the original CLI count. Distributed matrix/value initialization and optional reference computation remain separate from timed work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              56,
+              134
+            ],
+            [
+              214,
+              235
+            ],
+            [
+              255,
+              265
+            ],
+            [
+              328,
+              353
+            ],
+            [
+              373,
+              388
+            ],
+            [
+              488,
+              515
+            ]
+          ],
+          "claim": "Remainder-aware ownership covers the whole matrix. The local row count is the delimiter-array length minus one, and each timed call traverses all those rows and entries."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1936,
+              2005
+            ]
+          ],
+          "claim": "Multiply/add 9cfc/9d05 remains under entry 9d0c->9cf0, row 9d21->9cc0 and iteration 9d2a->9cb0 backedges, between clocks 9c39 and 9d46."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gemini-3-pro-preview_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each requested call recomputes the complete owned row range, then all-gathers its output. Static storage caches allocation/partition metadata, not the product.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              127,
+              167
+            ],
+            [
+              230,
+              251
+            ],
+            [
+              268,
+              301
+            ]
+          ],
+          "claim": "The last rank receives all remainder rows, so ownership covers the full matrix. The kernel's multiplication loop is unconditional for nonempty ranges on every original-count timed invocation."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1942,
+              1979
+            ],
+            [
+              2430,
+              2594
+            ],
+            [
+              2765,
+              2792
+            ]
+          ],
+          "claim": "Timed call 9c78 repeats via 9c87->9c50. Its target retains multiply/add a50c/a514 under entry a51b and row a539/a54c loops before MPI_Allgatherv. Allocation guards return to row computation."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gemini-3-pro-preview_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The complete local product is repeated as requested, followed by a single timed gather and barrier. Replicated input storage does not reduce each rank's assigned work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              170,
+              191
+            ],
+            [
+              209,
+              228
+            ],
+            [
+              232,
+              281
+            ]
+          ],
+          "claim": "Balanced row ownership covers all rows; the timed triple loop traverses every nonzero of each owned global row under the unchanged CLI iteration count."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1959,
+              2085
+            ]
+          ],
+          "claim": "Multiply/add 9d5c/9d65 remains inside entry 9d6c->9d50, row 9d81->9d10 and iteration 9d93->9cf0 loops. Gather and ending clock follow all repetitions."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gemini-3-pro-preview_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All requested local CSR products remain in the timed interval. Assigning remainder rows to the last rank preserves complete matrix coverage.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              56,
+              97
+            ],
+            [
+              115,
+              125
+            ],
+            [
+              188,
+              213
+            ],
+            [
+              226,
+              287
+            ],
+            [
+              295,
+              344
+            ]
+          ],
+          "claim": "Local generation retains every owned entry and its final delimiter. The original parsed iteration count directly bounds full local calls, separately from the reference."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1965,
+              2026
+            ]
+          ],
+          "claim": "Clock-bounded multiply/add 9dad/9db5 is enclosed by entry 9dbc->9da0, row 9dd2->9d70 and iteration 9ddc->9d60 backedges."
+        }
+      ]
+    }
+  ]
+}

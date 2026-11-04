@@ -1,0 +1,251 @@
+{
+  "reviewer": "gpt-6.1-sol; independent static adjudication of two Luna uncertainties only",
+  "reviewer_model": "gpt-6.1-sol",
+  "review_started_at": "2026-11-04T15:17:05Z",
+  "review_finished_at": "2026-11-04T15:19:01Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-terra-xhigh_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No omission identified at the external-library contract boundary. Monotone MPI row partitions begin at zero and end at all rows; each rank receives exactly its complete CSR interval, rebases all local row offsets, and retains the complete global input vector. Nonempty row partitions describe localRows by globalRows CSR matrices with localNnz, zero-based signed-32-compatible indices and double values. Every requested timed iteration calls cusparseSpMV with non-transpose, alpha=1, beta=0 and double computation on those unchanged complete descriptors. Actual host code preserves the count loop and waits on its same-stream ending event. Empty row partitions legitimately have no rows to compute. External vendor implementation is not itself a work-count failure.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              535
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2023,
+              2080
+            ],
+            [
+              4170,
+              4298
+            ]
+          ],
+          "claim": "Parsed Options iterations offset 8 is copied into -0x248 and checked nonzero; parseOptions handles -i by conversion/store at offset 8."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2197,
+              2372
+            ],
+            [
+              4300,
+              4408
+            ]
+          ],
+          "claim": "Compiled broadcasts, adjacent rank partition slicing and local nnz difference, preparation calls, and lower-bound row partition builder with full endpoint."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2400,
+              2559
+            ]
+          ],
+          "claim": "Full operand copies, handle stream association, CSR/vector descriptor creation, workspace query and synchronized warmup; calls bind to libcusparse.so.12 via PLT."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2560,
+              2618
+            ]
+          ],
+          "claim": "a72d calls actual external cusparseSpMV; ebx increments and compares against -0x248, branching unsigned-below to a700. Start and stop records use same stream; a76e synchronizes stop before elapsed time."
+        }
+      ],
+      "adjudication_rationale": "Luna escalated because vendor final device instructions were not embedded in this executable. Complete source and actual host call/descriptor/count semantics establish requested work at the documented library boundary; requiring vendor SASS would incorrectly classify legitimate external library use as unresolved work omission.",
+      "limitations": "This is contract-level static evidence, not inspection or certification of vendor kernel instructions, dynamic library resolution, exact deployed cuSPARSE patch version, or runtime behavior. Read-only readelf confirms DT_NEEDED libcusparse.so.12 and libcudart.so.12, not a fully pinned library file. No vendor final SASS is claimed inspected. No execution, compilation or benchmark was performed.",
+      "primary_reference": {
+        "url": "https://docs.nvidia.com/cuda/archive/12.6.0/cusparse/generic-api/generic-api-functions.html#cusparsespmv",
+        "claim": "cusparseSpMV computes Y=alpha*op(A)*X+beta*Y; CSR, 32-bit indices and double computation are supported, with asynchronous execution."
+      }
+    },
+    {
+      "id": "spmv_gemini-3-pro-preview_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Host repetition plus embedded PTX semantics identify no work-count omission. Each timed iteration launches the same complete SpMV with ceil(numRows/256) blocks of 256 threads and all CSR operands; final synchronization precedes end clock. Embedded actual PTX assigns one thread to each guarded row, reads its two CSR bounds, processes the remainder then four-at-a-time entries with double multiply-accumulates through the end bound, and writes even empty-row zero sums. Only sm52 cubins are present in existing dumps, not sm86-compatible native code: on the stated sm86 target successful normal loading therefore uses forward-compatible PTX JIT, not the inspected sm52 SASS. No final JIT SASS inspection is asserted.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              29
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              342
+            ]
+          ],
+          "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              925,
+              1085
+            ],
+            [
+              1190,
+              1235
+            ]
+          ],
+          "claim": "Actual CLI -i conversion saves count at -0x200; temporary reuse during initialization preserves/restores count before timing."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1300,
+              1439
+            ]
+          ],
+          "claim": "Grid calculation adds 255 then shifts by 8; block size is 256. Warmup synchronizes; clock b405 starts region, runtime count controls launches at b5d6 through b5ea backedge to b463, with cudaDeviceSynchronize b5f0 before end clock b60a. Device pointers and row count are packaged into all six kernel parameters."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              1,
+              44
+            ],
+            [
+              53,
+              170
+            ]
+          ],
+          "claim": "Only sm52 cubin headers and actual PTX 8.5 sm52 target appear. PTX row bound, CSR endpoints, scalar remainder FMA loop, four-entry FMA loop/backedge and row output store establish complete per-launch work at PTX semantic boundary."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ],
+            [
+              790,
+              800
+            ]
+          ],
+          "claim": "Existing complete dump architecture headers identify sm52 native code and sm52 PTX, not an sm8x cubin. These native instructions are not the final execution code for sm86."
+        }
+      ],
+      "adjudication_rationale": "Luna's sm52-to-sm86 native compatibility inference was incorrect. NVIDIA documents native cubin compatibility only within a major capability revision, while PTX is forward-compatible and JIT used without compatible cubin. Correcting evidence level removes that unsupported SASS claim without turning legitimate PTX JIT into a scientific failure.",
+      "limitations": "Verdict concerns source, bound host and embedded PTX work semantics, assuming conforming CUDA driver/JIT. No sm86 final JIT SASS/cache artifact was supplied or generated, so this is not final-machine-code verification on the target. JIT availability/driver PTX-version acceptance and actual runtime success are not established by this static review. Source uses 32-bit dimension multiplication and lacks general invalid-input checks; this is a separate input-domain concern, not evidence of omitted requested repetitions or nonzeros for the reviewed valid workload.",
+      "primary_reference": {
+        "url": "https://docs.nvidia.com/cuda/ampere-compatibility-guide/index.html#application-compatibility-on-the-nvidia-ampere-gpu-architecture",
+        "claim": "Cubin compatibility does not cross compute-capability major versions; PTX is forward-compatible and runtime JIT generates target cubin when compatible native code is absent."
+      }
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "a33bad8e6cad2bf352126839bd5d5721800e548375b520c8e93572e4457886cc",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:21:38Z",
+    "sampled_ids": [
+      "spmv_gpt-5.6-terra-xhigh_hybrid_r4",
+      "spmv_gemini-3-pro-preview_cuda_r2"
+    ],
+    "method": "Read both complete Sol adjudications and verified primary NVIDIA library-contract and cubin/PTX compatibility documentation. Independently inspected Gemini complete relevant source/build, actual timed inline CUDA launch/count/sync host path and full embedded PTX through every remainder/chunk backedge and store; confirmed sm52-only headers. Inspected Terra full CSR distribution/rebase, descriptors and timed source plus actual external-call counter/event synchronization. Remaining host parsing/partition compiled details inspected by Sol. Accepted findings explicitly retain contract-level and PTX/JIT evidence limits, not native target SASS certification.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded source references to full pinned files; preserved every Sol rationale, evidence limitation and primary reference.",
+      "Replaced unsupported Luna sm52-to-sm86 native compatibility assertion with Sol's PTX/JIT adjudication."
+    ],
+    "supplemental_proposals": [
+      {
+        "file": "spmv-luna-hybrid-tail-batch-001.json",
+        "sha256": "154e0d829fc095f2cc89fa3042c2109a052e144f241564346fbed3dd889a0b75"
+      },
+      {
+        "file": "spmv-luna-cuda-batch-007.json",
+        "sha256": "2e69e3762942fb2c6daf345543d6403a1b9fe9be945c22cd7f9dc6051e881688"
+      }
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  }
+}

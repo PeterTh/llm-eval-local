@@ -1,0 +1,69 @@
+{
+  "id": "spmv_gpt-4.1_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested multiplication is omitted: each rank performs two full-matrix products and an additional local product on every timed iteration.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          169,
+          190
+        ],
+        [
+          207,
+          224
+        ],
+        [
+          236,
+          269
+        ]
+      ],
+      "claim": "The original CLI iteration count encloses both full-dimensional kernel calls and the complete local row loop. Full replicas therefore provide more than the requested work, not fewer repetitions.",
+      "sha256": "443a4f6952c20506e9a7507871f90c3253e38abb4fe80de2ce3eab10a93ee5e0",
+      "git_blob": "194fb71ae5e97a3915f3b1ff30d880e1a4baba0e"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "All three multiply/add bodies (9d6d/9d75, 9ddd/9de5, 9e9c/9ea5) remain in the timed outer loop, whose continuation returns through 9ef3->9d20. Gather and ending clock follow.",
+      "complete_dump_sha256": "94af5e71caad073872a27a24b77236def64bb0ff530d93271a653c7e717e310d",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-4.1_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1965,
+          "last_line": 2135,
+          "text": "    9c8b:\tmov    %eax,-0x13c(%rbp)\n    9c91:\tmov    %rax,-0x120(%rbp)\n    9c98:\tcall   e4d0 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    9c9d:\tmov    -0xf4(%rbp),%ecx\n    9ca3:\ttest   %ecx,%ecx\n    9ca5:\tje     a0f8 <main+0x9f8>\n    9cab:\tlea    0xa36e(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9cb2:\tcall   8e80 <MPI_Barrier@plt>\n    9cb7:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9cbc:\tmov    -0x128(%rbp),%edx\n    9cc2:\tmov    %rax,-0x160(%rbp)\n    9cc9:\tmov    -0x50(%rbp),%rax\n    9ccd:\tmov    -0x70(%rbp),%r14\n    9cd1:\tmov    %rax,-0x138(%rbp)\n    9cd8:\ttest   %edx,%edx\n    9cda:\tje     9f23 <main+0x823>\n    9ce0:\tmov    %rax,%rdi\n    9ce3:\tmov    -0x120(%rbp),%rsi\n    9cea:\tmov    -0x130(%rbp),%rax\n    9cf1:\tmov    -0x108(%rbp),%r9d\n    9cf8:\tmov    -0x118(%rbp),%rcx\n    9cff:\tlea    (%rdi,%rsi,8),%r11\n    9d03:\txor    %edi,%edi\n    9d05:\tshl    $0x2,%rax\n    9d09:\ttest   %r9d,%r9d\n    9d0c:\tje     a2ed <main+0xbed>\n    9d12:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d1d:\tnopl   (%rax)\n    9d20:\txor    %r9d,%r9d\n    9d23:\tmov    %rcx,%rsi\n    9d26:\tcs nopw 0x0(%rax,%rax,1)\n    9d30:\tmov    (%rsi,%r9,1),%edx\n    9d34:\tmov    0x4(%rsi,%r9,1),%ecx\n    9d39:\tmov    %rsi,%r10\n    9d3c:\tcmp    %ecx,%edx\n    9d3e:\tjae    9f10 <main+0x810>\n    9d44:\tdec    %ecx\n    9d46:\tlea    0x0(%r13,%rdx,4),%r8\n    9d4b:\tlea    (%r12,%rdx,8),%rsi\n    9d4f:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d53:\tsub    %edx,%ecx\n    9d55:\tmov    %r10,-0x118(%rbp)\n    9d5c:\txor    %edx,%edx\n    9d5e:\txchg   %ax,%ax\n    9d60:\tmov    (%r8,%rdx,4),%r10d\n    9d64:\tvmovsd (%rbx,%r10,8),%xmm0\n    9d6a:\tmov    %rdx,%r10\n    9d6d:\tvmulsd (%rsi,%rdx,8),%xmm0,%xmm0\n    9d72:\tinc    %rdx\n    9d75:\tvaddsd %xmm0,%xmm1,%xmm1\n    9d79:\tcmp    %r10,%rcx\n    9d7c:\tjne    9d60 <main+0x660>\n    9d7e:\tmov    -0x118(%rbp),%rsi\n    9d85:\tvmovsd %xmm1,(%r14,%r9,2)\n    9d8b:\tadd    $0x4,%r9\n    9d8f:\tcmp    %r9,%rax\n    9d92:\tjne    9d30 <main+0x630>\n    9d94:\txor    %r9d,%r9d\n    9d97:\tnopw   0x0(%rax,%rax,1)\n    9da0:\tmov    (%rsi,%r9,1),%edx\n    9da4:\tmov    0x4(%rsi,%r9,1),%ecx\n    9da9:\tmov    %rsi,%r10\n    9dac:\tcmp    %ecx,%edx\n    9dae:\tjae    9f00 <main+0x800>\n    9db4:\tdec    %ecx\n    9db6:\tlea    0x0(%r13,%rdx,4),%r8\n    9dbb:\tlea    (%r12,%rdx,8),%rsi\n    9dbf:\tvxorpd %xmm1,%xmm1,%xmm1\n    9dc3:\tsub    %edx,%ecx\n    9dc5:\tmov    %r10,-0x118(%rbp)\n    9dcc:\txor    %edx,%edx\n    9dce:\txchg   %ax,%ax\n    9dd0:\tmov    (%r8,%rdx,4),%r10d\n    9dd4:\tvmovsd (%rbx,%r10,8),%xmm0\n    9dda:\tmov    %rdx,%r10\n    9ddd:\tvmulsd (%rsi,%rdx,8),%xmm0,%xmm0\n    9de2:\tinc    %rdx\n    9de5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9de9:\tcmp    %rcx,%r10\n    9dec:\tjne    9dd0 <main+0x6d0>\n    9dee:\tmov    -0x118(%rbp),%rsi\n    9df5:\tvmovsd %xmm1,(%r14,%r9,2)\n    9dfb:\tadd    $0x4,%r9\n    9dff:\tcmp    %r9,%rax\n    9e02:\tjne    9da0 <main+0x6a0>\n    9e04:\tmov    -0x13c(%rbp),%r8d\n    9e0b:\tmov    %rsi,%rcx\n    9e0e:\ttest   %r8d,%r8d\n    9e11:\tje     a0de <main+0x9de>\n    9e17:\tmov    %rcx,%rsi\n    9e1a:\tmov    %rcx,-0x118(%rbp)\n    9e21:\tmov    %r15d,%edx\n    9e24:\tmov    %rsi,%rcx\n    9e27:\tmov    %rax,-0x130(%rbp)\n    9e2e:\tmov    %rdx,%r9\n    9e31:\tmov    %r14,%rdx\n    9e34:\tmov    -0x138(%rbp),%rsi\n    9e3b:\tmov    %r15d,%r14d\n    9e3e:\tmov    %r9,%r10\n    9e41:\tmov    %edi,-0x120(%rbp)\n    9e47:\tmov    %r15d,-0x124(%rbp)\n    9e4e:\txchg   %ax,%ax\n    9e50:\tmov    (%rcx,%r10,4),%eax\n    9e54:\tlea    0x1(%r14),%r10d\n    9e58:\tmovq   $0x0,(%rsi)\n    9e5f:\tmov    (%rcx,%r10,4),%edi\n    9e63:\tmov    %r10,%r14\n    9e66:\tcmp    %edi,%eax\n    9e68:\tjae    9eb9 <main+0x7b9>\n    9e6a:\tdec    %edi\n    9e6c:\tlea    (%r12,%rax,8),%r15\n    9e70:\tlea    0x0(%r13,%rax,4),%r8\n    9e75:\tvxorpd %xmm1,%xmm1,%xmm1\n    9e79:\tsub    %eax,%edi\n    9e7b:\tmov    %rcx,-0x118(%rbp)\n    9e82:\txor    %eax,%eax\n    9e84:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9e8f:\tnop\n    9e90:\tmov    (%r8,%rax,4),%ecx\n    9e94:\tvmovsd (%rbx,%rcx,8),%xmm0\n    9e99:\tmov    %rax,%rcx\n    9e9c:\tvmulsd (%r15,%rax,8),%xmm0,%xmm0\n    9ea2:\tinc    %rax\n    9ea5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9ea9:\tvmovsd %xmm1,(%rsi)\n    9ead:\tcmp    %rdi,%rcx\n    9eb0:\tjne    9e90 <main+0x790>\n    9eb2:\tmov    -0x118(%rbp),%rcx\n    9eb9:\tadd    $0x8,%rsi\n    9ebd:\tcmp    %r11,%rsi\n    9ec0:\tjne    9e50 <main+0x750>\n    9ec2:\tmov    -0x120(%rbp),%edi\n    9ec8:\tmov    -0x128(%rbp),%eax\n    9ece:\tmov    -0x124(%rbp),%r15d\n    9ed5:\tinc    %edi\n    9ed7:\tcmp    %eax,%edi\n    9ed9:\tje     9f19 <main+0x819>\n    9edb:\tmov    -0x108(%rbp),%esi\n    9ee1:\ttest   %esi,%esi\n    9ee3:\tje     9e34 <main+0x734>\n    9ee9:\tmov    -0x130(%rbp),%rax\n    9ef0:\tmov    %rdx,%r14\n    9ef3:\tjmp    9d20 <main+0x620>\n    9ef8:\tnopl   0x0(%rax,%rax,1)\n    9f00:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f04:\tjmp    9df5 <main+0x6f5>\n    9f09:\tnopl   0x0(%rax)\n    9f10:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f14:\tjmp    9d85 <main+0x685>\n    9f19:\tmov    %rcx,-0x118(%rbp)\n    9f20:\tmov    %rdx,%r14\n    9f23:\tmov    -0x13c(%rbp),%esi\n    9f29:\tlea    0xa0f0(%rip),%rax        # 14020 <ompi_mpi_comm_world@@Base>\n    9f30:\tlea    0xa4e9(%rip),%r9        # 14420 <ompi_mpi_double@@Base>\n    9f37:\tmov    %r14,%rcx\n    9f3a:\tmov    -0x138(%rbp),%rdi\n    9f41:\tpush   %rax\n    9f42:\tmov    %r9,%rdx\n    9f45:\tpush   $0x0\n    9f47:\tmov    %esi,%r8d\n    9f4a:\tcall   8f20 <MPI_Gather@plt>\n    9f4f:\tpop    %r10\n    9f51:\tpop    %r11\n    9f53:\tlea    0xa0c6(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9f5a:\tcall   8e80 <MPI_Barrier@plt>\n    9f5f:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9f64:\tmov    -0xf4(%rbp),%edx\n    9f6a:\ttest   %edx,%edx\n    9f6c:\tjne    a02c <main+0x92c>\n    9f72:\tmov    -0x160(%rbp),%rdi\n    9f79:\tmov    $0xf4240,%ecx\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Redundant full-matrix computation on every rank is an implementation variation, not a work-count failure. The fixed-count final MPI_Gather uses local_rows despite the last rank owning remainder rows: with n=1025 and 128 ranks, root's count is 8 and the last rank's is 9. Existing shape evidence at spmv-shape-mpi128-v1/spmv_gpt-4.1_mpi_r4/result.json reports exit 0, internal pass and exact output hash match; stderr is empty. Retain this unequal-count collective concern separately, without overriding that observed pass or claiming a new external-validation failure.",
+  "source": {
+    "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r4",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "7ca7c7b3b83569376c1c20ba7e38368637ee34f4b48be62f0f10165e2bbdc0e4"
+  },
+  "binary_sha256": "9747152cf6f59684d2482f257ced52e11dac98e1b99fb265f2d462ed4c56721c",
+  "binding_sha256": "befc7864baeadb2417949e3b270fa303568b53daf762786e4a9d161bdd1b5a19",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:09:32Z",
+  "review_finished_at": "2026-11-04T13:11:48Z",
+  "review_input_sha256": "3a13fa1888449505c7e597cbb247badc1caa7df205472f260579144678dc7501",
+  "pack_sha256": "d0fba812773228be6f6e65f3b76e478356336791d0f04fcae5f6b08fceb0b024",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

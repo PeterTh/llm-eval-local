@@ -1,0 +1,64 @@
+{
+  "id": "spmv_gpt-5-mini_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "All requested iterations traverse every nonzero in the rank's balanced global-row interval. Replicated inputs do not substitute for multiplication.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          172,
+          197
+        ],
+        [
+          234,
+          258
+        ],
+        [
+          261,
+          282
+        ]
+      ],
+      "claim": "Complete matrix data are broadcast before timing. The timed triple loop is directly bounded by the original iteration count and complete local row/nonzero ranges.",
+      "sha256": "25dd984241eabb55aba791abd7b23cf69899d9cc724173db0c7f6ed91fb231d8",
+      "git_blob": "0531b52642803cc14d773bcde81fd422929c332f"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add 9d5d/9d65 is inside entry 9d6c, row 9d91/9da4 and outer repetition 9db8->9d10 loops, before ending clock 9dca.",
+      "complete_dump_sha256": "5f532d13bd258a983986b8972f97c70b35f17744ae20778c67236ec517a777b3",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5-mini_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1940,
+          "last_line": 2018,
+          "text": "    9c8e:\tmov    %r9,-0x80(%rbp)\n    9c92:\tmov    %r10d,-0x190(%rbp)\n    9c99:\txor    %ecx,%ecx\n    9c9b:\tmov    %r11,-0x188(%rbp)\n    9ca2:\tmov    %eax,-0x198(%rbp)\n    9ca8:\tlea    0xa371(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9caf:\tmov    %rcx,-0x88(%rbp)\n    9cb6:\tcall   8e80 <MPI_Barrier@plt>\n    9cbb:\tcall   91d0 <MPI_Wtime@plt>\n    9cc0:\tvmovq  %xmm0,%r15\n    9cc5:\ttest   %r14d,%r14d\n    9cc8:\tje     9dca <main+0x6fa>\n    9cce:\tmov    -0x198(%rbp),%esi\n    9cd4:\tmov    -0x1c4(%rbp),%edi\n    9cda:\tcmp    %edi,%esi\n    9cdc:\tjae    9dca <main+0x6fa>\n    9ce2:\tmov    -0x1d8(%rbp),%rdx\n    9ce9:\tlea    -0x1(%rdi),%r9d\n    9ced:\tmov    -0x188(%rbp),%rdi\n    9cf4:\tmov    %esi,%eax\n    9cf6:\tsub    %esi,%r9d\n    9cf9:\tvmovsd %xmm0,%xmm0,%xmm7\n    9cfd:\tlea    (%rdx,%rax,4),%r11\n    9d01:\tlea    0x1(%rsi),%eax\n    9d04:\tlea    (%rdx,%rax,4),%r10\n    9d08:\txor    %edx,%edx\n    9d0a:\tnopw   0x0(%rax,%rax,1)\n    9d10:\txor    %r8d,%r8d\n    9d13:\tmov    %rdi,%r15\n    9d16:\tmov    (%r11,%r8,4),%eax\n    9d1a:\tmov    (%r10,%r8,4),%ecx\n    9d1e:\tcmp    %ecx,%eax\n    9d20:\tjae    9d93 <main+0x6c3>\n    9d22:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d2d:\tnopl   (%rax)\n    9d30:\tdec    %ecx\n    9d32:\tlea    0x0(%r13,%rax,4),%rdi\n    9d37:\tlea    (%r12,%rax,8),%rsi\n    9d3b:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d3f:\tsub    %eax,%ecx\n    9d41:\tmov    %r15,-0x188(%rbp)\n    9d48:\txor    %eax,%eax\n    9d4a:\tnopw   0x0(%rax,%rax,1)\n    9d50:\tmov    (%rdi,%rax,4),%r15d\n    9d54:\tvmovsd (%rbx,%r15,8),%xmm2\n    9d5a:\tmov    %rax,%r15\n    9d5d:\tvmulsd (%rsi,%rax,8),%xmm2,%xmm2\n    9d62:\tinc    %rax\n    9d65:\tvaddsd %xmm2,%xmm1,%xmm1\n    9d69:\tcmp    %r15,%rcx\n    9d6c:\tjne    9d50 <main+0x680>\n    9d6e:\tmov    -0x188(%rbp),%r15\n    9d75:\tlea    0x1(%r8),%rax\n    9d79:\tvmovsd %xmm1,(%r15,%r8,8)\n    9d7f:\tcmp    %r9,%r8\n    9d82:\tje     9db0 <main+0x6e0>\n    9d84:\tmov    %rax,%r8\n    9d87:\tmov    (%r11,%r8,4),%eax\n    9d8b:\tmov    (%r10,%r8,4),%ecx\n    9d8f:\tcmp    %ecx,%eax\n    9d91:\tjb     9d30 <main+0x660>\n    9d93:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d97:\tlea    0x1(%r8),%rax\n    9d9b:\tvmovsd %xmm1,(%r15,%r8,8)\n    9da1:\tcmp    %r9,%r8\n    9da4:\tjne    9d84 <main+0x6b4>\n    9da6:\tcs nopw 0x0(%rax,%rax,1)\n    9db0:\tinc    %edx\n    9db2:\tmov    %r15,%rdi\n    9db5:\tcmp    %edx,%r14d\n    9db8:\tjne    9d10 <main+0x640>\n    9dbe:\tvmovq  %xmm7,%r15\n    9dc3:\tmov    %rdi,-0x188(%rbp)\n    9dca:\tcall   91d0 <MPI_Wtime@plt>\n    9dcf:\tvmovq  %r15,%xmm6\n    9dd4:\tsub    $0x8,%rsp\n    9dd8:\tlea    0xa241(%rip),%rax        # 14020 <ompi_mpi_comm_world@@Base>\n    9ddf:\tmovq   $0x0,-0x158(%rbp)\n    9dea:\tvsubsd %xmm6,%xmm0,%xmm0\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_gpt-5-mini_mpi_r3",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "a8816d0b5149f9020340c0273b07e5fddafb3e7b4e02c0a8fbe6d5cb1f14fb9f"
+  },
+  "binary_sha256": "7fe77576c20de228150fe0e0e2f131ce933d053ff8f6a3b613197bdbc6762068",
+  "binding_sha256": "dfbc89c5f0a566625725ddfe912cd9a5e412b475507378c03c92713dba836872",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:09:32Z",
+  "review_finished_at": "2026-11-04T13:11:48Z",
+  "review_input_sha256": "3a13fa1888449505c7e597cbb247badc1caa7df205472f260579144678dc7501",
+  "pack_sha256": "48856f382770f858929cfdc37b9e49844291afd70e7e612f7545186ed6af7a45",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

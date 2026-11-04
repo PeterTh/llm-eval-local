@@ -1,0 +1,204 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:41:33Z",
+  "review_finished_at": "2026-11-04T13:42:29Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen3.7-plus_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI iteration count controls timed loop 340–343. Cumulative quotient/remainder row intervals span all rows. Complete operand scatters, separately packed full delimiters, offset rebasing and vector broadcast preserve every local CSR interval; each repetition recomputes them and Gatherv assembles full output. The internal reference reuses local CSR/kernel, so independent external validation remains important.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              50,
+              107
+            ],
+            [
+              156,
+              199
+            ],
+            [
+              214,
+              351
+            ],
+            [
+              367,
+              423
+            ]
+          ],
+          "claim": "The unchanged CLI iteration count controls timed loop 340–343. Cumulative quotient/remainder row intervals span all rows. Complete operand scatters, separately packed full delimiters, offset rebasing and vector broadcast preserve every local CSR interval; each repetition recomputes them and Gatherv assembles full output. The internal reference reuses local CSR/kernel, so independent external validation remains important."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2309,
+              2368
+            ]
+          ],
+          "claim": "MPI_Wtime a327/a3e9 encloses multiply/add a3be/a3c6, nonzero backedge a3cd->a3b0, row a3dc->a380, repetition a3e2->a370."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls both root loop 302–305 and worker loop 389–392. Quotient/remainder row partitions cover all rows; each branch receives complete nonzero segments and row starts, rebases and restores the final delimiter, and uses the full vector. Both paths recompute every local CSR interval per repetition, then gather full output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              50,
+              107
+            ],
+            [
+              156,
+              197
+            ],
+            [
+              213,
+              319
+            ],
+            [
+              349,
+              409
+            ]
+          ],
+          "claim": "The unchanged -i count controls both root loop 302–305 and worker loop 389–392. Quotient/remainder row partitions cover all rows; each branch receives complete nonzero segments and row starts, rebases and restores the final delimiter, and uses the full vector. Both paths recompute every local CSR interval per repetition, then gather full output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2216,
+              2270
+            ],
+            [
+              2468,
+              2523
+            ]
+          ],
+          "claim": "Root MPI_Wtime a1ea/a29e encloses multiply/add a26d/a275, nonzero a27c->a260, row a28a->a230 and repetition a290->a220. Worker pair a6e1/a79e encloses multiply/add a76d/a775, nonzero a77c->a760, row a78a->a730 and repetition a790->a720. Both end barriers add synchronization."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls the full nested timed CSR loops at 335–345. Quotient/remainder row partitions span all rows; complete nonzero segments are scattered, all delimiters broadcast then locally rebased, and the dense vector broadcast in full. Every assigned row/nonzero is recomputed each repetition, followed by full output gathering.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              108
+            ],
+            [
+              158,
+              217
+            ],
+            [
+              234,
+              375
+            ]
+          ],
+          "claim": "The unchanged -i count controls the full nested timed CSR loops at 335–345. Quotient/remainder row partitions span all rows; complete nonzero segments are scattered, all delimiters broadcast then locally rebased, and the dense vector broadcast in full. Every assigned row/nonzero is recomputed each repetition, followed by full output gathering."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2138,
+              2196
+            ]
+          ],
+          "claim": "MPI_Wtime a03f/a0fe encloses multiply/add a0cd/a0d5, nonzero backedge a0dc->a0c0, row a0f2->a090, repetition a0fc->a080."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Root parsing/broadcast preserves the requested -i value in timed loop 358–361. Cumulative quotient/remainder partitions span every row; all nonzeros and separately packed/rebased complete local delimiters are scattered, with full-vector broadcast. Each iteration recomputes full local CSR intervals; Gatherv assembles every output row.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              50,
+              107
+            ],
+            [
+              156,
+              221
+            ],
+            [
+              236,
+              391
+            ]
+          ],
+          "claim": "Root parsing/broadcast preserves the requested -i value in timed loop 358–361. Cumulative quotient/remainder partitions span every row; all nonzeros and separately packed/rebased complete local delimiters are scattered, with full-vector broadcast. Each iteration recomputes full local CSR intervals; Gatherv assembles every output row."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2059,
+              2118
+            ]
+          ],
+          "claim": "MPI_Wtime 9f55/a01d encloses multiply/add 9fed/9ff5, nonzero backedge 9ffc->9fe0, row a012->9fb0, repetition a01b->9fa0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen3.7-plus_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI iteration count controls timed loop 358–361. Quotient/remainder partitions cover all rows; full nonzero segments and row starts are scattered, offsets rebased and terminal delimiters restored. Every local CSR row/nonzero is recomputed each repetition, full output is gathered, and the timed end barrier only adds synchronization.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              107
+            ],
+            [
+              156,
+              212
+            ],
+            [
+              227,
+              394
+            ]
+          ],
+          "claim": "The unchanged CLI iteration count controls timed loop 358–361. Quotient/remainder partitions cover all rows; full nonzero segments and row starts are scattered, offsets rebased and terminal delimiters restored. Every local CSR row/nonzero is recomputed each repetition, full output is gathered, and the timed end barrier only adds synchronization."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2224,
+              2281
+            ]
+          ],
+          "claim": "system_clock a21c/a2df encloses multiply/add a2ad/a2b5, nonzero backedge a2bc->a2a0, row a2cb->a270, repetition a2d1->a260, followed by the end barrier."
+        }
+      ]
+    }
+  ]
+}

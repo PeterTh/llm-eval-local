@@ -1,0 +1,212 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:40:44Z",
+  "review_finished_at": "2026-11-04T13:41:30Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI iteration count controls timed loop 312–315. Quotient/remainder row ranges cover all rows; full values/indices/delimiters are scattered and rebased, with full-vector broadcast. Every local CSR row/nonzero is recomputed each repetition and root/worker Gatherv paths assemble the complete output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              108
+            ],
+            [
+              157,
+              304
+            ],
+            [
+              307,
+              339
+            ],
+            [
+              367,
+              375
+            ]
+          ],
+          "claim": "The unchanged CLI iteration count controls timed loop 312–315. Quotient/remainder row ranges cover all rows; full values/indices/delimiters are scattered and rebased, with full-vector broadcast. Every local CSR row/nonzero is recomputed each repetition and root/worker Gatherv paths assemble the complete output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2317,
+              2374
+            ]
+          ],
+          "claim": "system_clock a38f/a454 encloses multiply/add a42d/a435, nonzero backedge a43c->a420, row a44c->a3f0, repetition a452->a3e0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The root-parsed and broadcast -i count reaches timed loop 368–371 unchanged. Cumulative quotient/remainder row partitions span all rows; complete CSR operand and delimiter scatters, offset rebasing and vector broadcast preserve all work. Every local interval is recomputed per iteration and gathered. Output allocation occurs inside timing, adding overhead rather than omitting work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              109
+            ],
+            [
+              158,
+              210
+            ],
+            [
+              227,
+              353
+            ],
+            [
+              358,
+              393
+            ]
+          ],
+          "claim": "The root-parsed and broadcast -i count reaches timed loop 368–371 unchanged. Cumulative quotient/remainder row partitions span all rows; complete CSR operand and delimiter scatters, offset rebasing and vector broadcast preserve all work. Every local interval is recomputed per iteration and gathered. Output allocation occurs inside timing, adding overhead rather than omitting work."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2271,
+              2341
+            ]
+          ],
+          "claim": "system_clock a2d1/a3d4 encloses output allocation a2fe plus multiply/add a39d/a3a6, nonzero backedge a3ad->a390, row a3bc->a360, repetition a3c8->a350."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls timed loop 340–345. Quotient/remainder row boundaries span all rows; complete operand segments are scattered and global delimiters/vector broadcast. The local kernel subtracts the assigned segment's nonzero base and traverses every assigned row/nonzero each iteration. Gatherv covers the complete output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              52,
+              113
+            ],
+            [
+              162,
+              208
+            ],
+            [
+              226,
+              325
+            ],
+            [
+              334,
+              379
+            ]
+          ],
+          "claim": "The unchanged -i count controls timed loop 340–345. Quotient/remainder row boundaries span all rows; complete operand segments are scattered and global delimiters/vector broadcast. The local kernel subtracts the assigned segment's nonzero base and traverses every assigned row/nonzero each iteration. Gatherv covers the complete output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2079,
+              2139
+            ],
+            [
+              2259,
+              2271
+            ]
+          ],
+          "claim": "system_clock 9f23/a250 encloses multiply/add 9fdb/9fe3, nonzero backedge 9fea->9fd0, row backedge a002->9f90, and repetition backedge a247->9f80. The row-completion jump 9ff9->a230 connects the split loop blocks."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI repetition count controls timed loop 341–344. Quotient/remainder row bounds cover the complete matrix, including empty ranks; full CSR segments are scattered, delimiters rebased and vector broadcast. Every local row/nonzero is recomputed per repetition; complete root/worker Gatherv paths assemble output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              107
+            ],
+            [
+              157,
+              219
+            ],
+            [
+              235,
+              350
+            ],
+            [
+              353,
+              370
+            ]
+          ],
+          "claim": "The unchanged CLI repetition count controls timed loop 341–344. Quotient/remainder row bounds cover the complete matrix, including empty ranks; full CSR segments are scattered, delimiters rebased and vector broadcast. Every local row/nonzero is recomputed per repetition; complete root/worker Gatherv paths assemble output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2175,
+              2237
+            ]
+          ],
+          "claim": "system_clock a0ed/a1c7 encloses multiply/add a18c/a195, nonzero backedge a19c->a180, row a1b2->a150, repetition a1be->a140."
+        }
+      ]
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls timed loop 311–314. Quotient/remainder row intervals span all rows; complete nonzero segments are scattered, all delimiters and the full vector broadcast, and local offsets rebased. Each repetition computes every local CSR row/nonzero, followed by full Gatherv output assembly.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              110
+            ],
+            [
+              159,
+              204
+            ],
+            [
+              219,
+              339
+            ]
+          ],
+          "claim": "The unchanged -i count controls timed loop 311–314. Quotient/remainder row intervals span all rows; complete nonzero segments are scattered, all delimiters and the full vector broadcast, and local offsets rebased. Each repetition computes every local CSR row/nonzero, followed by full Gatherv output assembly."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2246,
+              2306
+            ]
+          ],
+          "claim": "system_clock a287/a34f encloses multiply/add a31c/a324, nonzero backedge a32b->a310, row a341->a2e0, repetition a34d->a2d0."
+        }
+      ]
+    }
+  ]
+}

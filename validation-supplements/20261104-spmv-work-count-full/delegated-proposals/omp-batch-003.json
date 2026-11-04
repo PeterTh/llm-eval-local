@@ -1,0 +1,142 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:12:48Z",
+  "review_finished_at": "2026-11-04T14:18:14Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-opus-5-cc-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Runtime nItems is built into CSR delimiters ending at nItems. The timed persistent OpenMP worker 0x2130 receives the requested iteration count, partitions row boundaries by nnz-balanced binary searches with endpoints 0 and dim, then for every iteration traverses each assigned row and each [rowDelimiters[i],rowDelimiters[i+1]) interval, multiplies value by vec[column], accumulates, and stores the row result (zero for empty rows).",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"OpenMP build and -O3/-march=native options."},
+        {"file":"spmv/spmv.cpp","ranges":[[45,72],[161,184],[235,266],[303,324]],"claim":"Balanced row-cut helper has endpoint coverage and monotone delimiter-based cuts; row arithmetic covers each row's CSR interval; parsed dimensions/sparsity/iterations determine nItems and the timed persistent loop calls the full worker for every iteration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[605,619],[930,1057],[1058,1171]],"claim":"Clocked GOMP_parallel targets outlined worker 0x2130. partitionBoundary 0x1f80 binary-searches the nnz targets, with its endpoint cases; worker derives adjacent cuts for each thread, loops repetitions against the argument count (1132-1134), visits assigned rows and CSR nonzeros with multiply/add and output store, and explicitly zeroes empty rows."}
+      ],
+      "notes":"The separate spmvCpu outlined function is a reference path; the timed target is main._omp_fn.0 at 0x2130."
+    },
+    {
+      "id": "spmv_claude-opus-5-cc-medium_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed host loop invokes an OpenMP region whose outlined worker 0x22d0 receives the requested repetition count and per-thread row bounds. Each repetition traverses the assigned rows and all nonzeros in each CSR interval, accumulating val[j]*vec[cols[j]] and storing every row output, including explicit zero for empty rows. Source rowSplitPoint cuts span 0 through dim without row gaps.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"OpenMP build and optimized native compile flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[52,81],[132,172],[269,302],[316,326],[368,379]],"claim":"CSR initialization, complete monotone row-split endpoints, runtime nItems/iterations, and persistent timed OpenMP repetition/call control."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[709,723],[1113,1250]],"claim":"The clocked GOMP_parallel at 0x1c03 targets main._omp_fn.1 (0x22d0). Worker loads row bounds and count, loops repetitions with compare/backedge at 0x243f/0x2442 to 0x23e0, loops rows and row nonzeros, performs indexed multiply/add and stores output; empty rows are set to zero."}
+      ],
+      "notes":"A separate spmvCpu outlined clone is not the clocked worker."
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed iteration count is passed to spmvParallel inside the clock interval. Its team repeats the partition traversal for the requested count, with threads processing their assigned row-partition ranges; each row reduces its full CSR interval and stores one output. The source constructs contiguous row-partition endpoints from 0 through dim.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"OpenMP build with O3/native optimization."},
+        {"file":"spmv/spmv.cpp","ranges":[[60,79],[174,210],[259,339]],"claim":"Partition construction covers endpoint rows; spmvRows accumulates every CSR nonzero; parsed iteration/dimension values feed the timed spmvParallel call, which loops iterations and assigned partitions."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[616,629],[938,1051]],"claim":"Clock region directly calls spmvParallel at 0x1a03. Its compiled body launches the OpenMP worker and carries the iteration count into the worker; outlined spmvParallel function processes thread partition IDs, row loops, nonzero loops with indexed product/add and output stores, and controls the inner count loop by comparison/backedge."}
+      ],
+      "notes":"Persistent OpenMP team with repetitions inside the callee."
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed call launches a persistent region in which each thread computes its nnz-balanced row interval. For every requested repetition, the worker traverses each row and its entire half-open CSR interval, accumulates the indexed products, and stores the result; nnzBalancedRange endpoints and lower_bound cuts cover the full row domain.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,16]],"claim":"OpenMP/threads build with O3/native flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[125,169],[218,251],[291,308]],"claim":"Balanced range endpoints/cuts, complete row/nonzero arithmetic, parsed runtime count and dimension, and timed call to the persistent OMP implementation."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[646,660],[1059,1223]],"claim":"Clocked GOMP_parallel invokes the outlined persistent worker. It calculates lower-bound row cuts, follows each assigned row and nonzero interval with vector-indexed multiply/add and output stores, handles empty rows, and repeats until the iteration argument is exhausted (counter/backedge at 1164-1166)."}
+      ],
+      "notes":"Persistent-team repetition is inside the outlined worker."
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed persistent worker 0x24b0 receives each thread's row bounds and requested iteration count. Per repetition it traverses the complete assigned row interval and each row's CSR nonzeros, performs value*vec[column] accumulation, writes each row result (including zero for empty intervals), synchronizes, then checks the repetition count and returns to the work loop. Source bounds are reused for initialization and compute and span all rows.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"OpenMP build with O3/native options."},
+        {"file":"spmv/spmv.cpp","ranges":[[123,135],[213,246],[257,289],[309,325]],"claim":"Row kernel reduces full CSR intervals; runtime options determine size/iterations; shared row bounds cover the domain; timed loop repeats the per-thread row kernel and synchronizes each pass."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[677,695],[1234,1328]],"claim":"Clocked GOMP call at 0x1bc9 targets main._omp_fn.1 at 0x24b0. Worker uses its assigned bounds, performs row/nonzero traversal and multiply/add/output store, zeroes empty rows, executes the barrier, and increments/compares iteration count before its backedge."}
+      ],
+      "notes":"The un-cloned spmvCpu symbol is not the timed path; arithmetic is inlined in the outlined worker."
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Source and host control show one complete parallel SpMV per counted repetition. The clocked host loop invokes GOMP_parallel at 0x1b36 and branches to its loop head until the requested count. The worker partitions rows with nnz lower_bound cuts, then visits each assigned row and every stored nonzero, accumulating indexed products and storing each output, including zero for empty rows.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,14]],"claim":"OpenMP build using optimized native flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[45,50],[136,167],[216,250],[260,302]],"claim":"Thread row boundaries are based on nnz lower_bound with endpoint cases; each row kernel covers all CSR entries; parsed dimensions/count, initialization and timed count loop are shown."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[625,676],[1042,1184]],"claim":"Clocked host executes counted GOMP_parallel calls at 0x1b36 with loop backedge to 0x1a80. Outlined worker calculates partition boundaries, loops rows and nonzeros, performs multiply/add and stores output (zero for empty rows)."}
+      ],
+      "notes":"One parallel launch per repetition (not a persistent team)."
+    },
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The persistent timed OpenMP worker 0x2260 receives the requested count and per-thread row bounds. For each repetition it processes all assigned rows and every CSR nonzero in each row, computes the indexed product sum, and stores output; empty rows are explicitly zeroed. Source bounds are computed for the complete row domain.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,15]],"claim":"OpenMP compilation with O3/native options."},
+        {"file":"spmv/spmv.cpp","ranges":[[146,158],[207,240],[272,320]],"claim":"Row helper covers full CSR intervals; runtime dimensions/iterations determine nonzero count and timed call; setup and persistent OMP loop use per-thread row bounds."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[708,722],[1074,1161]],"claim":"Clocked GOMP call at 0x1c45 targets outlined worker 0x2260. Worker loads assigned bounds and count, traverses row and nonzero loops with indexed multiply/add and result stores, handles empty rows, and loops against the count with the backedge at 0x22a3."}
+      ],
+      "notes":"Persistent-team repetition occurs inside the outlined worker."
+    },
+    {
+      "id": "spmv_claude-sonnet-4.5_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source initializes nItems CSR entries with the terminal row delimiter equal to nItems and times the spmvCpu call for each requested iteration. In the exact executable, the clocked loop calls GOMP_parallel and returns to its loop head until the saved count is met. Worker 0x1fc0 requests dynamic chunks of 64 rows; dynamic_start/next assigns rows, and each row traverses its full CSR interval, accumulates val*vec[col], and stores the result (zero for empty rows).",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,16]],"claim":"OpenMP build and O3/native compile flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[50,79],[97,108],[157,212],[222,232]],"claim":"Runtime dimensions, sparsity and iterations determine nItems; initialization places all nItems in CSR and sets final delimiter; dynamic row loop computes each nonzero; timed host loop calls the kernel per iteration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[590,616],[925,1015]],"claim":"Clock calls bracket counted GOMP_parallel at 0x1a29 and backedge 0x1a31. Worker 0x1fc0 passes chunk size 0x40 to dynamic_start, obtains further ranges with dynamic_next, walks assigned rows, traverses each nonzero interval with value/vector indexed multiply and accumulation, writes each result and zeroes empty rows."}
+      ],
+      "notes":"Dynamic schedule changes ownership order, not coverage."
+    },
+    {
+      "id": "spmv_claude-sonnet-4.5_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "This exact source/executable pair uses dynamic 64-row scheduling. The clocked host loop invokes GOMP_parallel at 0x1a29 and branches back while below the requested count. Its worker obtains dynamic row chunks, advances through each assigned row, visits each CSR nonzero, accumulates val[j]*vec[cols[j]], and writes one output per row, including zeros for empty intervals.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,16]],"claim":"OpenMP build with O3/native options."},
+        {"file":"spmv/spmv.cpp","ranges":[[50,79],[97,108],[157,212],[222,232]],"claim":"The exact source initializes all nItems CSR entries, uses a dynamic 64-row row loop with complete nonzero reduction, and repeats kernel calls for parsed iterations."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[590,616],[925,1015]],"claim":"Clocked repeated GOMP loop is bounded by the requested count. Worker 0x1fc0 initializes dynamic scheduling with chunk 64, calls dynamic_next until exhausted, and processes all assigned rows/nonzeros with multiply/add and output store, including empty-row zero store."}
+      ],
+      "notes":"No source/control-flow discrepancy identified versus its own compiled dump; worker evidence is read from this executable's own disassembly."
+    },
+    {
+      "id": "spmv_claude-sonnet-4.5_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source repeats spmvCpu for each requested iteration and the exact timed host loop performs counted GOMP_parallel invocations. Outlined worker 0x1fc0 uses dynamic chunks of 64 rows and processes each assigned row's complete CSR interval with indexed value/vector products, accumulation and output store; an empty row stores zero.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,16]],"claim":"OpenMP build with O3/native options."},
+        {"file":"spmv/spmv.cpp","ranges":[[50,79],[97,108],[157,212],[222,232]],"claim":"CSR construction establishes all nItems and terminal delimiter; row kernel traverses each row's nonzeros; parsed iteration count controls repeated timed calls."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[590,616],[925,1015]],"claim":"Clocked GOMP_parallel loop at 0x1a29 uses count-controlled backedge. Worker 0x1fc0 starts dynamic scheduling with chunk size 64, obtains next chunks, covers their rows and full nonzero intervals, performs product accumulation, and stores each result including empty-row zeros."}
+      ],
+      "notes":"Dynamic schedule variation only."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

@@ -1,0 +1,110 @@
+{
+  "id": "spmv_claude-haiku-5.5-oc-medium_hybrid_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each rank owns a contiguous row slice and receives/rebases the matching CSR delimiters. After an untimed warmup, the timed loop launches the one-thread-per-row kernel for each requested iteration. Compiled target 3a78 increments its loop counter, compares against the runtime count and calls the kernel stub each pass; device synchronization precedes timing completion. Final SASS guards local rows, traverses CSR in unrolled chunks plus remainder and stores each row result.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          499
+        ],
+        [
+          500,
+          536
+        ]
+      ],
+      "claim": "One thread per row full CSR traversal, rank row/nnz slice, untimed warmup and requested timed launches.",
+      "sha256": "2320491604cbf0c1f2c960af80e726f712ea496c53cf4fbbfeda735a95ba3202",
+      "git_blob": "beadf85354e4461bb9d62586c9c4dce5cfb0b211"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The branch target is the runtime-count launch loop; its counter backedge encloses stub invocation, and synchronization is after the loop.",
+      "complete_dump_sha256": "f2d231d00d0acd9f5a630ac6944fbbf952dbfb0e432ffd49163d73308e9d429e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-oc-medium_hybrid_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1222,
+          "last_line": 1233,
+          "text": "    347e:\tcall   2360 <std::chrono::_V2::system_clock::now()@plt>\n    3483:\tmov    -0x284(%rbp),%r10d\n    348a:\tmov    %rax,-0x2c0(%rbp)\n    3491:\ttest   %r10d,%r10d\n    3494:\tje     34a6 <main+0xbd6>\n    3496:\tmov    -0x278(%rbp),%r9d\n    349d:\ttest   %r9d,%r9d\n    34a0:\tjne    3a78 <main+0x11a8>\n    34a6:\tcall   25b0 <cudaDeviceSynchronize@plt>\n    34ab:\ttest   %eax,%eax\n    34ad:\tjne    3944 <main+0x1074>\n    34b3:\tcall   2360 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 1546,
+          "last_line": 1577,
+          "text": "    3a78:\tmov    0x2c01(%rip),%r12        # 6680 <_IO_stdin_used+0x680>\n    3a7f:\txor    %ebx,%ebx\n    3a81:\tmovabs $0x100000001,%r13\n    3a8b:\tjmp    3aab <main+0x11db>\n    3a8d:\tnopl   (%rax)\n    3a90:\tcall   23f0 <cudaGetLastError@plt>\n    3a95:\ttest   %eax,%eax\n    3a97:\tjne    3c30 <main+0x1360>\n    3a9d:\tinc    %ebx\n    3a9f:\tcmp    %ebx,-0x284(%rbp)\n    3aa5:\tje     34a6 <main+0xbd6>\n    3aab:\tmov    %r13,-0x6c(%rbp)\n    3aaf:\tmov    %r14d,-0x70(%rbp)\n    3ab3:\tmov    -0x68(%rbp),%esi\n    3ab6:\tmov    -0x70(%rbp),%rdi\n    3aba:\tmov    %r12,%rdx\n    3abd:\txor    %r9d,%r9d\n    3ac0:\txor    %r8d,%r8d\n    3ac3:\tmov    $0x1,%ecx\n    3ac8:\tmov    %r12,-0x90(%rbp)\n    3acf:\tmovl   $0x1,-0x88(%rbp)\n    3ad9:\tcall   25d0 <__cudaPushCallConfiguration@plt>\n    3ade:\ttest   %eax,%eax\n    3ae0:\tjne    3a90 <main+0x11c0>\n    3ae2:\tmov    -0x228(%rbp),%r9\n    3ae9:\tmov    -0x278(%rbp),%r8d\n    3af0:\tmov    -0x2e0(%rbp),%rcx\n    3af7:\tmov    -0x2d8(%rbp),%rdx\n    3afe:\tmov    -0x2d0(%rbp),%rsi\n    3b05:\tmov    -0x2c8(%rbp),%rdi\n    3b0c:\tcall   4a80 <__device_stub__Z10spmvKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    3b11:\tjmp    3a90 <main+0x11c0>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "Final kernel row bound, unrolled nonzero arithmetic/remainder control, output store and row progression.",
+      "complete_dump_sha256": "92fc9fd8452f0726755acff8f993690f222ed2637f492ca6505b6349c3d41293",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-oc-medium_hybrid_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 19,
+          "last_line": 53,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;              /* 0x00000a00ff017624 */\n                                                                                        /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R2, SR_TID.X ;                                   /* 0x0000000000027919 */\n                                                                                        /* 0x000e220000002100 */\n        /*0020*/                   IMAD.MOV.U32 R3, RZ, RZ, RZ ;                        /* 0x000000ffff037224 */\n                                                                                        /* 0x000fc600078e00ff */\n        /*0030*/                   S2R R5, SR_CTAID.X ;                                 /* 0x0000000000057919 */\n                                                                                        /* 0x000e240000002500 */\n        /*0040*/                   IMAD.WIDE.U32 R2, R5, c[0x0][0x0], R2 ;              /* 0x0000000005027a25 */\n                                                                                        /* 0x001fca00078e0002 */\n        /*0050*/                   ISETP.GE.U32.AND P0, PT, R2, c[0x0][0x180], PT ;     /* 0x0000600002007a0c */\n                                                                                        /* 0x000fc80003f06070 */\n        /*0060*/                   ISETP.GE.U32.AND.EX P0, PT, R3, RZ, PT, P0 ;         /* 0x000000ff0300720c */\n                                                                                        /* 0x000fda0003f06100 */\n        /*0070*/               @P0 EXIT ;                                               /* 0x000000000000094d */\n                                                                                        /* 0x000fea0003800000 */\n        /*0080*/                   ULDC UR6, c[0x0][0xc] ;                              /* 0x0000030000067ab9 */\n                                                                                        /* 0x000fe20000000800 */\n        /*0090*/                   MOV R0, R2 ;                                         /* 0x0000000200007202 */\n                                                                                        /* 0x000fe20000000f00 */\n        /*00a0*/                   ULDC UR7, c[0x0][0x0] ;                              /* 0x0000000000077ab9 */\n                                                                                        /* 0x000fe40000000800 */\n        /*00b0*/                   UIMAD.WIDE.U32 UR6, UR6, UR7, URZ ;                  /* 0x00000007060672a5 */\n                                                                                        /* 0x000fe4000f8e003f */\n        /*00c0*/                   UMOV UR4, URZ ;                                      /* 0x0000003f00047c82 */\n                                                                                        /* 0x000fe40008000000 */\n        /*00d0*/                   UIADD3 UR4, UR7, UR4, URZ ;                          /* 0x0000000407047290 */\n                                                                                        /* 0x000fe4000fffe03f */\n        /*00e0*/                   ULDC.64 UR8, c[0x0][0x118] ;                         /* 0x0000460000087ab9 */\n                                                                                        /* 0x000fc40000000a00 */\n        /*00f0*/                   LEA R6, P0, R0, c[0x0][0x170], 0x2 ;                 /* 0x00005c0000067a11 */\n                                                                                        /* 0x000fc800078010ff */\n        /*0100*/                   LEA.HI.X R7, R0, c[0x0][0x174], R3, 0x2, P0 ;        /* 0x00005d0000077a11 */\n"
+        },
+        {
+          "first_line": 68,
+          "last_line": 112,
+          "text": "                                                                                        /* 0x100fe200078e0a09 */\n        /*0180*/                   LOP3.LUT R5, RZ, R9, RZ, 0x33, !PT ;                 /* 0x00000009ff057212 */\n                                                                                        /* 0x000fe200078e33ff */\n        /*0190*/                   BSSY B1, 0x410 ;                                     /* 0x0000027000017945 */\n                                                                                        /* 0x000fe20003800000 */\n        /*01a0*/                   IMAD.MOV.U32 R7, RZ, RZ, R9 ;                        /* 0x000000ffff077224 */\n                                                                                        /* 0x000fe400078e0009 */\n        /*01b0*/                   LOP3.LUT P1, R6, R4, 0x3, RZ, 0xc0, !PT ;            /* 0x0000000304067812 */\n                                                                                        /* 0x000fe4000782c0ff */\n        /*01c0*/                   IADD3 R5, R2, R5, RZ ;                               /* 0x0000000502057210 */\n                                                                                        /* 0x000fc80007ffe0ff */\n        /*01d0*/                   ISETP.GE.U32.AND P0, PT, R5, 0x3, PT ;               /* 0x000000030500780c */\n                                                                                        /* 0x000fe40003f06070 */\n        /*01e0*/                   CS2R R4, SRZ ;                                       /* 0x0000000000047805 */\n                                                                                        /* 0x000fca000001ff00 */\n        /*01f0*/              @!P1 BRA 0x400 ;                                          /* 0x0000020000009947 */\n                                                                                        /* 0x000fea0003800000 */\n        /*0200*/                   MOV R20, 0x4 ;                                       /* 0x0000000400147802 */\n                                                                                        /* 0x000fca0000000f00 */\n        /*0210*/                   IMAD.WIDE.U32 R12, R9, R20, c[0x0][0x168] ;          /* 0x00005a00090c7625 */\n                                                                                        /* 0x000fcc00078e0014 */\n        /*0220*/                   LDG.E.CONSTANT R12, [R12.64] ;                       /* 0x000000080c0c7981 */\n                                                                                        /* 0x000ea2000c1e9900 */\n        /*0230*/                   IMAD.MOV.U32 R22, RZ, RZ, 0x8 ;                      /* 0x00000008ff167424 */\n                                                                                        /* 0x000fc800078e00ff */\n        /*0240*/                   IMAD.WIDE.U32 R10, R9, R22, c[0x0][0x160] ;          /* 0x00005800090a7625 */\n                                                                                        /* 0x000fcc00078e0016 */\n        /*0250*/                   LDG.E.64.CONSTANT R10, [R10.64] ;                    /* 0x000000080a0a7981 */\n                                                                                        /* 0x000ee2000c1e9b00 */\n        /*0260*/                   IMAD.WIDE.U32 R14, R12, R22, c[0x0][0x178] ;         /* 0x00005e000c0e7625 */\n                                                                                        /* 0x004fcc00078e0016 */\n        /*0270*/                   LDG.E.64.CONSTANT R14, [R14.64] ;                    /* 0x000000080e0e7981 */\n                                                                                        /* 0x000ee2000c1e9b00 */\n        /*0280*/                   ISETP.NE.AND P1, PT, R6, 0x1, PT ;                   /* 0x000000010600780c */\n                                                                                        /* 0x000fe40003f25270 */\n        /*0290*/                   IADD3 R7, R9, 0x1, RZ ;                              /* 0x0000000109077810 */\n                                                                                        /* 0x000fe20007ffe0ff */\n        /*02a0*/                   DMUL R4, R14, R10 ;                                  /* 0x0000000a0e047228 */\n                                                                                        /* 0x008e0c0000000000 */\n        /*02b0*/                   DADD R4, RZ, R4 ;                                    /* 0x00000000ff047229 */\n                                                                                        /* 0x001e080000000004 */\n        /*02c0*/              @!P1 BRA 0x400 ;                                          /* 0x0000013000009947 */\n                                                                                        /* 0x000fea0003800000 */\n        /*02d0*/                   ISETP.NE.AND P1, PT, R6, 0x2, PT ;                   /* 0x000000020600780c */\n                                                                                        /* 0x000fe20003f25270 */\n"
+        },
+        {
+          "first_line": 211,
+          "last_line": 253,
+          "text": "        /*05f0*/                   IADD3 R7, R7, 0x4, RZ ;                              /* 0x0000000407077810 */\n                                                                                        /* 0x000fc80007ffe0ff */\n        /*0600*/                   ISETP.GE.U32.AND P0, PT, R7, R2, PT ;                /* 0x000000020700720c */\n                                                                                        /* 0x000fe20003f06070 */\n        /*0610*/                   DMUL R8, R14, R8 ;                                   /* 0x000000080e087228 */\n                                                                                        /* 0x004e0c0000000000 */\n        /*0620*/                   DADD R8, R8, R4 ;                                    /* 0x0000000008087229 */\n                                                                                        /* 0x003fc80000000004 */\n        /*0630*/                   DMUL R10, R12, R10 ;                                 /* 0x0000000a0c0a7228 */\n                                                                                        /* 0x008e0c0000000000 */\n        /*0640*/                   DADD R8, R8, R10 ;                                   /* 0x0000000008087229 */\n                                                                                        /* 0x001fc8000000000a */\n        /*0650*/                   DMUL R4, R20, R16 ;                                  /* 0x0000001014047228 */\n                                                                                        /* 0x010e080000000000 */\n        /*0660*/                   DMUL R18, R24, R18 ;                                 /* 0x0000001218127228 */\n                                                                                        /* 0x020fc80000000000 */\n        /*0670*/                   DADD R4, R8, R4 ;                                    /* 0x0000000008047229 */\n                                                                                        /* 0x001e0c0000000004 */\n        /*0680*/                   DADD R4, R4, R18 ;                                   /* 0x0000000004047229 */\n                                                                                        /* 0x0010620000000012 */\n        /*0690*/              @!P0 BRA 0x420 ;                                          /* 0xfffffd8000008947 */\n                                                                                        /* 0x000fea000383ffff */\n        /*06a0*/                   BSYNC B0 ;                                           /* 0x0000000000007941 */\n                                                                                        /* 0x000fea0003800000 */\n        /*06b0*/                   LEA R6, P0, R0, c[0x0][0x188], 0x3 ;                 /* 0x0000620000067a11 */\n                                                                                        /* 0x000fc800078018ff */\n        /*06c0*/                   LEA.HI.X R7, R0.reuse, c[0x0][0x18c], R3, 0x3, P0 ;  /* 0x0000630000077a11 */\n                                                                                        /* 0x040fe400000f1c03 */\n        /*06d0*/                   IADD3 R0, P0, R0, UR6, RZ ;                          /* 0x0000000600007c10 */\n                                                                                        /* 0x000fc6000ff1e0ff */\n        /*06e0*/                   STG.E.64 [R6.64], R4 ;                               /* 0x0000000406007986 */\n                                                                                        /* 0x0031e2000c101b08 */\n        /*06f0*/                   IADD3.X R3, R3, UR4, RZ, P0, !PT ;                   /* 0x0000000403037c10 */\n                                                                                        /* 0x000fe400087fe4ff */\n        /*0700*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;     /* 0x0000600000007a0c */\n                                                                                        /* 0x000fc80003f06070 */\n        /*0710*/                   ISETP.GE.U32.AND.EX P0, PT, R3, RZ, PT, P0 ;         /* 0x000000ff0300720c */\n                                                                                        /* 0x000fda0003f06100 */\n        /*0720*/              @!P0 BRA 0xf0 ;                                           /* 0xfffff9c000008947 */\n                                                                                        /* 0x001fea000383ffff */\n        /*0730*/                   EXIT ;                                               /* 0x000000000000794d */\n                                                                                        /* 0x000fea0003800000 */\n        /*0740*/                   BRA 0x740;                                           /* 0xfffffff000007947 */\n"
+        }
+      ]
+    }
+  ],
+  "notes": "",
+  "source": {
+    "source_path": "20261025-170040/spmv_claude-haiku-5.5-oc-medium_hybrid_r2",
+    "source_commit": "24648e59045c3e8d7280119627a7bccde1da4f2f",
+    "staged_source_sha256": "ea95ae6debc99beed6d4d8d7e5580c1cfea2fe11da07f69a31ad64acd96ea435"
+  },
+  "binary_sha256": "abd3ec58149e90cf06b50437215145d80a759b8e04e25a74b26a791cde3b8557",
+  "binding_sha256": "227bed4d72f8515229c5c0698c80d33784cf93fe9350cb0a7dc8c13338c3673b",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "8d7e43a19449530bfeaecbdda9dfe5f792a5bb0fe7c5748297c18a9cdaf56b6a",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:23:20 UTC",
+    "sampled_ids": [
+      "spmv_claude-haiku-5.5-cc-medium_hybrid_r5",
+      "spmv_claude-haiku-5.5-cc-medium_hybrid_r3"
+    ],
+    "method": "Read every summary/evidence claim. Independently inspected full relevant source/CMake, timed host launch branches and both complete final SASS kernels for cc hybrid r5. Additionally traced cc hybrid r3 source CPU/GPU partition, source repetition paths, compiled host runtime count forwarding and complete computational portion of its persistent CPU worker. Other findings rely on completed Luna inspection plus primary report/binding checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded existing source citations to complete exact source files in bounded ranges.",
+      "Corrected cc hybrid r5 SELL traversal from padded width to original row length.",
+      "Extended cc hybrid r5 host evidence to include both launch branches and device-wide synchronization; extended SASS evidence to retain the complete long-row accumulation/store and SELL loop."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:06:23Z",
+  "review_finished_at": "2026-11-04T14:17:51Z",
+  "review_input_sha256": "a560827ba9b9184c0d1e2a7c93c0e6d54c3057cb69791fbd54dd436bb64bc410",
+  "pack_sha256": "2146306ee6e200e1890b9c7c33f9d6e06fca308bc714d937405d8eb6ace92148",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

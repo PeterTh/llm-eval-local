@@ -1,0 +1,125 @@
+{
+  "id": "spmv_beam-1.0-oc-medium_cuda_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The requested iteration count is used by a compiled host launch loop, with each launch covering the dimension. Kernel SASS retains the CSR nonzero reduction loop and per-row output store; synchronization follows the launch loop before the timer ends.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          120
+        ],
+        [
+          169,
+          204
+        ],
+        [
+          213,
+          263
+        ]
+      ],
+      "claim": "Rows are mapped from block/thread indices and bounded by dim; active rows reduce their complete CSR intervals and store out[i]. CLI supplies iterations and nItems; initialized CSR/vector/value data feed the timed launch loop, followed by synchronization and output copy.",
+      "sha256": "4353f27d912b854d3de471dd7b36600f8e1b7539e3fa139c5d72e1efa3600e99",
+      "git_blob": "1deacce630deffb5fccfce2a35fab6b1c63c7208"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          14
+        ]
+      ],
+      "claim": "CUDA target is built with optimization enabled.",
+      "sha256": "caa91ff193aba04048236f7c5c23fa1dde800f0b9e0cdc1a36e3dc27dab2d5e3",
+      "git_blob": "b237737803221fddd39d527bd9545d7af543a7cc"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock starts at 1300; iteration count is loaded/tested at 1301-1302, launches occur within the loop, and increment/compare/backedge at 1377-1381 returns to b38b. Device synchronization at 1383 precedes stop clock 1384.",
+      "complete_dump_sha256": "c527387af9375861340bad9880da3b2312f3b5c3f54dbf0d5afa3ba82e1964cf",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_cuda_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1300,
+          "last_line": 1384,
+          "text": "    b330:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n    b335:\tmov    -0x208(%rbp),%ecx\n    b33b:\txor    %r12d,%r12d\n    b33e:\tmov    %rax,%r15\n    b341:\ttest   %ecx,%ecx\n    b343:\tje     b500 <main+0x9a0>\n    b349:\tlea    -0x1b8(%rbp),%rdx\n    b350:\tlea    -0x1b0(%rbp),%rax\n    b357:\tmov    0x844d2(%rip),%r14        # 8f830 <libcudart_static_8b9785e1dd14e6b6d7e4b61f0e9994d39e1b6281+0xa>\n    b35e:\tmovq   %rdx,%xmm2\n    b363:\tmovq   %rax,%xmm4\n    b368:\tpunpcklqdq %xmm4,%xmm2\n    b36c:\tmovaps %xmm2,-0x200(%rbp)\n    b373:\tjmp    b38b <main+0x82b>\n    b375:\tnopl   (%rax)\n    b378:\tmov    -0x208(%rbp),%eax\n    b37e:\tadd    $0x1,%r12d\n    b382:\tcmp    %eax,%r12d\n    b385:\tje     b500 <main+0x9a0>\n    b38b:\tmovabs $0x100000001,%rax\n    b395:\tmov    %r13d,-0x154(%rbp)\n    b39c:\txor    %r9d,%r9d\n    b39f:\txor    %r8d,%r8d\n    b3a2:\tmov    %rax,-0x150(%rbp)\n    b3a9:\tmov    -0x14c(%rbp),%esi\n    b3af:\tmov    $0x1,%ecx\n    b3b4:\tmovabs $0x100000100,%rdx\n    b3be:\tmov    -0x154(%rbp),%rdi\n    b3c5:\tcall   20330 <__cudaPushCallConfiguration>\n    b3ca:\ttest   %eax,%eax\n    b3cc:\tjne    b378 <main+0x818>\n    b3ce:\tmov    -0x1e0(%rbp),%rax\n    b3d5:\tmovdqa -0x200(%rbp),%xmm3\n    b3dd:\tlea    -0x188(%rbp),%rcx\n    b3e4:\tlea    -0x190(%rbp),%rdx\n    b3eb:\tlea    -0x160(%rbp),%rsi\n    b3f2:\tlea    -0x170(%rbp),%rdi\n    b3f9:\tmov    %ebx,-0x1e4(%rbp)\n    b3ff:\tmov    %rax,-0x1b8(%rbp)\n    b406:\tmov    -0x1d8(%rbp),%rax\n    b40d:\tmovaps %xmm3,-0x70(%rbp)\n    b411:\tmov    %rax,-0x1b0(%rbp)\n    b418:\tmov    -0x1d0(%rbp),%rax\n    b41f:\tmov    %r14,-0x170(%rbp)\n    b426:\tmov    %rax,-0x1a8(%rbp)\n    b42d:\tmov    -0x1c8(%rbp),%rax\n    b434:\tmovl   $0x1,-0x168(%rbp)\n    b43e:\tmov    %rax,-0x1a0(%rbp)\n    b445:\tmov    -0x1c0(%rbp),%rax\n    b44c:\tmov    %r14,-0x160(%rbp)\n    b453:\tmov    %rax,-0x198(%rbp)\n    b45a:\tlea    -0x1a8(%rbp),%rax\n    b461:\tmovl   $0x1,-0x158(%rbp)\n    b46b:\tmovq   %rax,%xmm0\n    b470:\tlea    -0x1a0(%rbp),%rax\n    b477:\tmovq   %rax,%xmm2\n    b47c:\tlea    -0x1e4(%rbp),%rax\n    b483:\tpunpcklqdq %xmm2,%xmm0\n    b487:\tmovaps %xmm0,-0x60(%rbp)\n    b48b:\tmovq   %rax,%xmm0\n    b490:\tlea    -0x198(%rbp),%rax\n    b497:\tmovq   %rax,%xmm3\n    b49c:\tpunpcklqdq %xmm3,%xmm0\n    b4a0:\tmovaps %xmm0,-0x50(%rbp)\n    b4a4:\tcall   203c0 <__cudaPopCallConfiguration>\n    b4a9:\ttest   %eax,%eax\n    b4ab:\tjne    b378 <main+0x818>\n    b4b1:\tpush   -0x188(%rbp)\n    b4b7:\tmov    -0x160(%rbp),%rcx\n    b4be:\tlea    -0x70(%rbp),%r9\n    b4c2:\tlea    0x627(%rip),%rdi        # baf0 <spmvKernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b4c9:\tmov    -0x158(%rbp),%r8d\n    b4d0:\tpush   -0x190(%rbp)\n    b4d6:\tmov    -0x170(%rbp),%rsi\n    b4dd:\tmov    -0x168(%rbp),%edx\n    b4e3:\tcall   75ab0 <cudaLaunchKernel>\n    b4e8:\tpop    %rax\n    b4e9:\tmov    -0x208(%rbp),%eax\n    b4ef:\tadd    $0x1,%r12d\n    b4f3:\tpop    %rdx\n    b4f4:\tcmp    %eax,%r12d\n    b4f7:\tjne    b38b <main+0x82b>\n    b4fd:\tnopl   (%rax)\n    b500:\tcall   4b9a0 <cudaDeviceSynchronize>\n    b505:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "Row index is compared to dim at 0x0040 and out-of-range threads exit at 0x0050. The 0x0100 branch tests an empty CSR interval, not a row bound. DFMA at 0x0270 and nonzero backedges 0x0280->0x01d0 and 0x0db0->0x0590 retain the CSR work; STG at 0x14a0 writes output. This entire SASS dump is byte-identical to the independently inspected Beam hybrid r1 dump.",
+      "complete_dump_sha256": "ce2d3e4ffd1b23955e277cfc9a06894cec22d2661d0d0597ca5095a1be93e4ad",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_cuda_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 19,
+          "last_line": 55,
+          "text": "\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   MOV R1, c[0x0][0x28] ;                                 /* 0x00000a0000017a02 */\n                                                                                          /* 0x000fe40000000f00 */\n        /*0010*/                   S2R R0, SR_CTAID.X ;                                   /* 0x0000000000007919 */\n                                                                                          /* 0x000e280000002500 */\n        /*0020*/                   S2R R3, SR_TID.X ;                                     /* 0x0000000000037919 */\n                                                                                          /* 0x000e240000002100 */\n        /*0030*/                   IMAD R0, R0, c[0x0][0x0], R3 ;                         /* 0x0000000000007a24 */\n                                                                                          /* 0x001fca00078e0203 */\n        /*0040*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;       /* 0x0000600000007a0c */\n                                                                                          /* 0x000fda0003f06070 */\n        /*0050*/               @P0 EXIT ;                                                 /* 0x000000000000094d */\n                                                                                          /* 0x000fea0003800000 */\n        /*0060*/                   MOV R2, 0x4 ;                                          /* 0x0000000400027802 */\n                                                                                          /* 0x000fe20000000f00 */\n        /*0070*/                   ULDC.64 UR4, c[0x0][0x118] ;                           /* 0x0000460000047ab9 */\n                                                                                          /* 0x000fe20000000a00 */\n        /*0080*/                   IADD3 R7, R0, 0x1, RZ ;                                /* 0x0000000100077810 */\n                                                                                          /* 0x000fc60007ffe0ff */\n        /*0090*/                   IMAD.WIDE.U32 R4, R0, R2, c[0x0][0x170] ;              /* 0x00005c0000047625 */\n                                                                                          /* 0x000fc800078e0002 */\n        /*00a0*/                   IMAD.WIDE.U32 R6, R7, R2, c[0x0][0x170] ;              /* 0x00005c0007067625 */\n                                                                                          /* 0x000fe400078e0002 */\n        /*00b0*/                   LDG.E R5, [R4.64] ;                                    /* 0x0000000404057981 */\n                                                                                          /* 0x000ea8000c1e1900 */\n        /*00c0*/                   LDG.E R3, [R6.64] ;                                    /* 0x0000000406037981 */\n                                                                                          /* 0x000ea2000c1e1900 */\n        /*00d0*/                   BSSY B0, 0x1480 ;                                      /* 0x000013a000007945 */\n                                                                                          /* 0x000fe20003800000 */\n        /*00e0*/                   CS2R R26, SRZ ;                                        /* 0x00000000001a7805 */\n                                                                                          /* 0x000fe2000001ff00 */\n        /*00f0*/                   ISETP.GE.U32.AND P0, PT, R5, R3, PT ;                  /* 0x000000030500720c */\n                                                                                          /* 0x004fda0003f06070 */\n        /*0100*/               @P0 BRA 0x1470 ;                                           /* 0x0000136000000947 */\n                                                                                          /* 0x000fea0003800000 */\n        /*0110*/                   IADD3 R4, R5, 0x1, RZ ;                                /* 0x0000000105047810 */\n"
+        },
+        {
+          "first_line": 90,
+          "last_line": 104,
+          "text": "                                                                                          /* 0x004fcc00078e000a */\n        /*0230*/                   LDG.E.64 R10, [R10.64] ;                               /* 0x000000040a0a7981 */\n                                                                                          /* 0x000ee2000c1e1b00 */\n        /*0240*/                   IADD3 R4, R4, -0x1, RZ ;                               /* 0xffffffff04047810 */\n                                                                                          /* 0x000fc80007ffe0ff */\n        /*0250*/                   ISETP.NE.AND P1, PT, R4, RZ, PT ;                      /* 0x000000ff0400720c */\n                                                                                          /* 0x000fe40003f25270 */\n        /*0260*/                   IADD3 R5, R5, 0x1, RZ ;                                /* 0x0000000105057810 */\n                                                                                          /* 0x000fe20007ffe0ff */\n        /*0270*/                   DFMA R26, R10, R6, R26 ;                               /* 0x000000060a1a722b */\n                                                                                          /* 0x00a054000000001a */\n        /*0280*/               @P1 BRA 0x1d0 ;                                            /* 0xffffff4000001947 */\n                                                                                          /* 0x000fea000383ffff */\n        /*0290*/                   BSYNC B1 ;                                             /* 0x0000000000017941 */\n                                                                                          /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 443,
+          "last_line": 462,
+          "text": "        /*0d30*/                   IADD3 R5, R5, 0x10, RZ ;                               /* 0x0000001005057810 */\n                                                                                          /* 0x000fc80007ffe0ff */\n        /*0d40*/                   ISETP.GE.U32.AND P1, PT, R5, R4, PT ;                  /* 0x000000040500720c */\n                                                                                          /* 0x000fe20003f26070 */\n        /*0d50*/                   DFMA R12, R24, R22, R12 ;                              /* 0x00000016180c722b */\n                                                                                          /* 0x004f4c000000000c */\n        /*0d60*/                   DFMA R12, R30, R34, R12 ;                              /* 0x000000221e0c722b */\n                                                                                          /* 0x020ecc000000000c */\n        /*0d70*/                   DFMA R12, R20, R18, R12 ;                              /* 0x00000012140c722b */\n                                                                                          /* 0x008f0c000000000c */\n        /*0d80*/                   DFMA R10, R10, R28, R12 ;                              /* 0x0000001c0a0a722b */\n                                                                                          /* 0x010e0c000000000c */\n        /*0d90*/                   DFMA R10, R32, R14, R10 ;                              /* 0x0000000e200a722b */\n                                                                                          /* 0x001e0c000000000a */\n        /*0da0*/                   DFMA R26, R6, R8, R10 ;                                /* 0x00000008061a722b */\n                                                                                          /* 0x001062000000000a */\n        /*0db0*/              @!P1 BRA 0x590 ;                                            /* 0xfffff7d000009947 */\n                                                                                          /* 0x000fea000383ffff */\n        /*0dc0*/                   BSYNC B1 ;                                             /* 0x0000000000017941 */\n                                                                                          /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 675,
+          "last_line": 685,
+          "text": "        /*1470*/                   BSYNC B0 ;                                             /* 0x0000000000007941 */\n                                                                                          /* 0x000fea0003800000 */\n        /*1480*/                   LEA R2, P0, R0, c[0x0][0x188], 0x3 ;                   /* 0x0000620000027a11 */\n                                                                                          /* 0x001fc800078018ff */\n        /*1490*/                   LEA.HI.X R3, R0, c[0x0][0x18c], RZ, 0x3, P0 ;          /* 0x0000630000037a11 */\n                                                                                          /* 0x000fca00000f1cff */\n        /*14a0*/                   STG.E.64 [R2.64], R26 ;                                /* 0x0000001a02007986 */\n                                                                                          /* 0x002fe2000c101b04 */\n        /*14b0*/                   EXIT ;                                                 /* 0x000000000000794d */\n                                                                                          /* 0x000fea0003800000 */\n        /*14c0*/                   BRA 0x14c0;                                            /* 0xfffffff000007947 */\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170121/spmv_beam-1.0-oc-medium_cuda_r3",
+    "source_commit": "74652eee82e2473660a7e75f3ad5d77fd0e3759c",
+    "staged_source_sha256": "8bb38d2b4d964cdb72a70fd7d8ebb7fac064ccd2913736c80567657904579dcd"
+  },
+  "binary_sha256": "0491f0973b7ba7ab07ee17b91a660387307a51b53e2596c53f3deb3a93b26b2b",
+  "binding_sha256": "a5bdab2e731c9030ba5e44553ecd878410deae4428cc929cce6adc63b24b2e11",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "8a53ea171e8963b30e6b7d3d138786c18f49673728183bf6f4f2f2b3a3f843c4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T14:10:50Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5-cc-medium_cuda_r3",
+      "spmv_claude-haiku-4.5_cuda_r1"
+    ],
+    "method": "Independent full Fable r3 source, timed host flow and complete SASS; Haiku r1 full source, timed host flow and each architecture's cited arithmetic/backedge/store/guard checks. Separately inspected all four Beam timed host loops. Exact-byte comparisons show Beam r2-r5 SASS identical to independently inspected hybrid r1, and Fable r1/r2/r4/r5 SASS identical to r3. Other cases retain the independent Luna source review.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Distinguished row bounds from empty-row/per-lane nonzero predicates and expanded guard excerpts.",
+      "Corrected Haiku sm60 row-bound addresses from NOP0x0050 to compare0x0048/exit0x0058.",
+      "Beam r5 pre-timing operation is synchronization, not a warmup kernel.",
+      "Expanded Fable source intervals to include launch-grid sizing."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:01:14Z",
+  "review_finished_at": "2026-11-04T14:07:10Z",
+  "review_input_sha256": "d1c2ce214e315f00a051958ad60464bbf10881221985b7565f77084031aff12f",
+  "pack_sha256": "f6c090c9551d7e40b67bd331244a2a06ccebb030066cf0bdcf69bf7cdf1c2d3c",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

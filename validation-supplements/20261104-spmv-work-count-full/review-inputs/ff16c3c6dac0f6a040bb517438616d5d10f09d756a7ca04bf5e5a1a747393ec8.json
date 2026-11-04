@@ -1,0 +1,107 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:01:54Z",
+  "review_finished_at": "2026-11-04T14:02:30Z",
+  "reviews": [
+    {
+      "id": "spmv_beam-1.0-oc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Runtime -i value initializes a host loop whose each pass launches spmvKernel for this rank's contiguous balanced row interval and synchronizes before the backedge. The kernel bounds each thread by numRowsLocal, follows rowDelimiters[startRow+i] through rowDelimiters[startRow+i+1], accumulates val[j]*vec[cols[j]], and stores the row sum. Rank intervals cover all rows; the shared CSR and vector are broadcast. The timed compiled host loop compares its incremented counter to the runtime iteration value and contains the launch plus device synchronization on every pass. Final SASS has a row bound and CSR loop with multiply-accumulate and result store. No work-count omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              113,
+              126
+            ],
+            [
+              144,
+              172
+            ],
+            [
+              182,
+              185
+            ],
+            [
+              95,
+              105
+            ],
+            [
+              200,
+              209
+            ],
+            [
+              212,
+              230
+            ]
+          ],
+          "claim": "CLI/default dimensions, sparsity and iterations define nItems; complete arrays are distributed via broadcasts; quotient/remainder partition assigns contiguous rows; each timed iteration launches the kernel and synchronizes; output is gathered."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              95,
+              105
+            ]
+          ],
+          "claim": "Each launched thread computes one local row, iterating over its entire CSR interval and writing the accumulated result."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              762,
+              768
+            ],
+            [
+              788,
+              844
+            ],
+            [
+              845,
+              851
+            ]
+          ],
+          "claim": "Clock starts before the runtime-controlled loop; each pass configures and launches spmvKernel, synchronizes, increments the loop counter, and branches back while counter differs from runtime iteration value; barrier and ending clock follow loop."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              21,
+              55
+            ],
+            [
+              81,
+              103
+            ],
+            [
+              677,
+              685
+            ]
+          ],
+          "claim": "Final SASS calculates global row index and rejects rows beyond numRowsLocal; CSR element accumulation backedge returns to per-element loads until row end; accumulated sum is stored to output."
+        }
+      ],
+      "notes": "The implementation uses GPU computation on each rank; no CPU-only hybrid exception applies. Existing SASS uses unrolled/vectorized chunks plus remainder handling, all bounded by the CSR row end."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "d05d8707a743eebeee87d0060bb971f7d55384c3dc3cd554265c497ba5e32638",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T14:07:25Z",
+    "sampled_ids": [
+      "spmv_beam-1.0-oc-medium_hybrid_r5"
+    ],
+    "method": "Independent full source and timed host-loop inspection. Entire device SASS is byte-identical to independently reviewed Beam hybrid r4 (cmp exit0), so that complete kernel control-flow review applies. Source broadcast excerpt extended by one line to include the dense vector.",
+    "work_count_disagreement": false
+  }
+}

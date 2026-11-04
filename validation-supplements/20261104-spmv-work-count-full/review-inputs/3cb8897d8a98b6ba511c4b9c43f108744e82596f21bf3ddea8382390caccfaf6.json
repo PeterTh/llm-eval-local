@@ -1,0 +1,473 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:21:33Z",
+  "review_finished_at": "2026-11-04T14:25:34Z",
+  "reviews": [
+    {
+      "id": "spmv_deepseek-v4-flash_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clocked host loop repeats the full OpenMP row kernel under the parsed count. Its worker distributes the row domain across threads, visits each row's CSR interval, accumulates each indexed value/vector product, and stores every output (including empty-row zeros). The source constructs all nItems CSR entries and terminal delimiter before timing.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Build config enables OpenMP and optimized native compilation."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              264
+            ]
+          ],
+          "claim": "Source initializes CSR through nItems, provides the complete row arithmetic, parses the iteration count and invokes the kernel once per timed repetition."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              581,
+              607
+            ],
+            [
+              916,
+              995
+            ]
+          ],
+          "claim": "Clock bounds repeated GOMP_parallel calls. Outlined worker computes thread row bounds, walks rows and nonzeros with multiply/add and output store, and explicitly handles empty rows."
+        }
+      ],
+      "notes": "Static scheduling."
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Source's counted timed loop invokes the complete row-parallel CSR kernel each pass. The exact worker divides rows across threads and for each row traverses adjacent CSR delimiters, accumulates indexed products, and stores output including zero for empty rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              272
+            ]
+          ],
+          "claim": "Runtime dimensions/sparsity/iterations set CSR extent and timed calls; row kernel traverses full CSR interval and stores each row."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              600,
+              628
+            ],
+            [
+              943,
+              1022
+            ]
+          ],
+          "claim": "Clocked counted GOMP_parallel invocation; exact outlined worker partitions rows, runs the row/nonzero loops, performs indexed multiply/add and stores every row, with explicit empty-row handling."
+        }
+      ],
+      "notes": "None."
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed repetition invokes the complete row-parallel kernel. Its worker divides the row range across the OpenMP team and reduces each row's full CSR nonzero interval with value*vec[column], then writes the output; empty rows are zeroed.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              264
+            ]
+          ],
+          "claim": "Runtime n/s/i control full CSR initialization and counted timed calls; row kernel covers each row's CSR interval."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              581,
+              607
+            ],
+            [
+              916,
+              995
+            ]
+          ],
+          "claim": "Clocked host repetition calls GOMP_parallel. Worker computes thread row bounds and performs all row/nonzero arithmetic and stores, including empty rows."
+        }
+      ],
+      "notes": "No omission identified."
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clocked host repeats GOMP_parallel for each requested iteration. Worker row ownership partitions the complete domain; each row's CSR interval is fully traversed with indexed multiply/add and output store, with zero for empty rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "OpenMP and optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              264
+            ]
+          ],
+          "claim": "Full CSR initialization, runtime dimensions/iterations and timed loop; row kernel computes complete CSR intervals."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              581,
+              607
+            ],
+            [
+              916,
+              995
+            ]
+          ],
+          "claim": "Clock-bounded GOMP_parallel repetition plus outlined worker row partition, nonzero arithmetic/backedge and output stores; empty rows take an explicit zero store."
+        }
+      ],
+      "notes": "Static scheduling."
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host repeats the complete OpenMP row kernel under the requested count. Its outlined worker partitions rows, traverses each assigned row's CSR interval through the nonzero backedge, accumulates value*vec[column], and stores one output per row, including zero for empty rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              263
+            ]
+          ],
+          "claim": "CSR endpoint and row intervals, runtime dimensions/count, and timed kernel loop establish full matrix work per repetition."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              581,
+              607
+            ],
+            [
+              916,
+              994
+            ]
+          ],
+          "claim": "Clocked repeated GOMP_parallel and exact outlined worker row/nonzero loops, indexed arithmetic and output stores (including empty-row zero)."
+        }
+      ],
+      "notes": "Static scheduling."
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Source launches one persistent OpenMP team and loops over requested iterations inside it; each iteration's row loop covers the assigned complete row domain and its nonzero loop reduces each full CSR interval before output store. The compiled timed worker carries the iteration argument through its repetition backedge and repeats the row/nonzero arithmetic.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              297
+            ]
+          ],
+          "claim": "Persistent parallel region's iteration loop repeats the complete assigned-row CSR kernel; parsed runtime settings and timed call provide the requested count and matrix extent."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              560,
+              574
+            ],
+            [
+              941,
+              1028
+            ]
+          ],
+          "claim": "The clocked main directly launches persistent worker 0x1f60 using GOMP_parallel. The complete worker derives disjoint ceil-divided row ranges, loops over every assigned CSR interval, multiplies and adds each nonzero and stores each row. The iteration backedge 0x2042 to 0x1fe0 retains the requested repetitions; empty rows store zero."
+        }
+      ],
+      "notes": "Persistent team; repeated work resides in outlined worker."
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed iterations-taking OpenMP routine runs a persistent team. Its worker loops each requested pass, distributes the full row loop across the team, traverses each row's CSR nonzeros, multiplies/accumulates and stores output, with a barrier before the next pass.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              293
+            ]
+          ],
+          "claim": "Persistent worker repetition surrounds the complete static row loop, with per-row CSR reduction; runtime iteration argument is passed by timed call."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              979,
+              1091
+            ],
+            [
+              1236,
+              1265
+            ]
+          ],
+          "claim": "Clocked GOMP launch targets the iterations worker. Full worker body shows count-controlled outer repetition, row and nonzero loops, indexed product/add, row stores and barrier; wrapper completes after team execution."
+        }
+      ],
+      "notes": "Persistent team with per-pass synchronization."
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clocked host calls the count-taking persistent OpenMP worker. It calculates thread row ownership, then for each requested iteration visits every assigned row and its full CSR interval, performs value*vec[column] accumulation and writes the row output. The count controls the compiled inner repetition loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              314
+            ]
+          ],
+          "claim": "Persistent iteration loop wraps full row/nonzero work; nItems and iteration count are parsed/computed and passed to the timed routine."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              622,
+              636
+            ],
+            [
+              1020,
+              1109
+            ],
+            [
+              1340,
+              1360
+            ]
+          ],
+          "claim": "Clocked GOMP launch targets the iterations worker. Worker body calculates row work, loops requested passes, accumulates full CSR nonzeros and stores output; wrapper handles team completion."
+        }
+      ],
+      "notes": "Source also includes pre-timing prefaulting; it does not replace timed SpMV work."
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Inside the clocked persistent OpenMP region, the worker repeats until the requested count, synchronizing between passes. Each pass processes the worker's assigned rows and every nonzero in each CSR interval, performs indexed product/accumulation and writes row outputs, including empty rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              275
+            ]
+          ],
+          "claim": "Persistent parallel/iteration loop surrounds the complete static row and CSR nonzero computation; runtime size and requested count determine work."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              586,
+              600
+            ],
+            [
+              979,
+              1088
+            ]
+          ],
+          "claim": "Clocked GOMP call targets outlined worker; worker repeats using team barrier/count control and traverses row/nonzero loops with multiply/add and output stores, including zero-row path."
+        }
+      ],
+      "notes": "Persistent OpenMP team."
+    },
+    {
+      "id": "spmv_gemini-3-pro-preview_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Every timed repetition invokes the complete OpenMP row kernel. The worker partitions rows across threads, traverses every CSR interval and accumulates each indexed value/vector product before storing the output; empty rows are explicitly zeroed.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "OpenMP optimized native build."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              262
+            ]
+          ],
+          "claim": "Runtime dimensions, sparsity and iterations establish full CSR input and repeated timed row-kernel calls."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              581,
+              607
+            ],
+            [
+              916,
+              995
+            ]
+          ],
+          "claim": "Clocked counted GOMP_parallel invocations and worker row/nonzero backedges, indexed product/accumulation and output stores establish complete SpMV work per pass."
+        }
+      ],
+      "notes": "Static scheduling."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "13636e62ec6feb03fb7d5e80d63fc33393bea7361d60a47d01d1322584dc8ba0",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:34:15 UTC",
+    "sampled_ids": [
+      "spmv_deepseek-v4.1-flash-oc-high_omp_r2"
+    ],
+    "method": "Primary read all ten reports and independently inspected Deepseek4.1 OpenCode r2 complete source/build, ceil-divided disjoint row partition, direct timed GOMP call and complete persistent worker, including iteration/row/nonzero backedges and empty-row stores. Other findings rely on Luna inspection plus primary report and pinned-evidence checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded cited source/build references to complete exact files, including runtime setup and measured calls that short source ranges omitted.",
+      "Removed an uncalled out-of-line wrapper citation; exact timed main uses the inlined wrapper and direct GOMP call."
+    ]
+  }
+}

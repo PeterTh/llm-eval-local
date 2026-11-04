@@ -1,0 +1,64 @@
+{
+  "id": "spmv_claude-opus-4.6_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The explicitly inlined timed triple loop computes every local row and nonzero on each requested iteration; partition counts include all remainder rows.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          163,
+          196
+        ],
+        [
+          241,
+          282
+        ],
+        [
+          285,
+          305
+        ]
+      ],
+      "claim": "The outer loop uses the original CLI iteration bound and encloses complete local CSR row/nonzero loops. Freed global input arrays are replaced by complete scattered local arrays, not precomputed results.",
+      "sha256": "4d7bf93207e3ee18be32ac79ae8e3df99991d50a459960fa562b2982cca05a4d",
+      "git_blob": "99054b95507eb7eb91b9f34069ef9d4c5c3bf58d"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The compiled vmulsd/vaddsd at a0ed/a0f6 remain under nonzero a0fd->a0e0, row a113->a0b0, and repetition a119->a0a0 loops.",
+      "complete_dump_sha256": "a14210a58d47d876933c8f3a1d7b26cb97eb33e064c0e09d04d2bc61bdc1887b",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-4.6_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2163,
+          "last_line": 2214,
+          "text": "    a04b:\tlea    0x9fce(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    a052:\tcall   8e80 <MPI_Barrier@plt>\n    a057:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    a05c:\tmov    -0x218(%rbp),%esi\n    a062:\tmov    -0x50(%rbp),%r12\n    a066:\tmov    %rax,-0x228(%rbp)\n    a06d:\ttest   %esi,%esi\n    a06f:\tje     a122 <main+0x962>\n    a075:\tmov    -0x230(%rbp),%edx\n    a07b:\ttest   %edx,%edx\n    a07d:\tjle    a122 <main+0x962>\n    a083:\tmov    -0x260(%rbp),%r8\n    a08a:\tmov    -0x208(%rbp),%rdi\n    a091:\txor    %ecx,%ecx\n    a093:\tshl    $0x2,%r8\n    a097:\tnopw   0x0(%rax,%rax,1)\n    a0a0:\txor    %r9d,%r9d\n    a0a3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a0ae:\txchg   %ax,%ax\n    a0b0:\tmov    (%rdi,%r9,1),%eax\n    a0b4:\tmov    0x4(%rdi,%r9,1),%edx\n    a0b9:\tmov    %rdi,%r11\n    a0bc:\tcmp    %edx,%eax\n    a0be:\tjae    a3f0 <main+0xc30>\n    a0c4:\tdec    %edx\n    a0c6:\tlea    0x0(%r13,%rax,8),%r10\n    a0cb:\tlea    (%r14,%rax,4),%rdi\n    a0cf:\tvxorpd %xmm1,%xmm1,%xmm1\n    a0d3:\tsub    %eax,%edx\n    a0d5:\tmov    %r11,-0x208(%rbp)\n    a0dc:\txor    %eax,%eax\n    a0de:\txchg   %ax,%ax\n    a0e0:\tmov    (%rdi,%rax,4),%r11d\n    a0e4:\tvmovsd (%rbx,%r11,8),%xmm0\n    a0ea:\tmov    %rax,%r11\n    a0ed:\tvmulsd (%r10,%rax,8),%xmm0,%xmm0\n    a0f3:\tinc    %rax\n    a0f6:\tvaddsd %xmm0,%xmm1,%xmm1\n    a0fa:\tcmp    %rdx,%r11\n    a0fd:\tjne    a0e0 <main+0x920>\n    a0ff:\tmov    -0x208(%rbp),%rdi\n    a106:\tvmovsd %xmm1,(%r12,%r9,2)\n    a10c:\tadd    $0x4,%r9\n    a110:\tcmp    %r9,%r8\n    a113:\tjne    a0b0 <main+0x8f0>\n    a115:\tinc    %ecx\n    a117:\tcmp    %esi,%ecx\n    a119:\tjne    a0a0 <main+0x8e0>\n    a11b:\tmov    %rdi,-0x208(%rbp)\n    a122:\tlea    0x9ef7(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    a129:\tcall   8e80 <MPI_Barrier@plt>\n    a12e:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-opus-4.6_mpi_r4",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "7f0e81df57660311d1b6b7825e3c0faa1b0527a2b10cec9a9436417b2c78371c"
+  },
+  "binary_sha256": "e434bf7f4a7f634460292ba620d2811d5d451361039e86fc9bcdb87ac49f9626",
+  "binding_sha256": "3a6d32ad4ddb1876091b099303d32b4577b9dd0b3766cf5b01e4f3bc963a00b5",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:57:07Z",
+  "review_finished_at": "2026-11-04T12:57:41Z",
+  "review_input_sha256": "b1641dfb264c9b31b9fbb96bc7eb12e84d4f769cf3eade5e5b45c7519466667a",
+  "pack_sha256": "756a6a409b3a59a4cf27b7b870ba72ded03f77f36d5f6272f712ee59fe3565ec",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

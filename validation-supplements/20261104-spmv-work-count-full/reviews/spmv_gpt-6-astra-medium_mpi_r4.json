@@ -1,0 +1,68 @@
+{
+  "id": "spmv_gpt-6-astra-medium_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          53,
+          110
+        ],
+        [
+          159,
+          197
+        ],
+        [
+          215,
+          287
+        ],
+        [
+          308,
+          322
+        ]
+      ],
+      "claim": "Unmodified CLI iteration count controls full local CSR. Monotone binary-searched nnz-plus-row targets cover all rows. Entire associated nonzeros and row starts are scattered, then rebased and terminated with localItems. Every requested timed iteration processes the whole partition; Gatherv collects all rows.",
+      "sha256": "97f554c3460818e313fa96059e3b807c6189cc774c4cacb0b6e05e21e7282a45",
+      "git_blob": "b86190826d6ecfc8a776a5ec0a4e270aa77d57ab"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed mul/add b0cd/b0d5 remain inside nonzero b0dc->b0c0, row b0ea->b090 and iteration b0f0->b080 backedges.",
+      "complete_dump_sha256": "55f0390f3ae550e1326ec8f5673d7d508e268e88a44de991a0237a89a07a6ff3",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-astra-medium_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 3044,
+          "last_line": 3101,
+          "text": "    b014:\tcall   90a0 <operator delete(void*, unsigned long)@plt>\n    b019:\tmov    -0x1b8(%rbp),%r8d\n    b020:\ttest   %r8d,%r8d\n    b023:\tjne    b031 <runBenchmark(int, char**, int, int)+0x12d1>\n    b025:\tlea    0x5412(%rip),%rdi        # 1043e <_IO_stdin_used+0x43e>\n    b02c:\tcall   93b0 <puts@plt>\n    b031:\tlea    0xa1e8(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    b038:\tcall   8eb0 <MPI_Barrier@plt>\n    b03d:\tcall   9200 <MPI_Wtime@plt>\n    b042:\tmov    -0x1b4(%rbp),%edi\n    b048:\tvmovq  %xmm0,%r13\n    b04d:\ttest   %edi,%edi\n    b04f:\tje     b0f7 <runBenchmark(int, char**, int, int)+0x1397>\n    b055:\tmov    -0x18c(%rbp),%r8d\n    b05c:\ttest   %r8d,%r8d\n    b05f:\tje     b0f7 <runBenchmark(int, char**, int, int)+0x1397>\n    b065:\tmov    -0x1b4(%rbp),%esi\n    b06b:\tmov    -0x228(%rbp),%r10\n    b072:\txor    %ecx,%ecx\n    b074:\tvmovsd %xmm0,%xmm0,%xmm3\n    b078:\tnopl   0x0(%rax,%rax,1)\n    b080:\txor    %r9d,%r9d\n    b083:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    b08e:\txchg   %ax,%ax\n    b090:\tmov    (%r12,%r9,4),%eax\n    b094:\tmov    0x4(%r12,%r9,4),%edx\n    b099:\tcmp    %edx,%eax\n    b09b:\tjae    b3a0 <runBenchmark(int, char**, int, int)+0x1640>\n    b0a1:\tdec    %edx\n    b0a3:\tlea    (%r10,%rax,4),%r11\n    b0a7:\tlea    (%r15,%rax,8),%rdi\n    b0ab:\tvxorpd %xmm1,%xmm1,%xmm1\n    b0af:\tsub    %eax,%edx\n    b0b1:\txor    %eax,%eax\n    b0b3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    b0be:\txchg   %ax,%ax\n    b0c0:\tmov    (%r11,%rax,4),%r13d\n    b0c4:\tvmovsd (%rbx,%r13,8),%xmm2\n    b0ca:\tmov    %rax,%r13\n    b0cd:\tvmulsd (%rdi,%rax,8),%xmm2,%xmm2\n    b0d2:\tinc    %rax\n    b0d5:\tvaddsd %xmm2,%xmm1,%xmm1\n    b0d9:\tcmp    %rdx,%r13\n    b0dc:\tjne    b0c0 <runBenchmark(int, char**, int, int)+0x1360>\n    b0de:\tvmovsd %xmm1,(%r14,%r9,8)\n    b0e4:\tinc    %r9\n    b0e7:\tcmp    %r9,%r8\n    b0ea:\tjne    b090 <runBenchmark(int, char**, int, int)+0x1330>\n    b0ec:\tinc    %ecx\n    b0ee:\tcmp    %esi,%ecx\n    b0f0:\tjne    b080 <runBenchmark(int, char**, int, int)+0x1320>\n    b0f2:\tvmovq  %xmm3,%r13\n    b0f7:\tcall   9200 <MPI_Wtime@plt>\n    b0fc:\tvmovq  %r13,%xmm7\n    b101:\tsub    $0x8,%rsp\n    b105:\tlea    0xa114(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    b10c:\tmovq   $0x0,-0x178(%rbp)\n    b117:\tvsubsd %xmm7,%xmm0,%xmm0\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260929-135931/spmv_gpt-6-astra-medium_mpi_r4",
+    "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+    "staged_source_sha256": "c52d027c9926a7207b3d08224f5d1f2386647aeae01ce40459b9fa666ddfcbe1"
+  },
+  "binary_sha256": "cddb6beef4b2b156ae16e89a3996b71d3483f6c9d88a0f4b0c6ba9ae29a0aaea",
+  "binding_sha256": "2a2e899efa4b7245a4f4ee9d55dc2281362983762a596617e3ffa0450540d2cd",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:29:38Z",
+  "review_finished_at": "2026-11-04T13:30:24Z",
+  "review_input_sha256": "cdbf0f6ea26fae133d4ff727020057388fd2cd3273578eea0c02c2dedb0fc354",
+  "pack_sha256": "05619b12de80a1125161f1d63567ea2168f48aa061be134a7ba80f2fb74846c0",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

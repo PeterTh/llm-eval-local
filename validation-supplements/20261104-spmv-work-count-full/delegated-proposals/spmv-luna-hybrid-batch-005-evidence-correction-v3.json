@@ -1,0 +1,46 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:47:08Z",
+  "review_finished_at": "2026-11-04T14:47:08Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-005.json compiled evidence for the IDs below",
+  "reviews": [
+    {
+      "id": "spmv_claude-sonnet-5-cc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The prior source/work-count conclusion stands; the final SASS citation now extends beyond the initial kernel prefix to include its complete CSR arithmetic and actual output store. The emitted stub called by the timed path is also cited.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[136,160],[347,380],[400,425]],"claim":"Rank-local rows and CSR data, row kernel, runtime-count timed launch, and output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1612,1653],[1850,1910],[2994,3054]],"claim":"Timed counter-controlled launch path and synchronization, plus the emitted CUDA stub's kernel launch call."},
+        {"file":"device-sass.txt","ranges":[[19,289]],"claim":"Complete kernel row guard and CSR traversal, arithmetic, final output store at 283 and function exit."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5-cc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The original source/control-flow finding stands; compiled kernel evidence is extended through the true store/exit and the host stub that submits the kernel is included.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[342,382],[404,432],[446,475]],"claim":"Rank/device partition, per-device runtime repetition and local output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1411,1421],[2390,2490],[2917,2977]],"claim":"Timed worker/launch loop and device synchronization/output path, plus the emitted warp-kernel stub that calls cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,311]],"claim":"Complete warp kernel row guard, CSR traversal/reduction, output store at 305 and function exit."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5-cc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The prior partition/chunk repetition finding stands; compiled evidence now reaches the final kernel store and includes the emitted launch stub for the chunked timed path.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[339,366],[374,407],[409,451],[468,485]],"claim":"MPI rank-local rows, disjoint chunks, per-iteration chunk launches and result handling."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1703,1759],[2450,2540],[3583,3647]],"claim":"Timed outer repetition and outlined chunk launch work with synchronization/copy, plus the emitted stub's cudaLaunchKernel dispatch."},
+        {"file":"device-sass.txt","ranges":[[19,350],[351,689]],"claim":"Full selected row kernel including all CSR traversal, arithmetic, output store at 683 and exit."}
+      ],
+      "notes":""
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

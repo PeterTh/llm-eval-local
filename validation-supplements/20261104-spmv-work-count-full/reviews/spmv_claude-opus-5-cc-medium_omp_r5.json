@@ -1,0 +1,89 @@
+{
+  "id": "spmv_claude-opus-5-cc-medium_omp_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed host loop invokes an OpenMP region whose outlined worker 0x22d0 receives the requested repetition count and per-thread row bounds. Each repetition traverses the assigned rows and all nonzeros in each CSR interval, accumulating val[j]*vec[cols[j]] and storing every row output, including explicit zero for empty rows. Source rowSplitPoint cuts span 0 through dim without row gaps.",
+  "source_evidence": [
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          15
+        ]
+      ],
+      "claim": "OpenMP build and optimized native compile flags.",
+      "sha256": "8b714cd72b023c6c6f5088a675659eaf9c1f49528cbc5a3409a64e40d9922b89",
+      "git_blob": "9a6f18bb5dc744d9e28d3cd2c6cdabd24a85d830"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          418
+        ]
+      ],
+      "claim": "CSR initialization, complete monotone row-split endpoints, runtime nItems/iterations, and persistent timed OpenMP repetition/call control.",
+      "sha256": "0b9b1206f7d929e08f8dd744e5f2f297b1de8926c887c541b0baf275a0ba3121",
+      "git_blob": "f9825fff81579544cdb4c40d965c252da5a27fa6"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The clocked GOMP_parallel at 0x1c03 targets main._omp_fn.1 (0x22d0). Worker loads row bounds and count, loops repetitions with compare/backedge at 0x243f/0x2442 to 0x23e0, loops rows and row nonzeros, performs indexed multiply/add and stores output; empty rows are set to zero.",
+      "complete_dump_sha256": "07a6789808ea1b7946cb261ecbcf1a52c29518f2085ca69fadcc2a3fa48ba240",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5-cc-medium_omp_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 709,
+          "last_line": 723,
+          "text": "    1bbf:\tcall   11d0 <std::chrono::_V2::system_clock::now()@plt>\n    1bc4:\tvmovdqa -0x170(%rbp),%ymm7\n    1bcc:\txor    %ecx,%ecx\n    1bce:\txor    %edx,%edx\n    1bd0:\tmov    %rax,-0x190(%rbp)\n    1bd7:\tmov    -0x138(%rbp),%rax\n    1bde:\tmov    -0x140(%rbp),%rsi\n    1be5:\tlea    0x6e4(%rip),%rdi        # 22d0 <main._omp_fn.1>\n    1bec:\tmov    %rax,-0x50(%rbp)\n    1bf0:\tmov    -0x178(%rbp),%rax\n    1bf7:\tvmovdqa %ymm7,-0x70(%rbp)\n    1bfc:\tmov    %rax,-0x48(%rbp)\n    1c00:\tvzeroupper\n    1c03:\tcall   12c0 <GOMP_parallel@plt>\n    1c08:\tcall   11d0 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 1113,
+          "last_line": 1250,
+          "text": "00000000000022d0 <main._omp_fn.1>:\n    22d0:\tendbr64\n    22d4:\tpush   %r15\n    22d6:\tpush   %r14\n    22d8:\tpush   %r13\n    22da:\tpush   %r12\n    22dc:\tpush   %rbp\n    22dd:\tpush   %rbx\n    22de:\tsub    $0x18,%rsp\n    22e2:\tmov    0x28(%rdi),%esi\n    22e5:\tmov    0x20(%rdi),%rbx\n    22e9:\tmov    0x18(%rdi),%r15\n    22ed:\tmov    0x10(%rdi),%r14\n    22f1:\tmov    0x8(%rdi),%rbp\n    22f5:\tmov    (%rdi),%r12\n    22f8:\tmov    0x2c(%rdi),%r13d\n    22fc:\tmov    %esi,0xc(%rsp)\n    2300:\tcall   12e0 <omp_get_thread_num@plt>\n    2305:\tmov    %eax,0x8(%rsp)\n    2309:\tcall   1320 <omp_get_num_threads@plt>\n    230e:\tmov    0x8(%rsp),%edi\n    2312:\tmovslq %eax,%r8\n    2315:\tmov    0xc(%rsp),%esi\n    2319:\ttest   %edi,%edi\n    231b:\tjle    248b <main._omp_fn.1+0x1bb>\n    2321:\tcmp    %r8d,%edi\n    2324:\tjge    2444 <main._omp_fn.1+0x174>\n    232a:\tmov    %esi,%eax\n    232c:\tmovslq %edi,%rdx\n    232f:\tmovslq %r8d,%rcx\n    2332:\tmov    %esi,%r9d\n    2335:\tmov    (%r15,%rax,4),%eax\n    2339:\timul   %rdx,%rax\n    233d:\txor    %edx,%edx\n    233f:\tdiv    %rcx\n    2342:\txor    %ecx,%ecx\n    2344:\tjmp    2368 <main._omp_fn.1+0x98>\n    2346:\tcs nopw 0x0(%rax,%rax,1)\n    2350:\tmov    %r9d,%edx\n    2353:\tsub    %ecx,%edx\n    2355:\tshr    $1,%edx\n    2357:\tlea    (%rdx,%rcx,1),%r10d\n    235b:\tcmp    %eax,(%r15,%r10,4)\n    235f:\tjb     2482 <main._omp_fn.1+0x1b2>\n    2365:\tmov    %r10d,%r9d\n    2368:\tcmp    %r9d,%ecx\n    236b:\tjb     2350 <main._omp_fn.1+0x80>\n    236d:\tlea    0x1(%rdi),%eax\n    2370:\tmov    %esi,%edi\n    2372:\tcmp    %eax,%r8d\n    2375:\tjle    23ab <main._omp_fn.1+0xdb>\n    2377:\tmov    %esi,%edx\n    2379:\tcltq\n    237b:\txor    %edi,%edi\n    237d:\tmov    (%r15,%rdx,4),%edx\n    2381:\timul   %rdx,%rax\n    2385:\txor    %edx,%edx\n    2387:\tdiv    %r8\n    238a:\tjmp    23a7 <main._omp_fn.1+0xd7>\n    238c:\tnopl   0x0(%rax)\n    2390:\tmov    %esi,%edx\n    2392:\tsub    %edi,%edx\n    2394:\tshr    $1,%edx\n    2396:\tlea    (%rdx,%rdi,1),%r8d\n    239a:\tcmp    %eax,(%r15,%r8,4)\n    239e:\tjb     2479 <main._omp_fn.1+0x1a9>\n    23a4:\tmov    %r8d,%esi\n    23a7:\tcmp    %esi,%edi\n    23a9:\tjb     2390 <main._omp_fn.1+0xc0>\n    23ab:\ttest   %r13d,%r13d\n    23ae:\tje     2444 <main._omp_fn.1+0x174>\n    23b4:\tcmp    %edi,%ecx\n    23b6:\tjae    2444 <main._omp_fn.1+0x174>\n    23bc:\tlea    -0x1(%rdi),%eax\n    23bf:\tlea    0x1(%rcx),%edx\n    23c2:\tsub    %ecx,%eax\n    23c4:\tlea    (%r15,%rdx,4),%r9\n    23c8:\tlea    0x4(,%rax,4),%r11\n    23d0:\tmov    %ecx,%eax\n    23d2:\txor    %ecx,%ecx\n    23d4:\tlea    (%r15,%rax,4),%r10\n    23d8:\tlea    (%r14,%rax,8),%r8\n    23dc:\tnopl   0x0(%rax)\n    23e0:\txor    %r14d,%r14d\n    23e3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    23ee:\txchg   %ax,%ax\n    23f0:\tmov    (%r10,%r14,1),%eax\n    23f4:\tmov    (%r9,%r14,1),%edx\n    23f8:\tcmp    %edx,%eax\n    23fa:\tjae    2460 <main._omp_fn.1+0x190>\n    23fc:\tdec    %edx\n    23fe:\tlea    0x0(%rbp,%rax,4),%rdi\n    2403:\tlea    (%r12,%rax,8),%rsi\n    2407:\tvxorpd %xmm1,%xmm1,%xmm1\n    240b:\tsub    %eax,%edx\n    240d:\txor    %eax,%eax\n    240f:\tnop\n    2410:\tmov    (%rdi,%rax,4),%r15d\n    2414:\tvmovsd (%rbx,%r15,8),%xmm0\n    241a:\tmov    %rax,%r15\n    241d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    2422:\tinc    %rax\n    2425:\tvaddsd %xmm0,%xmm1,%xmm1\n    2429:\tcmp    %rdx,%r15\n    242c:\tjne    2410 <main._omp_fn.1+0x140>\n    242e:\tvmovsd %xmm1,(%r8,%r14,2)\n    2434:\tadd    $0x4,%r14\n    2438:\tcmp    %r14,%r11\n    243b:\tjne    23f0 <main._omp_fn.1+0x120>\n    243d:\tinc    %ecx\n    243f:\tcmp    %ecx,%r13d\n    2442:\tjne    23e0 <main._omp_fn.1+0x110>\n    2444:\tadd    $0x18,%rsp\n    2448:\tpop    %rbx\n    2449:\tpop    %rbp\n    244a:\tpop    %r12\n    244c:\tpop    %r13\n    244e:\tpop    %r14\n    2450:\tpop    %r15\n    2452:\tret\n    2453:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    245e:\txchg   %ax,%ax\n    2460:\tvxorpd %xmm1,%xmm1,%xmm1\n    2464:\tvmovsd %xmm1,(%r8,%r14,2)\n    246a:\tadd    $0x4,%r14\n    246e:\tcmp    %r14,%r11\n    2471:\tjne    23f0 <main._omp_fn.1+0x120>\n    2477:\tjmp    243d <main._omp_fn.1+0x16d>\n    2479:\tlea    0x1(%r8),%edi\n    247d:\tjmp    23a7 <main._omp_fn.1+0xd7>\n    2482:\tlea    0x1(%r10),%ecx\n    2486:\tjmp    2368 <main._omp_fn.1+0x98>\n    248b:\tjne    2444 <main._omp_fn.1+0x174>\n    248d:\tmov    $0x1,%eax\n    2492:\txor    %ecx,%ecx\n    2494:\tjmp    2370 <main._omp_fn.1+0xa0>\n    2499:\tnopl   0x0(%rax)\n\n"
+        }
+      ]
+    }
+  ],
+  "notes": "A separate spmvCpu outlined clone is not the clocked worker.",
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-opus-5-cc-medium_omp_r5",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "a3604fd940b86fda631cf9175e56a4110ca55cec2a942caf63e83f3ddb976c46"
+  },
+  "binary_sha256": "0ee80a9634693a2fadaac7718de96ee04fafefe982377573c96d0a8cc83e01ff",
+  "binding_sha256": "d83f03a752dc8a77ef98836c239424ceb81648a585825c883aed8266881e2ee2",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "af3bd6de5855be3fa39d11a625b13a120d07a0a392a8a609997964ca22209649",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:24:20 UTC",
+    "sampled_ids": [
+      "spmv_claude-opus-5.5-cc-medium_omp_r5"
+    ],
+    "method": "Read all ten report summaries/evidence claims. Independently inspected full relevant source/CMake, preprocessing/copy and row partition coverage, clocked host launch, and complete outlined persistent compute worker for sampled Opus5.5 r5. Other IDs rely on Luna's completed inspection plus primary report/binding checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded source citations to complete cited exact files in bounded ranges.",
+      "Corrected Opus5.5 r5 repetition backedge: 0x22a3 was a pointer load; actual counter increment/compare/branch are 0x234e/0x2350/0x2353 to 0x22f0."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:12:48Z",
+  "review_finished_at": "2026-11-04T14:18:14Z",
+  "review_input_sha256": "d8099161ee31d04e1f36feb46612457b3f00864bb05eb8d60c848adb78e959ec",
+  "pack_sha256": "b7747cdf65019cc103f230e223e23458c1e567b805109a594329100a6bfdb310",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

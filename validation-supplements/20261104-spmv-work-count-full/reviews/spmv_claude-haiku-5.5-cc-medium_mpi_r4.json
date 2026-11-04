@@ -1,0 +1,76 @@
+{
+  "id": "spmv_claude-haiku-5.5-cc-medium_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Remainder-aware row partitioning covers all rows, and the timed loop recomputes every local row on each requested iteration.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          33,
+          37
+        ],
+        [
+          156,
+          166
+        ],
+        [
+          224,
+          259
+        ],
+        [
+          262,
+          267
+        ],
+        [
+          283,
+          313
+        ],
+        [
+          320,
+          334
+        ]
+      ],
+      "claim": "The iteration count comes directly from -i. Complete local CSR arithmetic occurs inside both clock calls without a validation-only substitute or final-iteration-only guard.",
+      "sha256": "adc0e6610aa354282b2754312b2b2de137ccd430e805036b47006f9cf467bf91",
+      "git_blob": "f105849ad573afca165c6783e7b8af9fce8cc6c2"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The clock-bounded machine code retains multiply/add at 9d9d/9da5 and nested backedges 9dac->9d90, 9dc2->9d60, 9dc9->9d50 for nonzeros, rows, repetitions.",
+      "complete_dump_sha256": "c5539a31267c7706d1816994c9e687b12e3cf59c2e1fc20e16240f806a6b80d9",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-cc-medium_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1988,
+          "last_line": 2037,
+          "text": "    9cf6:\tlea    0xa323(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9cfd:\tcall   8e90 <MPI_Barrier@plt>\n    9d02:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9d07:\tmov    -0x150(%rbp),%r12\n    9d0e:\tmov    %rax,-0x1e8(%rbp)\n    9d15:\ttest   %r13d,%r13d\n    9d18:\tje     9dd2 <main+0x6a2>\n    9d1e:\tmov    -0x1b8(%rbp),%esi\n    9d24:\tmov    -0xd0(%rbp),%r10\n    9d2b:\tmov    -0xf0(%rbp),%r11\n    9d32:\ttest   %esi,%esi\n    9d34:\tje     9dd2 <main+0x6a2>\n    9d3a:\tmov    -0x1a8(%rbp),%rdi\n    9d41:\tlea    0x0(,%r15,4),%r9\n    9d49:\txor    %edx,%edx\n    9d4b:\tnopl   0x0(%rax,%rax,1)\n    9d50:\txor    %r8d,%r8d\n    9d53:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d5e:\txchg   %ax,%ax\n    9d60:\tmov    (%rdi,%r8,1),%eax\n    9d64:\tmov    0x4(%rdi,%r8,1),%ecx\n    9d69:\tmov    %rdi,%r15\n    9d6c:\tcmp    %ecx,%eax\n    9d6e:\tjae    9f90 <main+0x860>\n    9d74:\tdec    %ecx\n    9d76:\tlea    (%r12,%rax,4),%rdi\n    9d7a:\tlea    (%r11,%rax,8),%rsi\n    9d7e:\tvxorpd %xmm1,%xmm1,%xmm1\n    9d82:\tsub    %eax,%ecx\n    9d84:\tmov    %r15,-0x1a8(%rbp)\n    9d8b:\txor    %eax,%eax\n    9d8d:\tnopl   (%rax)\n    9d90:\tmov    (%rdi,%rax,4),%r15d\n    9d94:\tvmovsd (%rbx,%r15,8),%xmm0\n    9d9a:\tmov    %rax,%r15\n    9d9d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    9da2:\tinc    %rax\n    9da5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9da9:\tcmp    %r15,%rcx\n    9dac:\tjne    9d90 <main+0x660>\n    9dae:\tmov    -0x1a8(%rbp),%rdi\n    9db5:\tvmovsd %xmm1,(%r10,%r8,2)\n    9dbb:\tadd    $0x4,%r8\n    9dbf:\tcmp    %r9,%r8\n    9dc2:\tjne    9d60 <main+0x630>\n    9dc4:\tinc    %edx\n    9dc6:\tcmp    %r13d,%edx\n    9dc9:\tjne    9d50 <main+0x620>\n    9dcb:\tmov    %rdi,-0x1a8(%rbp)\n    9dd2:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261012-111947/spmv_claude-haiku-5.5-cc-medium_mpi_r4",
+    "source_commit": "71ba7cc523997c8fd1537d7a8159b583f260793d",
+    "staged_source_sha256": "84b431e92b37e0f0382ddac97cbe59b1f034c2bb6788ee662a19b29351ff7f39"
+  },
+  "binary_sha256": "fe093b006b7ba3801be8eccc9f86feb736176bf6e3bded2088f1ae2cca6e9bab",
+  "binding_sha256": "0e39cbf1d5a3f0f492a9f520e17d9f60115f8bed4a6b74160d4ddc01693c120d",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:54:48Z",
+  "review_finished_at": "2026-11-04T12:55:17Z",
+  "review_input_sha256": "7ebe82a12317fa6e47d93fb5336f5fdc3874a39a4ca3ec657332fd8972c264df",
+  "pack_sha256": "8c40431caf2b2fa08e26784369b30854554dcac32d75590ce135cdd6bac8ce81",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

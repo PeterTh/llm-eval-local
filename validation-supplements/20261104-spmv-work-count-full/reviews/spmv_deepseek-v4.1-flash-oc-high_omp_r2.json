@@ -1,0 +1,89 @@
+{
+  "id": "spmv_deepseek-v4.1-flash-oc-high_omp_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Source launches one persistent OpenMP team and loops over requested iterations inside it; each iteration's row loop covers the assigned complete row domain and its nonzero loop reduces each full CSR interval before output store. The compiled timed worker carries the iteration argument through its repetition backedge and repeats the row/nonzero arithmetic.",
+  "source_evidence": [
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          15
+        ]
+      ],
+      "claim": "OpenMP optimized native build.",
+      "sha256": "487b070aa2a275329fec2dcfec71e1539a878dcdbbc4c55112ba479f5f4f5bf7",
+      "git_blob": "3a86e118992ac91190efe5763eef895fdad05456"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          297
+        ]
+      ],
+      "claim": "Persistent parallel region's iteration loop repeats the complete assigned-row CSR kernel; parsed runtime settings and timed call provide the requested count and matrix extent.",
+      "sha256": "ca77eb917da3c3410fd9365cfa4a3ef2b1485e0e56d84190d6eca69342d21143",
+      "git_blob": "bdd369e5b6f725a4cc62637c3e10637f80044371"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The clocked main directly launches persistent worker 0x1f60 using GOMP_parallel. The complete worker derives disjoint ceil-divided row ranges, loops over every assigned CSR interval, multiplies and adds each nonzero and stores each row. The iteration backedge 0x2042 to 0x1fe0 retains the requested repetitions; empty rows store zero.",
+      "complete_dump_sha256": "b646c51a6fc1b38483b4ebfaf65ce986e1fdd42fb251a101add8d3d703eb0f4f",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_deepseek-v4.1-flash-oc-high_omp_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 560,
+          "last_line": 574,
+          "text": "    192c:\tcall   1190 <std::chrono::_V2::system_clock::now()@plt>\n    1931:\tvmovdqa -0x150(%rbp),%ymm7\n    1939:\txor    %edx,%edx\n    193b:\tlea    0x61e(%rip),%rdi        # 1f60 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]>\n    1942:\tmov    -0x130(%rbp),%rcx\n    1949:\tmov    -0x90(%rbp),%r12\n    1950:\tmov    %rax,%r15\n    1953:\tmov    -0x170(%rbp),%rsi\n    195a:\tmov    %rcx,-0x48(%rbp)\n    195e:\tmov    %r12,-0x50(%rbp)\n    1962:\txor    %ecx,%ecx\n    1964:\tvmovdqa %ymm7,-0x70(%rbp)\n    1969:\tvzeroupper\n    196c:\tcall   1250 <GOMP_parallel@plt>\n    1971:\tcall   1190 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 941,
+          "last_line": 1028,
+          "text": "0000000000001f60 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]>:\n    1f60:\tendbr64\n    1f64:\tpush   %r15\n    1f66:\tpush   %r14\n    1f68:\tpush   %r13\n    1f6a:\tmov    %rdi,%r14\n    1f6d:\tpush   %r12\n    1f6f:\tpush   %rbp\n    1f70:\tpush   %rbx\n    1f71:\tsub    $0x8,%rsp\n    1f75:\tmov    0x28(%rdi),%ebp\n    1f78:\tmov    0x2c(%rdi),%r12d\n    1f7c:\tcall   1270 <omp_get_thread_num@plt>\n    1f81:\tmov    %eax,%ebx\n    1f83:\tcall   12a0 <omp_get_num_threads@plt>\n    1f88:\txor    %edx,%edx\n    1f8a:\tmov    %eax,%ecx\n    1f8c:\tlea    -0x1(%rbp,%rax,1),%eax\n    1f90:\tdiv    %ecx\n    1f92:\timul   %eax,%ebx\n    1f95:\tmov    %ebx,%edx\n    1f97:\tadd    %edx,%eax\n    1f99:\tcmp    %ebp,%eax\n    1f9b:\tcmova  %ebp,%eax\n    1f9e:\ttest   %r12d,%r12d\n    1fa1:\tje     2044 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xe4>\n    1fa7:\tcmp    %eax,%edx\n    1fa9:\tjae    2044 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xe4>\n    1faf:\tmov    0x10(%r14),%rcx\n    1fb3:\tsub    %edx,%eax\n    1fb5:\tmov    0x18(%r14),%rdi\n    1fb9:\tdec    %eax\n    1fbb:\tmov    0x8(%r14),%r13\n    1fbf:\tmov    (%r14),%rbp\n    1fc2:\tlea    0x4(,%rax,4),%rbx\n    1fca:\tlea    0x1(%rdx),%eax\n    1fcd:\tlea    (%rcx,%rax,4),%r11\n    1fd1:\tmov    0x20(%r14),%rax\n    1fd5:\tlea    (%rcx,%rdx,4),%r10\n    1fd9:\txor    %ecx,%ecx\n    1fdb:\tlea    (%rax,%rdx,8),%r9\n    1fdf:\tnop\n    1fe0:\txor    %r14d,%r14d\n    1fe3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    1fee:\txchg   %ax,%ax\n    1ff0:\tmov    (%r11,%r14,1),%edx\n    1ff4:\tmov    (%r10,%r14,1),%eax\n    1ff8:\tcmp    %edx,%eax\n    1ffa:\tjae    2060 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x100>\n    1ffc:\tdec    %edx\n    1ffe:\tlea    0x0(%r13,%rax,4),%r8\n    2003:\tlea    0x0(%rbp,%rax,8),%rsi\n    2008:\tvxorpd %xmm1,%xmm1,%xmm1\n    200c:\tsub    %eax,%edx\n    200e:\txor    %eax,%eax\n    2010:\tmov    (%r8,%rax,4),%r15d\n    2014:\tvmovsd (%rdi,%r15,8),%xmm0\n    201a:\tmov    %rax,%r15\n    201d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    2022:\tinc    %rax\n    2025:\tvaddsd %xmm0,%xmm1,%xmm1\n    2029:\tcmp    %rdx,%r15\n    202c:\tjne    2010 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xb0>\n    202e:\tvmovsd %xmm1,(%r9,%r14,2)\n    2034:\tadd    $0x4,%r14\n    2038:\tcmp    %r14,%rbx\n    203b:\tjne    1ff0 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x90>\n    203d:\tinc    %ecx\n    203f:\tcmp    %ecx,%r12d\n    2042:\tjne    1fe0 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    2044:\tadd    $0x8,%rsp\n    2048:\tpop    %rbx\n    2049:\tpop    %rbp\n    204a:\tpop    %r12\n    204c:\tpop    %r13\n    204e:\tpop    %r14\n    2050:\tpop    %r15\n    2052:\tret\n    2053:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    205e:\txchg   %ax,%ax\n    2060:\tvxorpd %xmm1,%xmm1,%xmm1\n    2064:\tvmovsd %xmm1,(%r9,%r14,2)\n    206a:\tadd    $0x4,%r14\n    206e:\tcmp    %r14,%rbx\n    2071:\tjne    1ff0 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x90>\n    2077:\tjmp    203d <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xdd>\n    2079:\tnopl   0x0(%rax)\n\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Persistent team; repeated work resides in outlined worker.",
+  "source": {
+    "source_path": "20261019-134042/spmv_deepseek-v4.1-flash-oc-high_omp_r2",
+    "source_commit": "40ad0bc6da259d4584e75b8f23f43c77e9751b24",
+    "staged_source_sha256": "4cf67043225c2fc514781dd3e86c20c83dd07f59abb5caa6c7609d5b1e939efd"
+  },
+  "binary_sha256": "111cdb3ddf3933a0a190bf031875b0c2b5a88068c91e96acc62a6bf718484860",
+  "binding_sha256": "c0d803389208baa90b7c0a34c9efe74df29a87f2ffd129e080051e8d4b416025",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "13636e62ec6feb03fb7d5e80d63fc33393bea7361d60a47d01d1322584dc8ba0",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:34:15 UTC",
+    "sampled_ids": [
+      "spmv_deepseek-v4.1-flash-oc-high_omp_r2"
+    ],
+    "method": "Primary read all ten reports and independently inspected Deepseek4.1 OpenCode r2 complete source/build, ceil-divided disjoint row partition, direct timed GOMP call and complete persistent worker, including iteration/row/nonzero backedges and empty-row stores. Other findings rely on Luna inspection plus primary report and pinned-evidence checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded cited source/build references to complete exact files, including runtime setup and measured calls that short source ranges omitted.",
+      "Removed an uncalled out-of-line wrapper citation; exact timed main uses the inlined wrapper and direct GOMP call."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:21:33Z",
+  "review_finished_at": "2026-11-04T14:25:34Z",
+  "review_input_sha256": "3cb8897d8a98b6ba511c4b9c43f108744e82596f21bf3ddea8382390caccfaf6",
+  "pack_sha256": "fc423e11eec3ab629183e2a0e77b11d98d85c0a74e4e88f7f4a181a8aac75d8e",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

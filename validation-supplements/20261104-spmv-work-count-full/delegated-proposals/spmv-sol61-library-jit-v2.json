@@ -1,0 +1,34 @@
+{
+  "reviewer": "gpt-6.1-sol; independent static adjudication of one further Luna library uncertainty",
+  "reviewer_model": "gpt-6.1-sol",
+  "review_started_at": "2026-11-04T15:33:34Z",
+  "review_finished_at": "2026-11-04T15:34:08Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No work-count omission identified at the external cuSPARSE API contract boundary. Adjacent monotone MPI row boundaries cover [0,numRows), and corresponding nonzero boundaries are the global CSR offsets at those exact row boundaries. Distribution retains every local row offset including its sentinel and every corresponding value/column; all local offsets are rebased, while every rank receives the entire dense input vector. GpuSpmv builds a localRows-by-numRows CSR descriptor for all local nonzeros, zero-based 32-bit indices, double values and full-sized dense descriptors. Each nonempty rank submits non-transpose double CSR SpMV with alpha=1 and beta=0 once per requested timed iteration, with stream synchronization before ending MPI_Wtime. Actual compiled callee and count loop preserve these calls, not merely final output equality. Empty-row ranks have no mathematical rows to compute and legitimately skip library calls.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,43]],"claim":"O3 CUDA-language build with MPI/OpenMP and external cudart/cuSPARSE; architecture configuration does not imply an application-owned SpMV kernel."},
+        {"file":"spmv/spmv.cpp","ranges":[[73,128],[177,280]],"claim":"Complete CSR generation, integer parser, full partition endpoints including zero-nnz branch, exact row/nonzero distribution and inclusive local-offset rebasing."},
+        {"file":"spmv/spmv.cpp","ranges":[[282,407]],"claim":"All CSR/vector transfers, localRows/global-column-count/localNnz descriptors, zero index base, double types, CSR_ALG1 multiplication, same-stream synchronization, full output copy, alpha=1/beta=0."},
+        {"file":"spmv/spmv.cpp","ranges":[[420,479],[514,588],[590,628]],"claim":"Runtime CLI count/dimensions, valid input and index-range checks, full x broadcast, derived nonzero boundaries, local INT_MAX nnz guard, synchronized warmup, exact requested timed repetitions and full-row gather/output."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[720,824],[910,950],[2662,2714]],"claim":"CLI -i selects parsed index destination -0x6a0; validated runtime count is moved into -0x6d8. parseIndex performs conversion, checks and stores the actual supplied unsigned value."},
+        {"file":"host-assembly.txt","ranges":[[1130,1240],[2167,2250],[2716,2833]],"claim":"Compiled main derives nnz boundaries from CSR[rowBoundary] and broadcasts both arrays. Partition builder and outlined lower-bound worker retain full endpoints and per-rank monotone targets."},
+        {"file":"host-assembly.txt","ranges":[[2835,3065],[3066,3140],[3305,3385],[2067,2165]],"claim":"Compiled distribution computes adjacent row/nnz differences, copies/sends/receives complete slices with chunk backedges, then outlined worker rebases all localRows+1 offsets, including vectorized and scalar tails."},
+        {"file":"host-assembly.txt","ranges":[[3517,3713]],"claim":"GpuSpmv constructor allocates/copies full local operands and complete x; sets handle stream; passes rows, global column count, nnz and exact CSR pointers to cusparseCreateCsr, builds input/output vectors, obtains workspace and synchronizes setup."},
+        {"file":"host-assembly.txt","ranges":[[1310,1358],[1581,1584],[2319,2362]],"claim":"Timed start at 3619 precedes repeated multiply call 3633. Counter increments at 363e, compares to runtime -0x6d8, and branches unsigned-below to 3623. Nonempty path 3ad3 synchronizes before ending clock 3653. Actual multiply at 47d0 loads unchanged descriptors/alpha/beta, passes operation zero, double type and algorithm, then calls cusparseSpMV at 47f7 with status checking."},
+        {"file":"device-sass.txt","ranges":[[1,18]],"claim":"Dump consists of sm86 container/architecture headers only; no application or vendor SpMV device instruction body is provided."}
+      ],
+      "adjudication_rationale": "Luna's uncertainty in spmv-luna-hybrid-batch-011.json concerns unavailable vendor device arithmetic. Independent inspection of this specific source, descriptor arguments, distribution and compiled timed call chain establishes complete work requests at the documented library contract boundary. Legitimate external cuSPARSE use is not itself an omission or a scientific failure.",
+      "limitations": "This is static contract-level evidence, not vendor-device instruction proof or runtime validation. Header-only sm86 SASS does not demonstrate cuSPARSE kernel arithmetic. PLT bindings identify libcusparse.so.12, not a fully pinned resolved vendor library patch version. No library internals, final device launch schedule, or runtime behavior are certified; no program execution, compilation, changes or benchmark runs occurred. Existing source guards local nonzeros at INT_MAX before descriptor construction, so unsigned storage is signed-32-compatible for each accepted local CSR.",
+      "primary_reference": {"url":"https://docs.nvidia.com/cuda/archive/12.6.0/cusparse/generic-api/generic-api-functions.html#cusparsespmv","claim":"Previously inspected official CUDA12.6 documentation defines SpMV as Y=alpha*op(A)*X+beta*Y and supports CSR, 32-bit indices and double computation with asynchronous execution; synchronization is required to establish completion."}
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

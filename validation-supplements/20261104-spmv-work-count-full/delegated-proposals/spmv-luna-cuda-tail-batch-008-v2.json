@@ -1,0 +1,912 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T16:16:31Z",
+  "review_finished_at": "2026-11-04T16:18:57Z",
+  "reviews": [
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The kernel assigns one block to each row, and each of its 256 threads strides over the complete row CSR interval; shared-memory reduction ends with thread 0 storing the row. Host code launches a synchronized warmup, then brackets a loop of exactly iterations kernel launches with CUDA events and copies output after stop synchronization. The compiled main keeps the runtime count loop and calls the block-per-row launch; host launch routine and actual device stub reach cudaLaunchKernel. The native sm86 SASS body was inspected through row bound, CSR loop/backedge, reduction/store and exit.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "CUDA target and sm86 build configuration."
+        },
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              51,
+              80
+            ],
+            [
+              100,
+              134
+            ],
+            [
+              211,
+              258
+            ],
+            [
+              286,
+              322
+            ]
+          ],
+          "claim": "CSR terminal delimiter; block-per-row complete CSR arithmetic/reduction/store; parsed dimensions and iterations, warmup, timed loop/event synchronization and copy."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              892,
+              1341
+            ],
+            [
+              1342,
+              1736
+            ],
+            [
+              1737,
+              1916
+            ],
+            [
+              2065,
+              2130
+            ]
+          ],
+          "claim": "Compiled main warmup/timed backedge/event boundary, kernel launch helper and called device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              150
+            ]
+          ],
+          "claim": "Sole native sm86 cooperative row kernel through complete CSR loop, shared reduction, row store and exit."
+        }
+      ],
+      "notes": "The block grid is exactly numRows, matching the kernel's blockIdx.x row mapping. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The one-thread-per-row kernel guards row<dim and sums the complete [rowDelimiters[row],rowDelimiters[row+1]) interval before writing output. Main uses ceil(numRows/256) blocks and loops exactly iterations times, then synchronizes before output retrieval. Compiled main, the launch-bearing host routine and the called device stub through cudaLaunchKernel were checked; the native sm86 kernel retains the full CSR loop/backedge and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "CUDA target/build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              49,
+              78
+            ],
+            [
+              96,
+              106
+            ],
+            [
+              183,
+              230
+            ],
+            [
+              255,
+              290
+            ]
+          ],
+          "claim": "CSR terminal count; complete row/nonzero kernel; CLI runtime count and grid setup, exact timed launch loop/synchronization/copy."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              897,
+              1346
+            ],
+            [
+              1347,
+              1729
+            ],
+            [
+              1730,
+              1904
+            ],
+            [
+              2052,
+              2111
+            ]
+          ],
+          "claim": "Compiled main loop and event boundary, actual host launch function and called device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              468
+            ],
+            [
+              469,
+              710
+            ]
+          ],
+          "claim": "Sole native sm86 row kernel through row bound, full CSR accumulation/backedge, output store and exit."
+        }
+      ],
+      "notes": "No separate warmup launch is included in this version; every timed kernel call is counted by the host loop. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The kernel maps one thread to each candidate row, guards row<dim, traverses the complete CSR row interval and stores. Its launcher uses ceil(dim/256) blocks. Main calls the launch helper exactly iterations times within the event interval, synchronizes and copies the result. The compiled host timed loop, helper and device stub through cudaLaunchKernel were traced; all sm_70/75/80/86 native kernel bodies were inspected through their complete CSR loops and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "CUDA target builds native sm_70/75/80/86 variants."
+        },
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              49,
+              78
+            ],
+            [
+              124,
+              156
+            ],
+            [
+              205,
+              255
+            ],
+            [
+              280,
+              314
+            ]
+          ],
+          "claim": "CSR terminal count; row-bounded full CSR kernel and launch grid; parsed iteration count, exact timed launcher loop and completion/output transfer."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              892,
+              1341
+            ],
+            [
+              1342,
+              1748
+            ],
+            [
+              1749,
+              1928
+            ],
+            [
+              1982,
+              2177
+            ],
+            [
+              2178,
+              2244
+            ]
+          ],
+          "claim": "Compiled main repetition loop, launch function/iteration control, host CUDA call path and device stub through launch API."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              468
+            ],
+            [
+              469,
+              728
+            ],
+            [
+              730,
+              1179
+            ],
+            [
+              1180,
+              1439
+            ],
+            [
+              1441,
+              1890
+            ],
+            [
+              1891,
+              2150
+            ],
+            [
+              2152,
+              2601
+            ],
+            [
+              2602,
+              2843
+            ]
+          ],
+          "claim": "All four selectable native architecture kernel bodies through row bounds, full CSR backedges/arithmetic and output stores."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The kernel assigns a global thread to a row, guards row<dim and traverses the entire row delimiter interval before storing. Main repeats the GPU helper exactly iterations times; the helper computes ceil(dim/256) blocks and invokes the kernel. Compiled main/helper/stub paths to cudaLaunchKernel were checked, and all four built native SASS architectures (sm_80/86/89/90) were inspected through the complete row loop and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "CUDA target builds sm_80/86/89/90 variants."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              80
+            ],
+            [
+              98,
+              136
+            ],
+            [
+              214,
+              262
+            ],
+            [
+              282,
+              320
+            ]
+          ],
+          "claim": "CSR terminal count; one-thread-per-row full interval and output; CLI runtime iteration count, launch grid, timed loop and synchronization/copy."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              924,
+              1373
+            ],
+            [
+              1374,
+              1746
+            ],
+            [
+              1747,
+              1926
+            ],
+            [
+              2075,
+              2141
+            ],
+            [
+              2142,
+              2210
+            ]
+          ],
+          "claim": "Compiled timed main loop, generated launch wrapper, stub through cudaLaunchKernel, and dispatch/helper call path."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              468
+            ],
+            [
+              469,
+              728
+            ],
+            [
+              730,
+              1179
+            ],
+            [
+              1180,
+              1439
+            ],
+            [
+              1441,
+              1890
+            ],
+            [
+              1891,
+              2150
+            ],
+            [
+              2152,
+              2601
+            ],
+            [
+              2602,
+              2859
+            ]
+          ],
+          "claim": "All four selectable native architecture kernel bodies through row guard, CSR loop/backedge, output store and exit."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen-3.6-27B-udq4_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CUDA kernel uses one block per row; 256 threads stride over that row's entire CSR interval, reduce partial sums in shared memory and thread 0 writes output. The host timed loop launches the kernel exactly iterations times with grid=numRows; it synchronizes before retrieving the result. Compiled main and the launch-bearing kernel wrapper/device stub were traced through cudaLaunchKernel. The binary contains native SASS for sm_50,52,53,60,61,62,70,72,75,80,86,87,89,90; all were inspected through the CSR loop and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "CUDA source and architecture-all target."
+        },
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              49,
+              78
+            ],
+            [
+              125,
+              160
+            ],
+            [
+              209,
+              252
+            ],
+            [
+              270,
+              316
+            ]
+          ],
+          "claim": "CSR terminal delimiter; one-block-per-row complete CSR/reduction/store; CLI count and exact timed repetition loop, synchronization/output copy."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              925,
+              1374
+            ],
+            [
+              1375,
+              1792
+            ],
+            [
+              1793,
+              1972
+            ],
+            [
+              2121,
+              2186
+            ]
+          ],
+          "claim": "Compiled main loop, actual kernel launch path and device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              118
+            ],
+            [
+              120,
+              228
+            ],
+            [
+              230,
+              338
+            ],
+            [
+              340,
+              448
+            ],
+            [
+              450,
+              558
+            ],
+            [
+              560,
+              668
+            ],
+            [
+              670,
+              794
+            ],
+            [
+              796,
+              920
+            ],
+            [
+              922,
+              1046
+            ],
+            [
+              1048,
+              1188
+            ],
+            [
+              1190,
+              1330
+            ],
+            [
+              1332,
+              1504
+            ],
+            [
+              1506,
+              1655
+            ],
+            [
+              1657,
+              1804
+            ]
+          ],
+          "claim": "All 14 selectable native architecture kernel versions through row-per-block mapping, complete CSR loop, reduction/store and exit."
+        }
+      ],
+      "notes": "The launched grid is explicitly numRows and agrees with blockIdx.x row mapping. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "A global thread handles each row with an explicit row<dim check, traversing the complete CSR interval before storing. Main uses ceil(numRows/256) blocks and loops exactly iterations times, then synchronizes before output copy. Compiled main, the generated launch helper and called CUDA stub were followed through cudaLaunchKernel. The SASS dump contains the same kernel for sm_70/75/80/86, each checked through CSR accumulation and row store.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              26
+            ]
+          ],
+          "claim": "CUDA target and sm_70/75/80/86 architectures."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              61,
+              90
+            ],
+            [
+              136,
+              159
+            ],
+            [
+              208,
+              250
+            ],
+            [
+              275,
+              320
+            ]
+          ],
+          "claim": "CSR terminal delimiter; complete row/nonzero kernel; CLI and grid setup, exact timed iteration loop, sync and output copy."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              901,
+              1350
+            ],
+            [
+              1351,
+              1773
+            ],
+            [
+              1774,
+              1948
+            ],
+            [
+              2096,
+              2165
+            ]
+          ],
+          "claim": "Compiled main repetition/timing path, launch wrapper and called stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              21,
+              470
+            ],
+            [
+              471,
+              716
+            ],
+            [
+              718,
+              1167
+            ],
+            [
+              1168,
+              1413
+            ],
+            [
+              1415,
+              1864
+            ],
+            [
+              1865,
+              2126
+            ],
+            [
+              2128,
+              2577
+            ],
+            [
+              2578,
+              2819
+            ]
+          ],
+          "claim": "All four selectable native architecture kernels through row bound, CSR loop/backedge, output store and exit."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The one-thread-per-row kernel guards row<numRows, sums the complete CSR interval and stores that row. Main performs an untimed warmup launch, records the event start, launches exactly iterations times in the timed loop, then records/synchronizes stop and copies output. Compiled host main and its actual called stub through cudaLaunchKernel were inspected; the native sm86 SASS body retains the full nonzero backedge and output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "claim": "CUDA sm86 build and optimization configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              62,
+              91
+            ],
+            [
+              139,
+              171
+            ],
+            [
+              207,
+              255
+            ],
+            [
+              291,
+              334
+            ]
+          ],
+          "claim": "CSR terminal count; full row kernel; parsed count, grid, warmup, exact timed launches, event sync and output copy."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              406,
+              855
+            ],
+            [
+              856,
+              1298
+            ],
+            [
+              1299,
+              1478
+            ],
+            [
+              1627,
+              1692
+            ]
+          ],
+          "claim": "Compiled main's warmup and timed loop/event boundary plus called kernel stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              246
+            ]
+          ],
+          "claim": "Sole native sm86 kernel through row bound, full CSR arithmetic/backedge, store and exit."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CSR-vector kernel maps one thread to a row, checks row<dim, visits the entire CSR interval and writes the row. Main records start and invokes the launch-bearing spmvGpu helper exactly iterations times before stop synchronization and copy. The compiled timed loop, spmvGpu wrapper and called device stub to cudaLaunchKernel were traced; native sm86 SASS was checked through the row guard, nonzero loop and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "CUDA target and optimization settings."
+        },
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              60,
+              89
+            ],
+            [
+              135,
+              161
+            ],
+            [
+              233,
+              280
+            ],
+            [
+              328,
+              357
+            ]
+          ],
+          "claim": "CSR terminal count; row-bounded CSR kernel and launch grid; CLI count and exact timed loop/event completion/output transfer."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              396,
+              845
+            ],
+            [
+              846,
+              1295
+            ],
+            [
+              1296,
+              1298
+            ],
+            [
+              1299,
+              1331
+            ],
+            [
+              1332,
+              1506
+            ],
+            [
+              1654,
+              1714
+            ],
+            [
+              1715,
+              1780
+            ]
+          ],
+          "claim": "Compiled main timed backedge, launch helper and actual device stub to cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              21,
+              248
+            ]
+          ],
+          "claim": "Sole native sm86 kernel through row bound, CSR-loop backedge, row store and exit."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The one-thread-per-row kernel checks row<dim, sums the complete row delimiter interval and stores output. Main computes its launch grid, records start, launches once per requested iteration, records/synchronizes end and copies the result. The compiled main and called stub through cudaLaunchKernel were inspected. CMake targets sm_70 and the SASS dump contains the sm_70 kernel through its CSR loop/store/exit.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "claim": "CUDA sm_70 target configuration."
+        },
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              35,
+              53
+            ],
+            [
+              89,
+              117
+            ],
+            [
+              195,
+              246
+            ],
+            [
+              291,
+              325
+            ]
+          ],
+          "claim": "CSR terminal offset; one-thread-per-row CSR loop/store; CLI and launch grid, exact event-bracketed repetition loop and output copy."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              412,
+              861
+            ],
+            [
+              862,
+              1309
+            ],
+            [
+              1310,
+              1484
+            ],
+            [
+              1632,
+              1698
+            ]
+          ],
+          "claim": "Compiled main's timed iteration loop/events and called device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              21,
+              296
+            ]
+          ],
+          "claim": "Sole selectable native sm_70 kernel through row guard, complete CSR accumulation/backedge, store and exit."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_qwen3.7-plus_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The warp-per-row kernel maps warpId to row, bounds row by dim, and lanes stride across that row's complete CSR interval before warp reduction and lane-0 store. Main uses 256 threads and 8 warps per block, computes ceil(dim/warpsPerBlock), performs a synchronized warmup, then times exactly iterations launches and synchronizes/copies output. Compiled main and called device stub through cudaLaunchKernel were checked; native sm86 SASS retains warp row mapping, nonzero backedge and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              27
+            ]
+          ],
+          "claim": "CUDA target and sm86 code generation."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              47,
+              76
+            ],
+            [
+              99,
+              128
+            ],
+            [
+              184,
+              230
+            ],
+            [
+              270,
+              311
+            ]
+          ],
+          "claim": "CSR terminal count; warp-per-row complete interval and reduction/store; launch geometry, warmup, exact timed repetition loop and output transfer."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              387,
+              836
+            ],
+            [
+              837,
+              1237
+            ],
+            [
+              1238,
+              1412
+            ],
+            [
+              1560,
+              1626
+            ]
+          ],
+          "claim": "Compiled main warmup/timed loop, launch path and called device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              310
+            ]
+          ],
+          "claim": "Sole native sm86 warp-per-row kernel through row bound, CSR loop/backedge, reduction/store and exit."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

@@ -1,0 +1,64 @@
+{
+  "id": "spmv_gpt-6-luna-oc-medium_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          120
+        ],
+        [
+          174,
+          208
+        ],
+        [
+          220,
+          268
+        ]
+      ],
+      "claim": "CLI -i is retained unchanged. Full matrix initialization is replicated; spmvRows traverses every nonzero for all rows in each adjacent floor-scaled partition. Each timed iteration calls that full partition kernel; gathered row counts cover all output rows.",
+      "sha256": "f3e6f6cc2e73b421f4614791195aacd2236972b21c13eec490723ecbc0a45fe4",
+      "git_blob": "b88e48dc9e6e5613bb4f6a6a78d24556b77c34a8"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed mul/add 9dec/9df5 are inside nonzero 9dfc->9de0, row 9e11->9da0 and requested-iteration 9e23->9d80 backedges.",
+      "complete_dump_sha256": "6e1242ed1ed7f49ad50467e77f9f53dd057f8595abc226213a5a236c1df7d708",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-luna-oc-medium_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1986,
+          "last_line": 2058,
+          "text": "    9cf5:\tmov    %r11,-0x198(%rbp)\n    9cfc:\tmov    %r11,-0x188(%rbp)\n    9d03:\ttest   %eax,%eax\n    9d05:\tjne    9d13 <main+0x5d3>\n    9d07:\tlea    0x56e0(%rip),%rdi        # f3ee <_IO_stdin_used+0x3ee>\n    9d0e:\tcall   9380 <puts@plt>\n    9d13:\tlea    0xa306(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9d1a:\tcall   8e80 <MPI_Barrier@plt>\n    9d1f:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9d24:\tmov    %rax,-0x1c0(%rbp)\n    9d2b:\tmov    -0x90(%rbp),%rax\n    9d32:\tmov    %rax,-0x1a8(%rbp)\n    9d39:\ttest   %r15d,%r15d\n    9d3c:\tje     9e33 <main+0x6f3>\n    9d42:\tmov    -0x190(%rbp),%r10d\n    9d49:\ttest   %r10d,%r10d\n    9d4c:\tje     9e33 <main+0x6f3>\n    9d52:\tmov    -0x178(%rbp),%esi\n    9d58:\tmov    -0x168(%rbp),%r8\n    9d5f:\txor    %edx,%edx\n    9d61:\tmov    %r15d,-0x180(%rbp)\n    9d68:\tmov    -0x1a8(%rbp),%rdi\n    9d6f:\tmov    %rsi,%rcx\n    9d72:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d7d:\tnopl   (%rax)\n    9d80:\tmov    -0x178(%rbp),%r9d\n    9d87:\tmov    %rdi,%r11\n    9d8a:\tmov    %rcx,%r10\n    9d8d:\tmov    %edx,-0x170(%rbp)\n    9d93:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d9e:\txchg   %ax,%ax\n    9da0:\tmov    (%r8,%r10,4),%eax\n    9da4:\tlea    0x1(%r9),%r10d\n    9da8:\tmov    %r8,%rdx\n    9dab:\tmov    (%r8,%r10,4),%esi\n    9daf:\tmov    %r10,%r9\n    9db2:\tcmp    %esi,%eax\n    9db4:\tjae    a160 <main+0xa20>\n    9dba:\tdec    %esi\n    9dbc:\tlea    (%r12,%rax,8),%r15\n    9dc0:\tlea    (%r14,%rax,4),%r8\n    9dc4:\tvxorpd %xmm1,%xmm1,%xmm1\n    9dc8:\tsub    %eax,%esi\n    9dca:\tmov    %rdx,-0x168(%rbp)\n    9dd1:\txor    %eax,%eax\n    9dd3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9dde:\txchg   %ax,%ax\n    9de0:\tmov    (%r8,%rax,4),%edx\n    9de4:\tvmovsd (%rbx,%rdx,8),%xmm0\n    9de9:\tmov    %rax,%rdx\n    9dec:\tvmulsd (%r15,%rax,8),%xmm0,%xmm0\n    9df2:\tinc    %rax\n    9df5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9df9:\tcmp    %rdx,%rsi\n    9dfc:\tjne    9de0 <main+0x6a0>\n    9dfe:\tmov    -0x168(%rbp),%r8\n    9e05:\tvmovsd %xmm1,(%r11)\n    9e0a:\tadd    $0x8,%r11\n    9e0e:\tcmp    %r9d,%r13d\n    9e11:\tjne    9da0 <main+0x660>\n    9e13:\tmov    -0x170(%rbp),%edx\n    9e19:\tmov    -0x180(%rbp),%eax\n    9e1f:\tinc    %edx\n    9e21:\tcmp    %eax,%edx\n    9e23:\tjne    9d80 <main+0x640>\n    9e29:\tmov    %eax,%r15d\n    9e2c:\tmov    %r8,-0x168(%rbp)\n    9e33:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9e38:\tsub    $0x8,%rsp\n    9e3c:\tlea    0xabdd(%rip),%rdx        # 14a20 <ompi_mpi_double@@Base>\n    9e43:\tmov    -0xb0(%rbp),%rcx\n    9e4a:\tmov    -0x1a0(%rbp),%r9\n    9e51:\tmov    %rax,%r13\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261018-224015/spmv_gpt-6-luna-oc-medium_mpi_r5",
+    "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+    "staged_source_sha256": "698a1b82b482976a2086be06e2b042b0c5fdfdce5357252859d6fbb7e6dc7d60"
+  },
+  "binary_sha256": "d4dc5b4d19219459d34388c052b9e33be6f6d4d54917c2fe9bddead6e0725578",
+  "binding_sha256": "bfcd46424c13b778ff828483d56db46c76f300073179fbf44627607817a7873d",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:31:09Z",
+  "review_finished_at": "2026-11-04T13:32:00Z",
+  "review_input_sha256": "09a6fb3f500bcbd9b57375540f13ce9cc197b8958962769c7fbe215c3b979c3f",
+  "pack_sha256": "65d76f589f74c4fc02ce4aa9fd2ffe04b6b9275b28ef0e990ebf7c1fe394bc78",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,138 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:02:31Z",
+  "review_finished_at": "2026-11-04T14:04:23Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-fable-5-cc-medium_hybrid_r1",
+      "finding": "uncertain",
+      "summary": "Source configures complete row and nonzero partitions, then runs one warp-per-row kernel launch per requested iteration over each rank's local rows. The host disassembly clock region includes the runtime loop and kernel launch. Final SASS excerpts show bounded row execution, nonzero multiply-accumulate loops, and output store. I have not fully traced all unrolled and tail SASS branches for this variant, so cannot certify every CSR entry is covered.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[221,235],[311,328],[332,370],[137,162],[413,431]],"claim":"CLI controls dimensions/sparsity/iterations; MPI row bounds and CSR offsets partition work; local CSR is built; the kernel traverses each row by lane-stride and the timed loop launches it per iteration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1686,1726],[1743,1761]],"claim":"Clock region contains iteration counter/backedge around device launch wrapper and device synchronization follows the loop."},
+        {"file":"device-sass.txt","ranges":[[33,59],[91,93],[159,167],[271,281]],"claim":"Observed row bound, nonzero accumulation/backedge, and output store in the final device code; complete tail coverage not verified."}
+      ],
+      "notes":"Potential ordinary variant/tail-coverage question only; no observed omission established."
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_hybrid_r2",
+      "finding": "uncertain",
+      "summary": "Source balances contiguous rows and derives each rank's CSR nonzero interval, then launches the row kernel once per requested iteration. The compiled host launch loop compares its counter with the runtime iteration count and calls the kernel launcher on each pass; final SASS excerpts show nonzero arithmetic and output store. The full specialized/unrolled SASS control-flow and tail coverage were not fully traced.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[219,235],[314,339],[134,168],[371,403]],"claim":"CLI parameters, contiguous row/CSR subranges, local bounds, CSR row arithmetic and per-iteration timed launch."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1093,1100],[1116,1132],[1436,1459]],"claim":"Timed region enters a compiled iteration backedge; each pass configures and invokes the device stub, with runtime counter controlling return to the loop; synchronization precedes ending clock."},
+        {"file":"device-sass.txt","ranges":[[75,101],[133,135],[201,209],[299,307]],"claim":"Observed row guard, accumulation, loop branch and store in final SASS; full tail-branch coverage not established."}
+      ],
+      "notes":"No work-count failure established; requires further compiled kernel review."
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_hybrid_r3",
+      "finding": "uncertain",
+      "summary": "Source has two selected GPU variants (vector one-warp-per-row and scalar one-thread-per-row), each with CSR-bounded accumulation; the timed loop dispatches both based on the rank's row categories. The observed final SASS includes row guard, accumulation, and stores, but the full selection-dependent device coverage was not reconstructed.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[130,176],[227,244],[320,343],[384,409]],"claim":"Both row kernels iterate CSR spans; rank-local row/nonzero partition and category counts feed the two kernel launch branches inside the runtime-iteration loop."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1686,1726],[1743,1761]],"claim":"Timed host loop has a runtime-count backedge enclosing kernel launch selection; synchronization follows loop."},
+        {"file":"device-sass.txt","ranges":[[31,53],[93,99],[169,187],[453,465],[603,661]],"claim":"Final SASS shows guarded rows, multiply-accumulate loops and a branch returning to nonzero work; both selected variants' complete tail/store flow was not fully checked."}
+      ],
+      "notes":"The two GPU variants and their selector need complete independent tail-path tracing."
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_hybrid_r4",
+      "finding": "uncertain",
+      "summary": "Source partitions rows and their CSR intervals among ranks and repeats the kernel launch according to the runtime count. Compiled timed region includes the launch loop, but final SASS tail coverage was not fully traced.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[136,162],[221,243],[397,425]],"claim":"CSR-bounded row kernel, rank-local setup, and requested-iteration host loop."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1740,1748],[1749,1767]],"claim":"Timed host path has a loop-controlled launch region and post-loop synchronization/barrier before ending clock."},
+        {"file":"device-sass.txt","ranges":[[37,63],[95,97],[163,171],[275,285]],"claim":"Observed row guard, accumulation branch, and store; complete tail flow not verified."}
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_hybrid_r5",
+      "finding": "uncertain",
+      "summary": "Source's launcher dispatches templated threads-per-row variants, and each invocation is inside the runtime-controlled timed loop. The final SASS file contains multiple kernel images; observed code has row guards, CSR arithmetic, and output store, but the selected launcher variant's exact image and full tail coverage were not resolved.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[135,168],[325,369],[408,430]],"claim":"Kernel covers a row's CSR entries by lane stride; launcher selects template variant; MPI row and nonzero partition and requested-iteration launch loop."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1730,1740],[1741,1754]],"claim":"Timed host iteration launch path and runtime-counter loop are present; output gather occurs after timed region."},
+        {"file":"device-sass.txt","ranges":[[33,55],[87,89],[155,163],[267,277]],"claim":"One SASS image has guarded rows, accumulation and store; the selected specialization and complete tails across images remain unresolved."}
+      ],
+      "notes":"Multiple compiled image functions are present; no failure established."
+    },
+    {
+      "id": "spmv_claude-haiku-4.5_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "This hybrid build uses CPU-only SpMV, which is a legitimate hybrid configuration. Every MPI rank receives the full CSR matrix/vector and each timed runtime-count pass invokes the OpenMP CPU SpMV. The compiled host backedge encloses GOMP_parallel; the actual outlined worker obtains guided row chunks, loops each row's complete CSR interval, accumulates products and stores each row. This repeats the complete matrix work on each rank, so work is replicated rather than omitted.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[99,109],[203,208],[248,251],[270,276]],"claim":"All ranks receive full arrays; CPU SpMV covers all rows and CSR spans; timed loop invokes it for every requested iteration."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1927,1949]],"claim":"Timed host loop calls the outlined OpenMP worker and compares the incremented counter to the runtime iteration count."},
+        {"file":"host-assembly.txt","ranges":[[2388,2440],[2441,2475]],"claim":"Outlined worker obtains guided chunks and loops rows, traverses CSR entries with an accumulation backedge, and stores each row output."}
+      ],
+      "notes":"All-rank replicated CPU calculation is unusual but preserves full requested work; it is not missing CUDA code." 
+    },
+    {
+      "id": "spmv_claude-haiku-4.5_hybrid_r4",
+      "finding": "uncertain",
+      "summary": "Source's timed loop invokes both a GPU path and an OpenMP CPU path, but the rank/row predicates selecting those paths and compiled device arithmetic were not fully traced. The host loop's runtime-count backedge encloses calls to spmvGpu; source separately defines CSR-bounded CPU/GPU routines. Further branch and final-device review is needed to establish coverage.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[40,94],[192,220],[310,356],[379,407]],"claim":"Separate GPU and CPU routines, complete CSR data broadcasts, and both computation calls inside the runtime iteration loop."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1166,1195]],"claim":"Timed loop counter controls repeated spmvGpu call; ending barrier and clock follow the loop."}
+      ],
+      "notes":"CPU and GPU partition predicates and final SASS remain unverified."
+    },
+    {
+      "id": "spmv_claude-haiku-4.5_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CPU-only hybrid path assigns each MPI rank a balanced contiguous row interval, broadcasts full CSR/vector data, then runs the OpenMP CPU routine for the local rows on every runtime-controlled iteration. The outlined worker uses guided row chunks, traverses global row delimiters from rowStart through rowStart+localRows, loops every CSR position, accumulates and writes each output. Compiled host backedge controls repeated GOMP_parallel calls; the worker's row and CSR loops are present.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[103,117],[224,237],[269,272],[287,292],[314,320]],"claim":"Balanced local row counts/start, full CSR/vector broadcasts, local-row CPU SpMV and result gather; timed loop repeats it per requested count."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1978,2004]],"claim":"Host counter controls repeated GOMP_parallel worker calls within timed region."},
+        {"file":"host-assembly.txt","ranges":[[2579,2652]],"claim":"Outlined worker iterates guided work, executes CSR accumulation backedge, stores row sum and advances rows."}
+      ],
+      "notes":"CPU-only hybrid is legitimate; missing CUDA code is not a failure."
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-cc-medium_hybrid_r1",
+      "finding": "uncertain",
+      "summary": "Source shows a rank-local CSR kernel launch in every iteration and the final SASS excerpt contains guarded rows, nonzero accumulation, loop branches and output store. The compiled timed host launch branch was not fully followed through its out-of-line code, so compiled repetition remains unresolved.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[230,244],[325,365],[137,162],[406,429]],"claim":"Runtime count, rank-local CSR data, one warp-per-row kernel traversal, and timed launch loop."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2560,2584]],"claim":"Timed clock region setup and post-loop synchronization, but out-of-line host launch/backedge not yet traced."},
+        {"file":"device-sass.txt","ranges":[[33,59],[91,93],[159,167],[271,281]],"claim":"Observed final SASS row guard, accumulation and store; complete row-loop/tail verification not finished."}
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-cc-medium_hybrid_r2",
+      "finding": "uncertain",
+      "summary": "Source partitions contiguous rows and CSR data, constructs local delimiters, then runs a CSR kernel each iteration. Final SASS excerpts contain a row bound and nonzero loop/store. The compiled timed launch path's loop and full tail coverage were not fully followed, so no pass/failure is established.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[238,252],[330,365],[398,421]],"claim":"Runtime iterations and local CSR partition feed repeated local-row kernel launch, with result copy/gather after computation."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2560,2584]],"claim":"Timed clock entry and synchronization before end clock are visible; launch/backedge out-of-line branch not fully traced."},
+        {"file":"device-sass.txt","ranges":[[31,53],[73,105],[183,193]],"claim":"Observed row bound, accumulation branch and output store in final code; full tail paths not verified."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

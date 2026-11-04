@@ -1,0 +1,26 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:23:35Z",
+  "review_finished_at": "2026-11-04T14:33:30Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The rare long rows are computed by an OpenMP host worker, not a separate long-row GPU kernel. Source marks them LONG_ROW, retains their full CSR ranges in host arrays, and excludes them from SELL. The per-repetition hybrid lambda launches SELL and traverses each long-row CSR interval on host; host output merges those rows into their indexed slots. Compiled code confirms the runtime counter/backedge includes a SELL stub and the outlined GOMP worker; the worker's arithmetic backedge runs from each row start to its end and stores its sum. SELL SASS guards LONG_ROW rows. This is a legitimate CPU/GPU split.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[580,625],[682,725]],"claim":"Long-row CSR arrays and classification; SELL+CPU path called for every timed repetition; complete host CSR loop and output merge."},
+        {"file":"spmv/spmv.cpp","ranges":[[354,398],[401,420]],"claim":"SELL kernel returns for LONG_ROW, computes regular packed rows, and CSR-to-SELL preprocesses only eligible rows; these are the only GPU kernels."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[5906,6028],[1198,1285]],"claim":"Runtime counter backedge encloses SELL launch, GOMP worker launch and post-loop sync/copy/merge; compiled worker dynamically assigns long-row IDs, reads values/columns, multiplies/accumulates every CSR element from start to end and stores output."},
+        {"file":"device-sass.txt","ranges":[[19,247],[248,510]],"claim":"Final SASS contains only CSR-to-SELL conversion and SELL SpMV; SELL row guard skips LONG_ROW, and regular rows traverse packed values and store."}
+      ],
+      "notes":"Supersedes prior r1 correction versions and batch 004's original incorrect reference to a long-row device kernel."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

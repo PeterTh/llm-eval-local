@@ -1,0 +1,1020 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:29:20Z",
+  "review_finished_at": "2026-11-04T14:31:45Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-haiku-4.5_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The outer requested-iteration loop invokes the GPU helper once per iteration. Each helper launch uses a ceil-divided grid over dim rows, follows every row's CSR interval, synchronizes and copies the completed vector. All eight emitted architecture variants retain the row-index/dim exit, per-row nonzero arithmetic/backedge(s), and output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              344
+            ]
+          ],
+          "claim": "One CUDA thread maps to each row and reduces rowDelimiters[i]..rowDelimiters[i+1], storing out[i]. The CLI iteration count and nItems set the workload; initialized CSR/operands are passed to spmvGpu in the timed outer loop, whose helper launches a ceil-divided grid, synchronizes, then copies the output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              24
+            ]
+          ],
+          "claim": "CUDA architecture list is 60, 61, 62, 70, 72, 75, 80 and 86, all present in the final SASS reviewed."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1265,
+              1288
+            ],
+            [
+              1918,
+              1935
+            ]
+          ],
+          "claim": "The timed main loop at 1265-1288 calls spmvGpu and increments/branches back at b29b-b2ab. In the helper, CUDA launch/error handling, cudaDeviceSynchronize at bd45 and device-to-host copy follow; this work is inside each count-controlled call."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              34
+            ],
+            [
+              90,
+              97
+            ],
+            [
+              515,
+              524
+            ],
+            [
+              782,
+              783
+            ],
+            [
+              810,
+              825
+            ],
+            [
+              881,
+              888
+            ],
+            [
+              1302,
+              1315
+            ],
+            [
+              1573,
+              1574
+            ],
+            [
+              1601,
+              1616
+            ],
+            [
+              1672,
+              1679
+            ],
+            [
+              2094,
+              2106
+            ],
+            [
+              2364,
+              2365
+            ],
+            [
+              2392,
+              2407
+            ],
+            [
+              2474,
+              2482
+            ],
+            [
+              2834,
+              2844
+            ],
+            [
+              3065,
+              3066
+            ],
+            [
+              3103,
+              3119
+            ],
+            [
+              3178,
+              3192
+            ],
+            [
+              3544,
+              3554
+            ],
+            [
+              3773,
+              3776
+            ],
+            [
+              3814,
+              3830
+            ],
+            [
+              3893,
+              3901
+            ],
+            [
+              4256,
+              4264
+            ],
+            [
+              4482,
+              4485
+            ],
+            [
+              4525,
+              4541
+            ],
+            [
+              4602,
+              4610
+            ],
+            [
+              4958,
+              4968
+            ],
+            [
+              5185,
+              5188
+            ],
+            [
+              5236,
+              5252
+            ],
+            [
+              5313,
+              5321
+            ],
+            [
+              5669,
+              5679
+            ],
+            [
+              5896,
+              5899
+            ]
+          ],
+          "claim": "Across the eight sm_60/61/62/70/72/75/80/86 functions, cited heads show row-index-versus-dim exits; cited bodies show retained CSR-controlled floating-point arithmetic and backward control-flow edges, followed by STG row stores. Every selected architecture variant is represented by its own head, compute/backedge, and store ranges."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-4.5_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed host loop launches the grid once for each requested repetition and synchronizes before ending timing. Every row below dim traverses its CSR interval and stores an output. Each of the four configured SASS architecture variants retains row guarding, DFMA nonzero arithmetic, backward traversal branches and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              1,
+              331
+            ]
+          ],
+          "claim": "One thread maps to each row, bounds by dim, reduces the CSR interval and stores out[row]. CLI n/s/i and nItems establish dimensions and sparsity; initialized operands are used by the count-controlled timed kernel loop followed by synchronization and output copy."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Configured architectures 60, 70, 80 and 90 correspond to the four inspected SASS variants."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1332,
+              1414
+            ]
+          ],
+          "claim": "Clock starts at 1332, runtime count is checked at 1335-1336, each iteration reaches cudaLaunchKernel at 1401, counter increments/compares/backedges at 1407-1410, and cudaDeviceSynchronize at 1411 precedes stop clock 1414."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              32
+            ],
+            [
+              90,
+              95
+            ],
+            [
+              515,
+              521
+            ],
+            [
+              779,
+              780
+            ],
+            [
+              810,
+              825
+            ],
+            [
+              884,
+              892
+            ],
+            [
+              1237,
+              1255
+            ],
+            [
+              1460,
+              1464
+            ],
+            [
+              1505,
+              1522
+            ],
+            [
+              1575,
+              1586
+            ],
+            [
+              1928,
+              1942
+            ],
+            [
+              2159,
+              2162
+            ],
+            [
+              2216,
+              2235
+            ],
+            [
+              2290,
+              2318
+            ],
+            [
+              2658,
+              2671
+            ],
+            [
+              2897,
+              2901
+            ]
+          ],
+          "claim": "For each sm_60/70/80/90 variant, the cited function head shows row-index-versus-dim exit; body ranges include retained DFMA work and backward CSR control flow; trailing ranges show each row-result store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-4.5_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed outer loop invokes the GPU helper exactly iterations times; its launch grid assigns a warp to each row, lanes traverse the row's nonzeros, and reduction writes one row result. The sole sm_75 SASS variant has the thread/warp bounds, retained DFMA traversal backedge and output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              1,
+              363
+            ]
+          ],
+          "claim": "Warp row mapping and lane-strided CSR traversal feed a warp reduction and row output. CLI iteration count and matrix setup flow into a timed loop calling spmvGpu once per iteration; the helper launches work for the dimension, synchronizes and copies output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "The selected CUDA target architecture is sm_75, the final SASS variant reviewed."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1272,
+              1291
+            ],
+            [
+              1710,
+              1724
+            ],
+            [
+              1728,
+              1774
+            ]
+          ],
+          "claim": "Timed loop starts at 1272, calls spmvGpu at 1286, increments/compares/backedges at 1288-1290. Its compiled helper path launches the kernel, calls cudaDeviceSynchronize at ba15 and copies device output at ba37 before returning."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              38
+            ],
+            [
+              55,
+              63
+            ],
+            [
+              89,
+              99
+            ],
+            [
+              159,
+              171
+            ],
+            [
+              281,
+              285
+            ]
+          ],
+          "claim": "The sm_75 kernel computes a warp's row index, compares it to dim and exits invalid rows. Separate lane/row-end predicates control CSR work; cited DFMA/body ranges include the nonzero-loop backedge, and the final range contains the row-result store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-4.5_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each count-controlled main-loop call launches the row-parallel kernel. The output copy inside each helper call completes that launch before returning. Final SASS has four configured architectures, each retaining the row-index bound, CSR arithmetic/backedge, and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cu",
+          "ranges": [
+            [
+              1,
+              369
+            ]
+          ],
+          "claim": "A thread maps to each row, traverses its entire CSR interval, and stores out[i]. CLI n/s/i sets workload; initialized operands are copied to device, and timed outer loop invokes spmvGpu for every iteration. The helper launches the kernel and copies the result back on each call."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "The four selected architectures are sm_60, sm_70, sm_75 and sm_80."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1253,
+              1265
+            ],
+            [
+              1944,
+              1961
+            ],
+            [
+              2004,
+              2015
+            ]
+          ],
+          "claim": "Timer begins at 1253; each main-loop iteration calls spmvGpu at 1261 and count backedge is 1262-1264. The helper's compiled path issues the device-to-host cudaMemcpy (tail call at 1961) after the kernel launch at 2012, completing each repetition before returning."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              34
+            ],
+            [
+              90,
+              97
+            ],
+            [
+              515,
+              524
+            ],
+            [
+              782,
+              783
+            ],
+            [
+              810,
+              826
+            ],
+            [
+              892,
+              901
+            ],
+            [
+              1250,
+              1263
+            ],
+            [
+              1482,
+              1485
+            ],
+            [
+              1521,
+              1537
+            ],
+            [
+              1600,
+              1611
+            ],
+            [
+              1959,
+              1970
+            ],
+            [
+              2190,
+              2193
+            ],
+            [
+              2232,
+              2248
+            ],
+            [
+              2310,
+              2319
+            ],
+            [
+              2660,
+              2674
+            ],
+            [
+              2892,
+              2895
+            ]
+          ],
+          "claim": "Each of sm_60/70/75/80 has a row-index-versus-dim exit, retained DFMA arithmetic and CSR-controlled backward edge, plus a final row-result store; the cited ranges cover each selected function separately."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-cc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host passes the CLI iteration count to a timed launch loop. Runtime chooseVectorSize selects one of six kernels (1, 2, 4, 8, 16 or 32 threads per row); each selected SASS function assigns lanes to that row's CSR entries, performs arithmetic and reduces/stores one output per row. All six compiled alternatives retain CSR-controlled backedges and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              414
+            ]
+          ],
+          "claim": "Kernel maps VECTOR_SIZE threads to a row, has inactive lanes use empty intervals, traverses each assigned CSR index in VECTOR_SIZE strides, reduces and stores once per active row. chooseVectorSize(dispatch includes all six template variants); n/s/i set workload and initialized values/CSR feed the repeated timed launch loop."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              25
+            ]
+          ],
+          "claim": "Build selects the CUDA target; final SASS contains the six sm_86 template instantiations examined."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1440,
+              1464
+            ],
+            [
+              2173,
+              2213
+            ]
+          ],
+          "claim": "The measured loop passes the selected vector size to launchSpmv and retains its count-controlled backedge; device synchronization precedes the stop clock. The compiled helper begins a vector-size switch dispatch, while source citations enumerate each variant's launch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              42
+            ],
+            [
+              90,
+              99
+            ],
+            [
+              162,
+              176
+            ],
+            [
+              288,
+              292
+            ],
+            [
+              328,
+              351
+            ],
+            [
+              399,
+              408
+            ],
+            [
+              481,
+              485
+            ],
+            [
+              592,
+              595
+            ],
+            [
+              621,
+              644
+            ],
+            [
+              692,
+              701
+            ],
+            [
+              773,
+              778
+            ],
+            [
+              878,
+              882
+            ],
+            [
+              914,
+              937
+            ],
+            [
+              985,
+              994
+            ],
+            [
+              1055,
+              1071
+            ],
+            [
+              1165,
+              1169
+            ],
+            [
+              1207,
+              1230
+            ],
+            [
+              1278,
+              1287
+            ],
+            [
+              1348,
+              1365
+            ],
+            [
+              1452,
+              1456
+            ],
+            [
+              1484,
+              1510
+            ],
+            [
+              1560,
+              1572
+            ],
+            [
+              1918,
+              1934
+            ],
+            [
+              2158,
+              2161
+            ]
+          ],
+          "claim": "Each of the six sm_86 template functions has a row-index/dim predicate with active-lane handling, retained CSR DFMA arithmetic and a backward work-loop edge, and a final STG row store. The six separate SASS range groups correspond to VECTOR_SIZE 32/16/8/4/2/1."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-cc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI iterations controls the compiled timed host launch loop. Its single sm_86 kernel assigns warps to rows and lanes to CSR elements, performs reduction, and stores the row output; final SASS retains the nonzero arithmetic and backward loop edge.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              351
+            ]
+          ],
+          "claim": "Warp-per-row/lanes-per-nonzero kernel reduces the full CSR row interval and stores the result. CLI and nItems determine the inputs; initialized operands feed the timed one-launch-per-iteration loop, synchronization and output copy."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "CUDA target uses optimized build settings; embedded kernel is sm_86."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1353,
+              1385
+            ]
+          ],
+          "claim": "Timed loop at 1353 passes configured grid and row count to the device stub at 1375; count increment/compare/backedge at 1379-1381 is followed by cudaDeviceSynchronize at 1382 and stop clock at 1385."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              26
+            ],
+            [
+              44,
+              53
+            ],
+            [
+              77,
+              85
+            ],
+            [
+              145,
+              159
+            ],
+            [
+              265,
+              271
+            ]
+          ],
+          "claim": "The sm_86 function compares row index with dim and exits invalid rows; a separate interval predicate controls empty/inactive CSR work. Cited loop-body ranges retain DFMA operations and backward CSR control flow, and the final range contains the row-result STG."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-cc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The helper receives the actual runtime iteration count and retains a separate warm-up launch, followed by the measured count-controlled launch loop and synchronization. Each warp owns a row, its lanes stride across that row's CSR interval, reduce, and write one output. The sm_86 SASS retains the row bound and nonzero arithmetic/backedge.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              408
+            ]
+          ],
+          "claim": "Each warp maps to one row, lanes stride over the row's CSR interval, reduce and write output. CLI/setup determines nItems and iterations; spmvGpu receives the runtime count, performs a separate warmup, then launches once per requested iteration and synchronizes before returning the result."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              26
+            ]
+          ],
+          "claim": "Optimized CUDA target and sm_86 compiled device variant."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2141,
+              2155
+            ],
+            [
+              2192,
+              2225
+            ],
+            [
+              2226,
+              2255
+            ]
+          ],
+          "claim": "The nonzero-count path includes a pre-timing kernel launch and synchronization (2192-2225); then the timed loop launches once per requested iteration, increments and compares the counter with a backward edge, and synchronizes before the stop-clock call (2141-2155, 2226-2255)."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              40
+            ],
+            [
+              88,
+              98
+            ],
+            [
+              158,
+              174
+            ],
+            [
+              285,
+              290
+            ]
+          ],
+          "claim": "The sm_86 row index is compared with dim and invalid threads exit; DFMA remains in the CSR-controlled lane traversal, including the backward work-loop edge; the final STG stores the row output."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-cc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The compiled timed host loop directly launches the row kernel for each requested iteration, then synchronizes once before stopping the clock. The sm_86 kernel bounds row indices by dim; explicit DMUL/DADD arithmetic remains in the CSR loop and the final instruction path stores each row output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              338
+            ]
+          ],
+          "claim": "Kernel assigns a thread to a row, tests row against dim, traverses the full rowDelimiters interval with explicit multiply/add, and stores out[i]. CLI and initialized inputs flow into a count-controlled launch loop and completion synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Optimized CUDA target; bound SASS is sm_86."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1339,
+              1383
+            ]
+          ],
+          "claim": "The timed main path contains the count-controlled device-stub launch loop; the counter increment/compare retains the loop backedge. A single cudaDeviceSynchronize follows loop completion and precedes the stop-clock call."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              204
+            ]
+          ],
+          "claim": "The sm_86 row-index-versus-dim comparison is followed by invalid-row exit; a separate empty-CSR test skips rows with no entries. Cited body ranges show CSR-controlled DMUL/DADD work and its backward loop edge, and the final range shows the STG row store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-cc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host preserves the requested number of launches and synchronizes before stopping the clock. Warp lanes stride over each row's CSR entries, reduce, and write one output. The final sm_86 SASS retains DFMA work, a backward CSR-loop edge and the output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              350
+            ]
+          ],
+          "claim": "Kernel maps a warp to a row, lanes stride through every entry in its CSR interval, reduce and store; CLI/input initialization determine workload. The timed host loop launches once per requested iteration and synchronizes before copying results."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Optimized CUDA target; device SASS is sm_86."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1345,
+              1385
+            ]
+          ],
+          "claim": "Clock starts at 1345, runtime iterations gates the loop, the kernel stub is called at 1374, counter increment/compare/backedge is 1375-1378, and cudaDeviceSynchronize at 1382 precedes stop clock 1385."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              26
+            ],
+            [
+              42,
+              51
+            ],
+            [
+              73,
+              82
+            ],
+            [
+              140,
+              155
+            ],
+            [
+              260,
+              267
+            ]
+          ],
+          "claim": "The sm_86 function bounds row indices against dim and exits invalid threads; DFMA operations remain inside the lane-strided CSR work loop with a backward control edge, followed by an STG row-result store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-haiku-5.5-oc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source performs a separate warm-up launch, then a timed count-controlled launch loop, synchronization and output copy. Each CUDA thread covers one row and loops through its CSR range. All six configured architecture variants retain that nonzero multiply/add traversal, its backward loop edge, and a row store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              372
+            ]
+          ],
+          "claim": "Thread-to-row bound, complete CSR loop and output store are explicit. CLI n/s/i determine the matrix and count; initialized operands feed a separate warm-up and then the measured repeated launch loop, synchronization, timer stop and result copy."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              30
+            ]
+          ],
+          "claim": "Configured CUDA architectures 70, 75, 80, 86, 89 and 90 are all represented in the final SASS inspected."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              814,
+              831
+            ],
+            [
+              831,
+              870
+            ]
+          ],
+          "claim": "The pre-timing launch and device sync end before clock call at 831. The measured loop launches through stub at 860 and retains count increment/compare/backedge at 836-861; post-loop cudaDeviceSynchronize at 867 precedes stop clock at 870."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              45
+            ],
+            [
+              85,
+              107
+            ],
+            [
+              180,
+              194
+            ],
+            [
+              234,
+              261
+            ],
+            [
+              305,
+              318
+            ],
+            [
+              390,
+              405
+            ],
+            [
+              433,
+              460
+            ],
+            [
+              507,
+              515
+            ],
+            [
+              579,
+              596
+            ],
+            [
+              599,
+              604
+            ],
+            [
+              648,
+              675
+            ],
+            [
+              721,
+              730
+            ],
+            [
+              790,
+              817
+            ],
+            [
+              863,
+              890
+            ],
+            [
+              937,
+              945
+            ],
+            [
+              1007,
+              1032
+            ],
+            [
+              1078,
+              1110
+            ],
+            [
+              1158,
+              1168
+            ],
+            [
+              1240,
+              1265
+            ]
+          ],
+          "claim": "Each sm_70/75/80/86/89/90 function compares its row index with dim and exits invalid threads. The per-function body ranges show CSR-controlled multiply/add arithmetic and backward loop edges; the tail ranges show STG stores for the row results."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "f61cfd067f451545a4c7cdce9cd1845dfd092383752722c42f665ff632b7bcfa",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:33:08 UTC",
+    "sampled_ids": [
+      "spmv_claude-haiku-5.5-cc-medium_cuda_r4"
+    ],
+    "method": "Primary read every submitted claim and independently inspected complete CC5.5 CUDA r4 source/build, exact measured host loop and full final SASS. Primary detected incorrect copied helper synchronization, row-guard and warp-mapping descriptions in the first proposal and returned the whole batch to Luna for exact-file reaudit. Version2 corrects these; other findings rely on Luna's reaudit plus primary report and pinned-evidence checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Used version2 after full batch reaudit; original proposal preserved.",
+      "Expanded references to complete cited source/build files.",
+      "Retained complete short r4 final SASS function so row guard, empty-CSR guard, arithmetic backedges and store remain together."
+    ]
+  }
+}

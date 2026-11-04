@@ -1,0 +1,27 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:43:40Z",
+  "review_finished_at": "2026-11-04T14:43:40Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-008.json for spmv_gpt-5.6-luna-low_hybrid_r4; corrects its interpretation and compiled evidence",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-luna-low_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction: the timed source uses a compile-time #ifdef to select either spmvCuda or spmvCpuRange; these are not both executed per iteration. This bound executable contains CUDA SASS and the compiled timed call targets spmvCuda. That helper allocates/copies the rank-local data, launches the full-row kernel and copies results back. The CPU outlined worker is used by the non-timed reference path, not the timed repetition in this CUDA build. The SASS excerpt is extended through the actual output store and exit.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[18,27]],"claim":"When the CUDA compiler is available the target is compiled as CUDA and SPMV_USE_CUDA is defined."},
+        {"file":"spmv/spmv.cpp","ranges":[[128,155],[240,267],[270,296],[297,309]],"claim":"CUDA row kernel and helper; runtime-count loop has mutually exclusive CUDA/CPU compile-time branch, then full output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1248,1440],[2265,2440]],"claim":"Timed main loop calls the compiled spmvCuda helper; the helper copies CSR/vector operands, configures/launches the kernel through the emitted stub, copies device results to host, and returns before the loop backedge."},
+        {"file":"device-sass.txt","ranges":[[10,250],[251,500],[501,676]],"claim":"Exact kernel row guard, complete CSR traversal/unrolled chunks and remainder arithmetic, with final result store/exit at lines 674–676."}
+      ],
+      "notes":"Earlier claim of redundant timed CPU+GPU computation was wrong; CPU reference/worker code exists but is not the timed path in this CUDA-compiled binary. No runtime execution or compilation was performed by this review."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

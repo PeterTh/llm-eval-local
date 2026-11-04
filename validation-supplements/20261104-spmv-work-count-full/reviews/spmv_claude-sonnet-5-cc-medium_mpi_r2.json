@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-sonnet-5-cc-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each requested repetition traverses the complete local CSR partition, independently of optional reference computation.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          108
+        ],
+        [
+          166,
+          173
+        ],
+        [
+          184,
+          219
+        ],
+        [
+          261,
+          295
+        ],
+        [
+          299,
+          323
+        ]
+      ],
+      "claim": "Balanced row ranges cover the matrix. Local CSR delimiters are rebased and terminated at localNnz; the parsed -i value directly bounds timed full-kernel calls.",
+      "sha256": "39f119f83d30af6e73099a8bf083e3a9fd73e3c216a8115f239b2b7c00751ebb",
+      "git_blob": "a0b2cf37d4272a39089aba222917ef3bc485bb82"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock a09c precedes multiply/add a12d/a135 inside entry a13c->a120, row a152->a0f0 and iteration a15b->a0e0 loops; ending barrier a164 and clock a169 occur afterward.",
+      "complete_dump_sha256": "9a81d44c9d8d9ab2546495698582202246b6875bb763bcaf7b3217ff9e32c6ef",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-sonnet-5-cc-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2155,
+          "last_line": 2205,
+          "text": "    a090:\tlea    0xa189(%rip),%rdi        # 14220 <ompi_mpi_comm_world@@Base>\n    a097:\tcall   8e80 <MPI_Barrier@plt>\n    a09c:\tcall   91d0 <MPI_Wtime@plt>\n    a0a1:\tmov    -0x238(%rbp),%r8d\n    a0a8:\tvmovq  %xmm0,%r15\n    a0ad:\ttest   %r8d,%r8d\n    a0b0:\tje     a15d <main+0xa0d>\n    a0b6:\tmov    -0x230(%rbp),%edi\n    a0bc:\tmov    -0x70(%rbp),%r8\n    a0c0:\ttest   %edi,%edi\n    a0c2:\tje     a15d <main+0xa0d>\n    a0c8:\tmov    -0x238(%rbp),%esi\n    a0ce:\tmov    -0x298(%rbp),%rax\n    a0d5:\txor    %ecx,%ecx\n    a0d7:\tnopw   0x0(%rax,%rax,1)\n    a0e0:\txor    %r9d,%r9d\n    a0e3:\tmov    %rax,%rdi\n    a0e6:\tcs nopw 0x0(%rax,%rax,1)\n    a0f0:\tmov    (%rdi,%r9,1),%eax\n    a0f4:\tmov    0x4(%rdi,%r9,1),%edx\n    a0f9:\tmov    %rdi,%r11\n    a0fc:\tcmp    %edx,%eax\n    a0fe:\tjae    a470 <main+0xd20>\n    a104:\tdec    %edx\n    a106:\tlea    (%r14,%rax,4),%r10\n    a10a:\tlea    0x0(%r13,%rax,8),%rdi\n    a10f:\tvxorpd %xmm1,%xmm1,%xmm1\n    a113:\tsub    %eax,%edx\n    a115:\tmov    %r11,-0x228(%rbp)\n    a11c:\txor    %eax,%eax\n    a11e:\txchg   %ax,%ax\n    a120:\tmov    (%r10,%rax,4),%r11d\n    a124:\tvmovsd (%rbx,%r11,8),%xmm0\n    a12a:\tmov    %rax,%r11\n    a12d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a132:\tinc    %rax\n    a135:\tvaddsd %xmm0,%xmm1,%xmm1\n    a139:\tcmp    %rdx,%r11\n    a13c:\tjne    a120 <main+0x9d0>\n    a13e:\tmov    -0x228(%rbp),%rdi\n    a145:\tvmovsd %xmm1,(%r8,%r9,2)\n    a14b:\tadd    $0x4,%r9\n    a14f:\tcmp    %r12,%r9\n    a152:\tjne    a0f0 <main+0x9a0>\n    a154:\tinc    %ecx\n    a156:\tmov    %rdi,%rax\n    a159:\tcmp    %esi,%ecx\n    a15b:\tjne    a0e0 <main+0x990>\n    a15d:\tlea    0xa0bc(%rip),%rdi        # 14220 <ompi_mpi_comm_world@@Base>\n    a164:\tcall   8e80 <MPI_Barrier@plt>\n    a169:\tcall   91d0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-sonnet-5-cc-medium_mpi_r2",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "3c5e8601d568d384afe36436527451b2798aaa46e7e74bf91ee163d7ebb74e2c"
+  },
+  "binary_sha256": "2a725f9eee6cf08b0376b95b5018815129f633e0906150a2784979d4205b2126",
+  "binding_sha256": "330a726d48dbc9717ba8a838780d62312101c2cba21a6ad0d50900bd036e1acd",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:01:43Z",
+  "review_finished_at": "2026-11-04T13:02:11Z",
+  "review_input_sha256": "cd2a047a9168d4b50232ba1f3b25bbf38f9ea86f3a204aaa883c559725bf6c72",
+  "pack_sha256": "faf3b443db35d611775bd212defa75ee86c35ec5de46af67938a42bed39fb77e",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

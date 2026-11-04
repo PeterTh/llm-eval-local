@@ -1,0 +1,228 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:07:32Z",
+  "review_finished_at": "2026-11-04T13:08:14Z",
+  "reviews": [
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Nonzero-balanced row partitions cover the complete matrix and all local products are recomputed on every requested iteration.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              174,
+              201
+            ],
+            [
+              243,
+              292
+            ],
+            [
+              299,
+              318
+            ]
+          ],
+          "claim": "Monotone row boundaries span zero to numRows. Complete local CSR arrays, including the final delimiter, feed full spmvCpu calls under the unchanged CLI iteration count."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2106,
+              2173
+            ]
+          ],
+          "claim": "Between clocks 9f68 and a05e, multiply/add a00c/a015 remains inside entry a01c->a000, row a032->9fd0 and iteration a03b->9fc0 loops."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Restrict-qualified pointers do not lead to removed repetitions in the bound executable. Every balanced local CSR product repeats as requested.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              100,
+              111
+            ],
+            [
+              179,
+              206
+            ],
+            [
+              223,
+              228
+            ],
+            [
+              256,
+              288
+            ],
+            [
+              301,
+              330
+            ]
+          ],
+          "claim": "Floor-scaled row boundaries cover all rows. Local delimiters terminate at localNnz, and each timed call traverses complete local rows under the unmodified CLI count."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2037,
+              2098
+            ]
+          ],
+          "claim": "Compiled multiply/add 9f2d/9f36 is retained under entry 9f3d->9f20, row 9f53->9ef0 and repetition 9f5c->9ee0 branches, before ending barrier/clock."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The full local CSR multiplication is executed for every requested repetition, with complete row coverage and no reference reuse.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              175,
+              202
+            ],
+            [
+              219,
+              223
+            ],
+            [
+              254,
+              290
+            ],
+            [
+              298,
+              334
+            ]
+          ],
+          "claim": "Balanced row bounds and localRows+1 scattered delimiters cover every row. Optional reference computation and source-array deallocation precede the unchanged full-work iteration loop."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2142,
+              2201
+            ]
+          ],
+          "claim": "Multiply/add a08d/a095 is enclosed by entry a09c->a080, row a0ac->a050 and iteration a0b2->a040 backedges between clocks 9ff0 and a0c0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The nnz-balancing heuristic changes ownership but does not omit rows or repetitions. All complete local CSR products remain timed.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              160,
+              197
+            ],
+            [
+              227,
+              254
+            ],
+            [
+              302,
+              341
+            ],
+            [
+              350,
+              371
+            ]
+          ],
+          "claim": "Partition bounds are monotone and span zero through dim, including the small-dimension fallback. Complete local arrays feed each full kernel call under the original iteration count."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2070,
+              2130
+            ]
+          ],
+          "claim": "Between clocks 9f19 and 9fde, multiply/add 9fad/9fb5 remains inside entry 9fbc->9fa0, row 9fd2->9f70 and iteration 9fdc->9f60 loops."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank initializes only its stored row partition, but performs every requested full local multiplication. Setup random-stream advancement is not substituted for timed work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              70,
+              131
+            ],
+            [
+              142,
+              160
+            ],
+            [
+              178,
+              188
+            ],
+            [
+              253,
+              280
+            ],
+            [
+              297,
+              345
+            ]
+          ],
+          "claim": "Remainder-aware row partitions collectively span the matrix. Complete locally generated CSR arrays feed the original-count timed loop; optional local reference computation is separate."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1897,
+              1958
+            ]
+          ],
+          "claim": "Timed multiply/add 9c1d/9c25 remains inside entry 9c2c->9c10, row 9c3b->9be0 and iteration 9c42->9bd0 backedges."
+        }
+      ]
+    }
+  ]
+}

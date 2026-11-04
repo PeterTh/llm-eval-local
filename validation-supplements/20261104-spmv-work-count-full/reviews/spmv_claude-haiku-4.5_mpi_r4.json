@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-haiku-4.5_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The full matrix is replicated, but each rank computes only its assigned contiguous rows. Passing an offset row-delimiter pointer preserves global value/column indexing. Every requested repetition recomputes that complete slice.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          164,
+          205
+        ],
+        [
+          223,
+          234
+        ],
+        [
+          255,
+          287
+        ]
+      ],
+      "claim": "The broadcast count is unchanged; all local products remain inside the timed repetition loop.",
+      "sha256": "2e3e92d901ee4720d941b0babb8a1abf97f04c2037fc818a6e6747592087b75b",
+      "git_blob": "33e86890a989aed3b73f41837abd752398d427f5"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The retained multiply/add loop 0x9f00-0x9f1c lies within 0x9f32 -> 0x9ec0, the requested-count repetition backedge.",
+      "complete_dump_sha256": "9d6820d8f390c5fdd8af2aff63af3ce5a456602fdf9c021f612a10e606d98018",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2085,
+          "last_line": 2132,
+          "text": "    9e72:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9e77:\tmov    -0x14c(%rbp),%edx\n    9e7d:\tmov    -0xb0(%rbp),%r13\n    9e84:\tmov    %rax,-0x178(%rbp)\n    9e8b:\ttest   %edx,%edx\n    9e8d:\tje     9f34 <main+0x7d4>\n    9e93:\tmov    -0x1a0(%rbp),%rax\n    9e9a:\tmov    -0x198(%rbp),%r8d\n    9ea1:\tlea    (%rax,%r12,4),%r9\n    9ea5:\ttest   %r8d,%r8d\n    9ea8:\tje     9f34 <main+0x7d4>\n    9eae:\tmov    -0x1b0(%rbp),%r10\n    9eb5:\txor    %esi,%esi\n    9eb7:\tshl    $0x2,%r10\n    9ebb:\tnopl   0x0(%rax,%rax,1)\n    9ec0:\txor    %r11d,%r11d\n    9ec3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9ece:\txchg   %ax,%ax\n    9ed0:\tmov    (%r9,%r11,1),%eax\n    9ed4:\tmov    0x4(%r9,%r11,1),%ecx\n    9ed9:\tcmp    %ecx,%eax\n    9edb:\tjae    a320 <main+0xbc0>\n    9ee1:\tdec    %ecx\n    9ee3:\tlea    (%r15,%rax,4),%r8\n    9ee7:\tlea    (%r14,%rax,8),%rdi\n    9eeb:\tvxorpd %xmm1,%xmm1,%xmm1\n    9eef:\tsub    %eax,%ecx\n    9ef1:\txor    %eax,%eax\n    9ef3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9efe:\txchg   %ax,%ax\n    9f00:\tmov    (%r8,%rax,4),%r12d\n    9f04:\tvmovsd (%rbx,%r12,8),%xmm0\n    9f0a:\tmov    %rax,%r12\n    9f0d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9f12:\tinc    %rax\n    9f15:\tvaddsd %xmm0,%xmm1,%xmm1\n    9f19:\tcmp    %r12,%rcx\n    9f1c:\tjne    9f00 <main+0x7a0>\n    9f1e:\tvmovsd %xmm1,0x0(%r13,%r11,2)\n    9f25:\tadd    $0x4,%r11\n    9f29:\tcmp    %r10,%r11\n    9f2c:\tjne    9ed0 <main+0x770>\n    9f2e:\tinc    %esi\n    9f30:\tcmp    %edx,%esi\n    9f32:\tjne    9ec0 <main+0x760>\n    9f34:\tlea    0xa2e5(%rip),%rdi        # 14220 <ompi_mpi_comm_world@@Base>\n    9f3b:\tcall   8e90 <MPI_Barrier@plt>\n    9f40:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_mpi_r4",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "f750f03910de844be1e85e58998cde3aa318854b2bbfbcf85b64a17b63795b94"
+  },
+  "binary_sha256": "1f9176938b35c6ae54c3c015dec0931487467c240063fe47db2d9ac8e2e0405d",
+  "binding_sha256": "526bc451d87b837076706cc95a4fe56e41ba7f5a4ac7c618c37b1c4100cf1b5b",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:47:34Z",
+  "review_finished_at": "2026-11-04T12:50:53Z",
+  "review_input_sha256": "3e0b1943a1c6edf8e1fd40c255868522c0df2163f70522bd63c413e6b43d46b9",
+  "pack_sha256": "039adacb4de9d89a9bff4f19ebfe8e6e4d8b8a37c647b4cbe26674fb00c3c034",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

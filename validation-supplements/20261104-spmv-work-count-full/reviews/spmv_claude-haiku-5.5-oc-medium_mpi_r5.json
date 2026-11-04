@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-haiku-5.5-oc-medium_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each rank performs the full CSR product for its floor-partitioned row interval once per requested iteration. Restrict-qualified pointers have not caused the compiler to collapse repetitions.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          63,
+          68
+        ],
+        [
+          86,
+          130
+        ],
+        [
+          180,
+          191
+        ],
+        [
+          251,
+          289
+        ],
+        [
+          308,
+          341
+        ]
+      ],
+      "claim": "Local matrix construction includes each owned row and its nonzeros. The timed loop calls the complete local product using the CLI iteration count, independently of optional validation.",
+      "sha256": "3db34847be38b1dea657efd709100a876f49a89c3bfec0f10027fee117ca3bef",
+      "git_blob": "e5102659d99c1c757a4bf9e1770b1403f971575d"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "vmulsd/vaddsd at 9bcc/9bd5 remain inside three nested loops, including outer 9bf7->9b80; the bound executable does not replace repetitions with a single computation.",
+      "complete_dump_sha256": "91540aabdf36117c3a084f655f05f889fbc879d236420a1133a2062be38f257b",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-oc-medium_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1881,
+          "last_line": 1934,
+          "text": "    9b1e:\tlea    0xb4fb(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    9b25:\tcall   8e90 <MPI_Barrier@plt>\n    9b2a:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9b2f:\tmov    %rax,-0x1d0(%rbp)\n    9b36:\ttest   %ebx,%ebx\n    9b38:\tje     9bfe <main+0x51e>\n    9b3e:\tmov    -0x190(%rbp),%ecx\n    9b44:\tmov    -0x130(%rbp),%r12\n    9b4b:\tmov    -0x150(%rbp),%r8\n    9b52:\tmov    -0x50(%rbp),%r10\n    9b56:\tmov    -0x68(%rbp),%r14\n    9b5a:\tmov    -0x80(%rbp),%r13\n    9b5e:\ttest   %ecx,%ecx\n    9b60:\tje     9bfe <main+0x51e>\n    9b66:\tmov    -0x188(%rbp),%r11\n    9b6d:\txor    %edx,%edx\n    9b6f:\tmov    %ebx,-0x188(%rbp)\n    9b75:\tmov    %r15d,%ecx\n    9b78:\tshl    $0x2,%r11\n    9b7c:\tnopl   0x0(%rax)\n    9b80:\txor    %r15d,%r15d\n    9b83:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9b8e:\txchg   %ax,%ax\n    9b90:\tmov    (%r10,%r15,1),%eax\n    9b94:\tmov    0x4(%r10,%r15,1),%edi\n    9b99:\tcmp    %edi,%eax\n    9b9b:\tjae    9df0 <main+0x710>\n    9ba1:\tdec    %edi\n    9ba3:\tlea    (%r14,%rax,4),%rbx\n    9ba7:\tlea    0x0(%r13,%rax,8),%r9\n    9bac:\tvxorpd %xmm1,%xmm1,%xmm1\n    9bb0:\tsub    %eax,%edi\n    9bb2:\txor    %eax,%eax\n    9bb4:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9bbf:\tnop\n    9bc0:\tmov    (%rbx,%rax,4),%esi\n    9bc3:\tvmovsd (%r8,%rsi,8),%xmm0\n    9bc9:\tmov    %rax,%rsi\n    9bcc:\tvmulsd (%r9,%rax,8),%xmm0,%xmm0\n    9bd2:\tinc    %rax\n    9bd5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9bd9:\tcmp    %rdi,%rsi\n    9bdc:\tjne    9bc0 <main+0x4e0>\n    9bde:\tvmovsd %xmm1,(%r12,%r15,2)\n    9be4:\tadd    $0x4,%r15\n    9be8:\tcmp    %r11,%r15\n    9beb:\tjne    9b90 <main+0x4b0>\n    9bed:\tmov    -0x188(%rbp),%eax\n    9bf3:\tinc    %edx\n    9bf5:\tcmp    %eax,%edx\n    9bf7:\tjne    9b80 <main+0x4a0>\n    9bf9:\tmov    %eax,%ebx\n    9bfb:\tmov    %ecx,%r15d\n    9bfe:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170040/spmv_claude-haiku-5.5-oc-medium_mpi_r5",
+    "source_commit": "24648e59045c3e8d7280119627a7bccde1da4f2f",
+    "staged_source_sha256": "30a55f754775693b4fc09e11e1c9af8e42d6449eee50ecbb38bf9249aa4c8a8b"
+  },
+  "binary_sha256": "8ca0c0603f872c96f48b7a631503e9d4e12490fdeb6cb72330379d3c2068bc9e",
+  "binding_sha256": "b8019fb5278e0b7fa164ac35ebfdb6738ac6d4199bcfe14c77fbc76b5a159bcf",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:55:40Z",
+  "review_finished_at": "2026-11-04T12:56:34Z",
+  "review_input_sha256": "457093fd7e0bdafc7bcdba53f805c4e8bdd06cd59dea7a976a957394c814f7c3",
+  "pack_sha256": "f968fd3db4bd68933cbb61d11cc0ceb5fb28be1fca824995ae66ce2241be4897",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

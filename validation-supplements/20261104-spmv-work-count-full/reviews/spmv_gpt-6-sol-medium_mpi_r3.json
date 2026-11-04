@@ -1,0 +1,73 @@
+{
+  "id": "spmv_gpt-6-sol-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          109
+        ],
+        [
+          164,
+          211
+        ],
+        [
+          228,
+          287
+        ],
+        [
+          290,
+          305
+        ]
+      ],
+      "claim": "Positive CLI -i is retained unchanged. Monotone nonzero-balanced partitions extend from zero to numRows; all rows+1 offsets and nonzeros are scattered/rebased. Every timed repetition invokes the complete local CSR kernel; full Gatherv follows timing.",
+      "sha256": "50391d93e57198e405dea8a475d359d360c85703a81eadec7e3ba63840078c05",
+      "git_blob": "720add69131246c57d62c2e9235935762a8d84e5"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Call 9f40->ae40 occurs on every requested iteration via 9f48->9f20. The callee retains mul/add ae9c/aea4 inside nonzero aeab->ae90 and row aeba->ae70 backedges, including explicit empty-row zeros.",
+      "complete_dump_sha256": "dc062a521398d1c4a2d5c631d88c9723b33c42958adfc563f279b2493883c9ed",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-sol-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2079,
+          "last_line": 2113,
+          "text": "    9ec6:\tsub    %esi,0x4(%rax)\n    9ec9:\tcmp    %rdx,%rdi\n    9ecc:\tje     9ed1 <main+0x791>\n    9ece:\tsub    %esi,0x8(%rax)\n    9ed1:\tcmpl   $0x0,-0x24c(%rbp)\n    9ed8:\tje     a1f2 <main+0xab2>\n    9ede:\tlea    0xb33b(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9ee5:\tcall   8e90 <MPI_Barrier@plt>\n    9eea:\tcall   91e0 <MPI_Wtime@plt>\n    9eef:\tmov    -0x244(%rbp),%r12d\n    9ef6:\txor    %r15d,%r15d\n    9ef9:\tmov    %ebx,-0x320(%rbp)\n    9eff:\tmov    -0xb0(%rbp),%r14\n    9f06:\tmov    %r15d,%ebx\n    9f09:\tvmovsd %xmm0,-0x318(%rbp)\n    9f11:\tmov    %r12d,%r15d\n    9f14:\tmov    -0x270(%rbp),%r12d\n    9f1b:\tnopl   0x0(%rax,%rax,1)\n    9f20:\tmov    -0x278(%rbp),%rcx\n    9f27:\tmov    -0x288(%rbp),%rsi\n    9f2e:\tmov    %r14,%r9\n    9f31:\tmov    %r15d,%r8d\n    9f34:\tmov    -0x280(%rbp),%rdi\n    9f3b:\tmov    %r13,%rdx\n    9f3e:\tinc    %ebx\n    9f40:\tcall   ae40 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    9f45:\tcmp    %r12d,%ebx\n    9f48:\tjb     9f20 <main+0x7e0>\n    9f4a:\tmov    -0x320(%rbp),%ebx\n    9f50:\tcall   91e0 <MPI_Wtime@plt>\n    9f55:\tvsubsd -0x318(%rbp),%xmm0,%xmm0\n    9f5d:\tmovq   $0x0,-0x50(%rbp)\n    9f65:\tlea    0xb2b4(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    9f6c:\tlea    -0x238(%rbp),%rdi\n    9f73:\txor    %r9d,%r9d\n"
+        },
+        {
+          "first_line": 2874,
+          "last_line": 2926,
+          "text": "000000000000ae40 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    ae40:\tendbr64\n    ae44:\ttest   %r8d,%r8d\n    ae47:\tje     aee5 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xa5>\n    ae4d:\tmov    %r8d,%r8d\n    ae50:\tpush   %r12\n    ae52:\tmov    %rdi,%r11\n    ae55:\tpush   %rbp\n    ae56:\tmov    %r9,%r12\n    ae59:\tpush   %rbx\n    ae5a:\tlea    0x0(,%r8,4),%r9\n    ae62:\tmov    %rsi,%rbx\n    ae65:\tmov    %rdx,%rbp\n    ae68:\tmov    %rcx,%r10\n    ae6b:\txor    %r8d,%r8d\n    ae6e:\txchg   %ax,%ax\n    ae70:\tmov    0x0(%rbp,%r8,1),%eax\n    ae75:\tmov    0x4(%rbp,%r8,1),%ecx\n    ae7a:\tcmp    %ecx,%eax\n    ae7c:\tjae    aed0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x90>\n    ae7e:\tdec    %ecx\n    ae80:\tlea    (%rbx,%rax,4),%rdi\n    ae84:\tlea    (%r11,%rax,8),%rsi\n    ae88:\tvxorpd %xmm1,%xmm1,%xmm1\n    ae8c:\tsub    %eax,%ecx\n    ae8e:\txor    %eax,%eax\n    ae90:\tmov    (%rdi,%rax,4),%edx\n    ae93:\tvmovsd (%r10,%rdx,8),%xmm0\n    ae99:\tmov    %rax,%rdx\n    ae9c:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    aea1:\tinc    %rax\n    aea4:\tvaddsd %xmm0,%xmm1,%xmm1\n    aea8:\tcmp    %rdx,%rcx\n    aeab:\tjne    ae90 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x50>\n    aead:\tvmovsd %xmm1,(%r12,%r8,2)\n    aeb3:\tadd    $0x4,%r8\n    aeb7:\tcmp    %r8,%r9\n    aeba:\tjne    ae70 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    aebc:\tpop    %rbx\n    aebd:\tpop    %rbp\n    aebe:\tpop    %r12\n    aec0:\tret\n    aec1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    aecc:\tnopl   0x0(%rax)\n    aed0:\tvxorpd %xmm1,%xmm1,%xmm1\n    aed4:\tvmovsd %xmm1,(%r12,%r8,2)\n    aeda:\tadd    $0x4,%r8\n    aede:\tcmp    %r8,%r9\n    aee1:\tjne    ae70 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    aee3:\tjmp    aebc <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x7c>\n    aee5:\tret\n    aee6:\tcs nopw 0x0(%rax,%rax,1)\n\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260929-135931/spmv_gpt-6-sol-medium_mpi_r3",
+    "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+    "staged_source_sha256": "86edb5e40fd89c459acf53e315101d169b1a441f0bf705c2ee90474b28ccbc54"
+  },
+  "binary_sha256": "502b818fc29accf0cfcbc3185a692eeb192ded22639eb89a09f1b863dddeb395",
+  "binding_sha256": "abe73315c0e97e0b4b1e27b14311e95a62a55af24ddc7f3d1b0f71f732b71ce5",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:32:03Z",
+  "review_finished_at": "2026-11-04T13:32:49Z",
+  "review_input_sha256": "4ffc07c9e8a5038fa38119f9e58bf2902b6f0d89cfac740b5179525df3f4d6b8",
+  "pack_sha256": "e778dbdcdf0697468b0bd67c908a5bd8b7adec99f3b792efa119941b9cdb8156",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

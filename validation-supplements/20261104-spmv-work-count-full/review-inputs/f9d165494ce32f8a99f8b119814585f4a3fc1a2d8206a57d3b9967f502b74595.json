@@ -1,0 +1,709 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:23:28Z",
+  "review_finished_at": "2026-11-04T15:30:50Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI distributes contiguous complete row intervals and matching NNZ boundaries, with local CSR pointers rebased. The timed host loop repeats launchSpmv for iterations. Runtime average-NNZ dispatch selects scalar, warp or block kernels; their grid/row and lane/element loops cover full local rows and CSR intervals, and store each row result. Complete called scalar/warp/block stubs are additionally retained.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              51
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              808
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1217,
+              1260
+            ],
+            [
+              4063,
+              4215
+            ],
+            [
+              4216,
+              4373
+            ],
+            [
+              3862,
+              3928
+            ],
+            [
+              3929,
+              3995
+            ],
+            [
+              3996,
+              4062
+            ]
+          ],
+          "claim": "Timed counted launch loop and backedge; both compiled launchSpmv bodies; complete scalar, warp and block kernel stubs each pass their corresponding kernel symbol/arguments to cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              18,
+              343
+            ],
+            [
+              344,
+              764
+            ],
+            [
+              765,
+              1263
+            ],
+            [
+              1264,
+              1264
+            ],
+            [
+              1265,
+              1505
+            ]
+          ],
+          "claim": "All three sm_86 kernel bodies through CSR traversal/backedges, arithmetic/reductions and output stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source captures iterations launchSpmv calls into a CUDA graph before timed events are recorded. Timed execution launches the captured graph once, which replays the captured repeated SpMV work. I verified the compiled capture loop and its iterations backedge precede the timed event record/graph launch. The complete compiled dispatcher reaches both thread- and warp-kernel stubs, and each stub calls cudaLaunchKernel. Both selected sm_86 SASS kernels traverse CSR work and store outputs. MPI partitions cover contiguous complete rows and their matching full CSR intervals, with locally rebased delimiters.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              37
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              529
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1480,
+              1555
+            ],
+            [
+              1560,
+              1595
+            ],
+            [
+              3126,
+              3192
+            ],
+            [
+              3193,
+              3250
+            ],
+            [
+              3260,
+              3350
+            ]
+          ],
+          "claim": "Complete timed graph preparation/capture loop and backedge precede event-timed graph launch; complete launch dispatcher and both actual kernel stubs, each passing its kernel symbol and arguments to cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              18,
+              311
+            ],
+            [
+              312,
+              556
+            ]
+          ],
+          "claim": "sm_86 warp- and thread-row kernel bodies through CSR arithmetic loops/backedges and final output stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source partitions complete row intervals and matching NNZ slices, rebases local row delimiters, then launches the scalar CSR kernel for every iteration between CUDA event records. The kernel assigns each local row to a thread and traverses its full CSR interval. The actual compiled timed call reaches the kernel stub; SASS reaches each row's terminal delimiter and stores its result.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              212
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2190,
+              2245
+            ],
+            [
+              2748,
+              2815
+            ]
+          ],
+          "claim": "Timed main path's kernel-stub call/backedge and full stub launch path."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              9,
+              400
+            ],
+            [
+              401,
+              702
+            ]
+          ],
+          "claim": "sm_86 scalar CSR kernel with complete row and element control, arithmetic, and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive balanced contiguous complete rows and corresponding NNZ ranges; local CSR pointers are rebased. The event-timed loop repeats the scalar kernel for the requested count, and each launched thread iterates from that row's CSR start to end before storing the dot product.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              157
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1210,
+              1265
+            ],
+            [
+              1648,
+              1670
+            ],
+            [
+              2189,
+              2250
+            ]
+          ],
+          "claim": "Event timed region, actual compiled launch-stub callsite, and complete stub launch function."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              9,
+              254
+            ]
+          ],
+          "claim": "sm_86 scalar CSR kernel includes row bound, nonzero arithmetic loop and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI partitions complete contiguous rows and their exact NNZ intervals; local delimiters are rebased. The CUDA-event timed loop repeats the scalar kernel for iterations, guarded only for ranks with zero rows. SASS processes each launched row's full CSR interval and stores one result.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              206
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1170,
+              1185
+            ],
+            [
+              1205,
+              1235
+            ],
+            [
+              1460,
+              1495
+            ],
+            [
+              2353,
+              2410
+            ]
+          ],
+          "claim": "Event start, actual repeated kernel-stub call, event stop/synchronization, and full actual kernel stub path."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              9,
+              400
+            ],
+            [
+              401,
+              702
+            ]
+          ],
+          "claim": "sm_86 scalar kernel reaches CSR row end, performs multiply-accumulate work and stores output."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source distributes contiguous full rows with the corresponding nonzero interval and rebases delimiters. The steady-clock interval contains the iterations loop and kernel launch; the kernel's row and element bounds cover the full local CSR. The compiled loop has its backedge and calls the actual stub, whose launch path reaches cudaLaunchKernel; SASS includes the row arithmetic and output store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              187
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1545,
+              1640
+            ],
+            [
+              2656,
+              2720
+            ]
+          ],
+          "claim": "Steady-clock loop and backedge include the actual stub call; complete stub path dispatches cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              9,
+              400
+            ],
+            [
+              401,
+              702
+            ]
+          ],
+          "claim": "sm_86 kernel SASS includes complete CSR row traversal, arithmetic and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive complete contiguous row blocks plus the corresponding NNZ values/columns, and local row delimiters are rebased. The timed loop is bounded by iterations and calls the one-block-per-row kernel for nonempty row partitions. Each block's lanes stride through the full row CSR range, reduce and store the row sum.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              175
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1113,
+              1140
+            ],
+            [
+              1579,
+              1610
+            ],
+            [
+              2105,
+              2165
+            ]
+          ],
+          "claim": "Timed host region contains actual stub call and iteration branch; full stub path launches the kernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              18,
+              151
+            ]
+          ],
+          "claim": "sm_86 kernel contains row bounds, lane-strided CSR arithmetic/reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are partitioned contiguously; each rank's local values/columns cover exactly the global CSR interval for those rows, and the kernel indexes values/columns by subtracting the interval base. The CUDA event interval includes the iterations loop and kernel launches. Each thread covers one local row and traverses its full CSR bounds; final output is gathered by row partition.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              194
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted source/control-flow claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1225,
+              1280
+            ],
+            [
+              1618,
+              1640
+            ],
+            [
+              2290,
+              2360
+            ]
+          ],
+          "claim": "Event-timed region, actual repeated stub call, synchronization, plus complete launch stub path."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              9,
+              400
+            ],
+            [
+              401,
+              718
+            ]
+          ],
+          "claim": "sm_86 scalar CSR kernel includes row bounds, base-adjusted nonzero arithmetic loop and store."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "24a34cbb521ad1bf5d48cd1e9b126b8342049765466bf8fd95a942ee89321064",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:41:04Z",
+    "sampled_ids": [
+      "spmv_gpt-5.6-terra-low_hybrid_r5"
+    ],
+    "method": "Read all original and corrected findings/claims; validate bindings/ranges. Independently inspect Terra-low r5 complete source/build, real clock/count/sync path, complete called4460stub and complete sm86 block-row kernel through shared-memory reduction/store. Additionally inspect complete Sol-xhigh r3 dispatchers and r5 capture/timed graph plus dispatcher; Luna independently supplied missing called stubs/full dispatcher in v2. Library r4 excluded here and separately adjudicated by Sol.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Add actual called scalar/warp/block stubs and complete r5dispatcher.",
+      "Correct Sol-xhigh r5 capture to pre-timing; timed replay executes captured requested-count work.",
+      "Trim sample unrelated following function and split ranges below500lines; expand source references to complete pinned files."
+    ],
+    "supplemental_proposals": [
+      {
+        "file": "spmv-luna-hybrid-batch-011-v2.json",
+        "sha256": "457bd71b5bf33c07f3791a016dcaa47d30978e1779502733898ef064a92a1b30"
+      }
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  }
+}

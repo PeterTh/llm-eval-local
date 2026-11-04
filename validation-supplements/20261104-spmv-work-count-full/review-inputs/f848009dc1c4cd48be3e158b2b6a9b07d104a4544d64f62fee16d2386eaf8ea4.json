@@ -1,0 +1,42 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:38:07Z",
+  "review_finished_at": "2026-11-04T12:41:00Z",
+  "reviews": [
+    {
+      "id": "spmv_beam-1.0-oc-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested iteration count encloses every CSR dot product in the rank's quotient/remainder row partition. Each repetition resets the row accumulator and computes its nonzeros; the compiled loop retains that arithmetic.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[163,179],[229,253]],"claim":"Unchanged CLI count bounds full, collectively exhaustive rank-local row products."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1948,2009]],"claim":"The compiled row/nonzero arithmetic at 0x9ce0-0x9cfb is enclosed by the iteration increment/comparison and 0x9d1d -> 0x9ca0 backedge."}]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Floor-divided row boundaries cover the entire matrix across ranks. Every requested iteration recomputes all local row products, with the compiled multiply/add loop remaining inside the count-bound backedge.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[163,179],[230,251]],"claim":"Iteration parsing and full rank-local product repetition are explicit; no clamping, cached-result replay or divided count."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1948,2004]],"claim":"Arithmetic at 0x9cf0-0x9d0c remains inside the outer repetition loop ending at 0x9d29 -> 0x9cb0."}]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-zero initialization and broadcasts occur before computation. The complete quotient/remainder rank partition is recomputed for each requested iteration, and compilation retains the nested nonzero, row and repetition loops.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[163,179],[213,258]],"claim":"The full input is broadcast before timing and the unchanged iteration count bounds all local CSR products."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1996,2056]],"claim":"Multiply/add instructions at 0x9dc0-0x9ddb execute beneath the outer count backedge 0x9e03 -> 0x9d80."}]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank produces a local output slice and recomputes it for all requested iterations. Quotient/remainder row boundaries cover the matrix and the compiled code repeats actual products, not just output stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[164,180],[248,283]],"claim":"CLI count reaches the complete local CSR loop without reduction."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2032,2101]],"claim":"The CSR arithmetic at 0x9e80-0x9e9b is enclosed by the full-row repetition backedge 0x9eee -> 0x9e40."}]
+    },
+    {
+      "id": "spmv_beam-1.0-oc-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All requested local CSR products are retained. This version also includes result gathering in its timed interval, which adds work rather than omitting repetitions.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[167,183],[243,278]],"claim":"Full quotient/remainder partitions are computed every iteration; gathering follows the complete repeated products."}],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2002,2062],[2099,2117]],"claim":"The product at 0x9dc0-0x9ddb remains inside 0x9e03 -> 0x9d80. MPI_Gatherv then executes before the end clock."}]
+    }
+  ]
+}

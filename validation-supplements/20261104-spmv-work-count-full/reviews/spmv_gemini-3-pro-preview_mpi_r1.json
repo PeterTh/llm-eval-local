@@ -1,0 +1,72 @@
+{
+  "id": "spmv_gemini-3-pro-preview_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Every requested repetition performs the full local product and an additional vector all-gather. Repeated communication adds work; it does not replace multiplication.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          176,
+          199
+        ],
+        [
+          217,
+          221
+        ],
+        [
+          309,
+          360
+        ],
+        [
+          395,
+          450
+        ]
+      ],
+      "claim": "Balanced row ownership covers all rows. Complete local CSR ranges are computed under the unchanged -i count; the input vector is gathered anew on each repetition.",
+      "sha256": "8825f2944a26aaebf08685e0a5a4757d0c97335aba8fa1180922018829d698ea",
+      "git_blob": "bee10a9feea5fccc741a3e36917a17a72fa42a3f"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed multiply/add a2ac/a2b4 is enclosed by entry a2bb->a2a0, row a2d1->a270 and iteration a31f->a09b branches; that outer loop also contains both all-gather calls.",
+      "complete_dump_sha256": "285fbe14f20e1954248a6ec2e325c0c966f322144f9f39586b9b1e8c7f94c2f5",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gemini-3-pro-preview_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2166,
+          "last_line": 2327,
+          "text": "    a037:\tmov    -0x1e8(%rbp),%eax\n    a03d:\tmovq   $0x0,-0x100(%rbp)\n    a048:\tvmovdqa %xmm0,-0x110(%rbp)\n    a050:\tje     a83b <main+0x108b>\n    a056:\ttest   %eax,%eax\n    a058:\tje     a82f <main+0x107f>\n    a05e:\tlea    0xafbb(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a065:\tcall   8ea0 <MPI_Barrier@plt>\n    a06a:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    a06f:\tmov    -0x2a8(%rbp),%r13\n    a076:\tmovl   $0x0,-0x210(%rbp)\n    a080:\tmov    -0x24c(%rbp),%r9d\n    a087:\tmov    %rax,-0x228(%rbp)\n    a08e:\tshl    $0x2,%r13\n    a092:\ttest   %r9d,%r9d\n    a095:\tje     a325 <main+0xb75>\n    a09b:\tmovslq -0x1e4(%rbp),%r14\n    a0a2:\tmovabs $0x1fffffffffffffff,%rax\n    a0ac:\tcmp    %r14,%rax\n    a0af:\tjb     afa4 <main+0x17f4>\n    a0b5:\ttest   %r14,%r14\n    a0b8:\tje     a690 <main+0xee0>\n    a0be:\tlea    0x0(,%r14,4),%r12\n    a0c6:\tmov    %r12,%rdi\n    a0c9:\tcall   9080 <operator new(unsigned long)@plt>\n    a0ce:\tmovslq -0x1e4(%rbp),%rdi\n    a0d5:\tmov    %rax,-0x208(%rbp)\n    a0dc:\tmovl   $0x0,(%rax)\n    a0e2:\tmov    %rdi,-0x218(%rbp)\n    a0e9:\tcmp    $0x1,%r14\n    a0ed:\tje     a814 <main+0x1064>\n    a0f3:\tlea    0x4(%rax),%rdi\n    a0f7:\tadd    %r12,%rax\n    a0fa:\tcmp    %rax,%rdi\n    a0fd:\tje     a10b <main+0x95b>\n    a0ff:\tlea    -0x4(%r12),%rdx\n    a104:\txor    %esi,%esi\n    a106:\tcall   8db0 <memset@plt>\n    a10b:\tmov    -0x218(%rbp),%rdi\n    a112:\tmov    %r12,%r14\n    a115:\tmovabs $0x1fffffffffffffff,%rax\n    a11f:\tcmp    %rdi,%rax\n    a122:\tjb     afbf <main+0x180f>\n    a128:\ttest   %rdi,%rdi\n    a12b:\tje     a8b4 <main+0x1104>\n    a131:\tlea    0x0(,%rdi,4),%rcx\n    a139:\tmov    %rcx,%rdi\n    a13c:\tmov    %rcx,-0x220(%rbp)\n    a143:\tcall   9080 <operator new(unsigned long)@plt>\n    a148:\tcmpq   $0x1,-0x218(%rbp)\n    a150:\tmov    %rax,%r12\n    a153:\tmovl   $0x0,(%rax)\n    a159:\tje     a81f <main+0x106f>\n    a15f:\tmov    -0x220(%rbp),%rcx\n    a166:\tlea    0x4(%rax),%rdi\n    a16a:\tlea    (%rax,%rcx,1),%rax\n    a16e:\tcmp    %rax,%rdi\n    a171:\tje     a17e <main+0x9ce>\n    a173:\tlea    -0x4(%rcx),%rdx\n    a177:\txor    %esi,%esi\n    a179:\tcall   8db0 <memset@plt>\n    a17e:\tmov    -0x23c(%rbp),%eax\n    a184:\tmov    -0x208(%rbp),%rcx\n    a18b:\tsub    $0x8,%rsp\n    a18f:\tlea    0xbe8a(%rip),%r9        # 16020 <ompi_mpi_int@@Base>\n    a196:\tmov    -0x260(%rbp),%rdi\n    a19d:\tmov    $0x1,%r8d\n    a1a3:\tmov    %r9,%rdx\n    a1a6:\tmov    $0x1,%esi\n    a1ab:\tmov    %eax,-0x50(%rbp)\n    a1ae:\tlea    0xae6b(%rip),%rax        # 15020 <ompi_mpi_comm_world@@Base>\n    a1b5:\tpush   %rax\n    a1b6:\tcall   8ba0 <MPI_Allgather@plt>\n    a1bb:\tmov    -0x1e4(%rbp),%eax\n    a1c1:\tpop    %rsi\n    a1c2:\tpop    %rdi\n    a1c3:\tmovl   $0x0,(%r12)\n    a1cb:\tcmp    $0x1,%eax\n    a1ce:\tjle    a1f7 <main+0xa47>\n    a1d0:\tmov    -0x208(%rbp),%rdi\n    a1d7:\tlea    -0x1(%rax),%ecx\n    a1da:\txor    %edx,%edx\n    a1dc:\txor    %eax,%eax\n    a1de:\txchg   %ax,%ax\n    a1e0:\tadd    (%rdi,%rax,4),%edx\n    a1e3:\tmov    %edx,0x4(%r12,%rax,4)\n    a1e8:\tinc    %rax\n    a1eb:\tcmp    %rax,%rcx\n    a1ee:\tjne    a1e0 <main+0xa30>\n    a1f0:\tmov    %rdi,-0x208(%rbp)\n    a1f7:\tmov    -0x208(%rbp),%r8\n    a1fe:\tlea    0xae1b(%rip),%rax        # 15020 <ompi_mpi_comm_world@@Base>\n    a205:\tmov    %r12,%r9\n    a208:\tmov    %rbx,%rcx\n    a20b:\tmov    -0x23c(%rbp),%esi\n    a211:\tmov    -0x170(%rbp),%rdi\n    a218:\tpush   %rax\n    a219:\tlea    0xb800(%rip),%rax        # 15a20 <ompi_mpi_double@@Base>\n    a220:\tpush   %rax\n    a221:\tmov    %rax,%rdx\n    a224:\tcall   91d0 <MPI_Allgatherv@plt>\n    a229:\tmov    -0x23c(%rbp),%ecx\n    a22f:\tpop    %rax\n    a230:\txor    %edi,%edi\n    a232:\tpop    %rdx\n    a233:\tmov    -0x150(%rbp),%r8\n    a23a:\tmov    -0x1d0(%rbp),%r9\n    a241:\ttest   %ecx,%ecx\n    a243:\tje     a2e1 <main+0xb31>\n    a249:\tmov    -0x208(%rbp),%rax\n    a250:\tmov    -0x258(%rbp),%r11\n    a257:\tmov    -0x270(%rbp),%rsi\n    a25e:\tmov    %rax,-0x218(%rbp)\n    a265:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a270:\tmov    (%r11,%rdi,1),%eax\n    a274:\tmov    0x4(%r11,%rdi,1),%ecx\n    a279:\tcmp    %ecx,%eax\n    a27b:\tjae    a5a0 <main+0xdf0>\n    a281:\tmov    %rsi,%rdx\n    a284:\tdec    %ecx\n    a286:\tlea    (%rsi,%rax,4),%r10\n    a28a:\tvxorpd %xmm1,%xmm1,%xmm1\n    a28e:\tsub    %eax,%ecx\n    a290:\tlea    (%r9,%rax,8),%rsi\n    a294:\tmov    %rdx,-0x208(%rbp)\n    a29b:\txor    %eax,%eax\n    a29d:\tnopl   (%rax)\n    a2a0:\tmov    (%r10,%rax,4),%edx\n    a2a4:\tvmovsd (%rbx,%rdx,8),%xmm0\n    a2a9:\tmov    %rax,%rdx\n    a2ac:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    a2b1:\tinc    %rax\n    a2b4:\tvaddsd %xmm0,%xmm1,%xmm1\n    a2b8:\tcmp    %rdx,%rcx\n    a2bb:\tjne    a2a0 <main+0xaf0>\n    a2bd:\tmov    -0x208(%rbp),%rsi\n    a2c4:\tvmovsd %xmm1,(%r8,%rdi,2)\n    a2ca:\tadd    $0x4,%rdi\n    a2ce:\tcmp    %r13,%rdi\n    a2d1:\tjne    a270 <main+0xac0>\n    a2d3:\tmov    -0x218(%rbp),%rax\n    a2da:\tmov    %rax,-0x208(%rbp)\n    a2e1:\tmov    -0x220(%rbp),%rsi\n    a2e8:\tmov    %r12,%rdi\n    a2eb:\tcall   90a0 <operator delete(void*, unsigned long)@plt>\n    a2f0:\tcmpq   $0x0,-0x208(%rbp)\n    a2f8:\tje     a6ae <main+0xefe>\n    a2fe:\tmov    -0x208(%rbp),%rdi\n    a305:\tmov    %r14,%rsi\n    a308:\tcall   90a0 <operator delete(void*, unsigned long)@plt>\n    a30d:\tincl   -0x210(%rbp)\n    a313:\tmov    -0x210(%rbp),%eax\n    a319:\tcmp    %eax,-0x24c(%rbp)\n    a31f:\tjne    a09b <main+0x8eb>\n    a325:\tlea    0xacf4(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a32c:\tcall   8ea0 <MPI_Barrier@plt>\n    a331:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    a336:\tmov    -0x228(%rbp),%rbx\n    a33d:\tmov    $0xf4240,%ecx\n    a342:\txor    %r10d,%r10d\n    a345:\tmov    %r10,-0x1d8(%rbp)\n    a34c:\tlea    -0x1d8(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_gemini-3-pro-preview_mpi_r1",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "f9fc74d10b4630b93c77adc8883dbe387d69dd4bcd47f543d374cb0895266842"
+  },
+  "binary_sha256": "138f860bd2f56037c04d8257d3a35a3324ec54d3c04630da65ca1dddf934f045",
+  "binding_sha256": "78d93e0db50997a83fd17f30acda3ddb818e0783c5183d5091fb95f011ab60fb",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:08:17Z",
+  "review_finished_at": "2026-11-04T13:09:29Z",
+  "review_input_sha256": "61194e7ad65a3d7eaffdd3c1325a0d00335b90c705d88be0390f93df272a67e7",
+  "pack_sha256": "291edb14430ea84c129c5d2bb71032bed6eacc437d0a893fe0ad76f5307eb1d0",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

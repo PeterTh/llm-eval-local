@@ -1,0 +1,26 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:40:19Z",
+  "review_finished_at": "2026-11-04T14:40:19Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-008.json compiled evidence for spmv_gpt-5.2_hybrid_r4",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.2_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The prior conclusion stands. The compiled timed loop evidence is complemented by the exact emitted CUDA stub, and the selected SASS image ranges now include complete kernel ends: the SM70 shuffle helper is skipped, while each row-kernel specialization is cited through its CSR traversal, arithmetic, store and relevant backedge.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[360,388],[415,455],[462,490]],"claim":"MPI-local CSR inputs and row-pointer rebasing; separate warmup and requested timed loop; synchronization and local output copy/gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1221,1285],[2721,2778]],"claim":"Timed compiled caller has runtime-count launch control; its emitted device stub configures and forwards the kernel launch via cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[10,287],[288,565],[587,1080],[1118,1595],[1596,1900]],"claim":"Every emitted row-kernel image is cited to its actual function end, including row/nonzero loop backedges and stores; auxiliary shuffle helper code is not misidentified as a kernel variant."}
+      ],
+      "notes":"No program was executed or compiled. Host/device line numbers are from this exact pack's dumps."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

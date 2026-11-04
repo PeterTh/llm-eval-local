@@ -1,0 +1,142 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:25:24Z",
+  "review_finished_at": "2026-11-04T15:31:23Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5-mini_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI iterations, dimensions and sparsity reach spmvGpu; the initialized CSR has a delimiter per row and final delimiter nItems. The host helper launches the same one-thread-per-row kernel inside the runtime-counted loop; its full compiled helper retains the iteration comparison/backedge and the timed main brackets the call. The final sm86 SASS retains a row-index-versus-dim guard, rowStart/rowEnd loads, CSR-bounded load/multiply-accumulate loops including unrolled bulk and tail paths, and an output store. The synchronous D2H copy follows the launches.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 343]], "claim": "Complete source includes CLI -n/-s/-i parsing, nItems, full CSR delimiter construction, the kernel's row and [rowDelimiters[row], rowDelimiters[row+1]) loops, helper's iterations launches, and final result copy/output."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 19]], "claim": "Build treats spmv.cpp as CUDA and enables -O3."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[730, 745], [1307, 1803]], "claim": "Timed main calls spmvGpu between host clock reads. The complete called helper's launch loop increments and compares the passed count with a backedge to its launch setup; after loop the D2H cudaMemcpy is reached before return."},
+        {"file": "device-sass.txt", "ranges": [[19, 400], [401, 709]], "claim": "Complete sm86 kernel: address 0x0040 compares the computed row against dim and 0x0050 exits; row CSR endpoints are loaded at 0x00b0/0x00c0; nonzero arithmetic remains in bounded scalar and unrolled loops with conditional backedges (including 0x0d80 to 0x0560); 0x1470 stores the row result."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5-mini_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI-derived nItems and CSR row delimiters feed spmvCuda with the requested count. It performs a separate warmup and synchronization, then launches the full per-row CSR kernel once per counted repetition, synchronizes after the loop, and copies the result back. The actual called compiled helper has a counted launch backedge and a separate warmup call. Final sm86 SASS carries full CSR arithmetic through the store, with dedicated row-bound, empty-row, bulk, and tail control paths.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 335]], "claim": "Complete source covers CLI parameters, nItems/CSR setup and terminal delimiter, one-row-per-thread kernel with the full row interval, warmup, runtime iterations loop, synchronization, and output copy."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 22]], "claim": "CUDA compilation of spmv.cpp is optimized at -O3."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1255, 1270], [1888, 1947], [1949, 2234]], "claim": "main passes the runtime count to spmvCuda; the complete called helper includes a pre-timing warmup stub call and device synchronization, then start clock, counted stub-launch loop/backedge, post-loop synchronization/end clock and D2H copy. The stub body at 1888–1947 dispatches the actual kernel through cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[19, 400], [401, 701]], "claim": "Complete sm86 kernel has row-index bound compare and exit at 0x0040/0x0050, row delimiters at 0x00b0/0x00c0, CSR nonzero arithmetic in scalar/bulk/tail paths with their control backedges, and output store at 0x1470."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI dimensions, sparsity and iteration count determine the full CSR arrays and reach spmvGpu. Its 256-thread grid-stride kernel covers all rows; each row traverses both its complete CSR interval and stores its sum. The main prepares and synchronizes input copies before the call and copies output after it. Compiled main calls the helper, whose compiled event-timed loop retains a repetition backedge and calls the actual device stub on every iteration. Full final sm86 code retains the nonzero arithmetic, loop/tail control, and store.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 359]], "claim": "Complete source includes CLI/nItems/CSR construction, grid-stride row coverage, the row's full CSR interval, helper loop over the passed iterations with start/stop events, and main's transfers/result handling."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 21]], "claim": "CUDA source build uses optimization flags; default CMake CUDA architecture is 70."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1330, 1355], [2179, 2238], [2240, 2445]], "claim": "Main completes H2D uploads and calls spmvGpu, then copies and synchronizes output. The full called helper records events around a count-controlled loop whose backedge returns to launch setup; the called stub body dispatches via cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[19, 400], [401, 743]], "claim": "Complete final sm86 kernel: per-row grid-stride work; CSR endpoint bounds govern the retained DFMA bulk and remainder paths, with loop backedges and final output store. No repeated same-input computation was collapsed."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The main parses and forwards CLI n/s/i values, builds nItems CSR, and launches a grid-stride one-thread-per-row kernel. It includes one separate warmup and synchronization, then starts events around the requested host repetition loop, synchronizes the stop event and copies output. Compiled main preserves the loop count/backedge and invokes the actual generated stub; the final sm86 code retains CSR-bounded arithmetic, complete bulk and tail paths, and stores.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 331]], "claim": "Complete source includes parsed dimensions/sparsity/iterations, CSR initialization, grid-stride row kernel with full row delimiters, warmup, counted timed launch loop, stop synchronization and output copy."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 18]], "claim": "CUDA source is built with -O3."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1323, 1429], [2220, 2287]], "claim": "The main's warmup stub call/sync precedes start event; in the timed region the runtime counter increments and branches back to launch configuration, followed by stop event/synchronization, elapsed-time retrieval and D2H copy. The complete called stub ends in cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[19, 400], [401, 743]], "claim": "Complete final sm86 kernel retains row coverage, row-end/nonzero bounds, FMA/load arithmetic in the counted per-row work including bulk/tail branches and loop backedges, reduction where needed, and row-result store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "This build uses the same complete CSR contract with a grid-stride row kernel. Source main parses the requested count, warms and synchronizes the GPU, then runs the requested number of launches under events and copies the final output. The compiled main retains the count-controlled backedge and each launch through the generated stub; final sm86 SASS retains all nonzero arithmetic and the bulk/tail control paths through output storage.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 338]], "claim": "Complete source includes CLI-derived dimensions, nItems and CSR delimiters, grid-stride rows with full CSR intervals, separate warmup, event-timed iterations loop, synchronization and output copy."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 20]], "claim": "CUDA source is compiled at -O3 for native architecture."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1290, 1420], [2257, 2317]], "claim": "Compiled main's warmup launch/sync is before event timing; timed counter's branch returns to the actual stub call and launch setup; stop event is synchronized and output copied afterward. The called stub body ends with cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[10, 400], [401, 734]], "claim": "Complete final sm86 kernel has row guard, CSR start/end loads and the row-bound nonzero traversal; FMA instructions persist in bulk and tail loops with backedges, followed by the output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source and compiled main pass the parsed iteration count into repeated GPU launches. Each kernel grid-strides over all rows and traverses the complete CSR interval. A pre-timing input copy initializes device arrays; the timed loop performs each launch, stop-event synchronization and result copy follow. Compiled main has a retained loop backedge through the actual launch stub. Final sm86 SASS retains full CSR arithmetic including bulk/tail branches and store.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 339]], "claim": "Complete source contains CLI parameters, CSR setup, grid-stride kernel and full nonzero interval, launch loop governed by iterations, event synchronization and output copy."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 24]], "claim": "CMake compiles the source as optimized CUDA and selects native architecture when supported."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1341, 1417], [2250, 2310]], "claim": "The main's start event is followed by a counter-controlled actual stub call and backedge, then last-error/stop-event synchronization, elapsed time and output memcpy. The complete stub dispatches the kernel via cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[10, 400], [401, 734]], "claim": "Complete final sm86 kernel retains row coverage, endpoint-bounded nonzero loads/FMA arithmetic in bulk and tail loops with control backedges, and final row store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2-codex_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The launch grid assigns warps to rows, lanes stride by warp width through each complete CSR interval, and lane zero stores the reduction. The timed main loop launches the kernel once per requested repetition; compiled main retains the actual count check/backedge through its generated launch stub and synchronizes the stop event before copying output. Final sm86 SASS preserves per-lane interval checks, multiply-accumulate, warp reduction, and store.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 350]], "claim": "Complete source includes CLI/nItems and CSR initialization, warp-per-row/lane-strided CSR traversal, reduction/store, runtime-counted event-timed launches and output transfer."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 19]], "claim": "The CUDA source is compiled with -O3."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1310, 1410], [2231, 2291]], "claim": "Compiled main records start event, calls the actual kernel stub on each incremented iteration, branches to the stub call until the count is exhausted, records/synchronizes stop and copies output. Stub dispatch reaches cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[21, 313]], "claim": "Complete final sm86 kernel maps warps to rows and lanes to CSR indices, retains row/nonzero-bound tests, DFMA arithmetic and lane reduction, and writes the row result at 0x0820."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "This all-major build contains sm50, sm60, sm70, sm80 and sm90 machine-code variants. The CUDA source maps each warp to a row and each lane to rowStart+lane, then strides by warp width through rowEnd, reduces and stores. Main computes nItems from parsed dimensions/sparsity and passes the CLI iteration count to spmvCuda. Compiled main retains a separate warmup/synchronization and a repeated event-timed stub-launch loop with the count backedge, then syncs and copies output. Each embedded SASS architecture retains the nonzero multiply-add loops/tails, reduction and store.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 360]], "claim": "Complete source covers CLI/CSR setup and terminal delimiter, warp-per-row and lane-strided full CSR interval, runtime loop with warmup and events, and output copy."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 34]], "claim": "Build requests CMAKE_CUDA_ARCHITECTURES all-major, uses optimized CUDA compilation and links the CUDA program."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1320, 1425], [2287, 2347]], "claim": "Main's warmup launch/sync precedes start event; timed counter/backedge repeats calls to the actual stub until the passed count, followed by stop-event sync and output D2H. Stub dispatch calls cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[10, 284], [296, 570], [582, 872], [884, 1190], [1211, 1533]], "claim": "Full SASS function ranges for sm50, sm60, sm70, sm80 and sm90 respectively; every variant retains row-bound control, CSR endpoint/nonzero traversal with arithmetic loop backedges and tail paths, warp reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source assigns one warp per row, lane-strides from that row's start delimiter to end delimiter, reduces and stores. Main initializes the full CSR inputs, performs a separate warmup/sync, then launches the same kernel for each requested iteration under event timing. The compiled loop's counter/backedge and each actual stub invocation remain present; it records and synchronizes the stop event before copying the complete output. Final sm86 SASS retains all-nonzero arithmetic and tail/reduction/store paths.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 354]], "claim": "Complete source includes CLI count/dimension/sparsity, CSR construction and final delimiter, warp-per-row kernel with lane-strided full CSR interval, warmup, counted timed launches and D2H copy."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 31]], "claim": "Optimized CUDA compilation with native architecture selection when supported."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1323, 1437], [2281, 2341]], "claim": "Compiled main includes warmup stub and device sync, then event timing around an actual-stub launch loop whose counter is compared and branches back, followed by stop event/sync, elapsed time and D2H copy. The complete stub calls cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[10, 300]], "claim": "Complete final sm86 kernel compares the warp-derived row with dim, loads row delimiters, preserves nonzero loop increment/bound and DFMA arithmetic for all lane-owned entries, then performs warp reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.2_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The final build maps each warp to a row, lanes stride through its complete CSR range, and lane zero stores the reduction. CLI dimensions/sparsity determine the CSR arrays and the requested iteration value reaches main's event-timed repeated launch loop. The compiled loop counter/backedge and actual launch stub remain; warmup is synchronized separately, and the stop event is synchronized before result copy. Final sm86 machine code retains row/nonzero guards, multiply-add and reduction/store paths.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[1, 363]], "claim": "Complete source covers CLI/CSR construction, warp-per-row and full lane-strided CSR kernel, separate warmup, requested event-timed iteration loop and output transfer."},
+        {"file": "spmv/CMakeLists.txt", "ranges": [[1, 28]], "claim": "Optimized CUDA build uses native architecture when supported and fast-math flags."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1330, 1458], [2285, 2352]], "claim": "Compiled main has warmup launch/sync before event timing; each iteration reaches the actual stub and the counter/backedge returns to that launch; stop event synchronization precedes D2H copy. Stub body dispatches through cudaLaunchKernel."},
+        {"file": "device-sass.txt", "ranges": [[11, 301]], "claim": "Complete final sm86 kernel includes row-bound exit, delimiter loads, bounded lane-strided CSR address/load/DFMA paths with loop backedges and tail, warp reduction and row store at 0x0830."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

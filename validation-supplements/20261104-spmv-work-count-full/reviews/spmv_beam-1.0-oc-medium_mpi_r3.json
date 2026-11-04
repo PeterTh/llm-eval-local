@@ -1,0 +1,60 @@
+{
+  "id": "spmv_beam-1.0-oc-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Rank-zero initialization and broadcasts occur before computation. The complete quotient/remainder rank partition is recomputed for each requested iteration, and compilation retains the nested nonzero, row and repetition loops.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          163,
+          179
+        ],
+        [
+          213,
+          258
+        ]
+      ],
+      "claim": "The full input is broadcast before timing and the unchanged iteration count bounds all local CSR products.",
+      "sha256": "c991f14c8f23e107687d2ec3a8e6bc600ff310f390a705824c7273ad4440def4",
+      "git_blob": "ddafadd3f0abc68673fb1d0d3e2a29a05b09bd6f"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add instructions at 0x9dc0-0x9ddb execute beneath the outer count backedge 0x9e03 -> 0x9d80.",
+      "complete_dump_sha256": "3c103187d79089e7e92e883b3f3b93453007b09c4be052f1ebf53c2e0fd08adf",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_beam-1.0-oc-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1996,
+          "last_line": 2056,
+          "text": "    9d18:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    9d1d:\tmov    -0x148(%rbp),%r9d\n    9d24:\tmov    %rax,-0x1a0(%rbp)\n    9d2b:\ttest   %r9d,%r9d\n    9d2e:\tje     9e13 <main+0x6f3>\n    9d34:\tmov    -0x194(%rbp),%edi\n    9d3a:\tcmp    %r14d,%edi\n    9d3d:\tjae    9e13 <main+0x6f3>\n    9d43:\tmov    -0x190(%rbp),%rsi\n    9d4a:\tmov    %r14d,%r9d\n    9d4d:\tmov    %edi,%eax\n    9d4f:\tlea    0x1(%rdi),%edx\n    9d52:\tsub    %edi,%r9d\n    9d55:\tmov    -0x178(%rbp),%rdi\n    9d5c:\tshl    $0x2,%r9\n    9d60:\tlea    (%rsi,%rdx,4),%r11\n    9d64:\tlea    (%rsi,%rax,4),%r14\n    9d68:\tmov    -0x160(%rbp),%rsi\n    9d6f:\txor    %edx,%edx\n    9d71:\tlea    (%rdi,%rax,8),%r10\n    9d75:\tmov    %r13d,%edi\n    9d78:\tnopl   0x0(%rax,%rax,1)\n    9d80:\txor    %r13d,%r13d\n    9d83:\tmov    %edx,-0x160(%rbp)\n    9d89:\tnopl   0x0(%rax)\n    9d90:\tmov    (%r14,%r13,1),%eax\n    9d94:\tmov    (%r11,%r13,1),%ecx\n    9d98:\tcmp    %ecx,%eax\n    9d9a:\tjae    a160 <main+0xa40>\n    9da0:\tmov    %rsi,%rdx\n    9da3:\tdec    %ecx\n    9da5:\tlea    (%rsi,%rax,8),%r8\n    9da9:\tvxorpd %xmm1,%xmm1,%xmm1\n    9dad:\tsub    %eax,%ecx\n    9daf:\tlea    (%r12,%rax,4),%rsi\n    9db3:\tmov    %rdx,-0x158(%rbp)\n    9dba:\txor    %eax,%eax\n    9dbc:\tnopl   0x0(%rax)\n    9dc0:\tmov    (%rsi,%rax,4),%edx\n    9dc3:\tvmovsd (%rbx,%rdx,8),%xmm0\n    9dc8:\tmov    %rax,%rdx\n    9dcb:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    9dd1:\tinc    %rax\n    9dd4:\tvaddsd %xmm0,%xmm1,%xmm1\n    9dd8:\tcmp    %rdx,%rcx\n    9ddb:\tjne    9dc0 <main+0x6a0>\n    9ddd:\tmov    -0x158(%rbp),%rsi\n    9de4:\tvmovsd %xmm1,(%r10,%r13,2)\n    9dea:\tadd    $0x4,%r13\n    9dee:\tcmp    %r13,%r9\n    9df1:\tjne    9d90 <main+0x670>\n    9df3:\tmov    -0x160(%rbp),%edx\n    9df9:\tmov    -0x148(%rbp),%eax\n    9dff:\tinc    %edx\n    9e01:\tcmp    %eax,%edx\n    9e03:\tjne    9d80 <main+0x660>\n    9e09:\tmov    %rsi,-0x160(%rbp)\n    9e10:\tmov    %edi,%r13d\n    9e13:\tlea    0xa206(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9e1a:\tcall   8e80 <MPI_Barrier@plt>\n    9e1f:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261025-170121/spmv_beam-1.0-oc-medium_mpi_r3",
+    "source_commit": "cbe8dcd9a86fdc63b7c5f62980956f015725ccfc",
+    "staged_source_sha256": "87837fd6ca4e2bafa884975265a1b30b5db7aace408a75995d9ce9cb9e11eaff"
+  },
+  "binary_sha256": "b06780244f62926672785c309540cae0339773c8465138727bae517ed84315bf",
+  "binding_sha256": "80a9f2417c8aeadcff68533c87b977b8300d26b63abb98288a601adfddadb77c",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:38:07Z",
+  "review_finished_at": "2026-11-04T12:41:00Z",
+  "review_input_sha256": "f848009dc1c4cd48be3e158b2b6a9b07d104a4544d64f62fee16d2386eaf8ea4",
+  "pack_sha256": "382c405530240c744d69a77bc8ed707965b35978d69b68f8d1f0871ab7f9e963",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,68 @@
+{
+  "id": "spmv_gpt-6-sol-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          109
+        ],
+        [
+          165,
+          209
+        ],
+        [
+          229,
+          306
+        ],
+        [
+          308,
+          328
+        ]
+      ],
+      "claim": "CLI count is unchanged. Monotone nonzero lower_bound partitions cover all rows, and complete assigned nonzeros and row starts are scattered; localNnz restores the last delimiter. Every requested timed iteration traverses complete local CSR, followed by full output gathering.",
+      "sha256": "48a9f34ac082eaa604bcb10f0dcb2fdee808024bff3948af5b23d8727f3f05ff",
+      "git_blob": "03c9c0937a52b1725f86ac39d730d0cc3ebd2fb1"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed mul/add 9f8d/9f95 are inside nonzero 9f9c->9f80, row 9fab->9f50 and iteration 9fb1->9f40 backedges.",
+      "complete_dump_sha256": "a252587e022b76adaa70f36a1474ecd93877a06b989192bf33914ad097da90f2",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-sol-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2068,
+          "last_line": 2121,
+          "text": "    9ed1:\tmov    -0x310(%rbp),%rax\n    9ed8:\tmov    -0x2dc(%rbp),%ecx\n    9ede:\tmov    %ecx,(%r12,%rax,4)\n    9ee2:\tcmpl   $0x0,-0x24c(%rbp)\n    9ee9:\tlea    0x0(,%rax,4),%r13\n    9ef1:\tje     a593 <main+0xe43>\n    9ef7:\tlea    0xb322(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9efe:\tcall   8e90 <MPI_Barrier@plt>\n    9f03:\tcall   91e0 <MPI_Wtime@plt>\n    9f08:\tcmpl   $0x0,-0x258(%rbp)\n    9f0f:\tvmovsd %xmm0,-0x2c0(%rbp)\n    9f17:\tje     9fb3 <main+0x863>\n    9f1d:\tcmpl   $0x0,-0x2c8(%rbp)\n    9f24:\tmov    -0x90(%rbp),%r8\n    9f2b:\tje     9fb3 <main+0x863>\n    9f31:\tmov    -0x258(%rbp),%esi\n    9f37:\txor    %ecx,%ecx\n    9f39:\tnopl   0x0(%rax)\n    9f40:\txor    %r9d,%r9d\n    9f43:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f4e:\txchg   %ax,%ax\n    9f50:\tmov    (%r12,%r9,1),%eax\n    9f54:\tmov    0x4(%r12,%r9,1),%edx\n    9f59:\tcmp    %edx,%eax\n    9f5b:\tjae    a530 <main+0xde0>\n    9f61:\tdec    %edx\n    9f63:\tlea    (%r15,%rax,4),%r10\n    9f67:\tlea    (%r14,%rax,8),%rdi\n    9f6b:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f6f:\tsub    %eax,%edx\n    9f71:\txor    %eax,%eax\n    9f73:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f7e:\txchg   %ax,%ax\n    9f80:\tmov    (%r10,%rax,4),%r11d\n    9f84:\tvmovsd (%rbx,%r11,8),%xmm0\n    9f8a:\tmov    %rax,%r11\n    9f8d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9f92:\tinc    %rax\n    9f95:\tvaddsd %xmm0,%xmm1,%xmm1\n    9f99:\tcmp    %r11,%rdx\n    9f9c:\tjne    9f80 <main+0x830>\n    9f9e:\tvmovsd %xmm1,(%r8,%r9,2)\n    9fa4:\tadd    $0x4,%r9\n    9fa8:\tcmp    %r9,%r13\n    9fab:\tjne    9f50 <main+0x800>\n    9fad:\tinc    %ecx\n    9faf:\tcmp    %esi,%ecx\n    9fb1:\tjne    9f40 <main+0x7f0>\n    9fb3:\tcall   91e0 <MPI_Wtime@plt>\n    9fb8:\tvsubsd -0x2c0(%rbp),%xmm0,%xmm0\n    9fc0:\tlea    0xb259(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    9fc7:\tmovq   $0x0,-0x238(%rbp)\n    9fd2:\tlea    -0x238(%rbp),%rsi\n    9fd9:\tlea    -0x240(%rbp),%rdi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260929-135931/spmv_gpt-6-sol-medium_mpi_r1",
+    "source_commit": "32f1becd283322d1edff43dd47a3b3bc8e2cdad6",
+    "staged_source_sha256": "b3ae0f54af73598d1d5688aecaf1ace5f5af6f9b12f68792d0fad7208d20d439"
+  },
+  "binary_sha256": "4015a3dd287316dffca3e27bd741c1b4e1593eaaa7efd11cbe4dde2b74a2bce1",
+  "binding_sha256": "3ba818a35df076f131f127cdfd3c2b891eefa43a57888e47fc84d7322f30ff2e",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:32:03Z",
+  "review_finished_at": "2026-11-04T13:32:49Z",
+  "review_input_sha256": "4ffc07c9e8a5038fa38119f9e58bf2902b6f0d89cfac740b5179525df3f4d6b8",
+  "pack_sha256": "8c24852d968462c6b11a45c074d8dea98123f7f68ba9af81a8d475dac0b6378e",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

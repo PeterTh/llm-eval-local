@@ -1,0 +1,89 @@
+{
+  "id": "spmv_claude-haiku-5.5-oc-medium_omp_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "With O3/OpenMP build, source computes nItems and initializes CSR delimiters through nItems; each timed iteration calls full spmvCpu. Compiled main calls GOMP_parallel at 0x1a39 and returns to 0x1a10 until count. Worker 0x1fd0 distributes all dim rows by quotient/remainder, follows each row's CSR interval and performs value*vector[col] accumulation, storing each row (zero for an empty interval).",
+  "source_evidence": [
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          16
+        ]
+      ],
+      "claim": "Build requires OpenMP and compiles with -O3 -march=native.",
+      "sha256": "a2c952cbcbced1378a853c3a64933dd323f08508bc275b171ead9181095b3f71",
+      "git_blob": "c3c5290442ed3b3ffabdd728634ffc32ec422828"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          267
+        ]
+      ],
+      "claim": "Runtime size/iteration options determine storage and timed calls; matrix construction establishes CSR endpoint, and row kernel computes all entries in each half-open row interval.",
+      "sha256": "9c99985e551b31d7a85cc76c013593a824afa957b2bcc1112e2194fe44edca2a",
+      "git_blob": "c36e460a7676835a1231349f135a830b6507d030"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock calls at 0x19cf/0x1a4a bracket counted GOMP_parallel at 0x1a39 with backedge 0x1a41. Worker 0x1fd0 partitions rows via quotient/remainder, row loop 0x2050..0x209b iterates its row range, inner loop 0x2070..0x208c multiplies value by vec[col] and accumulates, then stores at 0x208e; empty-row path writes zero at 0x20b4.",
+      "complete_dump_sha256": "8f8ea3e021d84d499cd29d109c490d02e800a9dbce0b6a3ff35781d409edf35b",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-oc-medium_omp_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 596,
+          "last_line": 622,
+          "text": "    19cf:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n    19d4:\txor    %r14d,%r14d\n    19d7:\tmov    -0x90(%rbp),%rbx\n    19de:\tlea    0x5eb(%rip),%r15        # 1fd0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>\n    19e5:\tmov    %rax,-0x180(%rbp)\n    19ec:\tmov    -0x148(%rbp),%eax\n    19f2:\ttest   %eax,%eax\n    19f4:\tje     1a4a <main+0x6fa>\n    19f6:\tmov    %r13,-0x170(%rbp)\n    19fd:\tmov    %r14d,%r13d\n    1a00:\tmov    -0x148(%rbp),%r14d\n    1a07:\tnopw   0x0(%rax,%rax,1)\n    1a10:\tvmovdqa -0x130(%rbp),%ymm1\n    1a18:\txor    %ecx,%ecx\n    1a1a:\txor    %edx,%edx\n    1a1c:\tmov    %rbx,-0x50(%rbp)\n    1a20:\tmov    -0x138(%rbp),%rsi\n    1a27:\tmov    %r12d,-0x48(%rbp)\n    1a2b:\tmov    %r15,%rdi\n    1a2e:\tvmovdqa %ymm1,-0x70(%rbp)\n    1a33:\tvzeroupper\n    1a36:\tinc    %r13d\n    1a39:\tcall   1210 <GOMP_parallel@plt>\n    1a3e:\tcmp    %r14d,%r13d\n    1a41:\tjne    1a10 <main+0x6c0>\n    1a43:\tmov    -0x170(%rbp),%r13\n    1a4a:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 931,
+          "last_line": 1008,
+          "text": "0000000000001fd0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>:\n    1fd0:\tendbr64\n    1fd4:\tpush   %r13\n    1fd6:\tpush   %r12\n    1fd8:\tpush   %rbp\n    1fd9:\tpush   %rbx\n    1fda:\tsub    $0x8,%rsp\n    1fde:\tmov    0x28(%rdi),%ebx\n    1fe1:\ttest   %ebx,%ebx\n    1fe3:\tje     209d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    1fe9:\tmov    %rdi,%r13\n    1fec:\tcall   1260 <omp_get_num_threads@plt>\n    1ff1:\tmov    %eax,%ebp\n    1ff3:\tcall   1230 <omp_get_thread_num@plt>\n    1ff8:\txor    %edx,%edx\n    1ffa:\tmov    %eax,%ecx\n    1ffc:\tmov    %ebx,%eax\n    1ffe:\tdiv    %ebp\n    2000:\tcmp    %edx,%ecx\n    2002:\tjb     20c5 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xf5>\n    2008:\timul   %eax,%ecx\n    200b:\tadd    %ecx,%edx\n    200d:\tlea    (%rax,%rdx,1),%ecx\n    2010:\tcmp    %ecx,%edx\n    2012:\tjae    209d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    2018:\tmov    0x10(%r13),%rcx\n    201c:\tdec    %eax\n    201e:\tmov    0x18(%r13),%rdi\n    2022:\txor    %r8d,%r8d\n    2025:\tlea    0x4(,%rax,4),%rbx\n    202d:\tmov    %edx,%eax\n    202f:\tinc    %edx\n    2031:\tmov    0x8(%r13),%r12\n    2035:\tmov    0x0(%r13),%rbp\n    2039:\tlea    (%rcx,%rdx,4),%r10\n    203d:\tmov    0x20(%r13),%rdx\n    2041:\tlea    (%rcx,%rax,4),%r11\n    2045:\tlea    (%rdx,%rax,8),%r9\n    2049:\tnopl   0x0(%rax)\n    2050:\tmov    (%r11,%r8,1),%eax\n    2054:\tmov    (%r10,%r8,1),%edx\n    2058:\tcmp    %edx,%eax\n    205a:\tjae    20b0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    205c:\tdec    %edx\n    205e:\tlea    (%r12,%rax,4),%rsi\n    2062:\tlea    0x0(%rbp,%rax,8),%rcx\n    2067:\tvxorpd %xmm1,%xmm1,%xmm1\n    206b:\tsub    %eax,%edx\n    206d:\txor    %eax,%eax\n    206f:\tnop\n    2070:\tmov    (%rsi,%rax,4),%r13d\n    2074:\tvmovsd (%rdi,%r13,8),%xmm0\n    207a:\tmov    %rax,%r13\n    207d:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    2082:\tinc    %rax\n    2085:\tvaddsd %xmm0,%xmm1,%xmm1\n    2089:\tcmp    %rdx,%r13\n    208c:\tjne    2070 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xa0>\n    208e:\tvmovsd %xmm1,(%r9,%r8,2)\n    2094:\tadd    $0x4,%r8\n    2098:\tcmp    %r8,%rbx\n    209b:\tjne    2050 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    209d:\tadd    $0x8,%rsp\n    20a1:\tpop    %rbx\n    20a2:\tpop    %rbp\n    20a3:\tpop    %r12\n    20a5:\tpop    %r13\n    20a7:\tret\n    20a8:\tnopl   0x0(%rax,%rax,1)\n    20b0:\tvxorpd %xmm1,%xmm1,%xmm1\n    20b4:\tvmovsd %xmm1,(%r9,%r8,2)\n    20ba:\tadd    $0x4,%r8\n    20be:\tcmp    %r8,%rbx\n    20c1:\tjne    2050 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    20c3:\tjmp    209d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    20c5:\tinc    %eax\n    20c7:\txor    %edx,%edx\n    20c9:\tjmp    2008 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x38>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "None.",
+  "source": {
+    "source_path": "20261025-170040/spmv_claude-haiku-5.5-oc-medium_omp_r2",
+    "source_commit": "24648e59045c3e8d7280119627a7bccde1da4f2f",
+    "staged_source_sha256": "51b40695160f354d143e56c145d1f25dd77c12046c8fcae5cc3c770beffffa31"
+  },
+  "binary_sha256": "99c12a48178e4f448fff3b0b96de6b28f7a1f727d09158fd3153a639cb44a154",
+  "binding_sha256": "6a17e10ab9409dd8c594dbc2fa6685a16f3d0dcd60f3a6030f7a8890ff99ad5c",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "919dad3e27cb25f995bd1d0fd6814da16221eb9d4b3760843bbedc9e238ede40",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:19:03 UTC",
+    "sampled_ids": [
+      "spmv_claude-opus-5-cc-medium_omp_r1",
+      "spmv_claude-opus-5-cc-medium_omp_r2"
+    ],
+    "method": "Read every report summary/evidence claim. Independently inspected full relevant source/build flags, complete timed outlined workers and clock regions for both sampled implementations, including lower_bound row partitions, local placement/copy setup, persistent-loop memory barrier and compiled repetition counter. Other eight findings rely on Luna's completed inspection plus primary report/provenance checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded source citations to complete exact files in bounded ranges.",
+      "Clarified Opus-5 cc OMP r2's comparison address (0x26a2) and branch (0x26a6 to 0x2600); conclusion unchanged."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:08:12Z",
+  "review_finished_at": "2026-11-04T14:10:31Z",
+  "review_input_sha256": "2871ddd1187f8facf1c4c870b3bf0d8f5da617f0139b0e700d01a8d9afef45c3",
+  "pack_sha256": "45476c7eaf4982ee9c37a5549080cb8897fe750cefae080539ae6b7530851fad",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

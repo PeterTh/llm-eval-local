@@ -1,0 +1,79 @@
+{
+  "id": "spmv_claude-haiku-4.5_omp_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The source requests repeated full CSR row-kernel calls. Compiled host loop calls GOMP_parallel, increments its counter and compares to the saved requested count before its backedge. Outlined worker 0x1fa0 requests dynamic chunks, loops each row in each chunk, processes each CSR nonzero and writes its row output (or zero for empty rows).",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          263
+        ]
+      ],
+      "claim": "CSR arrays have nItems endpoint and kernel computes each row over stored bounds; timed loop repeats kernel for iterations.",
+      "sha256": "abb0b95159b24fb9d486c04bb022bf07e37762d4b1758aab0689e9e4bca7a861",
+      "git_blob": "11dedddc2df872886a5bd350c4be001b18381d4e"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clocked host repetition backedge at 0x1a31 checks saved count after call at 0x1a22. Worker 0x1fa0 dynamically obtains row ranges; 0x2080 walks rows, 0x20b0..0x20cc walks nonzeros and loads/multiplies/accumulates, output store at 0x20ce; zero-row path at 0x2038.",
+      "complete_dump_sha256": "7b9f2d3e071df52c84e653e6b0304a9b556bc5a14a67d1cd40e0089c21fa367a",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_omp_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 582,
+          "last_line": 615,
+          "text": "    198e:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n    1993:\tvmovq  -0x140(%rbp),%xmm3\n    199b:\txor    %r15d,%r15d\n    199e:\tlea    0x5fb(%rip),%rbx        # 1fa0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>\n    19a5:\tmov    %rax,-0x170(%rbp)\n    19ac:\tmov    -0x90(%rbp),%rax\n    19b3:\tvpinsrq $0x1,-0x148(%rbp),%xmm3,%xmm1\n    19bd:\tvmovq  %rax,%xmm7\n    19c2:\tvpinsrq $0x1,-0x150(%rbp),%xmm7,%xmm0\n    19cc:\tmov    %rax,-0x168(%rbp)\n    19d3:\tmov    -0x134(%rbp),%eax\n    19d9:\tvinserti128 $0x1,%xmm1,%ymm0,%ymm0\n    19df:\ttest   %eax,%eax\n    19e1:\tje     1cd5 <main+0x985>\n    19e7:\tmov    %rbx,%rax\n    19ea:\tvmovdqa %ymm0,-0x130(%rbp)\n    19f2:\tmov    %r15d,%ebx\n    19f5:\tmov    %rax,%r15\n    19f8:\tnopl   0x0(%rax,%rax,1)\n    1a00:\tvmovdqa -0x130(%rbp),%ymm1\n    1a08:\txor    %ecx,%ecx\n    1a0a:\txor    %edx,%edx\n    1a0c:\tmov    %r13,-0x50(%rbp)\n    1a10:\tmov    %r12d,-0x48(%rbp)\n    1a14:\tmov    %r14,%rsi\n    1a17:\tmov    %r15,%rdi\n    1a1a:\tvmovdqa %ymm1,-0x70(%rbp)\n    1a1f:\tvzeroupper\n    1a22:\tcall   1230 <GOMP_parallel@plt>\n    1a27:\tinc    %ebx\n    1a29:\tmov    -0x134(%rbp),%eax\n    1a2f:\tcmp    %eax,%ebx\n    1a31:\tjne    1a00 <main+0x6b0>\n    1a33:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 921,
+          "last_line": 1008,
+          "text": "0000000000001fa0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>:\n    1fa0:\tendbr64\n    1fa4:\tpush   %r15\n    1fa6:\tpush   %r14\n    1fa8:\tpush   %r13\n    1faa:\tmov    $0x1,%ecx\n    1faf:\tpush   %r12\n    1fb1:\tpush   %rbp\n    1fb2:\tpush   %rbx\n    1fb3:\tmov    $0x1,%edx\n    1fb8:\tsub    $0x38,%rsp\n    1fbc:\tmov    0x28(%rdi),%esi\n    1fbf:\tmov    0x20(%rdi),%r14\n    1fc3:\tmov    0x18(%rdi),%r13\n    1fc7:\tmov    0x10(%rdi),%r12\n    1fcb:\tlea    0x20(%rsp),%r9\n    1fd0:\tlea    0x18(%rsp),%r8\n    1fd5:\tmov    0x8(%rdi),%rbx\n    1fd9:\tmov    (%rdi),%rbp\n    1fdc:\txor    %edi,%edi\n    1fde:\tmov    %fs:0x28,%rax\n    1fe7:\tmov    %rax,0x28(%rsp)\n    1fec:\txor    %eax,%eax\n    1fee:\tmov    %r9,0x8(%rsp)\n    1ff3:\tmov    %r8,(%rsp)\n    1ff7:\tcall   1250 <GOMP_loop_nonmonotonic_dynamic_start@plt>\n    1ffc:\ttest   %al,%al\n    1ffe:\tjne    2062 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xc2>\n    2000:\tcall   1190 <GOMP_loop_end_nowait@plt>\n    2005:\tmov    0x28(%rsp),%rax\n    200a:\tsub    %fs:0x28,%rax\n    2013:\tjne    20e2 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x142>\n    2019:\tadd    $0x38,%rsp\n    201d:\tpop    %rbx\n    201e:\tpop    %rbp\n    201f:\tpop    %r12\n    2021:\tpop    %r13\n    2023:\tpop    %r14\n    2025:\tpop    %r15\n    2027:\tret\n    2028:\tnopl   0x0(%rax,%rax,1)\n    2030:\tvxorpd %xmm1,%xmm1,%xmm1\n    2034:\tadd    $0x4,%r10\n    2038:\tvmovsd %xmm1,0x0(%rbp,%rdi,8)\n    203e:\tcmp    %r15d,%r8d\n    2041:\tjb     2080 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    2043:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    204e:\txchg   %ax,%ax\n    2050:\tmov    0x8(%rsp),%rsi\n    2055:\tmov    (%rsp),%rdi\n    2059:\tcall   1210 <GOMP_loop_nonmonotonic_dynamic_next@plt>\n    205e:\ttest   %al,%al\n    2060:\tje     2000 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x60>\n    2062:\tmov    0x18(%rsp),%rax\n    2067:\tmov    0x20(%rsp),%r15d\n    206c:\tmov    %eax,%edx\n    206e:\tmov    %eax,%r8d\n    2071:\tinc    %eax\n    2073:\tmov    (%r12,%rdx,4),%r9d\n    2077:\tlea    (%r12,%rax,4),%r10\n    207b:\tnopl   0x0(%rax,%rax,1)\n    2080:\tmov    %r9d,%eax\n    2083:\tmov    (%r10),%r9d\n    2086:\tmov    %r8d,%edi\n    2089:\tinc    %r8d\n    208c:\tcmp    %r9d,%eax\n    208f:\tjae    2030 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x90>\n    2091:\tmov    %r9d,%edx\n    2094:\tlea    0x0(%r13,%rax,4),%rcx\n    2099:\tvxorpd %xmm1,%xmm1,%xmm1\n    209d:\tsub    %eax,%edx\n    209f:\tlea    -0x1(%rdx),%esi\n    20a2:\tlea    (%r14,%rax,8),%rdx\n    20a6:\txor    %eax,%eax\n    20a8:\tnopl   0x0(%rax,%rax,1)\n    20b0:\tmov    (%rcx,%rax,4),%r11d\n    20b4:\tvmovsd (%rbx,%r11,8),%xmm0\n    20ba:\tmov    %rax,%r11\n    20bd:\tvmulsd (%rdx,%rax,8),%xmm0,%xmm0\n    20c2:\tinc    %rax\n    20c5:\tvaddsd %xmm0,%xmm1,%xmm1\n    20c9:\tcmp    %r11,%rsi\n    20cc:\tjne    20b0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x110>\n    20ce:\tvmovsd %xmm1,0x0(%rbp,%rdi,8)\n    20d4:\tadd    $0x4,%r10\n    20d8:\tcmp    %r15d,%r8d\n    20db:\tjb     2080 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    20dd:\tjmp    2050 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xb0>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Dynamic scheduling is a legitimate variation.",
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_omp_r5",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "45d467ebcc6728d7bda9a79b57a1fe60aa0a8d6a0a7ccf187e211315ea8c4e4b"
+  },
+  "binary_sha256": "b1951b4a9991e0be6cf0a332167e6b98d67c249ff9ab044b632de0fae42a82f0",
+  "binding_sha256": "675c95b9c348815c1ff5b2648ea56fc48cc297553e10eb5e88447db2ef367264",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "b91a6f4fd2211768bb374e314d9ea7bcac4d6c08ffc1f0afef209147e5dbe274",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:16:14 UTC",
+    "sampled_ids": [
+      "spmv_claude-haiku-4.5_omp_r3",
+      "spmv_claude-haiku-5.5-cc-medium_omp_r4",
+      "spmv_claude-haiku-5.5-oc-medium_omp_r1"
+    ],
+    "method": "Read every proposed summary/evidence claim. Independently inspected full relevant source, build flags, clocked host control and complete outlined worker for the three sampled IDs; checked the exact clocked calls for cc r2/r5 and the dynamic worker for Haiku 4.5 r5. Proposal binding/range checks are separate provenance checks, not scientific judgments.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded all existing source citations to the complete exact source in bounded ranges; cc r4's original narrow ranges omitted the actual timed kernel at lines 129-143 and misplaced CLI/setup evidence.",
+      "Corrected the cc r2/r5 GOMP_parallel call from 0x1a06 (counter increment) to 0x1a09.",
+      "Corrected Haiku 4.5 r5's nonzero-loop endpoint from 0x20ec to 0x20cc."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:05:51Z",
+  "review_finished_at": "2026-11-04T14:08:12Z",
+  "review_input_sha256": "83d4cf3846b2dbe62211b5a8a188ba1eca2f3379b6157dd8002112b724b88777",
+  "pack_sha256": "32d6c2421139561309aff19cc961b2ca8517ec4c3847d265b4aba7046c359ccb",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

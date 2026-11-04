@@ -1,0 +1,27 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:44:54Z",
+  "review_finished_at": "2026-11-04T14:44:54Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-005.json compiled/source interpretation for spmv_claude-sonnet-4.5_hybrid_r1",
+  "reviews": [
+    {
+      "id": "spmv_claude-sonnet-4.5_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction: source lines 403–416 place CUDA and CPU implementations in mutually exclusive preprocessor branches. This bound executable includes CUDA SASS and its timed compiled loop calls spmvGpu for each runtime-count repetition; it does not run both GPU and CPU work per pass. The GPU helper launches the row kernel and synchronizes before returning. All six SASS architecture images are now cited through their actual final stores.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[18,31]],"claim":"When CUDA is available this executable is built with USE_CUDA; this pack includes the resulting device code."},
+        {"file":"spmv/spmv.cpp","ranges":[[350,385],[390,436]],"claim":"Rank-local CSR data; untimed warmup; mutually exclusive CUDA/CPU repetition branches; post-loop synchronization and result collection."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1269,1278],[1955,1985],[2589,2647],[2650,2720]],"claim":"Clocked runtime-count path calls spmvGpu once per pass with a backedge; GPU helper calls the emitted kernel stub and synchronizes before return; stub invokes cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[21,500],[501,717],[718,1200],[1201,1414],[1415,1900],[1901,2127],[2128,2600],[2601,2840],[2841,3300],[3301,3553],[3554,4000],[4001,4245]],"claim":"All six final architecture-specific row-kernel images are followed through CSR arithmetic, loop control, result stores and function ends."}
+      ],
+      "notes":"Earlier statement that both CPU and GPU compute the same rows inside each timed iteration was incorrect; those are compile-time alternatives. CPU implementation is not the timed path in this CUDA-built binary. No execution or compilation was performed by this reviewer."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

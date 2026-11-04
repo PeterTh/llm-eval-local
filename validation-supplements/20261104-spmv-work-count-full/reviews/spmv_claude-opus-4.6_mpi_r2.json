@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-opus-4.6_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Balanced complete row partitions are recomputed once per requested iteration; the separate root reference is not used as timed output.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          163,
+          196
+        ],
+        [
+          236,
+          279
+        ],
+        [
+          282,
+          304
+        ]
+      ],
+      "claim": "All rows and CSR entries are retained after scatter/rebasing. The unmodified CLI iteration bound encloses the full local multiplication.",
+      "sha256": "a05be5f6263c8c2b4cc2d062a3a19910bc38cb77d6f4785977897908c2562973",
+      "git_blob": "7626c19be4b3546be58722ca7f429ef8d229761e"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The repeated arithmetic is present at a06c/a075; nested backedges a07c->a060, a092->a030, a09b->a020 retain nonzero, row and iteration work.",
+      "complete_dump_sha256": "40773946eb714a1a54c3e3fffa3ec2de5c47a2987daa00592707e47d7cb70d98",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-4.6_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2118,
+          "last_line": 2170,
+          "text": "    9fb9:\tlea    0xa260(%rip),%rdi        # 14220 <ompi_mpi_comm_world@@Base>\n    9fc0:\tcall   8e90 <MPI_Barrier@plt>\n    9fc5:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9fca:\tmov    -0x218(%rbp),%r8d\n    9fd1:\tmov    %rax,%r15\n    9fd4:\ttest   %r8d,%r8d\n    9fd7:\tje     a0a4 <main+0x954>\n    9fdd:\tmov    -0x230(%rbp),%edx\n    9fe3:\tmov    -0x90(%rbp),%r9\n    9fea:\ttest   %edx,%edx\n    9fec:\tje     a0a4 <main+0x954>\n    9ff2:\tmov    -0x2c0(%rbp),%r8\n    9ff9:\tmov    -0x218(%rbp),%edx\n    9fff:\txor    %ecx,%ecx\n    a001:\tmov    %r14d,-0x260(%rbp)\n    a008:\tmov    -0x228(%rbp),%rax\n    a00f:\tshl    $0x2,%r8\n    a013:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a01e:\txchg   %ax,%ax\n    a020:\txor    %r11d,%r11d\n    a023:\tmov    %rax,%rsi\n    a026:\tcs nopw 0x0(%rax,%rax,1)\n    a030:\tmov    (%rsi,%r11,1),%eax\n    a034:\tmov    0x4(%rsi,%r11,1),%edi\n    a039:\tcmp    %edi,%eax\n    a03b:\tjae    a330 <main+0xbe0>\n    a041:\tdec    %edi\n    a043:\tlea    0x0(%r13,%rax,4),%r14\n    a048:\tlea    (%r12,%rax,8),%r10\n    a04c:\tvxorpd %xmm1,%xmm1,%xmm1\n    a050:\tsub    %eax,%edi\n    a052:\tmov    %rsi,-0x228(%rbp)\n    a059:\txor    %eax,%eax\n    a05b:\tnopl   0x0(%rax,%rax,1)\n    a060:\tmov    (%r14,%rax,4),%esi\n    a064:\tvmovsd (%rbx,%rsi,8),%xmm0\n    a069:\tmov    %rax,%rsi\n    a06c:\tvmulsd (%r10,%rax,8),%xmm0,%xmm0\n    a072:\tinc    %rax\n    a075:\tvaddsd %xmm0,%xmm1,%xmm1\n    a079:\tcmp    %rdi,%rsi\n    a07c:\tjne    a060 <main+0x910>\n    a07e:\tmov    -0x228(%rbp),%rsi\n    a085:\tvmovsd %xmm1,(%r9,%r11,2)\n    a08b:\tadd    $0x4,%r11\n    a08f:\tcmp    %r8,%r11\n    a092:\tjne    a030 <main+0x8e0>\n    a094:\tinc    %ecx\n    a096:\tmov    %rsi,%rax\n    a099:\tcmp    %edx,%ecx\n    a09b:\tjne    a020 <main+0x8d0>\n    a09d:\tmov    -0x260(%rbp),%r14d\n    a0a4:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-opus-4.6_mpi_r2",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "392316aae691c700e9469afb65fe47c362a918cbef175d8860cfd6e76677a417"
+  },
+  "binary_sha256": "e735514163202bd26ba305dba6dd81943e19fa439ee22f256681678b03d50e90",
+  "binding_sha256": "76cbf7e2e397aaaac526ca32829446f00410dba95253de4160d577664fa7308f",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:57:07Z",
+  "review_finished_at": "2026-11-04T12:57:41Z",
+  "review_input_sha256": "b1641dfb264c9b31b9fbb96bc7eb12e84d4f769cf3eade5e5b45c7519466667a",
+  "pack_sha256": "b9a9495a6320a398782f40118ce6cc80c5c25fefb43659ad4a7738dac3d9aa44",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

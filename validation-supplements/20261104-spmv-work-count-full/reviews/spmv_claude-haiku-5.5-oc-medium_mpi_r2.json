@@ -1,0 +1,74 @@
+{
+  "id": "spmv_claude-haiku-5.5-oc-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each requested iteration exchanges vector halo values and computes both interior and boundary rows. The two row lists partition all local rows, rather than skipping halo-dependent work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          92,
+          126
+        ],
+        [
+          208,
+          246
+        ],
+        [
+          265,
+          327
+        ],
+        [
+          331,
+          443
+        ]
+      ],
+      "claim": "Nonzero-balanced row boundaries cover [0,numRows). After column remapping, each local row is assigned exactly one list. Both lists run complete CSR arithmetic on every iteration of the unmodified CLI bound, separated by MPI_Waitall.",
+      "sha256": "8d9bd69de486a2e78a632e41b87e0a8888eb7dfb7666d3385aad1e7731454b64",
+      "git_blob": "6e31e3fc02d6f13f0268dcaf8eafcb3cee74a883"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The compiled interior and boundary multiply/add loops at af0a/af12 and afc9/afd1 are enclosed by the outer b004->ace0 repetition backedge. MPI_Waitall remains between the two sets of rows.",
+      "complete_dump_sha256": "9e0b3563857a9714fb12294b111e3901ad1f747b6dbaf74966920d66581392b7",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-oc-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2824,
+          "last_line": 2857,
+          "text": "    ac65:\tlea    0xb3b4(%rip),%rdi        # 16020 <ompi_mpi_comm_world@@Base>\n    ac6c:\tcall   8e90 <MPI_Barrier@plt>\n    ac71:\tcall   91f0 <MPI_Wtime@plt>\n    ac76:\tmov    -0xd0(%rbp),%rax\n    ac7d:\tcmpl   $0x0,-0x378(%rbp)\n    ac84:\tvmovsd %xmm0,-0x428(%rbp)\n    ac8c:\tmov    %rax,-0x340(%rbp)\n    ac93:\tmov    -0x150(%rbp),%rax\n    ac9a:\tmov    %rax,-0x3e0(%rbp)\n    aca1:\tmov    -0xf0(%rbp),%rax\n    aca8:\tmov    %rax,-0x390(%rbp)\n    acaf:\tmov    -0x130(%rbp),%rax\n    acb6:\tmov    %rax,-0x3f0(%rbp)\n    acbd:\tje     b00a <main+0x16fa>\n    acc3:\tmov    -0xb0(%rbp),%r12\n    acca:\txor    %r15d,%r15d\n    accd:\tmov    -0xa8(%rbp),%r13\n    acd4:\tmov    %r15d,-0x358(%rbp)\n    acdb:\tnopl   0x0(%rax,%rax,1)\n    ace0:\tmov    -0x3a8(%rbp),%r9d\n    ace7:\txor    %eax,%eax\n    ace9:\ttest   %r9d,%r9d\n    acec:\tjle    ad25 <main+0x1415>\n    acee:\tmov    -0x3b8(%rbp),%rcx\n    acf5:\tmov    -0x340(%rbp),%rsi\n    acfc:\tmov    -0x3b0(%rbp),%rdi\n    ad03:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    ad0e:\txchg   %ax,%ax\n    ad10:\tmov    (%rdi,%rax,4),%edx\n    ad13:\tvmovsd (%rbx,%rdx,8),%xmm0\n    ad18:\tvmovsd %xmm0,(%rsi,%rax,8)\n    ad1d:\tinc    %rax\n    ad20:\tcmp    %rax,%rcx\n    ad23:\tjne    ad10 <main+0x1400>\n"
+        },
+        {
+          "first_line": 2938,
+          "last_line": 3021,
+          "text": "    ae97:\tmov    -0x3e0(%rbp),%rax\n    ae9e:\tmov    -0x148(%rbp),%r9\n    aea5:\tmov    %rax,%rdi\n    aea8:\tcmp    %rax,%r9\n    aeab:\tje     af2a <main+0x161a>\n    aead:\tmov    -0x370(%rbp),%r10\n    aeb4:\tmov    -0x390(%rbp),%r11\n    aebb:\tmov    -0x380(%rbp),%r12\n    aec2:\tmov    -0x368(%rbp),%r13\n    aec9:\tnopl   0x0(%rax)\n    aed0:\tmov    (%rdi),%r8d\n    aed3:\tmov    %r8,%rdx\n    aed6:\tmov    (%r10,%r8,4),%eax\n    aeda:\tinc    %edx\n    aedc:\tmov    (%r10,%rdx,4),%edx\n    aee0:\tcmp    %edx,%eax\n    aee2:\tjae    b350 <main+0x1a40>\n    aee8:\tsub    %eax,%edx\n    aeea:\tlea    0x0(%r13,%rax,4),%rsi\n    aeef:\tlea    (%r12,%rax,8),%rcx\n    aef3:\tvxorpd %xmm1,%xmm1,%xmm1\n    aef7:\txor    %eax,%eax\n    aef9:\tnopl   0x0(%rax)\n    af00:\tmov    (%rsi,%rax,4),%r14d\n    af04:\tvmovsd (%rbx,%r14,8),%xmm0\n    af0a:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    af0f:\tinc    %rax\n    af12:\tvaddsd %xmm0,%xmm1,%xmm1\n    af16:\tcmp    %rdx,%rax\n    af19:\tjne    af00 <main+0x15f0>\n    af1b:\tadd    $0x4,%rdi\n    af1f:\tvmovsd %xmm1,(%r11,%r8,8)\n    af25:\tcmp    %rdi,%r9\n    af28:\tjne    aed0 <main+0x15c0>\n    af2a:\tmov    -0xa8(%rbp),%r13\n    af31:\tmov    -0xb0(%rbp),%r12\n    af38:\txor    %edx,%edx\n    af3a:\tmov    %r13,%rdi\n    af3d:\tmov    %r12,%rsi\n    af40:\tsub    %r12,%rdi\n    af43:\tsar    $0x3,%rdi\n    af47:\tcall   9170 <MPI_Waitall@plt>\n    af4c:\tmov    -0x3f0(%rbp),%rax\n    af53:\tmov    -0x128(%rbp),%r9\n    af5a:\tmov    %rax,%rdi\n    af5d:\tcmp    %rax,%r9\n    af60:\tje     aff0 <main+0x16e0>\n    af66:\tmov    %r12,-0x398(%rbp)\n    af6d:\tmov    -0x370(%rbp),%r11\n    af74:\tmov    -0x390(%rbp),%r14\n    af7b:\tmov    -0x380(%rbp),%r12\n    af82:\tmov    -0x368(%rbp),%r15\n    af89:\tnopl   0x0(%rax)\n    af90:\tmov    (%rdi),%r10d\n    af93:\tmov    %r10,%rdx\n    af96:\tmov    (%r11,%r10,4),%eax\n    af9a:\tinc    %edx\n    af9c:\tmov    (%r11,%rdx,4),%ecx\n    afa0:\tcmp    %ecx,%eax\n    afa2:\tjae    b360 <main+0x1a50>\n    afa8:\tsub    %eax,%ecx\n    afaa:\tlea    (%r15,%rax,4),%r8\n    afae:\tlea    (%r12,%rax,8),%rsi\n    afb2:\tvxorpd %xmm1,%xmm1,%xmm1\n    afb6:\txor    %eax,%eax\n    afb8:\tnopl   0x0(%rax,%rax,1)\n    afc0:\tmov    (%r8,%rax,4),%edx\n    afc4:\tvmovsd (%rbx,%rdx,8),%xmm0\n    afc9:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    afce:\tinc    %rax\n    afd1:\tvaddsd %xmm0,%xmm1,%xmm1\n    afd5:\tcmp    %rax,%rcx\n    afd8:\tjne    afc0 <main+0x16b0>\n    afda:\tadd    $0x4,%rdi\n    afde:\tvmovsd %xmm1,(%r14,%r10,8)\n    afe4:\tcmp    %r9,%rdi\n    afe7:\tjne    af90 <main+0x1680>\n    afe9:\tmov    -0x398(%rbp),%r12\n    aff0:\tincl   -0x358(%rbp)\n    aff6:\tmov    -0x378(%rbp),%edi\n    affc:\tmov    -0x358(%rbp),%eax\n    b002:\tcmp    %edi,%eax\n    b004:\tjne    ace0 <main+0x13d0>\n    b00a:\tcall   91f0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Repeated halo exchange is additional communication work, not a work-count omission. The immutable input vector could instead be replicated before timing, as other valid implementations do.",
+  "source": {
+    "source_path": "20261025-170040/spmv_claude-haiku-5.5-oc-medium_mpi_r2",
+    "source_commit": "24648e59045c3e8d7280119627a7bccde1da4f2f",
+    "staged_source_sha256": "046892a1112788ba1f569c687f848233b2172d7d451f084b1acc21847091ec7a"
+  },
+  "binary_sha256": "e657840ef599bf1af7d582ae3379d59b633df13274382efe3b29d6005da0e808",
+  "binding_sha256": "d22e7ab301114a842291cbddad346eac2f9bc6aa6e59ac6565ff2f38f915eb67",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:55:40Z",
+  "review_finished_at": "2026-11-04T12:56:34Z",
+  "review_input_sha256": "457093fd7e0bdafc7bcdba53f805c4e8bdd06cd59dea7a976a957394c814f7c3",
+  "pack_sha256": "9ea7b58a96c6efe587787998f505d664245fa2207a342852163b2214db4a4452",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

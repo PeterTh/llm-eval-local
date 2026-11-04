@@ -1,0 +1,994 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:32:28Z",
+  "review_finished_at": "2026-11-04T15:32:40Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source partitions rows and their CSR data, and the timed loop runs to the requested iteration count. For each nonempty local partition it launches the kernel; each assigned row consumes its full rowDelimiters[row]..rowDelimiters[row+1] interval, accumulates the products and writes the row output. The host dump confirms the loop, launch and device synchronization within the measured interval. Final sm86 SASS has the kernel's row bounds, CSR backedge, multiply-add and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              342
+            ]
+          ],
+          "claim": "Complete input and MPI row partition, CSR kernel and output store, timed repetition loop and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              964,
+              1051
+            ]
+          ],
+          "claim": "Exact measured iteration loop, kernel launch, device synchronization and clock end."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              499
+            ],
+            [
+              500,
+              782
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body in bounded spans; row guard, CSR interval/backedge, arithmetic and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2030,
+              2095
+            ]
+          ],
+          "claim": "The actual called device stub packages arguments and invokes cudaLaunchKernel; its caller is in the cited timed main interval."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank holds its complete local CSR partition. The runtime dispatch chooses width 4/8/16/32 based on average row length; the selected kernel processes its row groups and all nonzeros in each row before reduction and output. The timed main path loops exactly iterations times and synchronizes. The compiled host path confirms the loop and dispatch to one of the four stubs; all four final sm86 SASS variants contain the row/nonzero arithmetic and output path.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              392
+            ]
+          ],
+          "claim": "Complete command-line/input construction, MPI row/nonzero partitioning, width dispatch, row/nonzero kernels, warmup, timed loop and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1213,
+              1236
+            ]
+          ],
+          "claim": "Measured launch-loop control and timing boundary in main."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ],
+            [
+              312,
+              604
+            ],
+            [
+              605,
+              881
+            ],
+            [
+              882,
+              1158
+            ]
+          ],
+          "claim": "All four complete final-sm86 width-specialized kernel bodies; each has row coverage, full CSR traversal, accumulation/reduction and output."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2559,
+              2619
+            ]
+          ],
+          "claim": "Complete called width-4 host launch wrapper through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2620,
+              2680
+            ]
+          ],
+          "claim": "Complete called width-8 host launch wrapper through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2681,
+              2741
+            ]
+          ],
+          "claim": "Complete called width-16 host launch wrapper through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2742,
+              2802
+            ]
+          ],
+          "claim": "Complete called width-32 host launch wrapper through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The MPI partition and local row-pointer adjustment preserve the local CSR interval. The timed host loop launches once per requested iteration for each nonempty partition. The warp kernel assigns local rows, lanes stride through each row's CSR range in increments of 32, reduce the accumulated products, and write the row result. The exact host interval includes launch repetition and synchronization; final sm86 SASS shows row bounds, nonzero loop/backedge, arithmetic, warp reduction and store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              387
+            ]
+          ],
+          "claim": "Complete CLI/input setup, MPI CSR row partition, warp kernel, timed iteration loop, synchronization and output handling."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1517,
+              1535
+            ]
+          ],
+          "claim": "Exact timed repetition loop/call and synchronization to clock end."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS kernel: row bound, lane-derived CSR range traversal/backedge, accumulated products, reduction and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2857,
+              2917
+            ]
+          ],
+          "claim": "Complete called GPU device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source partitions rows and CSR data across ranks. The measured loop invokes the warp kernel when local average row length selects it, otherwise the thread-per-row kernel, exactly once for each requested repetition, followed by synchronization. The warp kernel iterates all row nonzeros by lane stride and reduces/stores; the thread kernel traverses the complete row interval and stores its sum. The bound executable contains both selectable final-sm86 kernels with the corresponding row/nonzero loops and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              299
+            ]
+          ],
+          "claim": "Complete input/MPI partition, both dispatch kernels, timed iteration loop and synchronization/output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1800,
+              1827
+            ]
+          ],
+          "claim": "Measured launch loop and synchronization through clock end."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ],
+            [
+              312,
+              800
+            ],
+            [
+              801,
+              1004
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS for both selectable warp and thread kernels, including each row bound, CSR traversal, arithmetic/reduction, and store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2958,
+              3018
+            ]
+          ],
+          "claim": "Complete thread-kernel device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3019,
+              3079
+            ]
+          ],
+          "claim": "Complete warp-kernel device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source creates contiguous MPI row partitions and local CSR offsets. The measured loop launches the warp-per-row kernel once per requested iteration, then checks and synchronizes before stopping the clock. Each warp maps to a row; lanes stride across the row's CSR interval, accumulate products, reduce and store one result. The single final-sm86 kernel body contains row bounds, the full nonzero backedge, arithmetic/reduction and output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              383
+            ]
+          ],
+          "claim": "Complete input and MPI CSR distribution, warp kernel, timed repetition loop, synchronization and output collection."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1189,
+              1236
+            ]
+          ],
+          "claim": "Exact timed per-iteration launch path, device synchronization and clock end."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              327
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS kernel body: row bounds, nonzero traversal/backedge, accumulation, warp reduction and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2256,
+              2316
+            ]
+          ],
+          "claim": "Complete called GPU device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "After rank-local CSR setup, the measured loop launches the warp-row kernel once per requested iteration for nonempty local rows and synchronizes. The device kernel grid-strides rows and its lanes stride through each complete CSR row interval, accumulate products, reduce and store. Host timing and final-sm86 SASS confirm the repetition and compute paths.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              372
+            ]
+          ],
+          "claim": "Complete input/MPI CSR partition, grid-stride row and nonzero kernel, timed repetition loop, synchronization and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1697,
+              1778
+            ]
+          ],
+          "claim": "Exact timed kernel repetition loop and synchronization through clock end."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              439
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS kernel body with row-grid progression, CSR nonzero traversal, product accumulation, reduction and store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2898,
+              2958
+            ]
+          ],
+          "claim": "Complete called GPU device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are split among the rank's local GPU workers with CSR delimiters and vector inputs prepared per device. The measured main path enters an OpenMP parallel-for outlined worker; each worker sets its device and for its assigned nonempty partition replays iterations/batch graphs plus remainder launches, then synchronizes its stream. The worker's graph and direct-launch backedges are bounded by the passed iteration count. Each dispatched width 4/8/16/32 kernel covers rows and all CSR entries, reduces and stores. The selected final-sm86 device functions are present.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              245
+            ],
+            [
+              246,
+              490
+            ]
+          ],
+          "claim": "Complete CLI/input and MPI partition, per-GPU worker setup/width selection, graph capture, timed OpenMP worker repetition path, synchronization and output gathering."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "Build configuration for the inspected multi-GPU CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1604,
+              1730
+            ],
+            [
+              3623,
+              3639
+            ]
+          ],
+          "claim": "Complete timed outlined OpenMP worker, including graph quotient, residual launch loop, per-device stream synchronization and worker progression; main's clock surrounds the GOMP_parallel call."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1692
+            ],
+            [
+              1693,
+              2100
+            ],
+            [
+              2101,
+              2481
+            ],
+            [
+              2482,
+              2900
+            ],
+            [
+              2901,
+              3238
+            ]
+          ],
+          "claim": "All four complete final-sm86 selectable width kernels in bounded spans; row bounds/progression, CSR nonzero traversal, arithmetic, reduction and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              988,
+              1120
+            ]
+          ],
+          "claim": "Outlined setup/capture worker leading to launch helper."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1121,
+              1436
+            ]
+          ],
+          "claim": "Complete launch helper: width dispatch, graph capture launches through the called width wrappers, and graph instantiation."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1731,
+              1898
+            ]
+          ],
+          "claim": "Outlined post-timing GPU cleanup worker; establishes helper/capture chain context."
+        }
+      ],
+      "notes": "The separately outlined setup/cleanup workers are not treated as the timed compute worker; the cited _omp_fn.2 is the worker called by GOMP_parallel inside the measured interval."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source partitions each rank's CSR rows, chooses the row width, and captures up to 128 complete launch nodes. During timing it replays iterations/batch graphs and issues iterations%batch direct launches, then synchronizes the stream before stopping the clock. The compiled host loop reflects this quotient/remainder count. The four runtime-selectable final-sm86 kernels (widths 4/8/16/32) cover row groups and complete row nonzero ranges with reduction and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              273
+            ],
+            [
+              274,
+              546
+            ]
+          ],
+          "claim": "Complete input and MPI row partition, width dispatch, bounded graph capture and timed quotient/remainder replay, synchronization and output collection."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3724,
+              3740
+            ]
+          ],
+          "claim": "Exact timed graph quotient/remainder control and stream synchronization through clock end."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              855
+            ],
+            [
+              856,
+              1300
+            ],
+            [
+              1301,
+              1692
+            ],
+            [
+              1693,
+              2100
+            ],
+            [
+              2101,
+              2497
+            ]
+          ],
+          "claim": "All four runtime-selectable final-sm86 width kernels, split into bounded spans; each body contains row/nonzero bounds and backedges, accumulation, reduction and store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1004,
+              1157
+            ]
+          ],
+          "claim": "Complete main path, including timed clock boundaries and graph capture/replay setup."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1237,
+              1632
+            ]
+          ],
+          "claim": "Outlined GPU setup/capture and dispatch workers preceding the timed region."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1633,
+              1692
+            ]
+          ],
+          "claim": "Width-2 device stub (not runtime-selected)."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1693,
+              1752
+            ]
+          ],
+          "claim": "Width-4 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1753,
+              1812
+            ]
+          ],
+          "claim": "Width-8 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1813,
+              1872
+            ]
+          ],
+          "claim": "Width-16 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1873,
+              1932
+            ]
+          ],
+          "claim": "Width-32 device stub through cudaLaunchKernel."
+        }
+      ],
+      "notes": "The source and bound dump include a Width=2 specialization too; runtime width thresholds select only 4/8/16/32, so Width=2 is not counted as a selected variant."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank owns complete row and CSR intervals after MPI partitioning. Width dispatch selects 4/8/16/32; after an untimed warmup and graph capture, the measured path replays iterations/batch graph launches and the residual direct launches, then synchronizes. The host dump confirms graph repetition and clock boundaries. Each selected final-sm86 kernel covers its assigned row groups and each row's full nonzero interval, reduces and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              229
+            ],
+            [
+              230,
+              458
+            ]
+          ],
+          "claim": "Complete CLI/data setup, MPI row/nonzero partition, width-selected kernels, graph capture, timed quotient/remainder launch path, synchronization and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Build configuration for the inspected CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2869,
+              2912
+            ]
+          ],
+          "claim": "Exact measured graph quotient/remainder launch loops and stream synchronization through clock end."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1708
+            ],
+            [
+              1709,
+              2150
+            ],
+            [
+              2151,
+              2513
+            ],
+            [
+              2514,
+              2900
+            ],
+            [
+              2901,
+              3286
+            ]
+          ],
+          "claim": "All four selected final-sm86 width variants, split into bounded spans; row/nonzero control, arithmetic, reduction and stores are present."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              740,
+              894
+            ]
+          ],
+          "claim": "Complete main function, including width dispatch, graph capture, timed graph/remainder dispatch, and synchronization."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              974,
+              1090
+            ]
+          ],
+          "claim": "Outlined setup worker and GPU launch preparation."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1091,
+              1150
+            ]
+          ],
+          "claim": "Width-4 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1151,
+              1210
+            ]
+          ],
+          "claim": "Width-8 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1211,
+              1270
+            ]
+          ],
+          "claim": "Width-16 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1271,
+              1330
+            ]
+          ],
+          "claim": "Width-32 device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are divided among available GPUs per rank, with each partition receiving its rows, offsets, nonzeros and vector. Runtime row-length selection chooses Width 1/2/4/8/16/32. Each GPU captures a bounded graph of complete launches; the timed OpenMP worker distributes GPU partitions across threads, replays iterations/batch graphs plus residual launches for each nonempty partition, and synchronizes its stream. The outlined worker's graph quotient and remainder paths are bounded by iterations. Each selectable final-sm86 kernel covers its row groups and complete CSR ranges, reduces and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              281
+            ],
+            [
+              282,
+              562
+            ]
+          ],
+          "claim": "Complete CLI, MPI and multi-GPU row/nonzero partitioning, width dispatch, per-GPU graph capture and measured OpenMP repetition/synchronization/output paths."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Build configuration for the inspected multi-GPU CUDA/MPI/OpenMP source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2913,
+              3215
+            ],
+            [
+              5687,
+              5719
+            ]
+          ],
+          "claim": "Complete outlined OpenMP timed worker: each assigned GPU's graph replay quotient, direct-launch remainder, stream synchronization and GPU-partition progression; main's clock surrounds GOMP_parallel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1708
+            ],
+            [
+              1709,
+              2150
+            ],
+            [
+              2151,
+              2513
+            ],
+            [
+              2514,
+              2900
+            ],
+            [
+              2901,
+              3286
+            ],
+            [
+              3287,
+              3700
+            ],
+            [
+              3701,
+              4027
+            ],
+            [
+              4028,
+              4400
+            ],
+            [
+              4401,
+              4704
+            ]
+          ],
+          "claim": "All six runtime-selectable final-sm86 width variants, split into bounded spans; row/nonzero progression and bounds, arithmetic, reduction and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2326,
+              2390
+            ]
+          ],
+          "claim": "Width-1 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2391,
+              2455
+            ]
+          ],
+          "claim": "Width-2 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2456,
+              2520
+            ]
+          ],
+          "claim": "Width-4 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2521,
+              2585
+            ]
+          ],
+          "claim": "Width-8 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2586,
+              2650
+            ]
+          ],
+          "claim": "Width-16 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2651,
+              2715
+            ]
+          ],
+          "claim": "Width-32 device stub through cudaLaunchKernel."
+        }
+      ],
+      "notes": "The timed OpenMP outlined worker is lambda #2 (the lambda passed around the measured GOMP_parallel); lambda #1 setup and lambda #3 post-timing copies/cleanup are not substituted for it."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}
+

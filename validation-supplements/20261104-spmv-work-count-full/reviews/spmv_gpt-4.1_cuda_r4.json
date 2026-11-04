@@ -1,0 +1,122 @@
+{
+  "id": "spmv_gpt-4.1_cuda_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The bound executable follows the CXX CPU fallback. In the timed path, the compiler inlines the CPU CSR SpMV loop into main: the outer iteration counter repeats, each pass walks all rows and each row's CSR interval, and every row is stored. The separate spmvCpu function is present for the optional reference path, not the timed path.",
+  "source_evidence": [
+    {
+      "file": "common/hash.hpp",
+      "ranges": [
+        [
+          1,
+          22
+        ]
+      ],
+      "claim": "Complete pinned source/build for delegated static control-flow inspection; raw targeted claims preserved.",
+      "sha256": "da47685f2f22487193f986eeba67fe414f80d50536a63e03cae0a6935d76a4e9",
+      "git_blob": "42ad06602e366caf62be9789dcae2d52fd0c2845"
+    },
+    {
+      "file": "common/results_output.hpp",
+      "ranges": [
+        [
+          1,
+          109
+        ]
+      ],
+      "claim": "Complete pinned source/build for delegated static control-flow inspection; raw targeted claims preserved.",
+      "sha256": "39dce5caf66268985c8ea44e5c60b619f1cca6e663a0fec4ff9c1dea9cc43e5e",
+      "git_blob": "3e22592ef4a79da8e4a8bee91bbcb5768d4b2c82"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          16
+        ]
+      ],
+      "claim": "Complete pinned source/build for delegated static control-flow inspection; raw targeted claims preserved.",
+      "sha256": "a55926808653aa60017715b4172b64c8c1fa5c2e2bb182ae0c3a3087105658b3",
+      "git_blob": "2def4e62f21b4d2e20a8ad09f1dce3db7965f75d"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          310
+        ]
+      ],
+      "claim": "Complete pinned source/build for delegated static control-flow inspection; raw targeted claims preserved.",
+      "sha256": "ade675ede133a6d441f45db1516eeff12564b7900d8bbfa03f62ef4a2ea1e41f",
+      "git_blob": "d852078886b1a726c0d8028d86ede27f57fe2bc5"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Actual timed main's iteration loop contains complete per-row CSR multiply/add loop and stores with row/count backedges. Separate branch handles empty rows with a zero store then returns to row/count control. No timed GPU execution is present.",
+      "complete_dump_sha256": "c9acc848ee9b59c4a899c1164d7abca27433662c12fc4bd0c1920a6964ee964f",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-4.1_cuda_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 525,
+          "last_line": 569,
+          "text": "    1848:\tcall   1130 <std::chrono::_V2::system_clock::now()@plt>\n    184d:\tmov    0x18(%rsp),%edx\n    1851:\tmov    0xd0(%rsp),%r14\n    1859:\tmov    %rax,0x30(%rsp)\n    185e:\ttest   %edx,%edx\n    1860:\tje     1903 <main+0x633>\n    1866:\tmov    0x14(%rsp),%eax\n    186a:\ttest   %eax,%eax\n    186c:\tje     1903 <main+0x633>\n    1872:\tmov    0x28(%rsp),%r12\n    1877:\tmov    0x18(%rsp),%esi\n    187b:\txor    %ecx,%ecx\n    187d:\tshl    $0x2,%r12\n    1881:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    188c:\tnopl   0x0(%rax)\n    1890:\txor    %r8d,%r8d\n    1893:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    189e:\txchg   %ax,%ax\n    18a0:\tmov    0x0(%rbp,%r8,1),%eax\n    18a5:\tmov    0x4(%rbp,%r8,1),%edx\n    18aa:\tcmp    %edx,%eax\n    18ac:\tjae    1ad0 <main+0x800>\n    18b2:\tdec    %edx\n    18b4:\tlea    (%r15,%rax,4),%r9\n    18b8:\tlea    0x0(%r13,%rax,8),%rdi\n    18bd:\tvxorpd %xmm1,%xmm1,%xmm1\n    18c1:\tsub    %eax,%edx\n    18c3:\txor    %eax,%eax\n    18c5:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    18d0:\tmov    (%r9,%rax,4),%r10d\n    18d4:\tvmovsd (%rbx,%r10,8),%xmm0\n    18da:\tmov    %rax,%r10\n    18dd:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    18e2:\tinc    %rax\n    18e5:\tvaddsd %xmm0,%xmm1,%xmm1\n    18e9:\tcmp    %r10,%rdx\n    18ec:\tjne    18d0 <main+0x600>\n    18ee:\tvmovsd %xmm1,(%r14,%r8,2)\n    18f4:\tadd    $0x4,%r8\n    18f8:\tcmp    %r8,%r12\n    18fb:\tjne    18a0 <main+0x5d0>\n    18fd:\tinc    %ecx\n    18ff:\tcmp    %esi,%ecx\n    1901:\tjne    1890 <main+0x5c0>\n    1903:\tcall   1130 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 674,
+          "last_line": 679,
+          "text": "    1ad0:\tvxorpd %xmm1,%xmm1,%xmm1\n    1ad4:\tvmovsd %xmm1,(%r14,%r8,2)\n    1ada:\tadd    $0x4,%r8\n    1ade:\tcmp    %r8,%r12\n    1ae1:\tjne    18a0 <main+0x5d0>\n    1ae7:\tjmp    18fd <main+0x62d>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "No PTX/SASS is embedded; the actual bound path is CPU despite CUDA backend labeling. This is a backend/implementation discrepancy, not a work-count omission.",
+  "source": {
+    "source_path": "20260215-162417/spmv_gpt-4.1_cuda_r4",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "ae0fc0c470989028ba73248379a3a016b3f27a389a50f1c743d6e3ac735467a1"
+  },
+  "binary_sha256": "69f552fa7b43225a049e1c088a62f535c7c8768e61722f66420e0a40190b06c2",
+  "binding_sha256": "ace408d1e84d986f39d3044f3d959d2690aae61b9f4cc41480d506a2b88ac022",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "2e69e3762942fb2c6daf345543d6403a1b9fe9be945c22cd7f9dc6051e881688",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:25:07Z",
+    "sampled_ids": [
+      "spmv_gpt-4.1_cuda_r4"
+    ],
+    "method": "Read all original and v2 findings/claims, verified bindings/ranges, and independently inspected sample complete relevant source/build and actual timed inlined CPU iteration/row/CSR loops including empty-row branch. This confirms full work despite the CUDA backend label; no historical runtime backend inference beyond this bound executable. Remaining nine GPU inspections were delegated, with Gemini r2 removed and accepted separately only after checked Sol adjudication.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Exclude Gemini CUDA r2: original sm52 compatibility claim and v2 claim that PTX was absent are both superseded by the retained Sol report and primary direct inspection of its 174-line PTX dump.",
+      "Use actual timed CPU code and empty-row branch for GPT4.1 CUDA r4; standalone reference helper is unnecessary evidence.",
+      "Use v2 corrected actual CUDA helper/stub chains and complete kernel bodies for remaining CUDA cases.",
+      "Expand source references to complete pinned files."
+    ],
+    "supplemental_proposals": [
+      {
+        "file": "spmv-luna-cuda-batch-007-v2.json",
+        "sha256": "c9501e9867831401afad0625d8c3ae41d13192c0fd9850e709b9db5a58bb7cda"
+      }
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T15:06:34Z",
+  "review_finished_at": "2026-11-04T15:22:58Z",
+  "review_input_sha256": "33b4704b5e9d3325fb5c6e379bc16562f6585feb4d3cfab3dc814ef2fc2fbefb",
+  "pack_sha256": "629b9202781859e5cb75f835368f33e7ede0b2dbc43fcdd9ba8803dd2c1cdc46",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

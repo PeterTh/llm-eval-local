@@ -1,0 +1,88 @@
+{
+  "id": "spmv_gpt-5.6-terra-xhigh_omp_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed GOMP call launches the count-taking worker. It repeats full row computation per requested iteration, including every CSR nonzero in each assigned row, indexed multiply/add and output store, with synchronization between passes.",
+  "source_evidence": [
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          16
+        ]
+      ],
+      "claim": "Complete exact OpenMP build configuration.",
+      "sha256": "7131a4258394e8d18bd5d6aba0ecc2be9785345596ef1c05efda0c2b890f1703",
+      "git_blob": "4018c0b6e3a7b3f068d3fdc8ab1ab2b248b62aa7"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          286
+        ]
+      ],
+      "claim": "Complete exact source includes CSR setup and persistent iteration-count row kernel.",
+      "sha256": "fddee2e714bb2cd398e4fadfe85129f5cc9e8cc6b7aec2c4697b168fa0443a68",
+      "git_blob": "19aca4f775f231cba30b5fb8e7b6be6750aa3e69"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clocked GOMP launch and entire worker body include count/barrier control, row/nonzero loops, arithmetic and stores.",
+      "complete_dump_sha256": "e4823be0404cfd9de337c47d385d16635fd3ec807e7e136bc22bb183a1580705",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-terra-xhigh_omp_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 588,
+          "last_line": 601,
+          "text": "    19b2:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n    19b7:\tvmovdqa -0x170(%rbp),%ymm7\n    19bf:\txor    %ecx,%ecx\n    19c1:\txor    %edx,%edx\n    19c3:\tmov    -0x90(%rbp),%r12\n    19ca:\tmov    -0x148(%rbp),%rsi\n    19d1:\tlea    0x668(%rip),%rdi        # 2040 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]>\n    19d8:\tmov    %rbx,-0x48(%rbp)\n    19dc:\tmov    %rax,%r15\n    19df:\tmov    %r12,-0x50(%rbp)\n    19e3:\tvmovdqa %ymm7,-0x70(%rbp)\n    19e8:\tvzeroupper\n    19eb:\tcall   1210 <GOMP_parallel@plt>\n    19f0:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 983,
+          "last_line": 1090,
+          "text": "0000000000002040 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]>:\n    2040:\tendbr64\n    2044:\tpush   %r15\n    2046:\tpush   %r14\n    2048:\tpush   %r13\n    204a:\tpush   %r12\n    204c:\tpush   %rbp\n    204d:\tpush   %rbx\n    204e:\tsub    $0x28,%rsp\n    2052:\tmov    0x20(%rdi),%rbx\n    2056:\tmov    0x28(%rdi),%eax\n    2059:\tmov    0x2c(%rdi),%r13d\n    205d:\tmov    0x18(%rdi),%r14\n    2061:\tmov    0x8(%rdi),%rbp\n    2065:\tmov    (%rdi),%r12\n    2068:\tmov    %rbx,0x10(%rsp)\n    206d:\tmov    0x10(%rdi),%rbx\n    2071:\tmov    %eax,0xc(%rsp)\n    2075:\tmov    %rbx,0x18(%rsp)\n    207a:\ttest   %r13d,%r13d\n    207d:\tje     2195 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x155>\n    2083:\txor    %ebx,%ebx\n    2085:\ttest   %eax,%eax\n    2087:\tjne    20a0 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x60>\n    2089:\tjmp    2189 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x149>\n    208e:\txchg   %ax,%ax\n    2090:\tinc    %ebx\n    2092:\tcall   1250 <GOMP_barrier@plt>\n    2097:\tcmp    %ebx,%r13d\n    209a:\tje     2195 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x155>\n    20a0:\tcall   1260 <omp_get_num_threads@plt>\n    20a5:\tmov    %eax,%r15d\n    20a8:\tcall   1230 <omp_get_thread_num@plt>\n    20ad:\txor    %edx,%edx\n    20af:\tmov    %eax,%ecx\n    20b1:\tmov    0xc(%rsp),%eax\n    20b5:\tdiv    %r15d\n    20b8:\tcmp    %edx,%ecx\n    20ba:\tjb     2180 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x140>\n    20c0:\timul   %eax,%ecx\n    20c3:\tadd    %ecx,%edx\n    20c5:\tlea    (%rax,%rdx,1),%ecx\n    20c8:\tcmp    %ecx,%edx\n    20ca:\tjae    2090 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x50>\n    20cc:\tmov    0x18(%rsp),%rdi\n    20d1:\tdec    %eax\n    20d3:\tlea    0x4(,%rax,4),%r11\n    20db:\tmov    %edx,%eax\n    20dd:\tinc    %edx\n    20df:\tlea    (%rdi,%rax,4),%r10\n    20e3:\tlea    (%rdi,%rdx,4),%r9\n    20e7:\tmov    0x10(%rsp),%rdi\n    20ec:\tlea    (%rdi,%rax,8),%r8\n    20f0:\txor    %edi,%edi\n    20f2:\tmov    (%r10,%rdi,1),%eax\n    20f6:\tmov    (%r9,%rdi,1),%edx\n    20fa:\tcmp    %edx,%eax\n    20fc:\tjae    215d <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x11d>\n    20fe:\txchg   %ax,%ax\n    2100:\tdec    %edx\n    2102:\tlea    0x0(%rbp,%rax,4),%rsi\n    2107:\tlea    (%r12,%rax,8),%rcx\n    210b:\tvxorpd %xmm1,%xmm1,%xmm1\n    210f:\tsub    %eax,%edx\n    2111:\txor    %eax,%eax\n    2113:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    211e:\txchg   %ax,%ax\n    2120:\tmov    (%rsi,%rax,4),%r15d\n    2124:\tvmovsd (%r14,%r15,8),%xmm0\n    212a:\tmov    %rax,%r15\n    212d:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    2132:\tinc    %rax\n    2135:\tvaddsd %xmm0,%xmm1,%xmm1\n    2139:\tcmp    %rdx,%r15\n    213c:\tjne    2120 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    213e:\tvmovsd %xmm1,(%r8,%rdi,2)\n    2144:\tadd    $0x4,%rdi\n    2148:\tcmp    %rdi,%r11\n    214b:\tje     2090 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x50>\n    2151:\tmov    (%r10,%rdi,1),%eax\n    2155:\tmov    (%r9,%rdi,1),%edx\n    2159:\tcmp    %edx,%eax\n    215b:\tjb     2100 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xc0>\n    215d:\tvxorpd %xmm1,%xmm1,%xmm1\n    2161:\tvmovsd %xmm1,(%r8,%rdi,2)\n    2167:\tadd    $0x4,%rdi\n    216b:\tcmp    %rdi,%r11\n    216e:\tjne    2151 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x111>\n    2170:\tjmp    2090 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x50>\n    2175:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    2180:\tinc    %eax\n    2182:\txor    %edx,%edx\n    2184:\tjmp    20c0 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    2189:\tinc    %ebx\n    218b:\tcall   1250 <GOMP_barrier@plt>\n    2190:\tcmp    %ebx,%r13d\n    2193:\tjne    2189 <spmvCpuIterations(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x149>\n    2195:\tadd    $0x28,%rsp\n    2199:\tpop    %rbx\n    219a:\tpop    %rbp\n    219b:\tpop    %r12\n    219d:\tpop    %r13\n    219f:\tpop    %r14\n    21a1:\tpop    %r15\n    21a3:\tret\n    21a4:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    21af:\tnop\n\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Persistent team.",
+  "source": {
+    "source_path": "20260805-120633/spmv_gpt-5.6-terra-xhigh_omp_r5",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "1d81b974f34f78719046018aaa4962a507830aeed532543c60eb68d5f00e2384"
+  },
+  "binary_sha256": "200588418ed230d51b1ad205f968d7afd814684c11de153681d63b8ad7c18b7c",
+  "binding_sha256": "3515d6063dc2d98a2f99c70ad528b328391659f907a4a6388b9c5164b8e5aec1",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "a49e8194e6b190f1f0a8e492a27e30d9a9e4c0fa83afe3860be7ebdf851d7be1",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T14:49:08Z",
+    "sampled_ids": [
+      "spmv_gpt-6-astra-medium_omp_r1"
+    ],
+    "method": "Primary read every proposal summary/evidence claim and independently inspected the sampled implementation's complete relevant source/build, timed host control flow, actual wrapper where called, and entire outlined worker including partition, runtime repetition, CSR arithmetic, empty-row outputs and all backedges. Other implementations use Luna's independent inspections plus primary proposal/provenance checks; this is not independent primary inspection of all ten.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Primary inspection trimmed sampled Astra r1 wrapper excerpt to exact function1194; original range also included the following verifier. No work-count interpretation changed."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:40:53Z",
+  "review_finished_at": "2026-11-04T14:42:07Z",
+  "review_input_sha256": "d44ddfd59c3e35541ac1f0d86c375506bc38d1c3208ebeece0c9bafe8d787b3f",
+  "pack_sha256": "8d80d2b3399fda1b70b81ad2e96d1720e34d396de597d3dd1c4cfbac68fdc3b3",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

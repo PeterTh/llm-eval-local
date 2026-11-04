@@ -1,0 +1,692 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "unknown; exact corrective inspection began before a UTC start reading was captured",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "This executable's timed host path starts at MPI_Wtime call 0xcb07 and ends at 0xcdbd. In the nonzero-local-row/count path, main initializes the iteration counter at 0xcb43 and calls the exact launch stub at 0xcbd9; the completion path increments at 0xcb66, compares with the runtime iteration value at 0xcb69, and returns to launch setup at 0xcb71 until the bound. The source-selected sm_86 `spmvKernel` grid-strides rows, bounds each row by adjacent CSR offsets, multiplies every value/vector entry in that interval, accumulates, and stores each row result. The startup/warmup before the barrier is outside the timed loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              314
+            ]
+          ],
+          "claim": "Exact CLI/default and CSR distribution, kernel body, pre-timed warmup, timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1715,
+              1783
+            ],
+            [
+              1858,
+              1867
+            ],
+            [
+              2242,
+              2242
+            ],
+            [
+              2966,
+              3026
+            ]
+          ],
+          "claim": "Exact timed start/end and count-controlled launch path, plus full actual `__device_stub__` body through the runtime launch call; the separate earlier call is outside timing."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              263
+            ]
+          ],
+          "claim": "Complete sm_86 SASS for the sole source-selected kernel, including row/CSR traversal, arithmetic, stores, and loop branches."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI_Wtime starts the measured interval at 0xc8f7 and ends it at 0xc9a6. The warmup/synchronization route beginning at 0xd64d reaches the duplicate start-clock at 0xd715 and then the same ordinary out-of-line timed loop, not an alternate long-row strategy. That loop initializes ebx at 0xd74c; the per-pass kernel stub call is 0xd7e9, the pass counter increments at 0xd776, compares with requested iterations at 0xd779, and exits to 0xc918 at 0xd77b. The source dispatch is a single warp-per-row kernel; its lanes stride through each row's full CSR interval by 32, reduce, and lane zero stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              314
+            ]
+          ],
+          "claim": "Exact CLI/runtime dimensions and iteration count, CSR setup, warmup, single warp-per-row kernel, measured loop, synchronization and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1624,
+              1663
+            ],
+            [
+              2312,
+              2356
+            ],
+            [
+              2363,
+              2396
+            ],
+            [
+              2405,
+              2412
+            ],
+            [
+              3023,
+              3083
+            ]
+          ],
+          "claim": "Exact primary start/end clock path, warmup/duplicate-clock route, ordinary counted launch loop and full launch stub body. The same stub receives the local row count and CSR/vector/output pointers each pass."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete sm_86 SASS for the source-selected warp-per-row kernel; row guard, lane CSR traversal, reduction and store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured interval is bounded by MPI_Wtime calls 0xc7e4 and 0xc8ba. For nonzero local rows, the timed loop's launch path branches to 0xcfb8, calls the exact stub at 0xd048, increments its iteration counter at 0xd00a, compares it with the requested count at 0xd00d, and branches back to the per-pass row/count test at 0xc806 until exhausted. The selected sm_86 kernel assigns a warp to each local row and covers its delimiter interval in lane-strides of 32, then reduces and stores lane zero's result.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              310
+            ]
+          ],
+          "claim": "Exact source including runtime iteration/partition, warmup, warp-per-row timed kernel launch, synchronization and result handling."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1604,
+              1653
+            ],
+            [
+              2008,
+              2038
+            ],
+            [
+              3076,
+              3136
+            ]
+          ],
+          "claim": "Exact measured start/end, tested loop entry/row condition, iteration increment/comparison/backedge, actual stub call and complete stub body through launch runtime."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              679
+            ]
+          ],
+          "claim": "Complete sm_86 native body in bounded chunks, including warp row assignment, CSR traversal/reduction, output store, and loop/branch paths."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed interval starts at MPI_Wtime call 0xcb4d and ends at 0xcc11. When local rows and requested iterations are nonzero, main reaches the counted out-of-line loop at 0xd5f5; it launches through stub 0xd698, increments ebx at 0xd625, compares it with the requested count at 0xd628, and exits to 0xcb6b on completion. The source-selected sm_86 kernel maps a warp to each row, has lanes walk that row's CSR interval in increments of 32, reduces, and stores from lane zero.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              309
+            ]
+          ],
+          "claim": "Exact source including CUDA kernel, row partition, warmup, measured loop and synchronization/result transfer."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1722,
+              1796
+            ],
+            [
+              2310,
+              2343
+            ],
+            [
+              3111,
+              3171
+            ]
+          ],
+          "claim": "Exact measured clock interval and counted launch body with increment/bound/exit, plus full called stub body through the runtime launch call."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete sm_86 SASS for the warp-per-row kernel, including lane interval walk, reduction, row store and control branches."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured interval starts at MPI_Wtime call 0xca45 and ends at 0xcb0b. When local rows/count are nonzero, main enters the counted loop at 0xd3a6; each pass issues the source-selected kernel stub at 0xd442, then increments the counter at 0xd3d3, compares with the requested count at 0xd3d9, and exits to 0xca64 when complete. The sm_86 kernel assigns one warp per local row, has lanes traverse the complete CSR interval in strides of 32, reduces, and stores lane zero's sum.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              285
+            ]
+          ],
+          "claim": "Exact source including CLI/runtime count, rank-local CSR row data, warmup, kernel, measured loop and synchronization/output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              12
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1709,
+              1755
+            ],
+            [
+              2226,
+              2260
+            ],
+            [
+              2917,
+              2977
+            ]
+          ],
+          "claim": "Exact timed start/end, counted loop increment/bound/backedge and actual stub call; full stub body reaches the CUDA runtime launch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete sm_86 SASS for the selected warp-per-row kernel, including CSR lane traversal, reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI_Wtime bounds timing at 0xc7b0–0xc9a7. With local rows, selector `shortRows` dispatches each pass to the short stub at 0xc8e0 or warp stub at 0xc87c. The warp path increments at 0xc800 and checks the requested count at 0xc813, returning to launch setup 0xc81b; the short path increments at 0xc8e8, compares at 0xc8fb, and returns to setup 0xc903. Source selects short vs warp from local average row length. In both sm_86 kernels the assigned row(s) traverse the full CSR delimiter interval, multiply/accumulate, and store; warp case strides lanes across long rows and reduces.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete exact source: CLI/partition, CSR row intervals, shortRows selector, both kernel bodies, warmup, counted timed loop and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1591,
+              1692
+            ],
+            [
+              3185,
+              3245
+            ],
+            [
+              3246,
+              3306
+            ]
+          ],
+          "claim": "Exact timed region and both source-selected called stubs, each complete through CUDA runtime launch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              498
+            ],
+            [
+              499,
+              935
+            ],
+            [
+              936,
+              1196
+            ]
+          ],
+          "claim": "Complete sm_86 native bodies respectively for spmv_warp and spmv_short; row/CSR traversal, arithmetic, store and loop paths."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI_Wtime bounds timing at 0xc946–0xc9a9. The loop tests localRows at 0xc94d–0xc95c, calls `main::{lambda()#1}::operator()()` at 0xc967, increments at 0xc96c, compares with the runtime iteration count at 0xc96f, and branches back to 0xc960 until complete. The required out-of-line lambda is at 0xdc90 (host lines 2739–3166): its runtime selector dispatches the exact 2/4/8/16/32-lane kernel; source computes lanes from the rank-local mean nonzeros/row. Each selected sm_86 specialization covers its assigned rows and CSR entries, reduces/stores row sums.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              408
+            ]
+          ],
+          "claim": "Exact source: CLI/CSR partition, mean-row-length lane selector, five specializations, warmup, timed repeated lambda call and output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1643,
+              1670
+            ],
+            [
+              2739,
+              3166
+            ]
+          ],
+          "claim": "Exact timed counter/backedge and actual called lambda; complete lambda shows all five runtime selector branches and each CUDA launch-function pointer."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              498
+            ],
+            [
+              499,
+              679
+            ],
+            [
+              680,
+              1159
+            ],
+            [
+              1160,
+              1340
+            ],
+            [
+              1341,
+              1820
+            ],
+            [
+              1821,
+              2001
+            ],
+            [
+              2002,
+              2481
+            ],
+            [
+              2482,
+              2646
+            ],
+            [
+              2647,
+              3126
+            ],
+            [
+              3127,
+              3291
+            ]
+          ],
+          "claim": "Complete sm_86 SASS bodies in order for lane widths 32,16,8,4,2, all selectable by the source/runtime selector; each includes row and nonzero work, arithmetic/reduction and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI_Wtime bounds timing at 0xcb00–0xcc3f. The compiled per-iteration path increments at 0xcbb7, compares against the requested count at 0xcbc4, and returns to loop entry 0xcb50. The source runtime selector `useWarp` chooses warp or scalar; main's compiled launch-construction paths call cudaLaunchKernel with the corresponding device entry (`spmvWarp` at host 0xd542/0xd57e; `spmvScalar` at 0xd6a0/0xd6dc). The two sm_86 bodies cover all assigned local rows and each CSR interval, with warp reduction in the warp variant.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              294
+            ]
+          ],
+          "claim": "Exact source: selector, both kernels, pre-timing warmup, timed launch loop and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1734,
+              1795
+            ],
+            [
+              2035,
+              2059
+            ],
+            [
+              2235,
+              2263
+            ],
+            [
+              2298,
+              2319
+            ]
+          ],
+          "claim": "Exact timed boundaries, iteration counter/backedge, and both compiled runtime launch paths with device function pointers."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              498
+            ],
+            [
+              499,
+              743
+            ],
+            [
+              744,
+              956
+            ]
+          ],
+          "claim": "Complete sm_86 SASS respectively for warp and scalar selectable bodies, including row/nonzero bounds, arithmetic, reduction where applicable, stores and loop control."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI_Wtime bounds timing at 0xc7d9–0xcc01. The timed main loop checks row/count state, increments at 0xcb98, compares to the requested count at 0xcb9b, and dispatches again through the inlined launch construction; the compiled runtime launch calls pass either `spmv_warp` or `spmv_scalar` according to source selector `scalar` (local average nnz <=4). The sm_86 variants respectively cover warp-lane CSR traversal/reduction or scalar thread-per-row traversal, and store row sums.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              400
+            ]
+          ],
+          "claim": "Exact source: local CSR, scalar-vs-warp selector, both kernel launch paths, warmup, timed repetition and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1582,
+              1776
+            ],
+            [
+              1648,
+              1665
+            ],
+            [
+              1749,
+              1776
+            ],
+            [
+              2275,
+              2300
+            ],
+            [
+              2361,
+              2440
+            ]
+          ],
+          "claim": "Exact timed start/end and counted loop plus both actual inlined launch paths/function pointers; unrelated preprocessing workers are excluded."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              498
+            ],
+            [
+              499,
+              775
+            ],
+            [
+              776,
+              1255
+            ],
+            [
+              1256,
+              1628
+            ]
+          ],
+          "claim": "Complete sm_86 SASS respectively for scalar and warp bodies, including row and CSR traversal, arithmetic, reduction/store and loop branches."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI_Wtime bounds timing at 0xc854–0xcb7c. For local rows, the loop increments at 0xc8c0, compares against the requested count at 0xc8d3, and returns to 0xc8db; source dispatches on `shortRows` (rank-local nnz <= 4*rows). The compiled launch paths select `spmvWarp` (function address 0xe780; runtime launch at 0xca5b) or `spmvShort` (0xe8b0; runtime launch at 0xd94b). Their sm_86 bodies handle all rows and complete CSR intervals, with warp lane-striding/reduction for longer rows and scalar short-row work otherwise.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              345
+            ]
+          ],
+          "claim": "Exact source: shortRows selector, both kernel bodies, first-launch warmup and timed counted launch loop/output."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Exact build flags and CUDA target."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1587,
+              1739
+            ],
+            [
+              1665,
+              1680
+            ],
+            [
+              2345,
+              2425
+            ],
+            [
+              2655,
+              2670
+            ],
+            [
+              2732,
+              2747
+            ]
+          ],
+          "claim": "Exact timing/counter control and source-selected inline launch-construction paths; kernel function pointers and CUDA runtime calls are present in each path."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              498
+            ],
+            [
+              499,
+              679
+            ],
+            [
+              680,
+              1159
+            ],
+            [
+              1160,
+              1388
+            ]
+          ],
+          "claim": "Complete sm_86 SASS respectively for warp and short variants, including CSR coverage, arithmetic, store and control flow."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "review_finished_at": "2026-11-04T16:21:56Z",
+  "timing_note": "The exact start was not captured. Finish is the actual UTC reading after report validation.",
+  "reinspection_note": "For every ID, exact source timing/selector/CSR paths and exact host timed loop, counter/backedge, call targets and helper bodies were re-read in this correction pass. Native SASS body semantics reuse this reviewer's prior exact-ID inspection where applicable; architecture headers and the cited body boundaries were checked again. CPU initialization/reference workers are not treated as timed GPU arithmetic."
+}

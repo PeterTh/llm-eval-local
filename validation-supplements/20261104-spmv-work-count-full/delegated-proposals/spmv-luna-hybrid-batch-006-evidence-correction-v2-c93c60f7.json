@@ -1,0 +1,45 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:59:42Z",
+  "review_finished_at": "2026-11-04T15:07:58Z",
+  "reviews": [
+    {
+      "id": "spmv_deepseek-v4-flash_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI assigns contiguous row ranges together with matching nonzero intervals and rebased local delimiters. In the active-row timed branch, compiled main initializes an iteration counter, launches the CSR kernel stub, increments and compares against the runtime count, then synchronizes before the ending clock read; the earlier stub call is setup/warm-up. The stub forwards the row-kernel arguments to cudaLaunchKernel. Final SASS assigns one row per thread, scans its delimiter interval with scalar/unrolled chunks and remainder, then stores the row result.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[176,194],[223,287],[333,400],[405,426],[431,466],[467,484]],"claim":"CSR kernel's complete row interval; runtime dimensions/count; MPI contiguous row and matching nonzero scatter/rebase; timed repeated launch and post-timing copy/gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1432,1443],[2078,2110],[2798,2858]],"claim":"Clock start/finish and synchronization; active timed count/backedge launches stub at dd40 (distinct from earlier setup call); full stub reaches cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[10,350],[351,700]],"claim":"Entire embedded kernel including row bound, CSR scalar head/chunk/remainder arithmetic, loop backedges and final row store at SASS line 666."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank receives a contiguous row slice with its complete CSR values/columns and rebased delimiters. The measured active-row path branches from the start clock into a runtime-count loop that invokes the kernel stub each iteration and reaches synchronization/end timing after completion; the earlier stub call is setup. The complete stub launches the device function. SASS bounds rows, consumes each CSR interval through unrolled groups and tail, and stores each row.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[30,55],[277,315],[333,420],[430,447],[467,484]],"claim":"CSR arithmetic, rank-local row/nonzero distribution and rebase, runtime-count timed launches, and output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1806,1834],[2304,2371],[3126,3193]],"claim":"Clocked active-work branch, runtime count launch loop/backedge and post-loop synchronization/timing; complete e2b0 stub reaches cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,350],[351,695]],"claim":"Full final kernel through row bound, CSR chunk/tail arithmetic and final store at line 685."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-aligned CSR data is scattered and local delimiters rebased. The active timed branch begins at the clock read and its counter-controlled loop calls the actual d2d0 stub, increments and branches until the requested count, then synchronizes and ends timing; the separate empty-row timing branch does no row work. The stub forwards arguments through cudaLaunchKernel. Final SASS covers bounded rows, complete CSR interval accumulation including chunk loops and tail, and final output store.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[34,53],[288,334],[344,375],[381,424],[430,462],[467,484]],"claim":"CSR row computation, MPI row/nonzero distribution/rebase, repeated launches for active local rows, and full local output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1976,2038],[3072,3139]],"claim":"Active timed branch at bf9d, counted d2d0 launch/backedge and subsequent synchronization/output path; complete d2d0 stub calls cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,350],[351,700]],"claim":"Full kernel through row bounds, CSR accumulation/backedges and final store at line 681."}
+      ],
+      "notes":""
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

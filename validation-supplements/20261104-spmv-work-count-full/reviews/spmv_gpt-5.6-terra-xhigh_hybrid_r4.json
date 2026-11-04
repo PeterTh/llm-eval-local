@@ -1,0 +1,196 @@
+{
+  "id": "spmv_gpt-5.6-terra-xhigh_hybrid_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No omission identified at the external-library contract boundary. Monotone MPI row partitions begin at zero and end at all rows; each rank receives exactly its complete CSR interval, rebases all local row offsets, and retains the complete global input vector. Nonempty row partitions describe localRows by globalRows CSR matrices with localNnz, zero-based signed-32-compatible indices and double values. Every requested timed iteration calls cusparseSpMV with non-transpose, alpha=1, beta=0 and double computation on those unchanged complete descriptors. Actual host code preserves the count loop and waits on its same-stream ending event. Empty row partitions legitimately have no rows to compute. External vendor implementation is not itself a work-count failure.",
+  "source_evidence": [
+    {
+      "file": "common/hash.hpp",
+      "ranges": [
+        [
+          1,
+          22
+        ]
+      ],
+      "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report.",
+      "sha256": "da47685f2f22487193f986eeba67fe414f80d50536a63e03cae0a6935d76a4e9",
+      "git_blob": "42ad06602e366caf62be9789dcae2d52fd0c2845"
+    },
+    {
+      "file": "common/results_output.hpp",
+      "ranges": [
+        [
+          1,
+          109
+        ]
+      ],
+      "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report.",
+      "sha256": "39dce5caf66268985c8ea44e5c60b619f1cca6e663a0fec4ff9c1dea9cc43e5e",
+      "git_blob": "3e22592ef4a79da8e4a8bee91bbcb5768d4b2c82"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          22
+        ]
+      ],
+      "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report.",
+      "sha256": "792ca706e0cd7db3612f3f34a8752b7efae7cacfa7cdad10bbe0922486d05c3d",
+      "git_blob": "374824b83c698097fde7a670d6d77531d37a0d26"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          499
+        ],
+        [
+          500,
+          535
+        ]
+      ],
+      "claim": "Complete pinned source/build; targeted adjudication claims retained in raw Sol report.",
+      "sha256": "7abb9f1e82b3bf9bd4413953c1bedb3fc8138e52ed53f981c4be9d2985810cd9",
+      "git_blob": "e708c0c1ac9b0a80817cc20e632596f3b41b7603"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Parsed Options iterations offset 8 is copied into -0x248 and checked nonzero; parseOptions handles -i by conversion/store at offset 8.",
+      "complete_dump_sha256": "0fb9b1463f0bec9fdbe272c48b086d025c32cfdb27df4fa1fe661947f5f20412",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-terra-xhigh_hybrid_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2023,
+          "last_line": 2080,
+          "text": "    9c4c:\tmov    0x869d(%rip),%rax        # 122f0 <typeinfo name for MPI::Info+0x38>\n    9c53:\tmov    -0x250(%rbp),%rsi\n    9c5a:\tlea    -0x90(%rbp),%rdx\n    9c61:\tmovl   $0xa,-0x88(%rbp)\n    9c6b:\tmov    -0x244(%rbp),%edi\n    9c71:\tmovw   $0x0,-0x78(%rbp)\n    9c77:\tmov    %rax,-0x90(%rbp)\n    9c7e:\tmov    0x8673(%rip),%rax        # 122f8 <typeinfo name for MPI::Info+0x40>\n    9c85:\tmov    %rax,-0x80(%rbp)\n    9c89:\tcall   c1b0 <parseOptions(int, char**, Options*)>\n    9c8e:\tmov    -0x244(%rbp),%edx\n    9c94:\tcmp    $0x1,%edx\n    9c97:\tjle    ab23 <main+0xfa3>\n    9c9d:\tmov    -0x250(%rbp),%rsi\n    9ca4:\tsub    $0x2,%edx\n    9ca7:\txor    %ebx,%ebx\n    9ca9:\tlea    0x8(%rsi),%rcx\n    9cad:\tlea    0x10(%rsi,%rdx,8),%rdi\n    9cb2:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9cbd:\tnopl   (%rax)\n    9cc0:\ttest   %bl,%bl\n    9cc2:\tjne    9ce4 <main+0x164>\n    9cc4:\tmov    (%rcx),%r8\n    9cc7:\tmovzbl (%r8),%edx\n    9ccb:\tsub    $0x2d,%edx\n    9cce:\tjne    9cdf <main+0x15f>\n    9cd0:\tmovzbl 0x1(%r8),%edx\n    9cd5:\tsub    $0x68,%edx\n    9cd8:\tjne    9cdf <main+0x15f>\n    9cda:\tmovzbl 0x2(%r8),%edx\n    9cdf:\ttest   %edx,%edx\n    9ce1:\tsete   %bl\n    9ce4:\tadd    $0x8,%rcx\n    9ce8:\tcmp    %rcx,%rdi\n    9ceb:\tjne    9cc0 <main+0x140>\n    9ced:\ttest   %al,%al\n    9cef:\tje     aae5 <main+0xf65>\n    9cf5:\tmov    -0x90(%rbp),%edi\n    9cfb:\tmov    -0x234(%rbp),%ecx\n    9d01:\tmov    %edi,-0x26c(%rbp)\n    9d07:\ttest   %edi,%edi\n    9d09:\tje     aaad <main+0xf2d>\n    9d0f:\tmov    -0x8c(%rbp),%ebx\n    9d15:\ttest   %ebx,%ebx\n    9d17:\tje     aaad <main+0xf2d>\n    9d1d:\tmov    -0x88(%rbp),%eax\n    9d23:\tmov    %eax,-0x248(%rbp)\n    9d29:\ttest   %eax,%eax\n    9d2b:\tje     aaad <main+0xf2d>\n    9d31:\tmov    %edi,%r13d\n    9d34:\tmov    %ebx,%esi\n    9d36:\txor    %edx,%edx\n    9d38:\tmov    %r13,-0x258(%rbp)\n    9d3f:\timul   %r13,%r13\n    9d43:\tmov    %r13,%rax\n    9d46:\tdiv    %rsi\n    9d49:\tmov    %rax,-0x280(%rbp)\n    9d50:\tcmp    $0x7fffffff,%rax\n"
+        },
+        {
+          "first_line": 4170,
+          "last_line": 4298,
+          "text": "000000000000c1b0 <parseOptions(int, char**, Options*)>:\n    c1b0:\tendbr64\n    c1b4:\tcmp    $0x1,%edi\n    c1b7:\tjle    c383 <parseOptions(int, char**, Options*)+0x1d3>\n    c1bd:\tpush   %r13\n    c1bf:\tpush   %r12\n    c1c1:\tpush   %rbp\n    c1c2:\tmov    %rsi,%r12\n    c1c5:\tpush   %rbx\n    c1c6:\tmov    %rdx,%rbp\n    c1c9:\tmov    %edi,%ebx\n    c1cb:\tmov    $0x1,%eax\n    c1d0:\tsub    $0x8,%rsp\n    c1d4:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c1df:\tnop\n    c1e0:\tmovslq %eax,%rdx\n    c1e3:\tshl    $0x3,%rdx\n    c1e7:\tmov    (%r12,%rdx,1),%rcx\n    c1eb:\tmovzbl (%rcx),%esi\n    c1ee:\tcmp    $0x2d,%esi\n    c1f1:\tjne    c2b8 <parseOptions(int, char**, Options*)+0x108>\n    c1f7:\tcmpb   $0x6e,0x1(%rcx)\n    c1fb:\tjne    c210 <parseOptions(int, char**, Options*)+0x60>\n    c1fd:\tcmpb   $0x0,0x2(%rcx)\n    c201:\tjne    c210 <parseOptions(int, char**, Options*)+0x60>\n    c203:\tlea    0x1(%rax),%r13d\n    c207:\tcmp    %ebx,%r13d\n    c20a:\tjl     c2d0 <parseOptions(int, char**, Options*)+0x120>\n    c210:\tcmp    $0x2d,%esi\n    c213:\tjne    c2b8 <parseOptions(int, char**, Options*)+0x108>\n    c219:\tmovzbl 0x1(%rcx),%edi\n    c21d:\tcmp    $0x73,%edi\n    c220:\tje     c290 <parseOptions(int, char**, Options*)+0xe0>\n    c222:\tcmp    $0x2d,%esi\n    c225:\tjne    c2b8 <parseOptions(int, char**, Options*)+0x108>\n    c22b:\tcmpb   $0x69,0x1(%rcx)\n    c22f:\tje     c350 <parseOptions(int, char**, Options*)+0x1a0>\n    c235:\tcmp    $0x2d,%esi\n    c238:\tjne    c2b8 <parseOptions(int, char**, Options*)+0x108>\n    c23a:\tcmpb   $0x6d,0x1(%rcx)\n    c23e:\tjne    c2a4 <parseOptions(int, char**, Options*)+0xf4>\n    c240:\tcmpb   $0x0,0x2(%rcx)\n    c244:\tjne    c2a4 <parseOptions(int, char**, Options*)+0xf4>\n    c246:\tlea    0x1(%rax),%r13d\n    c24a:\tcmp    %ebx,%r13d\n    c24d:\tjge    c2a4 <parseOptions(int, char**, Options*)+0xf4>\n    c24f:\tmov    0x8(%r12,%rdx,1),%rdi\n    c254:\txor    %esi,%esi\n    c256:\tcall   9180 <strtod@plt>\n    c25b:\tmov    %r13d,%eax\n    c25e:\tvmovsd %xmm0,0x10(%rbp)\n    c263:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c26e:\txchg   %ax,%ax\n    c270:\tinc    %eax\n    c272:\tcmp    %eax,%ebx\n    c274:\tjg     c1e0 <parseOptions(int, char**, Options*)+0x30>\n    c27a:\tadd    $0x8,%rsp\n    c27e:\tmov    $0x1,%eax\n    c283:\tpop    %rbx\n    c284:\tpop    %rbp\n    c285:\tpop    %r12\n    c287:\tpop    %r13\n    c289:\tret\n    c28a:\tnopw   0x0(%rax,%rax,1)\n    c290:\tcmpb   $0x0,0x2(%rcx)\n    c294:\tjne    c222 <parseOptions(int, char**, Options*)+0x72>\n    c296:\tlea    0x1(%rax),%r13d\n    c29a:\tcmp    %ebx,%r13d\n    c29d:\tjl     c2f0 <parseOptions(int, char**, Options*)+0x140>\n    c29f:\tcmp    $0x69,%edi\n    c2a2:\tjne    c235 <parseOptions(int, char**, Options*)+0x85>\n    c2a4:\tcmp    $0x2d,%esi\n    c2a7:\tjne    c2b8 <parseOptions(int, char**, Options*)+0x108>\n    c2a9:\tcmpb   $0x76,0x1(%rcx)\n    c2ad:\tje     c330 <parseOptions(int, char**, Options*)+0x180>\n    c2b3:\tcmp    $0x2d,%esi\n    c2b6:\tje     c30c <parseOptions(int, char**, Options*)+0x15c>\n    c2b8:\tadd    $0x8,%rsp\n    c2bc:\txor    %eax,%eax\n    c2be:\tpop    %rbx\n    c2bf:\tpop    %rbp\n    c2c0:\tpop    %r12\n    c2c2:\tpop    %r13\n    c2c4:\tret\n    c2c5:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c2d0:\tmov    0x8(%r12,%rdx,1),%rdi\n    c2d5:\txor    %esi,%esi\n    c2d7:\tmov    $0xa,%edx\n    c2dc:\tcall   9a10 <__isoc23_strtol@plt>\n    c2e1:\tmov    %eax,0x0(%rbp)\n    c2e4:\tmov    %r13d,%eax\n    c2e7:\tjmp    c270 <parseOptions(int, char**, Options*)+0xc0>\n    c2e9:\tnopl   0x0(%rax)\n    c2f0:\tmov    0x8(%r12,%rdx,1),%rdi\n    c2f5:\txor    %esi,%esi\n    c2f7:\tmov    $0xa,%edx\n    c2fc:\tcall   9a10 <__isoc23_strtol@plt>\n    c301:\tmov    %eax,0x4(%rbp)\n    c304:\tmov    %r13d,%eax\n    c307:\tjmp    c270 <parseOptions(int, char**, Options*)+0xc0>\n    c30c:\tcmpb   $0x72,0x1(%rcx)\n    c310:\tjne    c2b8 <parseOptions(int, char**, Options*)+0x108>\n    c312:\tcmpb   $0x0,0x2(%rcx)\n    c316:\tjne    c2b8 <parseOptions(int, char**, Options*)+0x108>\n    c318:\tmovb   $0x1,0x19(%rbp)\n    c31c:\tjmp    c270 <parseOptions(int, char**, Options*)+0xc0>\n    c321:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c32c:\tnopl   0x0(%rax)\n    c330:\tcmpb   $0x0,0x2(%rcx)\n    c334:\tjne    c2b3 <parseOptions(int, char**, Options*)+0x103>\n    c33a:\tmovb   $0x1,0x18(%rbp)\n    c33e:\tjmp    c270 <parseOptions(int, char**, Options*)+0xc0>\n    c343:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c34e:\txchg   %ax,%ax\n    c350:\tcmpb   $0x0,0x2(%rcx)\n    c354:\tjne    c235 <parseOptions(int, char**, Options*)+0x85>\n    c35a:\tlea    0x1(%rax),%r13d\n    c35e:\tcmp    %ebx,%r13d\n    c361:\tjge    c2a4 <parseOptions(int, char**, Options*)+0xf4>\n    c367:\tmov    0x8(%r12,%rdx,1),%rdi\n    c36c:\txor    %esi,%esi\n    c36e:\tmov    $0xa,%edx\n    c373:\tcall   9a10 <__isoc23_strtol@plt>\n    c378:\tmov    %eax,0x8(%rbp)\n    c37b:\tmov    %r13d,%eax\n    c37e:\tjmp    c270 <parseOptions(int, char**, Options*)+0xc0>\n    c383:\tmov    $0x1,%eax\n    c388:\tret\n    c389:\tnopl   0x0(%rax)\n"
+        }
+      ]
+    },
+    {
+      "file": "host-assembly.txt",
+      "claim": "Compiled broadcasts, adjacent rank partition slicing and local nnz difference, preparation calls, and lower-bound row partition builder with full endpoint.",
+      "complete_dump_sha256": "0fb9b1463f0bec9fdbe272c48b086d025c32cfdb27df4fa1fe661947f5f20412",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-terra-xhigh_hybrid_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2197,
+          "last_line": 2372,
+          "text": "    9fa8:\txor    %r12d,%r12d\n    9fab:\tlea    0xd26e(%rip),%r13        # 17220 <ompi_mpi_comm_world@@Base>\n    9fb2:\tmov    %rax,-0x260(%rbp)\n    9fb9:\tnopl   0x0(%rax)\n    9fc0:\tmov    -0x258(%rbp),%rbx\n    9fc7:\tmov    $0x7fffffff,%eax\n    9fcc:\tmov    %r13,%r8\n    9fcf:\tlea    0xdc4a(%rip),%rdx        # 17c20 <ompi_mpi_double@@Base>\n    9fd6:\tsub    %r12,%rbx\n    9fd9:\tcmp    %rax,%rbx\n    9fdc:\tcmova  %rax,%rbx\n    9fe0:\tmov    -0x260(%rbp),%rax\n    9fe7:\txor    %ecx,%ecx\n    9fe9:\tmov    %ebx,%esi\n    9feb:\tlea    (%rax,%r12,8),%rdi\n    9fef:\tcall   8df0 <MPI_Bcast@plt>\n    9ff4:\ttest   %eax,%eax\n    9ff6:\tjne    afbb <main+0x143b>\n    9ffc:\tmov    -0x258(%rbp),%rax\n    a003:\tadd    %rbx,%r12\n    a006:\tcmp    %rax,%r12\n    a009:\tjb     9fc0 <main+0x440>\n    a00b:\tmov    -0x128(%rbp),%rax\n    a012:\tmov    -0x130(%rbp),%r14\n    a019:\txor    %r12d,%r12d\n    a01c:\tlea    0xd1fd(%rip),%r15        # 17220 <ompi_mpi_comm_world@@Base>\n    a023:\tmov    %rax,%r13\n    a026:\tsub    %r14,%r13\n    a029:\tsar    $0x2,%r13\n    a02d:\tcmp    %rax,%r14\n    a030:\tje     a079 <main+0x4f9>\n    a032:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a03d:\tnopl   (%rax)\n    a040:\tmov    %r13,%rbx\n    a043:\tmov    $0x7fffffff,%eax\n    a048:\tlea    (%r14,%r12,4),%rdi\n    a04c:\tmov    %r15,%r8\n    a04f:\tsub    %r12,%rbx\n    a052:\tlea    0xcfc7(%rip),%rdx        # 17020 <ompi_mpi_uint32_t@@Base>\n    a059:\tcmp    %rax,%rbx\n    a05c:\tcmova  %rax,%rbx\n    a060:\txor    %ecx,%ecx\n    a062:\tmov    %ebx,%esi\n    a064:\tcall   8df0 <MPI_Bcast@plt>\n    a069:\ttest   %eax,%eax\n    a06b:\tjne    af9a <main+0x141a>\n    a071:\tadd    %rbx,%r12\n    a074:\tcmp    %r13,%r12\n    a077:\tjb     a040 <main+0x4c0>\n    a079:\tmovslq -0x234(%rbp),%rax\n    a080:\tmov    -0x278(%rbp),%rdx\n    a087:\tmov    (%r14,%rax,4),%ecx\n    a08b:\tmov    0x4(%r14,%rax,4),%eax\n    a090:\tsub    %ecx,%eax\n    a092:\tmov    %ecx,-0x2b0(%rbp)\n    a098:\tlea    0x1(%rax),%rbx\n    a09c:\tmov    %eax,-0x270(%rbp)\n    a0a2:\tmov    %rax,-0x288(%rbp)\n    a0a9:\tlea    -0x110(%rbp),%rax\n    a0b0:\tmov    %rbx,%rsi\n    a0b3:\tmov    %rax,%rdi\n    a0b6:\tmov    %rax,-0x298(%rbp)\n    a0bd:\tcall   10290 <std::vector<unsigned int, std::allocator<unsigned int> >::vector(unsigned long, std::allocator<unsigned int> const&)>\n    a0c2:\tcmpl   $0x0,-0x234(%rbp)\n    a0c9:\tmov    -0x170(%rbp),%r15\n    a0d0:\tmov    -0x110(%rbp),%rdi\n    a0d7:\tje     ab54 <main+0xfd4>\n    a0dd:\tmov    $0x64,%r8d\n    a0e3:\txor    %ecx,%ecx\n    a0e5:\tlea    0xcf34(%rip),%rdx        # 17020 <ompi_mpi_uint32_t@@Base>\n    a0ec:\tmov    %rbx,%rsi\n    a0ef:\tcall   10870 <void mpiReceiveLarge<unsigned int>(unsigned int*, unsigned long, ompi_datatype_t*, int, int)>\n    a0f4:\tmov    -0x108(%rbp),%rax\n    a0fb:\tlea    -0xf0(%rbp),%rbx\n    a102:\tmov    %rbx,%rdi\n    a105:\tmov    -0x4(%rax),%edx\n    a108:\tmov    -0x110(%rbp),%rax\n    a10f:\tsub    (%rax),%edx\n    a111:\tmov    %edx,%eax\n    a113:\tmov    -0x278(%rbp),%rdx\n    a11a:\tmov    %rax,%rsi\n    a11d:\tmov    %rax,%r13\n    a120:\tmov    %eax,-0x2ac(%rbp)\n    a126:\tmov    %rax,-0x290(%rbp)\n    a12d:\tcall   10350 <std::vector<double, std::allocator<double> >::vector(unsigned long, std::allocator<double> const&)>\n    a132:\tmov    -0x278(%rbp),%rdx\n    a139:\tmov    -0x290(%rbp),%rsi\n    a140:\tlea    -0xd0(%rbp),%r12\n    a147:\tmov    %r12,%rdi\n    a14a:\tcall   10290 <std::vector<unsigned int, std::allocator<unsigned int> >::vector(unsigned long, std::allocator<unsigned int> const&)>\n    a14f:\tcmpl   $0x0,-0x234(%rbp)\n    a156:\tmov    -0x110(%rbp),%rax\n    a15d:\tmov    (%rax),%eax\n    a15f:\tjne    ad66 <main+0x11e6>\n    a165:\tvmovd  %r13d,%xmm3\n    a16a:\tvmovq  %rbx,%xmm2\n    a16f:\tmov    -0x278(%rbp),%rsi\n    a176:\txor    %ecx,%ecx\n    a178:\tvpinsrd $0x1,%eax,%xmm3,%xmm0\n    a17e:\tlea    -0x1b0(%rbp),%rax\n    a185:\txor    %edx,%edx\n    a187:\tlea    0x1622(%rip),%rdi        # b7b0 <main._omp_fn.0>\n    a18e:\tvmovq  %rax,%xmm1\n    a193:\tlea    -0x190(%rbp),%rax\n    a19a:\tvmovq  %xmm0,-0x50(%rbp)\n    a19f:\tvpinsrq $0x1,%r12,%xmm2,%xmm0\n    a1a5:\tvpinsrq $0x1,%rax,%xmm1,%xmm1\n    a1ab:\tmov    $0x1,%ebx\n    a1b0:\tvinserti128 $0x1,%xmm0,%ymm1,%ymm0\n    a1b6:\tvmovdqa %ymm0,-0x70(%rbp)\n    a1bb:\tvzeroupper\n    a1be:\tcall   96b0 <GOMP_parallel@plt>\n    a1c3:\tjmp    a228 <main+0x6a8>\n    a1c5:\tmov    (%r14,%rbx,4),%eax\n    a1c9:\tmov    -0x268(%rbp),%ecx\n    a1cf:\tmov    $0x65,%r8d\n    a1d5:\tlea    0xce44(%rip),%rdx        # 17020 <ompi_mpi_uint32_t@@Base>\n    a1dc:\tmov    (%r15,%rax,4),%r12d\n    a1e0:\tmov    0x4(%r14,%rbx,4),%eax\n    a1e5:\tmov    (%r15,%rax,4),%r13d\n    a1e9:\tmov    -0x190(%rbp),%rax\n    a1f0:\tsub    %r12d,%r13d\n    a1f3:\tlea    (%rax,%r12,4),%rdi\n    a1f7:\tmov    %r13,%rsi\n    a1fa:\tcall   107d0 <void mpiSendLarge<unsigned int>(unsigned int const*, unsigned long, ompi_datatype_t*, int, int)>\n    a1ff:\tmov    -0x1b0(%rbp),%rax\n    a206:\tmov    -0x268(%rbp),%ecx\n    a20c:\tmov    $0x66,%r8d\n    a212:\tlea    0xda07(%rip),%rdx        # 17c20 <ompi_mpi_double@@Base>\n    a219:\tmov    %r13,%rsi\n    a21c:\tlea    (%rax,%r12,8),%rdi\n    a220:\tcall   10910 <void mpiSendLarge<double>(double const*, unsigned long, ompi_datatype_t*, int, int)>\n    a225:\tinc    %rbx\n    a228:\tmov    %ebx,-0x268(%rbp)\n    a22e:\tcmp    %ebx,-0x230(%rbp)\n    a234:\tjg     a1c5 <main+0x645>\n    a236:\tmov    -0x110(%rbp),%rax\n    a23d:\txor    %ecx,%ecx\n    a23f:\txor    %edx,%edx\n    a241:\tlea    0x1408(%rip),%rdi        # b650 <main._omp_fn.1>\n    a248:\tvmovd  -0x270(%rbp),%xmm3\n    a250:\tmov    -0x278(%rbp),%rsi\n    a257:\tvpinsrd $0x1,(%rax),%xmm3,%xmm0\n    a25d:\tmov    -0x298(%rbp),%rax\n    a264:\tmov    %rax,-0x70(%rbp)\n    a268:\tvmovq  %xmm0,-0x68(%rbp)\n    a26d:\tcall   96b0 <GOMP_parallel@plt>\n    a272:\tmov    -0x1b0(%rbp),%rax\n    a279:\tcmp    -0x1a8(%rbp),%rax\n    a280:\tje     adae <main+0x122e>\n    a286:\tmov    %rax,-0x1a8(%rbp)\n    a28d:\tcmp    %rax,-0x1a0(%rbp)\n    a294:\tje     a2c6 <main+0x746>\n    a296:\tmov    -0x1b0(%rbp),%rdi\n    a29d:\tvpxor  %xmm0,%xmm0,%xmm0\n    a2a1:\txor    %eax,%eax\n    a2a3:\tmov    -0x1a0(%rbp),%rsi\n    a2aa:\tvmovdqa %xmm0,-0x1b0(%rbp)\n    a2b2:\tmov    %rax,-0x1a0(%rbp)\n    a2b9:\ttest   %rdi,%rdi\n    a2bc:\tje     a2c6 <main+0x746>\n    a2be:\tsub    %rdi,%rsi\n    a2c1:\tcall   9350 <operator delete(void*, unsigned long)@plt>\n    a2c6:\tmov    -0x190(%rbp),%rax\n    a2cd:\tcmp    -0x188(%rbp),%rax\n    a2d4:\tje     a2dd <main+0x75d>\n    a2d6:\tmov    %rax,-0x188(%rbp)\n    a2dd:\tmov    -0x188(%rbp),%rax\n    a2e4:\tcmp    %rax,-0x180(%rbp)\n    a2eb:\tje     a2f9 <main+0x779>\n    a2ed:\tlea    -0x190(%rbp),%rdi\n    a2f4:\tcall   ba70 <std::__shrink_to_fit_aux<std::vector<unsigned int, std::allocator<unsigned int> >, true>::_S_do_it(std::vector<unsigned int, std::allocator<unsigned int> >&) [clone .isra.0]>\n    a2f9:\tcmp    %r15,-0x168(%rbp)\n    a300:\tje     a309 <main+0x789>\n    a302:\tmov    %r15,-0x168(%rbp)\n    a309:\tmov    -0x168(%rbp),%rax\n"
+        },
+        {
+          "first_line": 4300,
+          "last_line": 4408,
+          "text": "000000000000c390 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)>:\n    c390:\tendbr64\n    c394:\tpush   %r15\n    c396:\tpush   %r14\n    c398:\tpush   %r13\n    c39a:\tpush   %r12\n    c39c:\tpush   %rbp\n    c39d:\tpush   %rbx\n    c39e:\tmovslq %r8d,%rbx\n    c3a1:\tlea    0x1(%rbx),%rax\n    c3a5:\tmov    %rdi,%r12\n    c3a8:\tsub    $0x18,%rsp\n    c3ac:\tmov    %rax,%rdi\n    c3af:\tshr    $0x3d,%rdi\n    c3b3:\tjne    c511 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x181>\n    c3b9:\tvpxor  %xmm0,%xmm0,%xmm0\n    c3bd:\tmovq   $0x0,0x10(%r12)\n    c3c6:\tvmovdqu %xmm0,(%r12)\n    c3cc:\ttest   %rax,%rax\n    c3cf:\tje     c4f5 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x165>\n    c3d5:\tmov    %edx,%r15d\n    c3d8:\tlea    0x0(,%rax,4),%rdx\n    c3e0:\tmov    %ecx,%ebp\n    c3e2:\tmov    %rsi,%r14\n    c3e5:\tmov    %rdx,%rdi\n    c3e8:\tmov    %rdx,(%rsp)\n    c3ec:\tcall   9320 <operator new(unsigned long)@plt>\n    c3f1:\tmov    (%rsp),%rdx\n    c3f5:\tmov    %rax,%rcx\n    c3f8:\tmov    %rax,(%r12)\n    c3fc:\tmovl   $0x0,(%rax)\n    c402:\tlea    0x4(%rax),%rdi\n    c406:\tlea    (%rax,%rdx,1),%r8\n    c40a:\tmov    %r8,0x10(%r12)\n    c40f:\ttest   %rbx,%rbx\n    c412:\tje     c507 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x177>\n    c418:\tmov    %rbx,%r13\n    c41b:\tcmp    %r8,%rdi\n    c41e:\tje     c440 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0xb0>\n    c420:\tsub    $0x4,%rdx\n    c424:\txor    %esi,%esi\n    c426:\tmov    %r8,0x8(%rsp)\n    c42b:\tmov    %rax,(%rsp)\n    c42f:\tcall   8fe0 <memset@plt>\n    c434:\tmov    (%rsp),%rcx\n    c438:\tmov    0x8(%rsp),%r8\n    c43d:\tmov    %rax,%rdi\n    c440:\tmov    %r8,0x8(%r12)\n    c445:\tmov    %r15d,-0x4(%r8)\n    c449:\tcmp    $0x1,%r13d\n    c44d:\tje     c4c3 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x133>\n    c44f:\tlea    -0x2(%r13),%eax\n    c453:\tmov    %rbp,%r8\n    c456:\tmov    (%r14),%r9\n    c459:\tmov    0x8(%r14),%r10\n    c45d:\tlea    0x8(%rcx,%rax,4),%r13\n    c462:\tsub    %r9,%r10\n    c465:\tmov    %r10,%r11\n    c468:\tsar    $0x2,%r11\n    c46c:\tnopl   0x0(%rax)\n    c470:\tmov    %r8,%rax\n    c473:\txor    %edx,%edx\n    c475:\tdiv    %rbx\n    c478:\ttest   %r10,%r10\n    c47b:\tjle    c4f0 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x160>\n    c47d:\tmov    %r9,%r14\n    c480:\tmov    %r11,%rdx\n    c483:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c48e:\txchg   %ax,%ax\n    c490:\tmov    %rdx,%rcx\n    c493:\tsar    $1,%rcx\n    c496:\tlea    (%r14,%rcx,4),%rsi\n    c49a:\tcmp    %eax,(%rsi)\n    c49c:\tjae    c4e0 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x150>\n    c49e:\tsub    %rcx,%rdx\n    c4a1:\tlea    0x4(%rsi),%r14\n    c4a5:\tdec    %rdx\n    c4a8:\ttest   %rdx,%rdx\n    c4ab:\tjg     c490 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x100>\n    c4ad:\tsub    %r9,%r14\n    c4b0:\tsar    $0x2,%r14\n    c4b4:\tmov    %r14d,(%rdi)\n    c4b7:\tadd    $0x4,%rdi\n    c4bb:\tadd    %rbp,%r8\n    c4be:\tcmp    %rdi,%r13\n    c4c1:\tjne    c470 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0xe0>\n    c4c3:\tadd    $0x18,%rsp\n    c4c7:\tmov    %r12,%rax\n    c4ca:\tpop    %rbx\n    c4cb:\tpop    %rbp\n    c4cc:\tpop    %r12\n    c4ce:\tpop    %r13\n    c4d0:\tpop    %r14\n    c4d2:\tpop    %r15\n    c4d4:\tret\n    c4d5:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    c4e0:\ttest   %rcx,%rcx\n    c4e3:\tje     c4ad <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x11d>\n    c4e5:\tmov    %rcx,%rdx\n    c4e8:\tjmp    c490 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x100>\n    c4ea:\tnopw   0x0(%rax,%rax,1)\n    c4f0:\txor    %r14d,%r14d\n    c4f3:\tjmp    c4b4 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x124>\n    c4f5:\tmovq   $0x0,0x10(%r12)\n    c4fe:\tmovl   $0x0,0x1(%rbx)\n    c505:\tud2\n    c507:\tmov    %rdi,0x8(%r12)\n    c50c:\tmov    %r15d,(%rax)\n    c50f:\tjmp    c4c3 <buildRowPartitions(std::vector<unsigned int, std::allocator<unsigned int> > const&, unsigned int, unsigned int, int)+0x133>\n"
+        }
+      ]
+    },
+    {
+      "file": "host-assembly.txt",
+      "claim": "Full operand copies, handle stream association, CSR/vector descriptor creation, workspace query and synchronized warmup; calls bind to libcusparse.so.12 via PLT.",
+      "complete_dump_sha256": "0fb9b1463f0bec9fdbe272c48b086d025c32cfdb27df4fa1fe661947f5f20412",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-terra-xhigh_hybrid_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2400,
+          "last_line": 2559,
+          "text": "    a3a0:\tmov    -0x288(%rbp),%rdi\n    a3a7:\tmov    %rax,-0x268(%rbp)\n    a3ae:\tcall   10a50 <double* allocateDevice<double>(unsigned long)>\n    a3b3:\tcmpl   $0x0,-0x2ac(%rbp)\n    a3ba:\tmov    %rax,-0x2a0(%rbp)\n    a3c1:\tje     a417 <main+0x897>\n    a3c3:\tmov    -0xf0(%rbp),%rsi\n    a3ca:\tmov    -0xe8(%rbp),%rdx\n    a3d1:\tmov    $0x1,%ecx\n    a3d6:\tmov    %r13,%rdi\n    a3d9:\tsub    %rsi,%rdx\n    a3dc:\tcall   9490 <cudaMemcpy@plt>\n    a3e1:\tmov    %eax,%edi\n    a3e3:\ttest   %eax,%eax\n    a3e5:\tjne    b36b <main+0x17eb>\n    a3eb:\tmov    -0xd0(%rbp),%rsi\n    a3f2:\tmov    -0xc8(%rbp),%rdx\n    a3f9:\tmov    $0x1,%ecx\n    a3fe:\tmov    -0x298(%rbp),%rdi\n    a405:\tsub    %rsi,%rdx\n    a408:\tcall   9490 <cudaMemcpy@plt>\n    a40d:\tmov    %eax,%edi\n    a40f:\ttest   %eax,%eax\n    a411:\tjne    b34c <main+0x17cc>\n    a417:\tmov    -0x110(%rbp),%rsi\n    a41e:\tmov    -0x108(%rbp),%rdx\n    a425:\tmov    $0x1,%ecx\n    a42a:\tmov    %r15,%rdi\n    a42d:\tsub    %rsi,%rdx\n    a430:\tcall   9490 <cudaMemcpy@plt>\n    a435:\ttest   %eax,%eax\n    a437:\tjne    b3cc <main+0x184c>\n    a43d:\tmov    -0x260(%rbp),%rsi\n    a444:\tmov    -0x268(%rbp),%rdi\n    a44b:\tmov    $0x1,%ecx\n    a450:\tmov    %rbx,%rdx\n    a453:\tcall   9490 <cudaMemcpy@plt>\n    a458:\ttest   %eax,%eax\n    a45a:\tjne    b3ab <main+0x182b>\n    a460:\txor    %r13d,%r13d\n    a463:\tlea    -0x220(%rbp),%rdi\n    a46a:\tmov    $0x1,%esi\n    a46f:\tmov    %r13,-0x220(%rbp)\n    a476:\tcall   8f00 <cudaStreamCreateWithFlags@plt>\n    a47b:\ttest   %eax,%eax\n    a47d:\tjne    b38a <main+0x180a>\n    a483:\txor    %r12d,%r12d\n    a486:\tlea    -0x218(%rbp),%rdi\n    a48d:\tmov    %r12,-0x218(%rbp)\n    a494:\tmov    %r12,-0x210(%rbp)\n    a49b:\tcall   8e20 <cudaEventCreate@plt>\n    a4a0:\ttest   %eax,%eax\n    a4a2:\tjne    b46b <main+0x18eb>\n    a4a8:\tlea    -0x210(%rbp),%rdi\n    a4af:\tcall   8e20 <cudaEventCreate@plt>\n    a4b4:\ttest   %eax,%eax\n    a4b6:\tjne    b44a <main+0x18ca>\n    a4bc:\txor    %ebx,%ebx\n    a4be:\tcmpl   $0x0,-0x270(%rbp)\n    a4c5:\tmov    0x7e2c(%rip),%rax        # 122f8 <typeinfo name for MPI::Info+0x40>\n    a4cc:\tmovq   $0x0,-0x1d8(%rbp)\n    a4d7:\tmov    %rbx,-0x208(%rbp)\n    a4de:\tmov    %rbx,-0x200(%rbp)\n    a4e5:\tmov    %rbx,-0x1f8(%rbp)\n    a4ec:\tmov    %rbx,-0x1f0(%rbp)\n    a4f3:\tmov    %rbx,-0x1e8(%rbp)\n    a4fa:\tmov    %rax,-0x1e0(%rbp)\n    a501:\tje     a69f <main+0xb1f>\n    a507:\tlea    -0x208(%rbp),%rdi\n    a50e:\tcall   90c0 <cusparseCreate@plt>\n    a513:\tmov    %eax,%edi\n    a515:\ttest   %eax,%eax\n    a517:\tjne    b42b <main+0x18ab>\n    a51d:\tmov    -0x220(%rbp),%rsi\n    a524:\tmov    -0x208(%rbp),%rdi\n    a52b:\tcall   9580 <cusparseSetStream@plt>\n    a530:\tmov    %eax,%edi\n    a532:\ttest   %eax,%eax\n    a534:\tjne    b4e9 <main+0x1969>\n    a53a:\tpush   %r11\n    a53c:\tpush   $0x1\n    a53e:\tpush   $0x0\n    a540:\tlea    -0x200(%rbp),%rdi\n    a547:\tmov    -0x298(%rbp),%r9\n    a54e:\tmov    -0x290(%rbp),%rcx\n    a555:\tpush   $0x2\n    a557:\tmov    %r15,%r8\n    a55a:\tmov    -0x258(%rbp),%rdx\n    a561:\tmov    -0x288(%rbp),%rsi\n    a568:\tpush   $0x2\n    a56a:\tpush   -0x2a8(%rbp)\n    a570:\tcall   97d0 <cusparseCreateCsr@plt>\n    a575:\tmov    %eax,%edi\n    a577:\tadd    $0x30,%rsp\n    a57b:\ttest   %eax,%eax\n    a57d:\tjne    b4ca <main+0x194a>\n    a583:\tmov    -0x268(%rbp),%rdx\n    a58a:\tmov    -0x258(%rbp),%rsi\n    a591:\tlea    -0x1f8(%rbp),%rdi\n    a598:\tmov    $0x1,%ecx\n    a59d:\tcall   9440 <cusparseCreateDnVec@plt>\n    a5a2:\tmov    %eax,%edi\n    a5a4:\ttest   %eax,%eax\n    a5a6:\tjne    b4ab <main+0x192b>\n    a5ac:\tmov    -0x2a0(%rbp),%rdx\n    a5b3:\tmov    -0x288(%rbp),%rsi\n    a5ba:\tlea    -0x1f0(%rbp),%rdi\n    a5c1:\tmov    $0x1,%ecx\n    a5c6:\tcall   9440 <cusparseCreateDnVec@plt>\n    a5cb:\tmov    %eax,%edi\n    a5cd:\ttest   %eax,%eax\n    a5cf:\tjne    b48c <main+0x190c>\n    a5d5:\txor    %r10d,%r10d\n    a5d8:\tmov    -0x200(%rbp),%rcx\n    a5df:\tmov    -0x208(%rbp),%rdi\n    a5e6:\tlea    -0x1d8(%rbp),%r13\n    a5ed:\tmov    %r10,-0x70(%rbp)\n    a5f1:\tpush   -0x278(%rbp)\n    a5f7:\tpush   $0x0\n    a5f9:\tpush   $0x1\n    a5fb:\tlea    -0x1e0(%rbp),%r12\n    a602:\tmov    %r13,%r9\n    a605:\txor    %esi,%esi\n    a607:\tpush   -0x1f0(%rbp)\n    a60d:\tmov    -0x1f8(%rbp),%r8\n    a614:\tmov    %r12,%rdx\n    a617:\tcall   9430 <cusparseSpMV_bufferSize@plt>\n    a61c:\tmov    %eax,%edi\n    a61e:\tadd    $0x20,%rsp\n    a622:\ttest   %eax,%eax\n    a624:\tjne    b40c <main+0x188c>\n    a62a:\tmov    -0x70(%rbp),%rsi\n    a62e:\ttest   %rsi,%rsi\n    a631:\tje     a649 <main+0xac9>\n    a633:\tlea    -0x1e8(%rbp),%rdi\n    a63a:\tcall   8d50 <cudaMalloc@plt>\n    a63f:\tmov    %eax,%edi\n    a641:\ttest   %eax,%eax\n    a643:\tjne    b3ed <main+0x186d>\n    a649:\tpush   -0x1e8(%rbp)\n    a64f:\tpush   $0x0\n    a651:\tpush   $0x1\n    a653:\tmov    %r13,%r9\n    a656:\tpush   -0x1f0(%rbp)\n    a65c:\tmov    %r12,%rdx\n    a65f:\txor    %esi,%esi\n    a661:\tmov    -0x1f8(%rbp),%r8\n    a668:\tmov    -0x200(%rbp),%rcx\n    a66f:\tmov    -0x208(%rbp),%rdi\n    a676:\tcall   98b0 <cusparseSpMV@plt>\n    a67b:\tmov    %eax,%edi\n    a67d:\tadd    $0x20,%rsp\n    a681:\ttest   %eax,%eax\n    a683:\tjne    b160 <main+0x15e0>\n    a689:\tmov    -0x220(%rbp),%rdi\n    a690:\tcall   9310 <cudaStreamSynchronize@plt>\n    a695:\tmov    %eax,%edi\n    a697:\ttest   %eax,%eax\n    a699:\tjne    b141 <main+0x15c1>\n    a69f:\tlea    0xcb7a(%rip),%rdi        # 17220 <ompi_mpi_comm_world@@Base>\n"
+        }
+      ]
+    },
+    {
+      "file": "host-assembly.txt",
+      "claim": "a72d calls actual external cusparseSpMV; ebx increments and compares against -0x248, branching unsigned-below to a700. Start and stop records use same stream; a76e synchronizes stop before elapsed time.",
+      "complete_dump_sha256": "0fb9b1463f0bec9fdbe272c48b086d025c32cfdb27df4fa1fe661947f5f20412",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-terra-xhigh_hybrid_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2560,
+          "last_line": 2618,
+          "text": "    a6a6:\tcall   9120 <MPI_Barrier@plt>\n    a6ab:\ttest   %eax,%eax\n    a6ad:\tjne    b17f <main+0x15ff>\n    a6b3:\tcmpl   $0x0,-0x270(%rbp)\n    a6ba:\tmovl   $0x0,-0x22c(%rbp)\n    a6c4:\tlea    -0x22c(%rbp),%rbx\n    a6cb:\tje     a7a4 <main+0xc24>\n    a6d1:\tmov    -0x220(%rbp),%rsi\n    a6d8:\tmov    -0x218(%rbp),%rdi\n    a6df:\tcall   9110 <cudaEventRecord@plt>\n    a6e4:\tmov    %eax,%ebx\n    a6e6:\tlea    -0x1d8(%rbp),%r13\n    a6ed:\tlea    -0x1e0(%rbp),%r12\n    a6f4:\ttest   %eax,%eax\n    a6f6:\tjne    b03f <main+0x14bf>\n    a6fc:\tnopl   0x0(%rax)\n    a700:\tpush   -0x1e8(%rbp)\n    a706:\tpush   $0x0\n    a708:\tpush   $0x1\n    a70a:\tmov    %r13,%r9\n    a70d:\tpush   -0x1f0(%rbp)\n    a713:\tmov    %r12,%rdx\n    a716:\txor    %esi,%esi\n    a718:\tmov    -0x1f8(%rbp),%r8\n    a71f:\tmov    -0x200(%rbp),%rcx\n    a726:\tmov    -0x208(%rbp),%rdi\n    a72d:\tcall   98b0 <cusparseSpMV@plt>\n    a732:\tadd    $0x20,%rsp\n    a736:\ttest   %eax,%eax\n    a738:\tjne    b01e <main+0x149e>\n    a73e:\tmov    -0x248(%rbp),%eax\n    a744:\tinc    %ebx\n    a746:\tcmp    %eax,%ebx\n    a748:\tjb     a700 <main+0xb80>\n    a74a:\tmov    -0x220(%rbp),%rsi\n    a751:\tmov    -0x210(%rbp),%rdi\n    a758:\tcall   9110 <cudaEventRecord@plt>\n    a75d:\tmov    %eax,%edi\n    a75f:\ttest   %eax,%eax\n    a761:\tjne    b1de <main+0x165e>\n    a767:\tmov    -0x210(%rbp),%rdi\n    a76e:\tcall   9720 <cudaEventSynchronize@plt>\n    a773:\tmov    %eax,%edi\n    a775:\ttest   %eax,%eax\n    a777:\tjne    b1bf <main+0x163f>\n    a77d:\tmov    -0x210(%rbp),%rdx\n    a784:\tmov    -0x218(%rbp),%rsi\n    a78b:\tlea    -0x22c(%rbp),%rbx\n    a792:\tmov    %rbx,%rdi\n    a795:\tcall   9330 <cudaEventElapsedTime@plt>\n    a79a:\tmov    %eax,%edi\n    a79c:\ttest   %eax,%eax\n    a79e:\tjne    b1a0 <main+0x1620>\n    a7a4:\tlea    0xca75(%rip),%rax        # 17220 <ompi_mpi_comm_world@@Base>\n    a7ab:\tmovl   $0x0,-0x228(%rbp)\n    a7b5:\tlea    -0x228(%rbp),%rsi\n    a7bc:\tpush   %r9\n    a7be:\tlea    0xcc5b(%rip),%r8        # 17420 <ompi_mpi_op_max@@Base>\n    a7c5:\tpush   %rax\n"
+        }
+      ]
+    }
+  ],
+  "adjudication_rationale": "Luna escalated because vendor final device instructions were not embedded in this executable. Complete source and actual host call/descriptor/count semantics establish requested work at the documented library boundary; requiring vendor SASS would incorrectly classify legitimate external library use as unresolved work omission.",
+  "limitations": "This is contract-level static evidence, not inspection or certification of vendor kernel instructions, dynamic library resolution, exact deployed cuSPARSE patch version, or runtime behavior. Read-only readelf confirms DT_NEEDED libcusparse.so.12 and libcudart.so.12, not a fully pinned library file. No vendor final SASS is claimed inspected. No execution, compilation or benchmark was performed.",
+  "primary_reference": {
+    "url": "https://docs.nvidia.com/cuda/archive/12.6.0/cusparse/generic-api/generic-api-functions.html#cusparsespmv",
+    "claim": "cusparseSpMV computes Y=alpha*op(A)*X+beta*Y; CSR, 32-bit indices and double computation are supported, with asynchronous execution."
+  },
+  "source": {
+    "source_path": "20260805-120633/spmv_gpt-5.6-terra-xhigh_hybrid_r4",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "9fe7620ff2cff26f57b080ec540bbb5dc5dbbbbad3878582a56d0c6e81c2dafb"
+  },
+  "binary_sha256": "f084b060cfac413c15ca1e9e98e263bde2e4957d4a74741e300f9c1a0ec7fa08",
+  "binding_sha256": "9d22e48220b69590bc363c21ddb16056a7d08663e8382f48f0c4163846e7c9ca",
+  "reviewer_model": "gpt-6.1-sol",
+  "proposal_sha256": "a33bad8e6cad2bf352126839bd5d5721800e548375b520c8e93572e4457886cc",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:21:38Z",
+    "sampled_ids": [
+      "spmv_gpt-5.6-terra-xhigh_hybrid_r4",
+      "spmv_gemini-3-pro-preview_cuda_r2"
+    ],
+    "method": "Read both complete Sol adjudications and verified primary NVIDIA library-contract and cubin/PTX compatibility documentation. Independently inspected Gemini complete relevant source/build, actual timed inline CUDA launch/count/sync host path and full embedded PTX through every remainder/chunk backedge and store; confirmed sm52-only headers. Inspected Terra full CSR distribution/rebase, descriptors and timed source plus actual external-call counter/event synchronization. Remaining host parsing/partition compiled details inspected by Sol. Accepted findings explicitly retain contract-level and PTX/JIT evidence limits, not native target SASS certification.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded source references to full pinned files; preserved every Sol rationale, evidence limitation and primary reference.",
+      "Replaced unsupported Luna sm52-to-sm86 native compatibility assertion with Sol's PTX/JIT adjudication."
+    ],
+    "supplemental_proposals": [
+      {
+        "file": "spmv-luna-hybrid-tail-batch-001.json",
+        "sha256": "154e0d829fc095f2cc89fa3042c2109a052e144f241564346fbed3dd889a0b75"
+      },
+      {
+        "file": "spmv-luna-cuda-batch-007.json",
+        "sha256": "2e69e3762942fb2c6daf345543d6403a1b9fe9be945c22cd7f9dc6051e881688"
+      }
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6.1-sol; independent static adjudication of two Luna uncertainties only",
+  "review_started_at": "2026-11-04T15:17:05Z",
+  "review_finished_at": "2026-11-04T15:19:01Z",
+  "review_input_sha256": "bd40e69f9cca5e33213797c5ce520c3ce3515ecc72300aac2140d356b8a6b641",
+  "pack_sha256": "1a3c80adf64bdb47a48913a81f550ff9dbec854d8ceabddfd8fca44fdc6d40e7",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

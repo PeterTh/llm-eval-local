@@ -1,0 +1,79 @@
+{
+  "id": "spmv_claude-haiku-5.5-cc-medium_omp_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed region launches one OpenMP team and passes iterations to the outlined spmvOmp worker. The worker's outer counter runs to that count, with a barrier between passes; within each pass, quotient/remainder partitioning covers all rows, and each row loop follows CSR start/end and reduces all nonzeros before storing output.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          296
+        ]
+      ],
+      "claim": "Timed source passes iteration count to spmvOmp; its row code iterates each CSR interval and writes output.",
+      "sha256": "6d28bdc941b3f5508d7f5cb15854255b4713b76e08bfc9655b5ff5f87d5c9a79",
+      "git_blob": "cb9195ad65213a6c37dff0a6cdcd5fee6182b4df"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock interval calls GOMP_parallel at 0x19eb once. Worker 0x1f10 loads repetition count, outer loop counter %ebx and comparison at 0x1f60..0x1f6a delimit passes, barrier at 0x1f62; per pass it partitions rows by quotient/remainder (0x1f7d..0x1f9a), row bounds at 0x1fc2..0x1fcc, nonzero multiply-add loop 0x1ff0..0x200c, and row store 0x200e. Empty rows store zero.",
+      "complete_dump_sha256": "81d56731627dbdccd6918895cd88cf56ebede1092413f1148ccba0fdcbeabb73",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-cc-medium_omp_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 588,
+          "last_line": 601,
+          "text": "    19b2:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n    19b7:\tvmovdqa -0x170(%rbp),%ymm7\n    19bf:\txor    %ecx,%ecx\n    19c1:\txor    %edx,%edx\n    19c3:\tmov    -0x90(%rbp),%r12\n    19ca:\tmov    -0x148(%rbp),%rsi\n    19d1:\tlea    0x538(%rip),%rdi        # 1f10 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]>\n    19d8:\tmov    %rbx,-0x48(%rbp)\n    19dc:\tmov    %rax,%r15\n    19df:\tmov    %r12,-0x50(%rbp)\n    19e3:\tvmovdqa %ymm7,-0x70(%rbp)\n    19e8:\tvzeroupper\n    19eb:\tcall   1210 <GOMP_parallel@plt>\n    19f0:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 895,
+          "last_line": 991,
+          "text": "0000000000001f10 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]>:\n    1f10:\tendbr64\n    1f14:\tpush   %r15\n    1f16:\tpush   %r14\n    1f18:\tpush   %r13\n    1f1a:\tpush   %r12\n    1f1c:\tpush   %rbp\n    1f1d:\tpush   %rbx\n    1f1e:\tsub    $0x28,%rsp\n    1f22:\tmov    0x20(%rdi),%rax\n    1f26:\tmov    0x10(%rdi),%rbx\n    1f2a:\tmov    0x2c(%rdi),%r13d\n    1f2e:\tmov    0x18(%rdi),%r14\n    1f32:\tmov    0x8(%rdi),%rbp\n    1f36:\tmov    (%rdi),%r12\n    1f39:\tmov    %rax,0x10(%rsp)\n    1f3e:\tmov    0x28(%rdi),%eax\n    1f41:\tmov    %rbx,0x18(%rsp)\n    1f46:\tmov    %eax,0xc(%rsp)\n    1f4a:\ttest   %r13d,%r13d\n    1f4d:\tje     2065 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x155>\n    1f53:\txor    %ebx,%ebx\n    1f55:\ttest   %eax,%eax\n    1f57:\tjne    1f70 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x60>\n    1f59:\tjmp    2059 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x149>\n    1f5e:\txchg   %ax,%ax\n    1f60:\tinc    %ebx\n    1f62:\tcall   1250 <GOMP_barrier@plt>\n    1f67:\tcmp    %ebx,%r13d\n    1f6a:\tje     2065 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x155>\n    1f70:\tcall   1260 <omp_get_num_threads@plt>\n    1f75:\tmov    %eax,%r15d\n    1f78:\tcall   1230 <omp_get_thread_num@plt>\n    1f7d:\txor    %edx,%edx\n    1f7f:\tmov    %eax,%ecx\n    1f81:\tmov    0xc(%rsp),%eax\n    1f85:\tdiv    %r15d\n    1f88:\tcmp    %edx,%ecx\n    1f8a:\tjb     2050 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x140>\n    1f90:\timul   %eax,%ecx\n    1f93:\tadd    %ecx,%edx\n    1f95:\tlea    (%rax,%rdx,1),%ecx\n    1f98:\tcmp    %ecx,%edx\n    1f9a:\tjae    1f60 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x50>\n    1f9c:\tmov    0x18(%rsp),%rdi\n    1fa1:\tdec    %eax\n    1fa3:\tlea    0x4(,%rax,4),%r11\n    1fab:\tmov    %edx,%eax\n    1fad:\tinc    %edx\n    1faf:\tlea    (%rdi,%rax,4),%r10\n    1fb3:\tlea    (%rdi,%rdx,4),%r9\n    1fb7:\tmov    0x10(%rsp),%rdi\n    1fbc:\tlea    (%rdi,%rax,8),%r8\n    1fc0:\txor    %edi,%edi\n    1fc2:\tmov    (%r10,%rdi,1),%eax\n    1fc6:\tmov    (%r9,%rdi,1),%edx\n    1fca:\tcmp    %edx,%eax\n    1fcc:\tjae    202d <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x11d>\n    1fce:\txchg   %ax,%ax\n    1fd0:\tdec    %edx\n    1fd2:\tlea    0x0(%rbp,%rax,4),%rsi\n    1fd7:\tlea    (%r12,%rax,8),%rcx\n    1fdb:\tvxorpd %xmm1,%xmm1,%xmm1\n    1fdf:\tsub    %eax,%edx\n    1fe1:\txor    %eax,%eax\n    1fe3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    1fee:\txchg   %ax,%ax\n    1ff0:\tmov    (%rsi,%rax,4),%r15d\n    1ff4:\tvmovsd (%r14,%r15,8),%xmm0\n    1ffa:\tmov    %rax,%r15\n    1ffd:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    2002:\tinc    %rax\n    2005:\tvaddsd %xmm0,%xmm1,%xmm1\n    2009:\tcmp    %rdx,%r15\n    200c:\tjne    1ff0 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0xe0>\n    200e:\tvmovsd %xmm1,(%r8,%rdi,2)\n    2014:\tadd    $0x4,%rdi\n    2018:\tcmp    %rdi,%r11\n    201b:\tje     1f60 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x50>\n    2021:\tmov    (%r10,%rdi,1),%eax\n    2025:\tmov    (%r9,%rdi,1),%edx\n    2029:\tcmp    %edx,%eax\n    202b:\tjb     1fd0 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0xc0>\n    202d:\tvxorpd %xmm1,%xmm1,%xmm1\n    2031:\tvmovsd %xmm1,(%r8,%rdi,2)\n    2037:\tadd    $0x4,%rdi\n    203b:\tcmp    %rdi,%r11\n    203e:\tjne    2021 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x111>\n    2040:\tjmp    1f60 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x50>\n    2045:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    2050:\tinc    %eax\n    2052:\txor    %edx,%edx\n    2054:\tjmp    1f90 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x80>\n    2059:\tinc    %ebx\n    205b:\tcall   1250 <GOMP_barrier@plt>\n    2060:\tcmp    %ebx,%r13d\n    2063:\tjne    2059 <spmvOmp(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*, unsigned int) [clone ._omp_fn.0]+0x149>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Persistent-team variation; all repetitions execute row computation.",
+  "source": {
+    "source_path": "20261012-111947/spmv_claude-haiku-5.5-cc-medium_omp_r4",
+    "source_commit": "71ba7cc523997c8fd1537d7a8159b583f260793d",
+    "staged_source_sha256": "2c7130cc7b2a8e10672864086e9a5feba3d3955cad81b20e1949f97313a43c8b"
+  },
+  "binary_sha256": "1d9a50cda92fd7f5c547f281707c4f27d7bcbf54a0d35bbcb082d57311375a94",
+  "binding_sha256": "23c2d9a85af2f53a101fa7d36e0d714d199886a42dab90e570ff12abcbb94079",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "b91a6f4fd2211768bb374e314d9ea7bcac4d6c08ffc1f0afef209147e5dbe274",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:16:14 UTC",
+    "sampled_ids": [
+      "spmv_claude-haiku-4.5_omp_r3",
+      "spmv_claude-haiku-5.5-cc-medium_omp_r4",
+      "spmv_claude-haiku-5.5-oc-medium_omp_r1"
+    ],
+    "method": "Read every proposed summary/evidence claim. Independently inspected full relevant source, build flags, clocked host control and complete outlined worker for the three sampled IDs; checked the exact clocked calls for cc r2/r5 and the dynamic worker for Haiku 4.5 r5. Proposal binding/range checks are separate provenance checks, not scientific judgments.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded all existing source citations to the complete exact source in bounded ranges; cc r4's original narrow ranges omitted the actual timed kernel at lines 129-143 and misplaced CLI/setup evidence.",
+      "Corrected the cc r2/r5 GOMP_parallel call from 0x1a06 (counter increment) to 0x1a09.",
+      "Corrected Haiku 4.5 r5's nonzero-loop endpoint from 0x20ec to 0x20cc."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:05:51Z",
+  "review_finished_at": "2026-11-04T14:08:12Z",
+  "review_input_sha256": "83d4cf3846b2dbe62211b5a8a188ba1eca2f3379b6157dd8002112b724b88777",
+  "pack_sha256": "5a2eed43c25bc67341b43c00631886a4f3b15cbcae0d58fc240fa53b0a7ddb4a",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

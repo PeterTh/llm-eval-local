@@ -1,0 +1,1153 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:44:10Z",
+  "review_finished_at": "2026-11-04T16:01:34Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI iterations are passed unchanged to spmvGpu; CSR generation assigns n=floor(dim²/sparsity) entries and closes rowDelimiters[dim] at n. The selected short-row kernel is chosen by average n/dim into widths 2/4/8/16/32, with the long-row kernel selected at average>=256. Width-kernel grid is ceil(dim*width/128) and each active row accumulates j from rows[row]+lane to rows[row+1] in width strides before lane 0 stores; the long path launches one 128-thread block per row and accumulates j in 128 strides before reducing/storing. A warmup is synchronized before timing. If iterations>1, capture batch=min(iterations,128) launch calls. The timed host loop subtracts batch after each graph launch while remaining>=batch, then launches exactly the remaining direct calls; the event stop/sync follows. Compiled host code at c720 preserves the batch comparison/decrement/backedge and invokes the capture/launch closure; the closure contains the five width-specific cudaLaunchKernel paths and long-row launch. Inspected all six native sm86 variants: each short-row function has a bounded CSR traversal/backedge and output store; longRows has the 128-stride traversal, reduction and row store. No omission identified. The exceptional empty-dimension/zero-iteration early return does not enter timed work.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "CUDA/C++ build and optimization flags for the inspected program."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              80
+            ],
+            [
+              135,
+              245
+            ],
+            [
+              295,
+              402
+            ]
+          ],
+          "claim": "CSR construction/count, selected width and long-row dispatch, complete row/nonzero arithmetic, warmup/capture and quotient/remainder timed repetitions, CLI iterations and full input setup."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2032,
+              2493
+            ],
+            [
+              2494,
+              2992
+            ],
+            [
+              2993,
+              3008
+            ]
+          ],
+          "claim": "Actual launch closure and all selected CUDA stubs; spmvGpu setup, width dispatch, warmup/sync, batch capture, timed graph quotient loop and decrement/backedge, direct remainder, event stop/sync and output copy."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              743
+            ],
+            [
+              744,
+              1200
+            ],
+            [
+              1201,
+              1468
+            ],
+            [
+              1469,
+              1967
+            ],
+            [
+              1968,
+              2177
+            ],
+            [
+              2178,
+              2676
+            ],
+            [
+              2677,
+              2886
+            ],
+            [
+              2887,
+              3385
+            ],
+            [
+              3386,
+              3595
+            ],
+            [
+              3596,
+              3968
+            ]
+          ],
+          "claim": "All six selected native sm86 kernels through their final instructions: guarded CSR bounds and multiply-accumulate loop/backedges, reductions, final row stores and exits."
+        }
+      ],
+      "notes": "No external runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed iteration count is passed to spmvGpu, and the constructed CSR has n=floor(dim²/sparsity) stored entries with the terminal row offset n. The chosen short-row variant has width 2/4/8/16/32 selected from average nnz per row; the long-row variant is selected at average>=256. Short rows use 128-thread groups with a capped grid and a row grid-stride loop, and each group accumulates the whole CSR interval in width strides before one lane stores the row. Long rows use 128 threads, a row grid-stride loop and per-thread nonzero stride of blockDim.x, followed by reduction and store. The host builds a graph of 64 launches when iterations>1, warms up once outside timing, then times iterations/64 graph launches and iterations%64 direct launches; with no graph it times exactly iterations direct launches. Compiled spmvGpu retains these branch/count paths and calls cudaLaunchKernel with the selected kernel pointer, block/grid and argument array; the timed event end and synchronization follow the final launches. All five width-specific and the long-row native sm86 kernels inspected through their arithmetic backedges, reductions/stores and function exits. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              82
+            ],
+            [
+              114,
+              165
+            ],
+            [
+              191,
+              260
+            ],
+            [
+              311,
+              416
+            ]
+          ],
+          "claim": "CSR initialization/count; short and long kernel coverage; actual selected kernel/grid/argument dispatch; graph batch, warmup, timed quotient/remainder and output handling; CLI iteration parsing and full input setup."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1845,
+              2340
+            ],
+            [
+              2341,
+              2460
+            ]
+          ],
+          "claim": "Complete optimized spmvGpu host function: selected kernel pointer and cudaLaunchKernel calls, capture and warmup/synchronization, timed graph quotient loop and direct remainder, event stop/synchronization and result transfer."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              711
+            ],
+            [
+              712,
+              1200
+            ],
+            [
+              1201,
+              1404
+            ],
+            [
+              1405,
+              1903
+            ],
+            [
+              1904,
+              2097
+            ],
+            [
+              2098,
+              2596
+            ],
+            [
+              2597,
+              2774
+            ],
+            [
+              2775,
+              3273
+            ],
+            [
+              3274,
+              3451
+            ],
+            [
+              3452,
+              3670
+            ]
+          ],
+          "claim": "All five selected native sm86 short-row kernels and the long-row kernel through arithmetic/backedges, reductions, row stores and exits."
+        }
+      ],
+      "notes": "Capped short-row grid is paired with the kernel row grid-stride loop; no rows are dropped by the cap. No runtime tests or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested iteration value is propagated from CLI into spmvGpu; CSR construction closes the final row at n=floor(dim²/sparsity). The closure selects one of row-width kernels 1/2/4/8/16/32 by average nnz, or spmvLongRows at average>=256. Row kernels launch enough blocks for all rows and accumulate each [rows[row],rows[row+1]) interval in ThreadsPerRow strides before storing; the long kernel caps blocks at 65535 but has a row grid-stride loop, and each block processes its selected row's full CSR interval in 128 strides then reduces/stores. Warmup and graph construction occur before timing. The host graph contains batch=min(iterations,64) launch calls; the timed graph loop runs iterations/batch times and the direct tail runs iterations%batch. Compiled host preserves the exact capture loop, graph loop, remainder, CUDA closure dispatch and event stop/sync. Inspected all seven native sm86 variants through their nonzero-loop/backedge, reduction and output store. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              80
+            ],
+            [
+              136,
+              183
+            ],
+            [
+              185,
+              256
+            ],
+            [
+              305,
+              413
+            ]
+          ],
+          "claim": "CSR terminal count; complete short/long row coverage; all variant selectors and launch geometry; warmup, capture, quotient/remainder timed count and output handling; CLI iteration parsing and complete input setup."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2033,
+              2531
+            ],
+            [
+              2532,
+              2592
+            ],
+            [
+              2593,
+              3091
+            ],
+            [
+              3092,
+              3108
+            ]
+          ],
+          "claim": "Actual launch closure with all selected kernel variants and main spmvGpu control flow: launch/capture count, warmup synchronization, timed graph quotient and direct tail, event stop/sync and result transfer."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              679
+            ],
+            [
+              680,
+              1178
+            ],
+            [
+              1179,
+              1324
+            ],
+            [
+              1325,
+              1823
+            ],
+            [
+              1824,
+              1969
+            ],
+            [
+              1970,
+              2468
+            ],
+            [
+              2469,
+              2614
+            ],
+            [
+              2615,
+              3113
+            ],
+            [
+              3114,
+              3243
+            ],
+            [
+              3244,
+              3742
+            ],
+            [
+              3743,
+              3856
+            ],
+            [
+              3857,
+              4355
+            ],
+            [
+              4356,
+              4629
+            ]
+          ],
+          "claim": "All six short-row and one long-row selected native sm86 kernels through arithmetic loops/backedges, reductions, row stores and exits."
+        }
+      ],
+      "notes": "The zero-iteration path returns before batch division/capture. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI iterations drive the compiled main control flow and the CSR terminal offset equals n=floor(dim²/sparsity). Width is selected among 2/4/8/16/32 by average nnz, with spmvLongRows selected for average>=2048. Short-row launch computes ceil(numRows/(128/width)) blocks, capped at 16*SMs; its warp-based grid-stride loop covers all rows and each subgroup traverses its full CSR interval by width before lane 0 stores. Long rows use a capped grid and explicit row grid-stride loop; each row’s nonzeros are accumulated by 128 threads, reduced and stored. For iterations>=32, a graph is captured with batchSize=min(iterations,256); otherwise the timed remainder uses direct launch calls. Compiled host at b6cb records start, b700 launches each graph and b71b decrements by batch size with the b721 backedge; b730 handles the remaining direct launches before b75f records stop and b773 synchronizes. The launch lambda and all native wrapper stubs for five widths plus longRows were followed to cudaLaunchKernel. All six final sm86 kernels were inspected through row/nonzero bounds, arithmetic loop backedges, reductions, stores and exits. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              82
+            ],
+            [
+              123,
+              183
+            ],
+            [
+              245,
+              441
+            ]
+          ],
+          "claim": "CSR population and terminal nnz; all width/long-row kernels and their coverage; actual launch/grid selector; graph/direct timed repetition control, event boundaries and output; CLI iterations and complete input setup."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              974,
+              1472
+            ],
+            [
+              1473,
+              1955
+            ],
+            [
+              2440,
+              2507
+            ],
+            [
+              2508,
+              2993
+            ],
+            [
+              2994,
+              3333
+            ]
+          ],
+          "claim": "Full timed main loop through events, exact graph batch decrement/backedge and direct tail; launch closure plus long-row and five width-specific host CUDA launch wrappers through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              871
+            ],
+            [
+              872,
+              1370
+            ],
+            [
+              1371,
+              1708
+            ],
+            [
+              1709,
+              2207
+            ],
+            [
+              2208,
+              2513
+            ],
+            [
+              2514,
+              3012
+            ],
+            [
+              3013,
+              3302
+            ],
+            [
+              3303,
+              3801
+            ],
+            [
+              3802,
+              4059
+            ],
+            [
+              4060,
+              4558
+            ],
+            [
+              4559,
+              4832
+            ]
+          ],
+          "claim": "All five selected short-row and selected long-row native sm86 kernels through full row/nonzero loops, reductions, row stores and exits."
+        }
+      ],
+      "notes": "When iterations=0, the graph-eligible condition is false, the direct timed tail is empty, and output is explicitly zero-initialized. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI iteration count is passed to CudaSpmv::run, and the CSR terminal offset equals n=floor(dim²/sparsity). Initialization selects row subgroup width 2/4/8/16/32 by mean row length, or 128 (long rows) at average>=256. For width W, launchRows uses ceil(dim*W/128) 128-thread blocks so row=globalThread/W covers every row; each subgroup accumulates that row’s complete CSR interval in W-strides then lane 0 stores. The long-row default path launches one block per row with 128-thread CSR strides, reduction and store. run performs one synchronized warmup outside timing; for iterations>0 it captures batch=min(iterations,128) launches, then times iterations/batch graph launches and iterations%batch direct launches; zero iterations skips graph and timed launch loops and returns zero after output transfer. Bound host initialize/run preserves width selection, the five width-specific device stubs and long-row stub, graph count, remainder, event boundary/sync and copy. Inspected all six native sm86 variants through arithmetic backedges, reductions/stores and exits. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              55,
+              84
+            ],
+            [
+              116,
+              168
+            ],
+            [
+              176,
+              288
+            ],
+            [
+              337,
+              448
+            ]
+          ],
+          "claim": "CSR population and terminal count; selected width/long-row logic, full row/nonzero kernels and grid; warmup, graph quotient/remainder timed control, result download; CLI iterations and all inputs."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2928,
+              3111
+            ],
+            [
+              3112,
+              3610
+            ],
+            [
+              3611,
+              3734
+            ]
+          ],
+          "claim": "Actual compiled initialization selector plus complete CudaSpmv::run through timed event boundaries/backedges, graph launches, remaining direct launches, stop/sync/download, and all width-specific and long-row CUDA stubs called by dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              679
+            ],
+            [
+              680,
+              1178
+            ],
+            [
+              1179,
+              1340
+            ],
+            [
+              1341,
+              1839
+            ],
+            [
+              1840,
+              2001
+            ],
+            [
+              2002,
+              2500
+            ],
+            [
+              2501,
+              2646
+            ],
+            [
+              2647,
+              3145
+            ],
+            [
+              3146,
+              3291
+            ],
+            [
+              3292,
+              3648
+            ]
+          ],
+          "claim": "All five native sm86 row-width variants and the long-row variant through complete arithmetic loop/backedges, reductions, row stores and exits."
+        }
+      ],
+      "notes": "No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI count is passed to spmvCuda; CSR generation stores n=floor(dim²/sparsity) entries and sets the final row delimiter to n. The average selects exactly one of warp widths 2/4/8/16/32. Its host launch helper caps blocks at 65535, while the kernel’s group=row mapping advances by gridDim*blockDim/Width, so all rows are covered; each subgroup traverses all j in the CSR interval in Width strides and lane 0 stores the row. The warmup call is synchronized before the event start. Compiled main dispatches through the chosen width-specific helper; the timed loop increments one counter per helper invocation until it equals iterations, then records/synchronizes the stop event. Each of the five actual launchSpmv helpers reaches cudaLaunchKernel with the corresponding native kernel. Inspected each of the five selectable sm86 kernels through its full CSR multiply-accumulate loop/backedge, reduction, output store and exit. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              52,
+              81
+            ],
+            [
+              121,
+              143
+            ],
+            [
+              159,
+              212
+            ],
+            [
+              261,
+              369
+            ]
+          ],
+          "claim": "CSR construction/terminal nnz; full row and nonzero coverage under capped grid; width dispatch and exact timed launch loop/event boundaries; CLI iteration count and matrix setup."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              960,
+              1458
+            ],
+            [
+              1459,
+              1859
+            ],
+            [
+              1861,
+              2250
+            ],
+            [
+              2251,
+              2360
+            ]
+          ],
+          "claim": "Compiled main’s dimension/average-based width selection, warmup/sync, timed iterations backedge and event stop/sync; all five called launch helpers through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              727
+            ],
+            [
+              728,
+              1226
+            ],
+            [
+              1227,
+              1468
+            ],
+            [
+              1469,
+              1967
+            ],
+            [
+              1968,
+              2241
+            ],
+            [
+              2242,
+              2740
+            ],
+            [
+              2741,
+              3078
+            ],
+            [
+              3079,
+              3577
+            ],
+            [
+              3578,
+              3883
+            ]
+          ],
+          "claim": "All five selectable native sm86 kernels through row/nonzero loop backedges, reductions, output stores and exits."
+        }
+      ],
+      "notes": "Grid cap is paired with the explicit row grid-stride loop. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed iterations reach main’s timed loop; CSR creation writes n=floor(dim²/sparsity) entries and ends the final row at n. The average row length selects one width 2/4/8/16/32. Each launch computes a grid capped at 32*SMs; kernel rows advance by gridDim*blockDim/ThreadsPerRow, and each row’s CSR interval is accumulated in ThreadsPerRow strides, reduced and stored. A warmup launch is synchronized before timing. Compiled main selects a width-specific device stub, starts the event, increments its timed counter once per call until it reaches the requested iteration count, then records and synchronizes the end event. The selected stub itself calls cudaLaunchKernel with the corresponding final kernel. All five selectable sm86 kernels were checked through complete nonzero loop/backedge, reduction, row store and exit. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              47,
+              83
+            ],
+            [
+              119,
+              148
+            ],
+            [
+              225,
+              378
+            ]
+          ],
+          "claim": "CSR initialization/terminal nonzero count; complete row grid-stride and nonzero arithmetic; selected width/grid helper; exact timed loop and event boundaries; CLI iteration parsing and input construction."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              960,
+              1458
+            ],
+            [
+              1459,
+              1957
+            ],
+            [
+              1958,
+              2194
+            ],
+            [
+              2195,
+              2494
+            ]
+          ],
+          "claim": "Compiled main setup/width dispatch, warmup synchronization and timed iteration loop/backedge through stop-event synchronization; all five selected device-stub paths through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              517
+            ],
+            [
+              518,
+              855
+            ],
+            [
+              856,
+              1354
+            ],
+            [
+              1355,
+              1660
+            ],
+            [
+              1661,
+              2159
+            ],
+            [
+              2160,
+              2433
+            ],
+            [
+              2434,
+              2932
+            ],
+            [
+              2933,
+              3174
+            ],
+            [
+              3175,
+              3673
+            ],
+            [
+              3674,
+              3883
+            ]
+          ],
+          "claim": "All five selected native sm86 width variants through full CSR arithmetic/backedges, reductions, row output stores and exits."
+        }
+      ],
+      "notes": "The capped launch grid is paired with kernel row-stride coverage. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Iterations pass from CLI into the selected spmvGpu<Width> specialization, and CSR initialization sets the final delimiter to n=floor(dim²/sparsity). Width 2/4/8/16/32 is selected by mean row length. The launch grid is capped at 32*SMs, while each kernel advances rows by gridDim*blockDim/Width to paddedRows and guards rows>=dim; every valid row traverses the full CSR interval in Width strides and lane 0 stores its result. A synchronized warmup precedes timing. Each compiled width branch records a start event, performs a counted loop of exactly iterations launches through its matching device stub, then records and synchronizes the end event. Each of the five called stubs reaches cudaLaunchKernel with the corresponding final kernel. All five selectable native sm86 kernels were inspected through the padded-row guard, CSR arithmetic loop/backedge, reduction, valid-row store and exit. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              82
+            ],
+            [
+              136,
+              163
+            ],
+            [
+              165,
+              213
+            ],
+            [
+              262,
+              381
+            ]
+          ],
+          "claim": "CSR terminal count; padded row/grid-stride kernel coverage and complete nonzero arithmetic; iteration-controlled warmup/timing; width dispatcher, CLI iterations and full matrix/vector initialization."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1010,
+              1508
+            ],
+            [
+              1509,
+              2007
+            ],
+            [
+              2008,
+              2506
+            ],
+            [
+              2507,
+              3005
+            ],
+            [
+              3006,
+              3124
+            ],
+            [
+              3253,
+              3590
+            ]
+          ],
+          "claim": "Complete inlined main specialization dispatches and timed loop/event paths plus all five called CUDA device stubs through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              517
+            ],
+            [
+              518,
+              855
+            ],
+            [
+              856,
+              1354
+            ],
+            [
+              1355,
+              1676
+            ],
+            [
+              1677,
+              2175
+            ],
+            [
+              2176,
+              2465
+            ],
+            [
+              2466,
+              2964
+            ],
+            [
+              2965,
+              3222
+            ],
+            [
+              3223,
+              3721
+            ],
+            [
+              3722,
+              3947
+            ]
+          ],
+          "claim": "All five selectable native sm86 kernels through padded-row guard, CSR multiply-accumulate backedges, reductions, valid-row stores and exits."
+        }
+      ],
+      "notes": "The source/compiled loop uses an exact per-specialization iteration bound; the grid cap is paired with row-stride traversal. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CLI iterations reach main’s repetition control; CSR setup closes the terminal offset at n=floor(dim²/sparsity). The `spmvGpu` dispatcher selects subgroup widths 1/2/4/8/16/32 by average row length, or the 256-thread long-row kernel at average>=512. Short-row launches use ceil(dim/(128/width)) blocks, covering each row exactly once; each width kernel traverses its entire CSR interval in width strides, reduces and writes the row. Long rows launch one block for every row; its threads process the full CSR interval in blockDim strides and reduce/store. A synchronized warmup is outside timing. The timed graph captures min(iterations,128) calls when batch>1; compiled main launches graph batches while subtracting 128 (or the actual batch) until below the bound, then loops through the exact remaining direct calls. Start/end events and completion sync bracket those calls. Compiled `spmvGpu` dispatch and all width/long-row launch paths were followed through actual cudaLaunchKernel helpers. All seven native sm86 kernels were checked through arithmetic backedges, reductions/stores and exits. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              40,
+              115
+            ],
+            [
+              152,
+              182
+            ],
+            [
+              263,
+              430
+            ]
+          ],
+          "claim": "Complete width/long-row row and CSR arithmetic; threshold selection and grid shape; CSR terminal count, graph/direct timed count and event/sync; CLI iterations and matrix setup."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              983,
+              1481
+            ],
+            [
+              1482,
+              1980
+            ],
+            [
+              1981,
+              2344
+            ],
+            [
+              2345,
+              2399
+            ],
+            [
+              2400,
+              2882
+            ],
+            [
+              2883,
+              3249
+            ]
+          ],
+          "claim": "Complete main graph capture/timed quotient decrement/backedge/remainder and event sync; actual width/long-row dispatcher; long-row device stub and all six short-row CUDA launch wrappers through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              631
+            ],
+            [
+              632,
+              1130
+            ],
+            [
+              1131,
+              1260
+            ],
+            [
+              1261,
+              1759
+            ],
+            [
+              1760,
+              1889
+            ],
+            [
+              1890,
+              2388
+            ],
+            [
+              2389,
+              2534
+            ],
+            [
+              2535,
+              3033
+            ],
+            [
+              3034,
+              3179
+            ],
+            [
+              3180,
+              3678
+            ],
+            [
+              3679,
+              3824
+            ],
+            [
+              3825,
+              4005
+            ]
+          ],
+          "claim": "All six short-row variants and the long-row native sm86 kernel through complete CSR arithmetic/backedges, reductions, row stores and exits."
+        }
+      ],
+      "notes": "Rows are not omitted by any grid cap: short-row grid is sized for dim and long-row grid is exactly dim. No runtime or benchmark evidence used."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-oc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI iterations control a direct timed loop; CSR generation closes the final row at n=floor(dim²/sparsity). Width is selected from mean nnz per row as 2/4/8/16/32 through average<=512, otherwise width=256 invokes the long-row path. Short-row grid is ceil(dim*width/256), and each row is assigned a unique subgroup with full CSR traversal in width strides, reduction and lane-zero store. Long rows launch dim blocks; each 256-thread block accumulates that row’s full CSR interval in blockDim strides, reduces and stores. The synchronized warmup is before start-event recording. Compiled main repeats the launch helper until the requested iteration counter is reached, then records/synchronizes the stop event; selected width reaches the launchSpmv switch and each selected width-specific CUDA wrapper or long-row stub through cudaLaunchKernel. Inspected all six native sm86 kernels through row/nonzero arithmetic backedges, reductions/stores and exits. No omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "CUDA build target and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              42,
+              105
+            ],
+            [
+              141,
+              170
+            ],
+            [
+              247,
+              386
+            ]
+          ],
+          "claim": "Complete short/long row kernels and selected grid geometry; CSR terminal nonzero count; CLI iteration parsing, width selector, warmup and exact direct timed loop/event boundaries/output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              971,
+              1469
+            ],
+            [
+              1470,
+              1808
+            ],
+            [
+              2174,
+              2228
+            ],
+            [
+              2229,
+              2647
+            ],
+            [
+              2648,
+              2952
+            ]
+          ],
+          "claim": "Compiled selector, warmup synchronization, exact counted timed launch loop and event stop/sync; actual long-row stub, width dispatch and all five short-row CUDA launch wrappers through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              500
+            ],
+            [
+              501,
+              679
+            ],
+            [
+              680,
+              1178
+            ],
+            [
+              1179,
+              1324
+            ],
+            [
+              1325,
+              1823
+            ],
+            [
+              1824,
+              1969
+            ],
+            [
+              1970,
+              2468
+            ],
+            [
+              2469,
+              2614
+            ],
+            [
+              2615,
+              3113
+            ],
+            [
+              3114,
+              3243
+            ],
+            [
+              3244,
+              3424
+            ]
+          ],
+          "claim": "All five selectable native sm86 short-row kernels and the native long-row kernel through full CSR arithmetic/backedges, reductions, row stores and exits."
+        }
+      ],
+      "notes": "The exact-size short-row grid needs no additional grid-stride loop; one subgroup is launched per row. Long-row grid is exactly dim. No runtime or benchmark evidence used."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}
+

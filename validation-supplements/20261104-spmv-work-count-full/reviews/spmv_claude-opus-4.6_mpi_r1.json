@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-opus-4.6_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Every requested repetition traverses all rank-owned CSR rows and nonzeros. Balanced row counts cover the complete matrix, with scattering before timing and gathering after it.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          89,
+          99
+        ],
+        [
+          155,
+          188
+        ],
+        [
+          225,
+          287
+        ],
+        [
+          290,
+          322
+        ]
+      ],
+      "claim": "The parsed -i value directly controls the complete local-product loop; reference generation is outside it and does not replace it.",
+      "sha256": "2f59853d2dd03c7753e595fe0e6bf9fc012e6e7e17453a47b1ee67bc27d4099b",
+      "git_blob": "f031fcac2d92a2ae957bea6695e4bc9ec22f1ff9"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed multiply/add a55d/a565 is enclosed by nonzero, row, and iteration backedges a56c->a550, a57a->a520 and a580->a510, followed by the end barrier and clock.",
+      "complete_dump_sha256": "676dcf414d86b0df7603b824e5c36a456c9504f93211082cdee3f75e98574232",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-4.6_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2365,
+          "last_line": 2409,
+          "text": "    a4d8:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a4dd:\tmov    -0x2c0(%rbp),%r8d\n    a4e4:\tmov    %rax,-0x2e8(%rbp)\n    a4eb:\ttest   %r8d,%r8d\n    a4ee:\tje     a582 <main+0xdf2>\n    a4f4:\tmov    -0x288(%rbp),%edi\n    a4fa:\tmov    -0x70(%rbp),%r8\n    a4fe:\ttest   %edi,%edi\n    a500:\tje     a582 <main+0xdf2>\n    a506:\tmov    -0x2c0(%rbp),%esi\n    a50c:\txor    %ecx,%ecx\n    a50e:\txchg   %ax,%ax\n    a510:\txor    %r9d,%r9d\n    a513:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a51e:\txchg   %ax,%ax\n    a520:\tmov    (%r12,%r9,4),%eax\n    a524:\tmov    0x4(%r12,%r9,4),%edx\n    a529:\tcmp    %edx,%eax\n    a52b:\tjae    a870 <main+0x10e0>\n    a531:\tdec    %edx\n    a533:\tlea    (%r15,%rax,4),%r10\n    a537:\tlea    (%r14,%rax,8),%rdi\n    a53b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a53f:\tsub    %eax,%edx\n    a541:\txor    %eax,%eax\n    a543:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a54e:\txchg   %ax,%ax\n    a550:\tmov    (%r10,%rax,4),%r11d\n    a554:\tvmovsd (%rbx,%r11,8),%xmm0\n    a55a:\tmov    %rax,%r11\n    a55d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a562:\tinc    %rax\n    a565:\tvaddsd %xmm0,%xmm1,%xmm1\n    a569:\tcmp    %r11,%rdx\n    a56c:\tjne    a550 <main+0xdc0>\n    a56e:\tvmovsd %xmm1,(%r8,%r9,8)\n    a574:\tinc    %r9\n    a577:\tcmp    %r9,%r13\n    a57a:\tjne    a520 <main+0xd90>\n    a57c:\tinc    %ecx\n    a57e:\tcmp    %esi,%ecx\n    a580:\tjne    a510 <main+0xd80>\n    a582:\tlea    0xaa97(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a589:\tcall   8e90 <MPI_Barrier@plt>\n    a58e:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-opus-4.6_mpi_r1",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "1f124a17619917a0a224d61bc53e45be2417a014c3e6efdd1159434d6ce10e85"
+  },
+  "binary_sha256": "ea9c26b463f79bf2de63ce906bef6d26bde24add66e9097a8535be440fcecbb9",
+  "binding_sha256": "de6d3fedbe573fb8e9356dc46e8d2a24b836adcc52c3324cb7204fbb90e32abe",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:57:07Z",
+  "review_finished_at": "2026-11-04T12:57:41Z",
+  "review_input_sha256": "b1641dfb264c9b31b9fbb96bc7eb12e84d4f769cf3eade5e5b45c7519466667a",
+  "pack_sha256": "8e357dcc709524d0449de4ec2096bbeb8e2ba4d6bb48c177244468f682e4c142",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

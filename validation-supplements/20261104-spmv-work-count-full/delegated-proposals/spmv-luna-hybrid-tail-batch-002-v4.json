@@ -1,0 +1,752 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:36:03Z",
+  "review_finished_at": "2026-11-04T15:37:16Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-astra-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The graph is captured before timing by invoking the selected launch dispatcher once per graph node. In the measured path the executable graph is replayed for the quotient, then the residual count is handled by width-specific launches: compiled branches reach width-4 and width-8 launch paths (with direct cudaLaunchKernel emission for one), followed by error checking and stream synchronization. All selected final-sm86 variants are cited.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              418
+            ]
+          ],
+          "claim": "Full exact source for CLI/input, MPI CSR partition, width dispatch, graph capture, timed quotient/remainder path and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2566,
+              2622
+            ],
+            [
+              2634,
+              2821
+            ],
+            [
+              2950,
+              3071
+            ],
+            [
+              1180,
+              1239
+            ],
+            [
+              1240,
+              1299
+            ]
+          ],
+          "claim": "Graph setup and clock/replay path, plus the width-4/8 residual branches omitted by the prior range, final synchronization, and complete emitted stubs."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1660
+            ],
+            [
+              1661,
+              2100
+            ],
+            [
+              2101,
+              2417
+            ]
+          ],
+          "claim": "All three selected final-sm86 kernel bodies, split into bounded spans."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-astra-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The selected width dispatcher is used to build the graph before timing. The measured block replays the graph quotient, handles any remaining iterations through the launch dispatcher, and synchronizes. The compiled timed interval and helper/launch paths substantiate the residual dispatch; all four selected final-sm86 kernel bodies remain cited.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              424
+            ]
+          ],
+          "claim": "Full exact source for MPI CSR partition, runtime width dispatch, kernel, graph capture, timed quotient/remainder and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2967,
+              3010
+            ],
+            [
+              2642,
+              2708
+            ],
+            [
+              3357,
+              3604
+            ],
+            [
+              3717,
+              3900
+            ],
+            [
+              2839,
+              2860
+            ],
+            [
+              1226,
+              1285
+            ],
+            [
+              1286,
+              1345
+            ],
+            [
+              1346,
+              1405
+            ]
+          ],
+          "claim": "Exact capture/instantiate and measured graph-replay/remainder path; width-dispatch launch branches including the direct width-32 path plus complete emitted width-4/8/16 stubs through launch API."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1708
+            ],
+            [
+              1709,
+              2150
+            ],
+            [
+              2151,
+              2513
+            ],
+            [
+              2514,
+              2900
+            ],
+            [
+              2901,
+              3286
+            ]
+          ],
+          "claim": "All four selected final-sm86 width-specialized kernel bodies."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-astra-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "There is no graph capture in this implementation. A single width is chosen from the rank-local average row length; if that average is at least 512, all local rows use the long-row kernel, otherwise all use the selected width-4/8/16/32 kernel. The timed loop repeats the selected launch once per requested iteration, then checks and synchronizes. This is not a per-row split between long and standard kernels.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              473
+            ]
+          ],
+          "claim": "Full exact source for MPI CSR partition, ordinary/long-row selection, warmup, direct timed repetition loop and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3270,
+              3314
+            ],
+            [
+              3832,
+              3954
+            ],
+            [
+              4175,
+              4318
+            ],
+            [
+              1144,
+              1203
+            ],
+            [
+              1204,
+              1263
+            ],
+            [
+              1264,
+              1323
+            ],
+            [
+              1324,
+              1383
+            ],
+            [
+              2083,
+              2143
+            ]
+          ],
+          "claim": "Measured per-iteration launch path and exact dispatch/call branches, plus complete width-specific and long-row device stubs through launch API."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              855
+            ],
+            [
+              856,
+              1300
+            ],
+            [
+              1301,
+              1660
+            ],
+            [
+              1661,
+              2100
+            ],
+            [
+              2101,
+              2433
+            ],
+            [
+              2434,
+              2900
+            ],
+            [
+              2901,
+              3190
+            ],
+            [
+              3191,
+              3600
+            ],
+            [
+              3601,
+              4075
+            ]
+          ],
+          "claim": "All five selected final-sm86 kernels, including long-row specialization."
+        }
+      ],
+      "notes": "Width choice is based on the rank-local average; the branch is global for the partition, not an individual-row dispatch."
+    },
+    {
+      "id": "spmv_gpt-6-astra-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Before timing, the emitted launch lambda is called for each captured graph node. The measured path replays the graph quotient and invokes the lambda for the residual iterations, then synchronizes. The complete lambda body submits the selected width kernel through cudaLaunchKernel. All five selectable final-sm86 width variants are cited.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              460
+            ]
+          ],
+          "claim": "Full exact source for MPI partition, width dispatch including Width=1, graph capture, timed quotient/remainder and synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3640,
+              3662
+            ],
+            [
+              2913,
+              3029
+            ],
+            [
+              1290,
+              1718
+            ]
+          ],
+          "claim": "Exact capture loop/call to the launch lambda, measured graph quotient/remainder path, and complete emitted launch-lambda body through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              855
+            ],
+            [
+              856,
+              1300
+            ],
+            [
+              1301,
+              1692
+            ],
+            [
+              1693,
+              2150
+            ],
+            [
+              2151,
+              2497
+            ],
+            [
+              2498,
+              2900
+            ],
+            [
+              2901,
+              3270
+            ],
+            [
+              3271,
+              3700
+            ],
+            [
+              3701,
+              3931
+            ]
+          ],
+          "claim": "All five selected final-sm86 width variants."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact host chain supplement: the timed main loop invokes the compiled spmvKernel device stub on each iteration; the complete stub calls cudaLaunchKernel with that kernel entry and its local-row arguments. Original source and device SASS evidence remains included.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              320
+            ]
+          ],
+          "claim": "Full exact source for runtime input/count, MPI partition, kernel and timed loop."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              830,
+              911
+            ],
+            [
+              1776,
+              1841
+            ]
+          ],
+          "claim": "Measured loop/call path plus complete exact kernel stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              499
+            ],
+            [
+              500,
+              702
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact host chain supplement: the compiled timed iteration loop conditionally invokes the device stub when local rows exist; the stub forwards the actual kernel and launch arguments through cudaLaunchKernel. Original source and SASS evidence remains included.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              321
+            ]
+          ],
+          "claim": "Full exact source for runtime input/count, local CSR partition, row kernel and timed loop."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              26
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              802,
+              862
+            ],
+            [
+              1718,
+              1783
+            ]
+          ],
+          "claim": "Measured main iteration loop/call and complete exact kernel stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              499
+            ],
+            [
+              500,
+              791
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact host chain supplement: the timed main loop's iteration backedge and kernel-stub call are present in this binary; its complete stub forwards to cudaLaunchKernel. Original source and SASS evidence remains included.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              318
+            ]
+          ],
+          "claim": "Full exact source for input/partition, CUDA row kernel and timed iteration loop."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1331,
+              1478
+            ],
+            [
+              2425,
+              2490
+            ]
+          ],
+          "claim": "Measured main repetition/call/synchronization path and complete exact device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              499
+            ],
+            [
+              500,
+              702
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact host chain supplement: the timed main repetition path reaches the selected kernel's device stub, whose complete function submits it through cudaLaunchKernel; the source's local-row guard and output synchronization are retained. Original source and SASS evidence remains included.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              335
+            ]
+          ],
+          "claim": "Full exact source for runtime count, MPI/local CSR partition, kernel and timed repetition."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1367,
+              1458
+            ],
+            [
+              2455,
+              2515
+            ]
+          ],
+          "claim": "Measured repetition/call/synchronization path and complete exact stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              499
+            ],
+            [
+              500,
+              711
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact host chain supplement: the measured per-iteration main path invokes the device stub for nonempty local rows and synchronizes; the full stub submits the selected kernel through cudaLaunchKernel. Original source and SASS evidence remains included.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              321
+            ]
+          ],
+          "claim": "Full exact source for input/partition, CSR row kernel and timed repetition/synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1428,
+              1508
+            ],
+            [
+              2394,
+              2459
+            ]
+          ],
+          "claim": "Measured iteration loop/call/synchronization and complete exact kernel stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              499
+            ],
+            [
+              500,
+              711
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact host chain supplement: the measured per-iteration main path reaches the exact spmvKernel stub for nonempty local rows; the stub submits that function through cudaLaunchKernel. Original source and SASS evidence remains included.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              324
+            ]
+          ],
+          "claim": "Full exact source for input/MPI partition, row/nonzero kernel and timed loop/synchronization."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Full exact build configuration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1262,
+              1633
+            ],
+            [
+              2632,
+              2694
+            ]
+          ],
+          "claim": "Measured repetition/call/synchronization path and complete exact device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              499
+            ],
+            [
+              500,
+              702
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}
+

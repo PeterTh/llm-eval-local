@@ -1,0 +1,73 @@
+{
+  "id": "spmv_gpt-5-mini_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Complete local CSR products repeat for the unchanged requested count. Both compiled entry paths reach the same multiplication loop.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          45,
+          55
+        ],
+        [
+          104,
+          122
+        ],
+        [
+          169,
+          221
+        ],
+        [
+          224,
+          238
+        ]
+      ],
+      "claim": "Remainder-aware row ranges cover all rows. The complete localRows+1 delimiter ranges are scattered/rebased and passed to every timed kernel call.",
+      "sha256": "27aaa76d5b7e7fa8802e3ebb0ac8a873703a150c624d736a9c5bc99b16afbd3a",
+      "git_blob": "51846deed6b66118771512bfddee56fdb8e96497"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Both start-clock paths a27e and a89b lead to multiply/add a30c/a314, enclosed by entry a31b->a300, row a329->a2d0 and iteration a335->a2c0 loops; the common ending clock is a343.",
+      "complete_dump_sha256": "61cae5e95d1527b9deb392b9a7473ee222beb01ca17320bd5ed944924d48dfee",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5-mini_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2253,
+          "last_line": 2310,
+          "text": "    a272:\tlea    0xada7(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a279:\tcall   8e80 <MPI_Barrier@plt>\n    a27e:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    a283:\tmov    -0x2a4(%rbp),%edi\n    a289:\tmov    %rax,-0x300(%rbp)\n    a290:\ttest   %edi,%edi\n    a292:\tje     a337 <main+0xb97>\n    a298:\tcmpl   $0x0,-0x2b0(%rbp)\n    a29f:\tmov    -0x90(%rbp),%r8\n    a2a6:\tje     a337 <main+0xb97>\n    a2ac:\tmov    -0x2b0(%rbp),%r9d\n    a2b3:\txor    %ecx,%ecx\n    a2b5:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a2c0:\txor    %r11d,%r11d\n    a2c3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a2ce:\txchg   %ax,%ax\n    a2d0:\tmov    (%r12,%r11,4),%eax\n    a2d4:\tmov    0x4(%r12,%r11,4),%esi\n    a2d9:\tcmp    %esi,%eax\n    a2db:\tjae    a690 <main+0xef0>\n    a2e1:\tdec    %esi\n    a2e3:\tlea    (%r14,%rax,4),%r10\n    a2e7:\tlea    0x0(%r13,%rax,8),%rdi\n    a2ec:\tvxorpd %xmm1,%xmm1,%xmm1\n    a2f0:\tsub    %eax,%esi\n    a2f2:\txor    %eax,%eax\n    a2f4:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a2ff:\tnop\n    a300:\tmov    (%r10,%rax,4),%edx\n    a304:\tvmovsd (%rbx,%rdx,8),%xmm0\n    a309:\tmov    %rax,%rdx\n    a30c:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a311:\tinc    %rax\n    a314:\tvaddsd %xmm0,%xmm1,%xmm1\n    a318:\tcmp    %rdx,%rsi\n    a31b:\tjne    a300 <main+0xb60>\n    a31d:\tvmovsd %xmm1,(%r8,%r11,8)\n    a323:\tinc    %r11\n    a326:\tcmp    %r11,%r9\n    a329:\tjne    a2d0 <main+0xb30>\n    a32b:\tmov    -0x2a4(%rbp),%eax\n    a331:\tinc    %ecx\n    a333:\tcmp    %eax,%ecx\n    a335:\tjne    a2c0 <main+0xb20>\n    a337:\tlea    0xace2(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a33e:\tcall   8e80 <MPI_Barrier@plt>\n    a343:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    a348:\tmov    -0x300(%rbp),%rcx\n    a34f:\tmovabs $0x431bde82d7b634db,%rdx\n    a359:\tsub    $0x8,%rsp\n    a35d:\tmovq   $0x0,-0x278(%rbp)\n    a368:\tlea    -0x278(%rbp),%rsi\n    a36f:\tlea    -0x280(%rbp),%rdi\n    a376:\txor    %r9d,%r9d\n    a379:\tlea    0xaea0(%rip),%r8        # 15220 <ompi_mpi_op_max@@Base>\n    a380:\tsub    %rcx,%rax\n    a383:\tmov    %rax,%rcx\n    a386:\timul   %rdx\n"
+        },
+        {
+          "first_line": 2576,
+          "last_line": 2587,
+          "text": "    a88c:\tlea    0xa78d(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a893:\tvzeroupper\n    a896:\tcall   8e80 <MPI_Barrier@plt>\n    a89b:\tcall   8b60 <std::chrono::_V2::system_clock::now()@plt>\n    a8a0:\tcmpl   $0x0,-0x2a4(%rbp)\n    a8a7:\tmov    %rax,-0x300(%rbp)\n    a8ae:\tje     a337 <main+0xb97>\n    a8b4:\tmov    -0x90(%rbp),%r8\n    a8bb:\tjmp    a2ac <main+0xb0c>\n    a8c0:\tlea    0xa759(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a8c7:\tcall   8e80 <MPI_Barrier@plt>\n    a8cc:\tjmp    a89b <main+0x10fb>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_gpt-5-mini_mpi_r4",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "7f6569caff2af43c0c9046eb8a48e2b894512e60dfab70285a8147316f36be32"
+  },
+  "binary_sha256": "adc173cde9f16cde9643dae20cb19a2a10b40a87665888cde7228477b2b7617a",
+  "binding_sha256": "5fcebcce6accccf7be7bf73da292eee083bc7345c279f04d94288e6402538a4b",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:09:32Z",
+  "review_finished_at": "2026-11-04T13:11:48Z",
+  "review_input_sha256": "3a13fa1888449505c7e597cbb247badc1caa7df205472f260579144678dc7501",
+  "pack_sha256": "cd131d06b72c834d74561c68320361ab3801439cda03f3a09564e8ff84bdecad",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

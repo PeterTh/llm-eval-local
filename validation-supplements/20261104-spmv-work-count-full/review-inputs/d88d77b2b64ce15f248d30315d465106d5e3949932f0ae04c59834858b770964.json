@@ -1,0 +1,191 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:37:12Z",
+  "review_finished_at": "2026-11-04T13:37:51Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Root parsing and option broadcast preserve the requested iteration count; timed loop 400–403 recomputes all local CSR rows/nonzeros each time. Monotone row-plus-nonzero partitions span the complete matrix. Collective/chunked scatters deliver all entries, local offsets are rebased with the terminal delimiter restored, and Gatherv covers the whole output. Initialization's early stop only follows assignment of all requested nonzeros.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              56,
+              116
+            ],
+            [
+              167,
+              242
+            ],
+            [
+              254,
+              322
+            ],
+            [
+              345,
+              407
+            ],
+            [
+              421,
+              436
+            ],
+            [
+              461,
+              477
+            ]
+          ],
+          "claim": "Root parsing and option broadcast preserve the requested iteration count; timed loop 400–403 recomputes all local CSR rows/nonzeros each time. Monotone row-plus-nonzero partitions span the complete matrix. Collective/chunked scatters deliver all entries, local offsets are rebased with the terminal delimiter restored, and Gatherv covers the whole output. Initialization's early stop only follows assignment of all requested nonzeros."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1755,
+              1810
+            ]
+          ],
+          "claim": "MPI_Wtime 3dd3/3e84 encloses multiply/add 3e5d/3e65, nonzero backedge 3e6c->3e50, row 3e7c->3e20, repetition 3e82->3e10."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed and broadcast -i count directly controls timed loop 399–402. Every iteration traverses complete local CSR rows and nonzeros. Monotone nearest-work partitions cover 0..numRows; windowed transfer intersections cover all values, indices, row starts and outputs, with complete vector broadcasts and restored terminal delimiters. No work-count omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              117
+            ],
+            [
+              168,
+              259
+            ],
+            [
+              261,
+              323
+            ],
+            [
+              339,
+              424
+            ],
+            [
+              448,
+              463
+            ]
+          ],
+          "claim": "The parsed and broadcast -i count directly controls timed loop 399–402. Every iteration traverses complete local CSR rows and nonzeros. Monotone nearest-work partitions cover 0..numRows; windowed transfer intersections cover all values, indices, row starts and outputs, with complete vector broadcasts and restored terminal delimiters. No work-count omission identified."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1666,
+              1725
+            ]
+          ],
+          "claim": "MPI_Wtime 3c04/3ccd encloses multiply/add 3c8d/3c95, nonzero backedge 3c9c->3c80, row 3cac->3c50, repetition 3cb2->3c40."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested -i count survives root parsing/broadcast and controls timed loop 439–442. CSR arithmetic covers all local rows/nonzeros on each iteration. Sequential nearest-work partition endpoints span all rows. Windowed scatter/gather covers all segment intersections; root's in-place prefix is retained, local offsets rebased, and the terminal delimiter restored. No work-count omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              112
+            ],
+            [
+              163,
+              285
+            ],
+            [
+              287,
+              350
+            ],
+            [
+              366,
+              451
+            ],
+            [
+              484,
+              501
+            ]
+          ],
+          "claim": "The requested -i count survives root parsing/broadcast and controls timed loop 439–442. CSR arithmetic covers all local rows/nonzeros on each iteration. Sequential nearest-work partition endpoints span all rows. Windowed scatter/gather covers all segment intersections; root's in-place prefix is retained, local offsets rebased, and the terminal delimiter restored. No work-count omission identified."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3199,
+              3258
+            ]
+          ],
+          "claim": "MPI_Wtime 5593/565f encloses multiply/add 562e/5636, nonzero backedge 563d->5620, row 564c->55f0, repetition 5652->55e0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-xhigh_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed and broadcast iteration count reaches timed loop 382–385 without a cap. Each iteration computes all assigned CSR rows/nonzeros. Monotone weighted cuts span the full matrix; windowed transfers and full-vector broadcasts preserve all operands, local delimiters are rebased and completed, and the complete output is gathered. No work-count omission identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              55,
+              113
+            ],
+            [
+              162,
+              284
+            ],
+            [
+              286,
+              304
+            ],
+            [
+              308,
+              395
+            ],
+            [
+              416,
+              431
+            ]
+          ],
+          "claim": "The parsed and broadcast iteration count reaches timed loop 382–385 without a cap. Each iteration computes all assigned CSR rows/nonzeros. Monotone weighted cuts span the full matrix; windowed transfers and full-vector broadcasts preserve all operands, local delimiters are rebased and completed, and the complete output is gathered. No work-count omission identified."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1916,
+              1973
+            ]
+          ],
+          "claim": "MPI_Wtime 3076/3134 encloses multiply/add 310d/3115, nonzero backedge 311c->3100, row 312c->30d0, repetition 3132->30c0."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "id": "spmv_claude-fable-5-cc-medium_omp_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The unchanged CLI iteration count drives loop 323–326 within the timed persistent OpenMP team. The omp-for kernel recomputes all rows and full CSR intervals each repetition, with its implicit barrier. Topology discovery, affinity and first-touch work only alter placement and thread count.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          55,
+          115
+        ],
+        [
+          162,
+          192
+        ],
+        [
+          206,
+          273
+        ],
+        [
+          286,
+          328
+        ]
+      ],
+      "claim": "The unchanged CLI iteration count drives loop 323–326 within the timed persistent OpenMP team. The omp-for kernel recomputes all rows and full CSR intervals each repetition, with its implicit barrier. Topology discovery, affinity and first-touch work only alter placement and thread count.",
+      "sha256": "017b090ada890f4e7607f128ee35f56a8dc7ea95e6e75437e86f8f1c77935bd9",
+      "git_blob": "cf740066d1a9211790d57d3c45e6ad4aa5a5adcd"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clocks 1bce/1c0c enclose GOMP_parallel 1c07 targeting worker 26e0. Repeated kernel call 2727 has backedge 272f->2700. Kernel 25e0 retains static partition, multiply/add 268d/2695, nonzero 269c->2680 and row 26ab->2660, then barrier 26bb.",
+      "complete_dump_sha256": "d686234f66d51fbc1bfd64b6ea5a25fe946724b188a2ae57e5293a75ca4a96c5",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-fable-5-cc-medium_omp_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 714,
+          "last_line": 740,
+          "text": "    1b9d:\tvpinsrq $0x1,-0x170(%rbp),%xmm0,%xmm0\n    1ba7:\tmov    -0x138(%rbp),%ebx\n    1bad:\tvpinsrd $0x1,%ebx,%xmm6,%xmm7\n    1bb3:\tvinserti128 $0x1,%xmm0,%ymm3,%ymm1\n    1bb9:\tvmovq  %xmm7,%r14\n    1bbe:\tvmovdqa %ymm1,-0x130(%rbp)\n    1bc6:\tvzeroupper\n    1bc9:\tcall   13a0 <puts@plt>\n    1bce:\tcall   1250 <std::chrono::_V2::system_clock::now()@plt>\n    1bd3:\tvmovdqa -0x130(%rbp),%ymm1\n    1bdb:\txor    %ecx,%ecx\n    1bdd:\txor    %edx,%edx\n    1bdf:\tmov    %rax,%r13\n    1be2:\tmov    -0x158(%rbp),%rax\n    1be9:\tmov    -0x168(%rbp),%rsi\n    1bf0:\tlea    0xae9(%rip),%rdi        # 26e0 <main._omp_fn.2>\n    1bf7:\tmov    %r14,-0x48(%rbp)\n    1bfb:\tmov    %rax,-0x50(%rbp)\n    1bff:\tvmovdqa %ymm1,-0x70(%rbp)\n    1c04:\tvzeroupper\n    1c07:\tcall   1390 <GOMP_parallel@plt>\n    1c0c:\tcall   1250 <std::chrono::_V2::system_clock::now()@plt>\n    1c11:\tmovabs $0x431bde82d7b634db,%rdx\n    1c1b:\tsub    %r13,%rax\n    1c1e:\tlea    0x2886(%rip),%rsi        # 44ab <_IO_stdin_used+0x4ab>\n    1c25:\tmov    %rax,%rcx\n    1c28:\timul   %rdx\n"
+        },
+        {
+          "first_line": 1381,
+          "last_line": 1498,
+          "text": "00000000000025e0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    25e0:\tendbr64\n    25e4:\tpush   %r15\n    25e6:\tpush   %r14\n    25e8:\tpush   %r13\n    25ea:\tpush   %r12\n    25ec:\tpush   %rbp\n    25ed:\tpush   %rbx\n    25ee:\tsub    $0x18,%rsp\n    25f2:\ttest   %r8d,%r8d\n    25f5:\tmov    %r8d,0xc(%rsp)\n    25fa:\tje     26ad <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xcd>\n    2600:\tmov    %rdx,%r13\n    2603:\tmov    %rcx,%rbx\n    2606:\tmov    %rdi,%rbp\n    2609:\tmov    %rsi,%r12\n    260c:\tmov    %r9,%r14\n    260f:\tcall   1400 <omp_get_num_threads@plt>\n    2614:\tmov    %eax,%r15d\n    2617:\tcall   13b0 <omp_get_thread_num@plt>\n    261c:\txor    %edx,%edx\n    261e:\tmov    %eax,%ecx\n    2620:\tmov    0xc(%rsp),%eax\n    2624:\tdiv    %r15d\n    2627:\tmov    %eax,%r8d\n    262a:\tcmp    %edx,%ecx\n    262c:\tjb     26d5 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xf5>\n    2632:\timul   %r8d,%ecx\n    2636:\tadd    %ecx,%edx\n    2638:\tlea    (%r8,%rdx,1),%eax\n    263c:\tcmp    %eax,%edx\n    263e:\tjae    26ad <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xcd>\n    2640:\tlea    -0x1(%r8),%eax\n    2644:\txor    %edi,%edi\n    2646:\tlea    0x4(,%rax,4),%r9\n    264e:\tmov    %edx,%eax\n    2650:\tinc    %edx\n    2652:\tlea    0x0(%r13,%rax,4),%r8\n    2657:\tlea    0x0(%r13,%rdx,4),%r10\n    265c:\tlea    (%r14,%rax,8),%r11\n    2660:\tmov    (%r8,%rdi,1),%eax\n    2664:\tmov    (%r10,%rdi,1),%edx\n    2668:\tcmp    %edx,%eax\n    266a:\tjae    26c0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xe0>\n    266c:\tdec    %edx\n    266e:\tlea    (%r12,%rax,4),%rsi\n    2672:\tlea    0x0(%rbp,%rax,8),%rcx\n    2677:\tvxorpd %xmm1,%xmm1,%xmm1\n    267b:\tsub    %eax,%edx\n    267d:\txor    %eax,%eax\n    267f:\tnop\n    2680:\tmov    (%rsi,%rax,4),%r13d\n    2684:\tvmovsd (%rbx,%r13,8),%xmm0\n    268a:\tmov    %rax,%r13\n    268d:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    2692:\tinc    %rax\n    2695:\tvaddsd %xmm0,%xmm1,%xmm1\n    2699:\tcmp    %rdx,%r13\n    269c:\tjne    2680 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xa0>\n    269e:\tvmovsd %xmm1,(%r11,%rdi,2)\n    26a4:\tadd    $0x4,%rdi\n    26a8:\tcmp    %rdi,%r9\n    26ab:\tjne    2660 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x80>\n    26ad:\tadd    $0x18,%rsp\n    26b1:\tpop    %rbx\n    26b2:\tpop    %rbp\n    26b3:\tpop    %r12\n    26b5:\tpop    %r13\n    26b7:\tpop    %r14\n    26b9:\tpop    %r15\n    26bb:\tjmp    13f0 <GOMP_barrier@plt>\n    26c0:\tvxorpd %xmm1,%xmm1,%xmm1\n    26c4:\tvmovsd %xmm1,(%r11,%rdi,2)\n    26ca:\tadd    $0x4,%rdi\n    26ce:\tcmp    %rdi,%r9\n    26d1:\tjne    2660 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x80>\n    26d3:\tjmp    26ad <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xcd>\n    26d5:\tinc    %r8d\n    26d8:\txor    %edx,%edx\n    26da:\tjmp    2632 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x52>\n    26df:\tnop\n\n00000000000026e0 <main._omp_fn.2>:\n    26e0:\tendbr64\n    26e4:\tpush   %r13\n    26e6:\tpush   %r12\n    26e8:\tpush   %rbp\n    26e9:\tpush   %rbx\n    26ea:\tsub    $0x8,%rsp\n    26ee:\tmov    0x2c(%rdi),%r12d\n    26f2:\tmov    0x28(%rdi),%r13d\n    26f6:\ttest   %r12d,%r12d\n    26f9:\tje     2731 <main._omp_fn.2+0x51>\n    26fb:\tmov    %rdi,%rbx\n    26fe:\txor    %ebp,%ebp\n    2700:\tmov    0x18(%rbx),%rdx\n    2704:\tmov    0x20(%rbx),%rax\n    2708:\tmov    %r13d,%r8d\n    270b:\tinc    %ebp\n    270d:\tmov    0x8(%rbx),%rsi\n    2711:\tmov    (%rbx),%rdi\n    2714:\tmov    (%rdx),%rcx\n    2717:\tmov    0x10(%rbx),%rdx\n    271b:\tmov    (%rsi),%rsi\n    271e:\tmov    (%rdi),%rdi\n    2721:\tmov    (%rax),%r9\n    2724:\tmov    (%rdx),%rdx\n    2727:\tcall   25e0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    272c:\tcmp    %ebp,%r12d\n    272f:\tjne    2700 <main._omp_fn.2+0x20>\n    2731:\tadd    $0x8,%rsp\n    2735:\tpop    %rbx\n    2736:\tpop    %rbp\n    2737:\tpop    %r12\n    2739:\tpop    %r13\n    273b:\tret\n    273c:\tnopl   0x0(%rax)\n\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-fable-5-cc-medium_omp_r3",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "146ca1fe7f71c96cbc8039df0ed6ac7fa0aec3a895a42c41b5ec117516ac99d7"
+  },
+  "binary_sha256": "0101d300036f1760c62435589b3c0710e5ad3d1591c62690dd8a33c2b79f3ff6",
+  "binding_sha256": "dbe8f5d10bd44710673af9d71b9505a3d0260dee7ca6c8050ea553348b6f5e9e",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:46:13Z",
+  "review_finished_at": "2026-11-04T13:49:34Z",
+  "review_input_sha256": "bc3ed3439ce5951be1e16dd7d1c68358baa80771fd126aa62e136ae89dc3a3d6",
+  "pack_sha256": "9beef70206dbb03745ad9f572e664905dfd31c4e7ff8e5b8fb13e1962faa5f0f",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

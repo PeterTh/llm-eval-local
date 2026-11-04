@@ -1,0 +1,68 @@
+{
+  "id": "spmv_gpt-5.6-terra-low_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          108
+        ],
+        [
+          165,
+          203
+        ],
+        [
+          224,
+          285
+        ],
+        [
+          288,
+          308
+        ]
+      ],
+      "claim": "CLI iteration count is unchanged. Quotient/remainder intervals cover all rows and corresponding nonzeros. All row starts are scattered/rebased and final local delimiter is set to localNnz. Each requested timed iteration performs complete local CSR; Gatherv collects the entire output.",
+      "sha256": "53c1e8a2d1918722596590bcd77387cb335a881af6a0d85749c0448c760f324d",
+      "git_blob": "d201224f8d420d79b477b2b9de16d1d435a69803"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed mul/add 9fbd/9fc5 remain in nonzero 9fcc->9fb0, row 9fdb->9f80 and iteration 9fe1->9f70 backedges.",
+      "complete_dump_sha256": "49e0ecd3f1d31ae659e9cdb1919d5dc861ba7c54f815bb6775497886b16bf8db",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-5.6-terra-low_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2077,
+          "last_line": 2132,
+          "text": "    9f06:\tmov    %eax,(%r12,%r13,1)\n    9f0a:\tmov    -0x230(%rbp),%r9d\n    9f11:\ttest   %r9d,%r9d\n    9f14:\tjne    9f22 <main+0x7c2>\n    9f16:\tlea    0x64e4(%rip),%rdi        # 10401 <_IO_stdin_used+0x401>\n    9f1d:\tcall   9390 <puts@plt>\n    9f22:\tlea    0xb2f7(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9f29:\tcall   8e80 <MPI_Barrier@plt>\n    9f2e:\tcall   91d0 <MPI_Wtime@plt>\n    9f33:\tmov    -0x250(%rbp),%r8d\n    9f3a:\tvmovsd %xmm0,-0x268(%rbp)\n    9f42:\ttest   %r8d,%r8d\n    9f45:\tje     9fe3 <main+0x883>\n    9f4b:\tmov    -0x248(%rbp),%edi\n    9f51:\tmov    -0x70(%rbp),%r8\n    9f55:\ttest   %edi,%edi\n    9f57:\tje     9fe3 <main+0x883>\n    9f5d:\tmov    -0x250(%rbp),%esi\n    9f63:\txor    %ecx,%ecx\n    9f65:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f70:\txor    %r9d,%r9d\n    9f73:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f7e:\txchg   %ax,%ax\n    9f80:\tmov    (%r12,%r9,1),%eax\n    9f84:\tmov    0x4(%r12,%r9,1),%edx\n    9f89:\tcmp    %edx,%eax\n    9f8b:\tjae    a450 <main+0xcf0>\n    9f91:\tdec    %edx\n    9f93:\tlea    (%r15,%rax,4),%r10\n    9f97:\tlea    (%r14,%rax,8),%rdi\n    9f9b:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f9f:\tsub    %eax,%edx\n    9fa1:\txor    %eax,%eax\n    9fa3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9fae:\txchg   %ax,%ax\n    9fb0:\tmov    (%r10,%rax,4),%r11d\n    9fb4:\tvmovsd (%rbx,%r11,8),%xmm0\n    9fba:\tmov    %rax,%r11\n    9fbd:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9fc2:\tinc    %rax\n    9fc5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9fc9:\tcmp    %rdx,%r11\n    9fcc:\tjne    9fb0 <main+0x850>\n    9fce:\tvmovsd %xmm1,(%r8,%r9,2)\n    9fd4:\tadd    $0x4,%r9\n    9fd8:\tcmp    %r9,%r13\n    9fdb:\tjne    9f80 <main+0x820>\n    9fdd:\tinc    %ecx\n    9fdf:\tcmp    %ecx,%esi\n    9fe1:\tjne    9f70 <main+0x810>\n    9fe3:\tcall   91d0 <MPI_Wtime@plt>\n    9fe8:\tvsubsd -0x268(%rbp),%xmm0,%xmm0\n    9ff0:\tsub    $0x8,%rsp\n    9ff4:\tlea    0xb225(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    9ffb:\tmovq   $0x0,-0x218(%rbp)\n    a006:\tlea    -0x218(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260805-120633/spmv_gpt-5.6-terra-low_mpi_r5",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "e2093faae3708b9479f61e635874262d196ca7e3f68345c1dae84d3a0e1d4c32"
+  },
+  "binary_sha256": "dc70b18389173d1305fd0d893b04d8e7015bfe3818e8fa4c2bbb49d1432e9565",
+  "binding_sha256": "79716b4e8a1169ca994d966fda91692bb72b19b29e16dafc4190331fd54b884b",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:26:46Z",
+  "review_finished_at": "2026-11-04T13:27:37Z",
+  "review_input_sha256": "75794444736af6d7b67036acdd73d1fe90f16d5ad31336d11610ad495004feb2",
+  "pack_sha256": "534f457ec152583d5246226c9cff74ecd07dc5d1b40102ad92d6e352c371d1b5",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

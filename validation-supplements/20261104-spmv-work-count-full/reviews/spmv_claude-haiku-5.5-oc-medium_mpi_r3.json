@@ -1,0 +1,78 @@
+{
+  "id": "spmv_claude-haiku-5.5-oc-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "All local rows are partitioned into interior and boundary lists and computed on every requested iteration, with halo exchange completed before boundary arithmetic.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          141,
+          151
+        ],
+        [
+          205,
+          214
+        ],
+        [
+          296,
+          328
+        ],
+        [
+          347,
+          402
+        ],
+        [
+          409,
+          438
+        ]
+      ],
+      "claim": "Balanced contiguous rank partitions cover all rows. Each row goes to one list, and spmvRows traverses every nonzero in each listed row. Both calls remain inside the CLI-bounded timed loop.",
+      "sha256": "b1b4b8c4f3f9ae9905a63b6992692244b2dc89fa68ce1002c60ee7a0aabf58fd",
+      "git_blob": "a634d08c38add5cd9578fefdce1389b692a35175"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Interior multiply/add at cdea/cdf2 and boundary multiply/add at ce8a/ce92 are enclosed by cebe->cbd0, with MPI_Waitall at ce16 between them. Repetition arithmetic is retained.",
+      "complete_dump_sha256": "ce5c39e98ebbd73262026359b323c7f2e2b9048249ac6b810773aaaacce6036e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-oc-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 4884,
+          "last_line": 4903,
+          "text": "    cb69:\tmov    -0x1e8(%rbp),%rdi\n    cb70:\tcall   8ea0 <MPI_Barrier@plt>\n    cb75:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    cb7a:\tmov    -0x25c(%rbp),%ecx\n    cb80:\tmov    %rax,-0x2e8(%rbp)\n    cb87:\ttest   %ecx,%ecx\n    cb89:\tje     cec4 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x1134>\n    cb8f:\tmov    -0x1a0(%rbp),%rax\n    cb96:\tmov    -0x180(%rbp),%r14\n    cb9d:\tmovl   $0x0,-0x234(%rbp)\n    cba7:\tmov    %rax,-0x268(%rbp)\n    cbae:\tmov    -0x160(%rbp),%rax\n    cbb5:\tmov    %rax,-0x278(%rbp)\n    cbbc:\tmov    -0x140(%rbp),%rax\n    cbc3:\tmov    %rax,-0x280(%rbp)\n    cbca:\tnopw   0x0(%rax,%rax,1)\n    cbd0:\tmov    -0x208(%rbp),%rbx\n    cbd7:\txor    %r13d,%r13d\n    cbda:\tcmp    %rbx,-0x258(%rbp)\n    cbe1:\tje     cc7f <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0xeef>\n"
+        },
+        {
+          "first_line": 4988,
+          "last_line": 5063,
+          "text": "    cd7e:\tmov    -0x278(%rbp),%rax\n    cd85:\tmov    -0x158(%rbp),%r9\n    cd8c:\tmov    %rax,%rdi\n    cd8f:\tcmp    %rax,%r9\n    cd92:\tje     ce0a <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x107a>\n    cd94:\tmov    -0x240(%rbp),%r11\n    cd9b:\tmov    -0x248(%rbp),%r10\n    cda2:\tmov    -0x268(%rbp),%rbx\n    cda9:\tnopl   0x0(%rax)\n    cdb0:\tmov    (%rdi),%r8d\n    cdb3:\tmov    %r8,%rdx\n    cdb6:\tmov    (%r14,%r8,4),%eax\n    cdba:\tinc    %edx\n    cdbc:\tmov    (%r14,%rdx,4),%edx\n    cdc0:\tcmp    %edx,%eax\n    cdc2:\tjae    d3a0 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x1610>\n    cdc8:\tsub    %eax,%edx\n    cdca:\tlea    (%rbx,%rax,4),%rsi\n    cdce:\tlea    (%r11,%rax,8),%rcx\n    cdd2:\tvxorpd %xmm1,%xmm1,%xmm1\n    cdd6:\txor    %eax,%eax\n    cdd8:\tnopl   0x0(%rax,%rax,1)\n    cde0:\tmov    (%rsi,%rax,4),%r12d\n    cde4:\tvmovsd (%r15,%r12,8),%xmm0\n    cdea:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    cdef:\tinc    %rax\n    cdf2:\tvaddsd %xmm0,%xmm1,%xmm1\n    cdf6:\tcmp    %rdx,%rax\n    cdf9:\tjne    cde0 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x1050>\n    cdfb:\tadd    $0x4,%rdi\n    cdff:\tvmovsd %xmm1,(%r10,%r8,8)\n    ce05:\tcmp    %rdi,%r9\n    ce08:\tjne    cdb0 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x1020>\n    ce0a:\tmov    -0x230(%rbp),%rsi\n    ce11:\txor    %edx,%edx\n    ce13:\tmov    %r13d,%edi\n    ce16:\tcall   9190 <MPI_Waitall@plt>\n    ce1b:\tmov    -0x280(%rbp),%rax\n    ce22:\tmov    -0x138(%rbp),%r9\n    ce29:\tmov    %rax,%rdi\n    ce2c:\tcmp    %rax,%r9\n    ce2f:\tje     ceaa <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x111a>\n    ce31:\tmov    -0x240(%rbp),%r11\n    ce38:\tmov    -0x248(%rbp),%r10\n    ce3f:\tmov    -0x268(%rbp),%rbx\n    ce46:\tcs nopw 0x0(%rax,%rax,1)\n    ce50:\tmov    (%rdi),%r8d\n    ce53:\tmov    %r8,%rdx\n    ce56:\tmov    (%r14,%r8,4),%eax\n    ce5a:\tinc    %edx\n    ce5c:\tmov    (%r14,%rdx,4),%edx\n    ce60:\tcmp    %edx,%eax\n    ce62:\tjae    d390 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x1600>\n    ce68:\tsub    %eax,%edx\n    ce6a:\tlea    (%rbx,%rax,4),%rsi\n    ce6e:\tlea    (%r11,%rax,8),%rcx\n    ce72:\tvxorpd %xmm1,%xmm1,%xmm1\n    ce76:\txor    %eax,%eax\n    ce78:\tnopl   0x0(%rax,%rax,1)\n    ce80:\tmov    (%rsi,%rax,4),%r12d\n    ce84:\tvmovsd (%r15,%r12,8),%xmm0\n    ce8a:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    ce8f:\tinc    %rax\n    ce92:\tvaddsd %xmm0,%xmm1,%xmm1\n    ce96:\tcmp    %rdx,%rax\n    ce99:\tjne    ce80 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x10f0>\n    ce9b:\tadd    $0x4,%rdi\n    ce9f:\tvmovsd %xmm1,(%r10,%r8,8)\n    cea5:\tcmp    %r9,%rdi\n    cea8:\tjne    ce50 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0x10c0>\n    ceaa:\tincl   -0x234(%rbp)\n    ceb0:\tmov    -0x25c(%rbp),%ebx\n    ceb6:\tmov    -0x234(%rbp),%eax\n    cebc:\tcmp    %ebx,%eax\n    cebe:\tjne    cbd0 <runBenchmark(int, char**, ompi_communicator_t*, int, int)+0xe40>\n    cec4:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The iteration performs extra halo communication for an unchanged vector; this does not omit prescribed arithmetic.",
+  "source": {
+    "source_path": "20261025-170040/spmv_claude-haiku-5.5-oc-medium_mpi_r3",
+    "source_commit": "24648e59045c3e8d7280119627a7bccde1da4f2f",
+    "staged_source_sha256": "66ddcfd4bbe1e55c3f0f665f6a92670730e6a5ea6a5234195dbe1b15ded55a06"
+  },
+  "binary_sha256": "05347e269e19074ca3777a0212e4659dff563d2adaef2099f8ab51066f035716",
+  "binding_sha256": "70941a438f0d8e067d638e381c2c2885f0f89cc342705def54d5a1f9e24d4b47",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:55:40Z",
+  "review_finished_at": "2026-11-04T12:56:34Z",
+  "review_input_sha256": "457093fd7e0bdafc7bcdba53f805c4e8bdd06cd59dea7a976a957394c814f7c3",
+  "pack_sha256": "7aa42abdc5e2776773e9b24692fea267d0b1e44257429fa6f5d9fd52f78d475f",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

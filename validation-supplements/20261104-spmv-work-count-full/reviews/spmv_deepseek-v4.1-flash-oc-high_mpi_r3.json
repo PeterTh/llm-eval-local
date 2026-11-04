@@ -1,0 +1,72 @@
+{
+  "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The full local CSR multiplication is executed for every requested repetition, with complete row coverage and no reference reuse.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          109
+        ],
+        [
+          175,
+          202
+        ],
+        [
+          219,
+          223
+        ],
+        [
+          254,
+          290
+        ],
+        [
+          298,
+          334
+        ]
+      ],
+      "claim": "Balanced row bounds and localRows+1 scattered delimiters cover every row. Optional reference computation and source-array deallocation precede the unchanged full-work iteration loop.",
+      "sha256": "dd76178dd32a63d9e1471ec88eb0c0b3a1a2bad7e52f48009563db8f0f0a61c9",
+      "git_blob": "ab7a306e3533f41db50373e7d0a0a965f05f406a"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add a08d/a095 is enclosed by entry a09c->a080, row a0ac->a050 and iteration a0b2->a040 backedges between clocks 9ff0 and a0c0.",
+      "complete_dump_sha256": "23c3c0d1abc3fbc746355c9fab88aea4722c19e814e5a18ec765d9eb38b34709",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_deepseek-v4.1-flash-oc-high_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2142,
+          "last_line": 2201,
+          "text": "    9fc2:\tmov    %r13,%rdx\n    9fc5:\tmov    -0x268(%rbp),%rsi\n    9fcc:\tmov    -0x2c0(%rbp),%rdi\n    9fd3:\tcall   ad90 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    9fd8:\tlea    0x648b(%rip),%rdi        # 1046a <_IO_stdin_used+0x46a>\n    9fdf:\tcall   9390 <puts@plt>\n    9fe4:\tlea    0xb235(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9feb:\tcall   8e90 <MPI_Barrier@plt>\n    9ff0:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9ff5:\tmov    -0x258(%rbp),%r9d\n    9ffc:\tmov    -0xd0(%rbp),%r13\n    a003:\tmov    %rax,-0x268(%rbp)\n    a00a:\ttest   %r9d,%r9d\n    a00d:\tje     a0b4 <main+0x8e4>\n    a013:\tmov    -0x2a4(%rbp),%r8d\n    a01a:\ttest   %r8d,%r8d\n    a01d:\tje     a0b4 <main+0x8e4>\n    a023:\tmov    -0x2d8(%rbp),%r8\n    a02a:\tmov    -0x258(%rbp),%esi\n    a030:\txor    %ecx,%ecx\n    a032:\tshl    $0x2,%r8\n    a036:\tcs nopw 0x0(%rax,%rax,1)\n    a040:\txor    %r9d,%r9d\n    a043:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a04e:\txchg   %ax,%ax\n    a050:\tmov    (%r12,%r9,1),%eax\n    a054:\tmov    0x4(%r12,%r9,1),%edx\n    a059:\tcmp    %edx,%eax\n    a05b:\tjae    a5f0 <main+0xe20>\n    a061:\tdec    %edx\n    a063:\tlea    (%r15,%rax,4),%r10\n    a067:\tlea    (%r14,%rax,8),%rdi\n    a06b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a06f:\tsub    %eax,%edx\n    a071:\txor    %eax,%eax\n    a073:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a07e:\txchg   %ax,%ax\n    a080:\tmov    (%r10,%rax,4),%r11d\n    a084:\tvmovsd (%rbx,%r11,8),%xmm0\n    a08a:\tmov    %rax,%r11\n    a08d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a092:\tinc    %rax\n    a095:\tvaddsd %xmm0,%xmm1,%xmm1\n    a099:\tcmp    %rdx,%r11\n    a09c:\tjne    a080 <main+0x8b0>\n    a09e:\tvmovsd %xmm1,0x0(%r13,%r9,2)\n    a0a5:\tadd    $0x4,%r9\n    a0a9:\tcmp    %r8,%r9\n    a0ac:\tjne    a050 <main+0x880>\n    a0ae:\tinc    %ecx\n    a0b0:\tcmp    %esi,%ecx\n    a0b2:\tjne    a040 <main+0x870>\n    a0b4:\tlea    0xb165(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a0bb:\tcall   8e90 <MPI_Barrier@plt>\n    a0c0:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a0c5:\tmov    -0x268(%rbp),%rcx\n    a0cc:\tmovabs $0x431bde82d7b634db,%rdx\n    a0d6:\tsub    $0x8,%rsp\n    a0da:\tmovq   $0x0,-0x238(%rbp)\n    a0e5:\tlea    -0x238(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261019-134042/spmv_deepseek-v4.1-flash-oc-high_mpi_r3",
+    "source_commit": "65363cf3710daa9e0d3409306efee5a49e18c8dd",
+    "staged_source_sha256": "ab6fec020ae033efd8925ff5589098c833b554a8606778b85cb78fc2b32e79fc"
+  },
+  "binary_sha256": "41c15f1153c289f36f40e3c62eb3ba798acd81473c679d93abcdfa54ab626f95",
+  "binding_sha256": "c63e64a839534c02734da5523148b2835375614c0e970bc4cd4c736d9706b7f7",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:07:32Z",
+  "review_finished_at": "2026-11-04T13:08:14Z",
+  "review_input_sha256": "949727d664ba9261f20d7c90f97bfe04139c57001b44d64b1189beb6a23116eb",
+  "pack_sha256": "3fd3d131b77ca0771228e0488b9745c3efba8a571feb59a5156b9239e0ccc43a",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

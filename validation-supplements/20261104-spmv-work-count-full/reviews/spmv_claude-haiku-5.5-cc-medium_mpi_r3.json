@@ -1,0 +1,76 @@
+{
+  "id": "spmv_claude-haiku-5.5-cc-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The complete distributed CSR product is repeated iterations times, with each rank retaining a disjoint contiguous portion of all rows.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          29,
+          31
+        ],
+        [
+          147,
+          157
+        ],
+        [
+          217,
+          252
+        ],
+        [
+          255,
+          260
+        ],
+        [
+          276,
+          306
+        ],
+        [
+          313,
+          325
+        ]
+      ],
+      "claim": "The parsed iteration bound is used without clipping. Each timed call covers all local rows/nonzeros; the reference is computed separately only when validation is requested.",
+      "sha256": "a41359e4416e5bf1b18344912b562c9fc6c6f2cd01bc3fa91d1aca1c4a71e55d",
+      "git_blob": "ae29e66b32643a1e7f7358d80f15bb45faa66385"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed vmulsd/vaddsd at 9dcd/9dd5 are enclosed by CSR-entry 9ddc->9dc0, row 9df2->9d90, and repetition 9dfc->9d80 backedges.",
+      "complete_dump_sha256": "69393d8f971a70808cb2e56fdfaf6c1548ed0c1db1e8fb56ef8237bbe8252945",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-cc-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1990,
+          "last_line": 2041,
+          "text": "    9d19:\tlea    0xa300(%rip),%rdi        # 14020 <ompi_mpi_comm_world@@Base>\n    9d20:\tcall   8e80 <MPI_Barrier@plt>\n    9d25:\tcall   91d0 <MPI_Wtime@plt>\n    9d2a:\tmov    -0xd0(%rbp),%rax\n    9d31:\tvmovsd %xmm0,-0x1d8(%rbp)\n    9d39:\tmov    %rax,-0x1a8(%rbp)\n    9d40:\ttest   %r14d,%r14d\n    9d43:\tje     9e05 <main+0x685>\n    9d49:\tmov    -0x1b8(%rbp),%r9d\n    9d50:\ttest   %r9d,%r9d\n    9d53:\tje     9e05 <main+0x685>\n    9d59:\tmov    -0x1b0(%rbp),%r8\n    9d60:\tmov    -0x150(%rbp),%r9\n    9d67:\txor    %ecx,%ecx\n    9d69:\tmov    -0x1a8(%rbp),%rsi\n    9d70:\tshl    $0x2,%r8\n    9d74:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d7f:\tnop\n    9d80:\txor    %r10d,%r10d\n    9d83:\tmov    %rsi,%r11\n    9d86:\tcs nopw 0x0(%rax,%rax,1)\n    9d90:\tmov    0x0(%r13,%r10,1),%eax\n    9d95:\tmov    0x4(%r13,%r10,1),%edx\n    9d9a:\tcmp    %edx,%eax\n    9d9c:\tjae    9ff0 <main+0x870>\n    9da2:\tdec    %edx\n    9da4:\tlea    (%r9,%rax,4),%rdi\n    9da8:\tlea    (%r12,%rax,8),%rsi\n    9dac:\tvxorpd %xmm1,%xmm1,%xmm1\n    9db0:\tsub    %eax,%edx\n    9db2:\tmov    %r11,-0x1a8(%rbp)\n    9db9:\txor    %eax,%eax\n    9dbb:\tnopl   0x0(%rax,%rax,1)\n    9dc0:\tmov    (%rdi,%rax,4),%r11d\n    9dc4:\tvmovsd (%rbx,%r11,8),%xmm0\n    9dca:\tmov    %rax,%r11\n    9dcd:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    9dd2:\tinc    %rax\n    9dd5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9dd9:\tcmp    %rdx,%r11\n    9ddc:\tjne    9dc0 <main+0x640>\n    9dde:\tmov    -0x1a8(%rbp),%r11\n    9de5:\tvmovsd %xmm1,(%r11,%r10,2)\n    9deb:\tadd    $0x4,%r10\n    9def:\tcmp    %r10,%r8\n    9df2:\tjne    9d90 <main+0x610>\n    9df4:\tinc    %ecx\n    9df6:\tmov    %r11,%rsi\n    9df9:\tcmp    %r14d,%ecx\n    9dfc:\tjne    9d80 <main+0x600>\n    9dfe:\tmov    %r11,-0x1a8(%rbp)\n    9e05:\tcall   91d0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261012-111947/spmv_claude-haiku-5.5-cc-medium_mpi_r3",
+    "source_commit": "71ba7cc523997c8fd1537d7a8159b583f260793d",
+    "staged_source_sha256": "dab17ddcf92eb4cf737b46df6b1a21adaf150747df996b8bb8d788029c09a9e3"
+  },
+  "binary_sha256": "2c74abb22732cce92335afae389631ae08ece76543fb9b599faa8df70ad67730",
+  "binding_sha256": "24fafe1791433201bf540c18b64348b25ee0303399f700083bcea9eaf306268b",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:54:48Z",
+  "review_finished_at": "2026-11-04T12:55:17Z",
+  "review_input_sha256": "7ebe82a12317fa6e47d93fb5336f5fdc3874a39a4ca3ec657332fd8972c264df",
+  "pack_sha256": "21870b51f45ac65f01b2de99e9c87268e27e2ce7be9660f8da24d2fb814cadbf",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

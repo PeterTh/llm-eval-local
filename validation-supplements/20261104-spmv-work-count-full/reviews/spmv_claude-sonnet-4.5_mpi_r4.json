@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-sonnet-4.5_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each balanced rank partition performs a complete CSR multiplication on every requested iteration; setup sends and final gathering do not replace repetitions.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          164,
+          199
+        ],
+        [
+          217,
+          223
+        ],
+        [
+          262,
+          313
+        ],
+        [
+          316,
+          336
+        ]
+      ],
+      "claim": "All rows/nonzeros are preserved in the rebased local arrays. The parsed -i value directly controls full local kernel calls inside the measured interval.",
+      "sha256": "772691690363c54cd88702b1c499ecd6299f6aa222786e6d3d649e434bd9fac2",
+      "git_blob": "836fbcac185410f16c472e997adebc42aa7e6787"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Clock-bounded vmulsd/vaddsd a33d/a345 is enclosed by nonzero a34c->a330, row a362->a300 and iteration a36b->a2f0 loops.",
+      "complete_dump_sha256": "83ba2a9ec826d2fc9feb0a43a4dbd88a22c8f3b97c6f34001bef367a4ef1f5d0",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-sonnet-4.5_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2250,
+          "last_line": 2298,
+          "text": "    a29d:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    a2a2:\tmov    -0x234(%rbp),%edi\n    a2a8:\tmov    %rax,%r14\n    a2ab:\ttest   %edi,%edi\n    a2ad:\tje     a36d <main+0xbfd>\n    a2b3:\tcmpl   $0x0,-0x240(%rbp)\n    a2ba:\tmov    -0x90(%rbp),%r9\n    a2c1:\tje     a36d <main+0xbfd>\n    a2c7:\tmov    -0x2c0(%rbp),%r8\n    a2ce:\tmov    -0x234(%rbp),%esi\n    a2d4:\txor    %ecx,%ecx\n    a2d6:\tmov    -0x230(%rbp),%rax\n    a2dd:\tshl    $0x2,%r8\n    a2e1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a2ec:\tnopl   0x0(%rax)\n    a2f0:\txor    %r10d,%r10d\n    a2f3:\tmov    %rax,%rdi\n    a2f6:\tcs nopw 0x0(%rax,%rax,1)\n    a300:\tmov    (%rdi,%r10,1),%eax\n    a304:\tmov    0x4(%rdi,%r10,1),%edx\n    a309:\tmov    %rdi,%r15\n    a30c:\tcmp    %edx,%eax\n    a30e:\tjae    a650 <main+0xee0>\n    a314:\tdec    %edx\n    a316:\tlea    (%r12,%rax,4),%r11\n    a31a:\tlea    0x0(%r13,%rax,8),%rdi\n    a31f:\tvxorpd %xmm1,%xmm1,%xmm1\n    a323:\tsub    %eax,%edx\n    a325:\tmov    %r15,-0x208(%rbp)\n    a32c:\txor    %eax,%eax\n    a32e:\txchg   %ax,%ax\n    a330:\tmov    (%r11,%rax,4),%r15d\n    a334:\tvmovsd (%rbx,%r15,8),%xmm0\n    a33a:\tmov    %rax,%r15\n    a33d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a342:\tinc    %rax\n    a345:\tvaddsd %xmm0,%xmm1,%xmm1\n    a349:\tcmp    %rdx,%r15\n    a34c:\tjne    a330 <main+0xbc0>\n    a34e:\tmov    -0x208(%rbp),%rdi\n    a355:\tvmovsd %xmm1,(%r9,%r10,2)\n    a35b:\tadd    $0x4,%r10\n    a35f:\tcmp    %r10,%r8\n    a362:\tjne    a300 <main+0xb90>\n    a364:\tinc    %ecx\n    a366:\tmov    %rdi,%rax\n    a369:\tcmp    %ecx,%esi\n    a36b:\tjne    a2f0 <main+0xb80>\n    a36d:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-sonnet-4.5_mpi_r4",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "25e810d94a8c17c96a91481b218b47ce98937661a8249bdb3e2082f6dac22bea"
+  },
+  "binary_sha256": "73a77cfb968d47d23985bcf0fb2418882e1932f0c977ff0aed8b17a75d3ecaa7",
+  "binding_sha256": "100a524e7c63f9f7ef60eb832222844f78d7c8727f6813e07dec429dd80a7937",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:00:26Z",
+  "review_finished_at": "2026-11-04T13:01:01Z",
+  "review_input_sha256": "992169a83e937c080fbb1ae4f7ba91a1bbfc50cacccaf280efb3c41d241def01",
+  "pack_sha256": "9c11c909397d5920b04828b7d48265e3bf6b8c005f7630105cf67611c471fa28",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,76 @@
+{
+  "id": "spmv_gemini-3-pro-preview_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "All complete local CSR products repeat for the original CLI count. Distributed matrix/value initialization and optional reference computation remain separate from timed work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          56,
+          134
+        ],
+        [
+          214,
+          235
+        ],
+        [
+          255,
+          265
+        ],
+        [
+          328,
+          353
+        ],
+        [
+          373,
+          388
+        ],
+        [
+          488,
+          515
+        ]
+      ],
+      "claim": "Remainder-aware ownership covers the whole matrix. The local row count is the delimiter-array length minus one, and each timed call traverses all those rows and entries.",
+      "sha256": "342c22b047f08e0642a20a9000dbdbf775cc27c724e59c84b79c30c0797c03f7",
+      "git_blob": "809cf7af28b3b411fd1414833cea470dc5851065"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Multiply/add 9cfc/9d05 remains under entry 9d0c->9cf0, row 9d21->9cc0 and iteration 9d2a->9cb0 backedges, between clocks 9c39 and 9d46.",
+      "complete_dump_sha256": "9212b2e57bce5a526c715c0f0a52928bf99345d7dc00104e21b3636c4b9498c3",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gemini-3-pro-preview_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1936,
+          "last_line": 2005,
+          "text": "    9c06:\tmovq   $0x0,-0xe0(%rbp)\n    9c11:\tmov    -0x198(%rbp),%eax\n    9c17:\tvmovdqa %xmm0,-0xf0(%rbp)\n    9c1f:\tje     a1ff <main+0xa6f>\n    9c25:\ttest   %eax,%eax\n    9c27:\tje     a56d <main+0xddd>\n    9c2d:\tlea    0xbbec(%rip),%rdi        # 15820 <ompi_mpi_comm_world@@Base>\n    9c34:\tcall   8e90 <MPI_Barrier@plt>\n    9c39:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9c3e:\tmov    -0x1a8(%rbp),%r11d\n    9c45:\tmov    %rax,-0x1c0(%rbp)\n    9c4c:\tmov    -0x110(%rbp),%rax\n    9c53:\tmov    -0x170(%rbp),%r12\n    9c5a:\tmov    %rax,-0x1b8(%rbp)\n    9c61:\ttest   %r11d,%r11d\n    9c64:\tje     9d3a <main+0x5aa>\n    9c6a:\tmov    -0x20c(%rbp),%r10d\n    9c71:\tmov    -0x150(%rbp),%r9\n    9c78:\ttest   %r10d,%r10d\n    9c7b:\tje     9d3a <main+0x5aa>\n    9c81:\tmov    -0x210(%rbp),%eax\n    9c87:\tmov    -0x1a8(%rbp),%edx\n    9c8d:\txor    %ecx,%ecx\n    9c8f:\tmov    %r15d,-0x1c8(%rbp)\n    9c96:\tmov    -0x1b8(%rbp),%rdi\n    9c9d:\tlea    -0x1(%rax),%r8d\n    9ca1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9cac:\tnopl   0x0(%rax)\n    9cb0:\txor    %r11d,%r11d\n    9cb3:\tmov    %rdi,%rsi\n    9cb6:\tcs nopw 0x0(%rax,%rax,1)\n    9cc0:\tmov    0x0(%r13,%r11,4),%eax\n    9cc5:\tmov    0x4(%r13,%r11,4),%edi\n    9cca:\tcmp    %edi,%eax\n    9ccc:\tjae    a220 <main+0xa90>\n    9cd2:\tdec    %edi\n    9cd4:\tlea    (%r9,%rax,4),%r15\n    9cd8:\tlea    (%r12,%rax,8),%r10\n    9cdc:\tvxorpd %xmm1,%xmm1,%xmm1\n    9ce0:\tsub    %eax,%edi\n    9ce2:\tmov    %rsi,-0x1b8(%rbp)\n    9ce9:\txor    %eax,%eax\n    9ceb:\tnopl   0x0(%rax,%rax,1)\n    9cf0:\tmov    (%r15,%rax,4),%esi\n    9cf4:\tvmovsd (%rbx,%rsi,8),%xmm0\n    9cf9:\tmov    %rax,%rsi\n    9cfc:\tvmulsd (%r10,%rax,8),%xmm0,%xmm0\n    9d02:\tinc    %rax\n    9d05:\tvaddsd %xmm0,%xmm1,%xmm1\n    9d09:\tcmp    %rsi,%rdi\n    9d0c:\tjne    9cf0 <main+0x560>\n    9d0e:\tmov    -0x1b8(%rbp),%rsi\n    9d15:\tvmovsd %xmm1,(%rsi,%r11,8)\n    9d1b:\tinc    %r11\n    9d1e:\tcmp    %r8,%r11\n    9d21:\tjne    9cc0 <main+0x530>\n    9d23:\tinc    %ecx\n    9d25:\tmov    %rsi,%rdi\n    9d28:\tcmp    %edx,%ecx\n    9d2a:\tjne    9cb0 <main+0x520>\n    9d2c:\tmov    -0x1c8(%rbp),%r15d\n    9d33:\tmov    %rsi,-0x1b8(%rbp)\n    9d3a:\tlea    0xbadf(%rip),%rdi        # 15820 <ompi_mpi_comm_world@@Base>\n    9d41:\tcall   8e90 <MPI_Barrier@plt>\n    9d46:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9d4b:\tmov    -0x1c0(%rbp),%rcx\n    9d52:\tmovabs $0x431bde82d7b634db,%rdx\n    9d5c:\tsub    $0x8,%rsp\n    9d60:\tmovq   $0x0,-0xb0(%rbp)\n    9d6b:\tlea    -0xb0(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_gemini-3-pro-preview_mpi_r2",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "505ca869694a3b8bb87f8ac5aa0b12639c2ebc099ba62ef2bee81f3383c670c4"
+  },
+  "binary_sha256": "68b685eddcfd5b6143de94d188948b5864b4fb2b2de1937c634b74571462b606",
+  "binding_sha256": "aa57a9bdf23be31f516a92895cb24c0ddea5bd94787844d100e79630880ec04d",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:08:17Z",
+  "review_finished_at": "2026-11-04T13:09:29Z",
+  "review_input_sha256": "61194e7ad65a3d7eaffdd3c1325a0d00335b90c705d88be0390f93df272a67e7",
+  "pack_sha256": "b51b5db993d96b906a55450bf4a9ae222632bffa378e42bec6fb2630c6e31a61",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,224 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:46:13Z",
+  "review_finished_at": "2026-11-04T13:49:34Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-fable-5-cc-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count drives each thread's timed loop 287–290 inside a persistent OpenMP team. The omp-for kernel covers every row and its full CSR interval and synchronizes after each repetition. Thread-count and affinity choices and first touch change placement, not requested work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              115
+            ],
+            [
+              164,
+              194
+            ],
+            [
+              209,
+              292
+            ]
+          ],
+          "claim": "The unchanged -i count drives each thread's timed loop 287–290 inside a persistent OpenMP team. The omp-for kernel covers every row and its full CSR interval and synchronizes after each repetition. Thread-count and affinity choices and first touch change placement, not requested work."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              700,
+              726
+            ],
+            [
+              1417,
+              1534
+            ]
+          ],
+          "claim": "Clocks 1bea/1c32 enclose GOMP_parallel 1c2d targeting worker 2900. Worker repeatedly calls spmvCpu at 2947 with backedge 294f->2920. Kernel retains quotient/remainder row partition, multiply/add 28ad/28b5, nonzero 28bc->28a0, row 28cb->2880 and GOMP_barrier 28db."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count drives timed loop 256–259, launching complete static OpenMP row work each time. Pre-timing first-touch copies include every CSR nonzero. Optional self re-execution only initializes placement environment and preserves argv; no compute or repetition omission was identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              111
+            ],
+            [
+              160,
+              204
+            ],
+            [
+              216,
+              261
+            ]
+          ],
+          "claim": "The unchanged -i count drives timed loop 256–259, launching complete static OpenMP row work each time. Pre-timing first-touch copies include every CSR nonzero. Optional self re-execution only initializes placement environment and preserves argv; no compute or repetition omission was identified."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              663,
+              706
+            ],
+            [
+              1027,
+              1106
+            ]
+          ],
+          "claim": "Clocks 1b44/1bde enclose GOMP_parallel 1bcd and iteration backedge 1bd5->1b80. Worker 2190 has quotient/remainder partition and multiply/add 223d/2245, nonzero backedge 224c->2230 and row 225b->2210."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI iteration count drives loop 323–326 within the timed persistent OpenMP team. The omp-for kernel recomputes all rows and full CSR intervals each repetition, with its implicit barrier. Topology discovery, affinity and first-touch work only alter placement and thread count.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              55,
+              115
+            ],
+            [
+              162,
+              192
+            ],
+            [
+              206,
+              273
+            ],
+            [
+              286,
+              328
+            ]
+          ],
+          "claim": "The unchanged CLI iteration count drives loop 323–326 within the timed persistent OpenMP team. The omp-for kernel recomputes all rows and full CSR intervals each repetition, with its implicit barrier. Topology discovery, affinity and first-touch work only alter placement and thread count."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              714,
+              740
+            ],
+            [
+              1381,
+              1498
+            ]
+          ],
+          "claim": "Clocks 1bce/1c0c enclose GOMP_parallel 1c07 targeting worker 26e0. Repeated kernel call 2727 has backedge 272f->2700. Kernel 25e0 retains static partition, multiply/add 268d/2695, nonzero 269c->2680 and row 26ab->2660, then barrier 26bb."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls timed loop 306–309. Each call partitions every row statically and traverses its full CSR interval. Affinity and first-touch initialization happen before timing and do not shorten requested work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              57,
+              120
+            ],
+            [
+              170,
+              212
+            ],
+            [
+              226,
+              256
+            ],
+            [
+              270,
+              311
+            ]
+          ],
+          "claim": "The unchanged -i count controls timed loop 306–309. Each call partitions every row statically and traverses its full CSR interval. Affinity and first-touch initialization happen before timing and do not shorten requested work."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              696,
+              741
+            ],
+            [
+              1042,
+              1121
+            ]
+          ],
+          "claim": "Clocks 1b6c/1c0d enclose GOMP_parallel 1bfc with repetition backedge 1c04->1bc0. Worker 2180 retains quotient/remainder partition, multiply/add 222d/2235, nonzero backedge 223c->2220 and row backedge 224b->2200."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-fable-5-cc-medium_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI iteration count controls timed loop 357–360. Every call recomputes all statically partitioned rows and every CSR nonzero. Topology/affinity choices and complete first-touch initialization precede timing; no omission was identified.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              57,
+              119
+            ],
+            [
+              158,
+              257
+            ],
+            [
+              271,
+              304
+            ],
+            [
+              318,
+              362
+            ]
+          ],
+          "claim": "The unchanged CLI iteration count controls timed loop 357–360. Every call recomputes all statically partitioned rows and every CSR nonzero. Topology/affinity choices and complete first-touch initialization precede timing; no omission was identified."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              817,
+              860
+            ],
+            [
+              1205,
+              1284
+            ]
+          ],
+          "claim": "Clocks 2d49/2dda enclose GOMP_parallel 2dc9 and iteration backedge 2dd1->2d90. Worker 3410 retains static partition, multiply/add 34bd/34c5, nonzero 34cc->34b0 and row 34db->3490."
+        }
+      ]
+    }
+  ]
+}

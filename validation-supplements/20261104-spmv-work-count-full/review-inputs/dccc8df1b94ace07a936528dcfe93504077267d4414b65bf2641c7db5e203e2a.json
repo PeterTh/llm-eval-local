@@ -1,0 +1,785 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:19:43Z",
+  "review_finished_at": "2026-11-04T15:25:00Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive contiguous rows, corresponding complete NNZ slices, and rebased row pointers. The timed loop is controlled by the requested iteration count and invokes the warp-row CUDA kernel for each pass; its lane-strided CSR loop covers every entry in each row and lane zero stores the sum. The compiled timed path has the repetition backedge, launch stub and synchronization before timer end.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              367
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1714,
+              1734
+            ],
+            [
+              2125,
+              2175
+            ],
+            [
+              3180,
+              3247
+            ]
+          ],
+          "claim": "Timed boundaries, counted launch loop/backedge, actual CUDA stub call and its launch helper."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              47,
+              337
+            ]
+          ],
+          "claim": "sm_86 kernel includes row bounds, nonzero/reduction arithmetic and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source distributes balanced row blocks, their exact CSR nonzeros and delimiters (root sends its own block and sends delimiters to other ranks), then rebases local pointers. A warmup precedes the timed loop. The timed host backedge repeats the CUDA kernel for the requested count; kernel warps stride over rows and lanes stride through each complete row interval before reduction/store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              252
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1734,
+              1784
+            ],
+            [
+              2735,
+              2795
+            ]
+          ],
+          "claim": "Clocked repetition backedge, actual launch stub and synchronization."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              293
+            ]
+          ],
+          "claim": "sm_86 warp/row grid-stride, CSR arithmetic, reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Balanced row partitions carry the corresponding full CSR intervals and rebased row offsets. The timed host branch runs the iteration-counted warp-kernel launch loop and synchronizes before ending timing. The kernel has a row grid stride and per-lane CSR stride, so it covers each local row and all of its entries on every launch.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              241
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1712,
+              1750
+            ],
+            [
+              2238,
+              2265
+            ],
+            [
+              2735,
+              2795
+            ]
+          ],
+          "claim": "Timed host control/sync, actual timed launch call and complete CUDA stub."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              293
+            ]
+          ],
+          "claim": "sm_86 warp grid-stride and lane-strided CSR work through the output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All ranks receive contiguous rows and exact NNZ intervals with delimiter boundaries rebased locally; the global dense vector is broadcast. After untimed warmup, the clocked host loop uses the requested count and launches one warp per local row for nonempty partitions. Lanes start at row_begin+lane, stride by 32 through the full row interval, reduce and lane zero stores. The bound host launch loop, complete called stub and sm86 kernel retain this work.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              244
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1691,
+              1740
+            ],
+            [
+              2710,
+              2770
+            ]
+          ],
+          "claim": "Actual timed counted loop calls db10 at ca53, synchronizes before the end clock, and complete called db10 stub submits cudaLaunchKernel; excludes the unrelated warmup call."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              309
+            ]
+          ],
+          "claim": "Complete sm86 warp-per-row kernel: row guard, lane-strided full CSR arithmetic and reduction, lane-zero output store at line275, exit and padding."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows and their matching CSR values/columns/delimiters are distributed to each rank, with local delimiters rebased. The timed iteration loop launches the warp-row kernel once per pass after an untimed warmup. Its row-grid stride and lane-strided nonzero loop cover every local row and stored entry before reduction/store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              234
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1817,
+              1875
+            ],
+            [
+              2870,
+              2930
+            ]
+          ],
+          "claim": "Timed iteration backedge, actual launch and sync, plus full generated CUDA stub."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              293
+            ]
+          ],
+          "claim": "sm_86 warp grid-stride/CSR work through final store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The vector is broadcast and ranks receive contiguous row blocks, corresponding CSR slices and locally rebased boundaries. An untimed warmup is followed by the timed requested-count launch loop, with a compiled loop backedge and synchronization before timer end. Each warp maps one row and strides across its complete CSR interval, then reduces and stores.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              413
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1621,
+              1669
+            ],
+            [
+              2971,
+              3038
+            ]
+          ],
+          "claim": "Clocked counted launch loop and synchronization plus actual generated launch stub."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              11,
+              300
+            ]
+          ],
+          "claim": "sm_86 warp-row mapping and full CSR/reduction/store path."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Contiguous row partitions receive their complete NNZ slices and rebased delimiters, with the dense vector broadcast. The timed loop repeats the kernel for the runtime iteration count; each warp grid-strides across all assigned rows, and its lanes cover the complete CSR interval. Synchronization precedes the end timestamp.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              28
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              289
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1298,
+              1366
+            ],
+            [
+              2248,
+              2315
+            ]
+          ],
+          "claim": "Clocked launch loop/backedge, synchronization, actual call and complete generated stub."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              21,
+              293
+            ]
+          ],
+          "claim": "sm_86 grid-stride warp CSR accumulation/reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks own contiguous row ranges with complete value/column intervals and rebased row boundaries. The timed host loop repeats iterations times and launches one warp-per-row kernel for nonempty partitions; each lane visits the row's full CSR interval and lane zero stores the reduction. The compiled timed path includes loop backedge, launch and synchronization.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              31
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              406
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1451,
+              1574
+            ],
+            [
+              2534,
+              2601
+            ]
+          ],
+          "claim": "Timed loop/backedge and synchronization plus actual generated launch stub."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              300
+            ]
+          ],
+          "claim": "sm_86 row/CSR work, warp reduction and final output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each MPI rank receives contiguous rows, exact CSR slices and rebased row offsets. Warmup/synchronization are outside timing. The timed loop issues one warp kernel per requested iteration for local rows; the kernel covers each row's entire CSR interval with lane-striding and writes the reduced result. Compiled host dispatch is the actual stub for this kernel.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              327
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1302,
+              1326
+            ],
+            [
+              1590,
+              1635
+            ],
+            [
+              2614,
+              2681
+            ]
+          ],
+          "claim": "Timed clocked repeated launch path and actual CUDA stub/launch helper."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              300
+            ]
+          ],
+          "claim": "sm_86 warp-row kernel's full CSR/reduction path through output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed work is a captured CUDA graph: source and compiled host both build a graph containing an iteration-counted sequence of launchSpmv calls, instantiate it, then launch that graph once between timing calls and synchronize. launchSpmv dispatches by average NNZ (<12 scalar, otherwise warp); both kernels cover all rows and each row's full CSR interval and store outputs. Row/NNZ slices and local delimiters are distributed/rebased before capture.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              35
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              484
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims retained in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1378,
+              1517
+            ],
+            [
+              2835,
+              2901
+            ],
+            [
+              2902,
+              2968
+            ],
+            [
+              2969,
+              3066
+            ]
+          ],
+          "claim": "Compiled graph-capture iteration backedge, timed graph launch/sync, both generated kernel stubs and complete runtime dispatch helper."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              310
+            ],
+            [
+              312,
+              640
+            ],
+            [
+              641,
+              974
+            ]
+          ],
+          "claim": "sm_86 warp and scalar kernel paths independently reach row/NNZ arithmetic and stores."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "1fcf93804e442820160eccf63213c74bc8d94f3a4d90253997111b271a435e28",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:34:14Z",
+    "sampled_ids": [
+      "spmv_gpt-5.6-sol-low_hybrid_r4"
+    ],
+    "method": "Read all ten findings and evidence claims and validate bindings/ranges. Independently inspect sample complete source/build, actual timed loop, full called db10 CUDA stub and complete sm86 SASS. Additionally spot-check Sol xhigh r2 graph capture count, timed replay/synchronization and complete width dispatcher. Other full source/device inspections delegated to Luna.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Correct sample from one-thread-per-row scalar to warp-per-row in both summary and SASS claim.",
+      "Remove sample warmup/unrelated range from the timed compiled evidence; retain actual timed launch path and full stub.",
+      "Expand source references to complete pinned files."
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  }
+}

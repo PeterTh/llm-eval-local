@@ -1,0 +1,24 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:52:28Z",
+  "review_finished_at": "2026-11-04T14:52:28Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-005.json compiled host evidence for spmv_claude-opus-5.5-cc-medium_hybrid_r3",
+  "reviews": [
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed launchSpmv lambda is invoked once per requested iteration. Its compiled path conditionally submits the long-row CSR kernel and the SELL kernel to separate streams; the caller joins the streams, synchronizes, and collects outputs before ending timing. The called emitted device stubs are now included; the formerly cited host range around buildDeviceSell was untimed preprocessing, not the timed launch evidence.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[312,340],[600,670],[680,710]],"claim":"SELL/long-row preprocessing, launchSpmv submits both disjoint row paths, and timed iteration loop invokes it before stream join/sync and result collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[6171,6243],[6946,7200],[4061,4126],[4134,4193]],"claim":"Timed launch call sites submit both applicable kernels; the SELL and long-row stubs each call cudaLaunchKernel; following code joins/synchronizes streams and completes output transfer."},
+        {"file":"device-sass.txt","ranges":[[19,420],[421,727],[728,1120],[1121,1380]],"claim":"Final long-row and SELL kernel functions include row eligibility, their complete arithmetic/control paths and output stores."}
+      ],
+      "notes":"The 3560–3660 host interval in the original report is buildDeviceSell preprocessing; it is not used to substantiate timed launches."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

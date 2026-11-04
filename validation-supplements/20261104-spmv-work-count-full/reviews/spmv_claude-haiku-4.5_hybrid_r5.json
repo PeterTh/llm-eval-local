@@ -1,0 +1,76 @@
+{
+  "id": "spmv_claude-haiku-4.5_hybrid_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "CPU-only hybrid path distributes balanced contiguous row partitions; all ranks have CSR/vector arrays and each timed pass computes localRows starting at startRow. The compiled host count loop repeats GOMP_parallel; actual worker loops guided row chunks, traverses global row delimiters and each CSR interval, then stores local row output. No work-count omission identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          352
+        ]
+      ],
+      "claim": "Balanced row assignment, full CSR/vector availability, local CPU SpMV and repeated timed loop.",
+      "sha256": "2daa303f379cebd1fb0a75ea5b5fb6153f33ab79e4bdcbf72f1b84e605264195",
+      "git_blob": "9b1c3c9935998df7b69c2ba38e127a0175223d5c"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Host runtime counter repeats outlined worker; worker loops local rows and CSR entries, accumulating and storing each output.",
+      "complete_dump_sha256": "c82fad67d4edebb65804b934c0b840e469aebcf9fc1908b0c8cf91d8467111a6",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_hybrid_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1978,
+          "last_line": 2004,
+          "text": "    9cfe:\tcall   8bb0 <std::chrono::_V2::system_clock::now()@plt>\n    9d03:\tmov    -0x1ac(%rbp),%r10d\n    9d0a:\txor    %r12d,%r12d\n    9d0d:\tlea    0xa8c(%rip),%r13        # a7a0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, double*, unsigned int, unsigned int) [clone ._omp_fn.0]>\n    9d14:\tmov    -0x110(%rbp),%r15\n    9d1b:\tmov    %rax,%rbx\n    9d1e:\ttest   %r10d,%r10d\n    9d21:\tje     9d6a <main+0x56a>\n    9d23:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9d2e:\txchg   %ax,%ax\n    9d30:\tvmovdqa -0x1f0(%rbp),%ymm4\n    9d38:\tmov    -0x1f8(%rbp),%rax\n    9d3f:\txor    %ecx,%ecx\n    9d41:\txor    %edx,%edx\n    9d43:\tmov    %r15,-0x50(%rbp)\n    9d47:\tmov    %r14,%rsi\n    9d4a:\tmov    %r13,%rdi\n    9d4d:\tmov    %rax,-0x48(%rbp)\n    9d51:\tvmovdqa %ymm4,-0x70(%rbp)\n    9d56:\tvzeroupper\n    9d59:\tcall   93d0 <GOMP_parallel@plt>\n    9d5e:\tinc    %r12d\n    9d61:\tcmp    -0x1ac(%rbp),%r12d\n    9d68:\tjb     9d30 <main+0x530>\n    9d6a:\tlea    0xa4af(%rip),%rdi        # 14220 <ompi_mpi_comm_world@@Base>\n    9d71:\tcall   8ee0 <MPI_Barrier@plt>\n    9d76:\tcall   8bb0 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 2579,
+          "last_line": 2652,
+          "text": "000000000000a7a0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, double*, unsigned int, unsigned int) [clone ._omp_fn.0]>:\n    a7a0:\tendbr64\n    a7a4:\tpush   %r15\n    a7a6:\tpush   %r14\n    a7a8:\tpush   %r13\n    a7aa:\tmov    $0x1,%ecx\n    a7af:\tpush   %r12\n    a7b1:\tpush   %rbp\n    a7b2:\tpush   %rbx\n    a7b3:\tmov    $0x1,%edx\n    a7b8:\tsub    $0x48,%rsp\n    a7bc:\tmov    (%rdi),%r10\n    a7bf:\tmov    0x28(%rdi),%esi\n    a7c2:\tmov    0x2c(%rdi),%r12d\n    a7c6:\tmov    0x20(%rdi),%r13\n    a7ca:\tlea    0x30(%rsp),%r9\n    a7cf:\tlea    0x28(%rsp),%r8\n    a7d4:\tmov    0x18(%rdi),%rbx\n    a7d8:\tmov    0x10(%rdi),%rbp\n    a7dc:\tmov    0x8(%rdi),%r15\n    a7e0:\txor    %edi,%edi\n    a7e2:\tmov    %fs:0x28,%rax\n    a7eb:\tmov    %rax,0x38(%rsp)\n    a7f0:\txor    %eax,%eax\n    a7f2:\tmov    %r10,0x8(%rsp)\n    a7f7:\tmov    %r9,0x18(%rsp)\n    a7fc:\tmov    %r8,0x10(%rsp)\n    a801:\tcall   91a0 <GOMP_loop_nonmonotonic_guided_start@plt>\n    a806:\ttest   %al,%al\n    a808:\tje     a8bb <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, double*, unsigned int, unsigned int) [clone ._omp_fn.0]+0x11b>\n    a80e:\tmov    0x8(%rsp),%r10\n    a813:\tlea    0x1(%r12),%r14d\n    a818:\tmov    %r14d,%eax\n    a81b:\tmov    %r13,%r14\n    a81e:\tmov    %r12d,%r13d\n    a821:\tmov    %rbp,%r12\n    a824:\tmov    %r15,%rbp\n    a827:\tmov    %eax,%r15d\n    a82a:\tnopw   0x0(%rax,%rax,1)\n    a830:\tmov    0x28(%rsp),%r9d\n    a835:\tmov    0x30(%rsp),%r11d\n    a83a:\tnopw   0x0(%rax,%rax,1)\n    a840:\tlea    (%r9,%r13,1),%eax\n    a844:\tlea    (%r15,%r9,1),%edx\n    a848:\tmov    (%r12,%rax,4),%eax\n    a84c:\tmov    (%r12,%rdx,4),%edx\n    a850:\tcmp    %edx,%eax\n    a852:\tjae    a8e0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, double*, unsigned int, unsigned int) [clone ._omp_fn.0]+0x140>\n    a858:\tsub    %eax,%edx\n    a85a:\tlea    0x0(%rbp,%rax,4),%rsi\n    a85f:\tlea    (%r10,%rax,8),%rcx\n    a863:\tvxorpd %xmm1,%xmm1,%xmm1\n    a867:\txor    %eax,%eax\n    a869:\tnopl   0x0(%rax)\n    a870:\tmov    (%rsi,%rax,4),%edi\n    a873:\tvmovsd (%rbx,%rdi,8),%xmm0\n    a878:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    a87d:\tinc    %rax\n    a880:\tvaddsd %xmm0,%xmm1,%xmm1\n    a884:\tcmp    %rdx,%rax\n    a887:\tjne    a870 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, double*, unsigned int, unsigned int) [clone ._omp_fn.0]+0xd0>\n    a889:\tmov    %r9d,%eax\n    a88c:\tinc    %r9d\n    a88f:\tvmovsd %xmm1,(%r14,%rax,8)\n    a895:\tcmp    %r11d,%r9d\n    a898:\tjb     a840 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, double*, unsigned int, unsigned int) [clone ._omp_fn.0]+0xa0>\n    a89a:\tmov    0x18(%rsp),%rsi\n    a89f:\tmov    %r10,0x8(%rsp)\n    a8a4:\tmov    0x10(%rsp),%rdi\n    a8a9:\tcall   9560 <GOMP_loop_nonmonotonic_guided_next@plt>\n    a8ae:\tmov    0x8(%rsp),%r10\n    a8b3:\ttest   %al,%al\n    a8b5:\tjne    a830 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, double*, unsigned int, unsigned int) [clone ._omp_fn.0]+0x90>\n    a8bb:\tcall   8d70 <GOMP_loop_end_nowait@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Missing CUDA code in a CPU-only hybrid is not a failure.",
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_hybrid_r5",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "71111b9a2cbb3622d5eeb9f1df64cbcb2d77137c7d499adcf372ec0c72c81b3d"
+  },
+  "binary_sha256": "1ee54bdcaba445f410229159853323ed7bd99db0507b3d349ebba409ebe9591c",
+  "binding_sha256": "e072287cfee42c867f8294d6b10586609d70e38dde112f67ff5d51239e118f4f",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "84aada66095c818ca5d8a7f351cf7bf9156c5d90d0ba6431983b72bef83c6af4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:18:11 UTC",
+    "sampled_ids": [
+      "spmv_claude-fable-5-cc-medium_hybrid_r5"
+    ],
+    "method": "Read all ten report summaries/evidence claims and checked proposal bindings/ranges. Independently inspected the sampled implementation's complete relevant source/CMake, rank row and CSR partitioning, launcher selector, compiled timed loop with count backedge, synchronization/copy/gather/end clock, and all five final SASS specializations. Recovered the truncated middle SASS interval explicitly. Other IDs rely on Luna's completed source/control-flow inspection plus primary report checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded source citations to the complete cited files in bounded ranges to include CLI/setup and kernel control without relying on narrow copied offsets.",
+      "Expanded Fable hybrid r5 compiled host citations through actual post-loop synchronization/copy and added selector evidence; the original range ended before these operations."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:06:23Z",
+  "review_finished_at": "2026-11-04T14:14:13Z",
+  "review_input_sha256": "94a0ed9f06c24d761dd2934a7a7e5280f6102f4c8755e57e968fd7fcfcdd9f75",
+  "pack_sha256": "cbdc9f330877e136da9a5494d6c2bf9f386462474180645648bee857279a7cc0",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

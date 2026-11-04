@@ -1,0 +1,121 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:28:48Z",
+  "review_finished_at": "2026-11-04T14:31:20Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-sonnet-5-cc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI distributes row-aligned CSR slices; local CSR kernel grid-strides over every local row and scans each row's complete delimiter interval. Timed host loop calls the kernel once per requested iteration and synchronization/output retrieval follow. Multi-stream setup does not shorten the timed row coverage.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[134,150],[300,344],[359,420]],"claim":"Grid-stride row/CSR traversal, MPI local data and repeated timed launches."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1196,1268],[1730,1790]],"claim":"Runtime-count host loop issues the GPU launch in the timed interval, then synchronizes before end time."},
+        {"file":"device-sass.txt","ranges":[[19,167]],"claim":"Final kernel row guard/progression, CSR loop and store cover all local rows/nonzeros."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5-cc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI distributes contiguous rank row ranges and corresponding CSR data. The timed loop launches the warp-per-row kernel for each runtime iteration; final SASS maps lanes to row nonzeros, loops through the full CSR interval, reduces and stores. Synchronization and gather follow.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[139,160],[334,392],[420,450]],"claim":"Warp-per-row CSR kernel, rank-aligned MPI data and timed repeated launch."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1700,1740],[2100,2170]],"claim":"Timed count loop encloses kernel stub launches and synchronization."},
+        {"file":"device-sass.txt","ranges":[[19,100],[101,167]],"claim":"Final SASS row coverage, complete lane-stride nonzero accumulation/reduction and store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank receives a contiguous CSR slice and chooses one of six TPR variants from average row length. The timed host loop invokes the runtime-selected launcher once per iteration and syncs before gathering. All six final SASS TPR variants are present and cover rows, CSR entries and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[137,178],[300,341],[355,385]],"claim":"TPR dispatch, rank-local row/nonzero preparation and runtime-controlled timed launches."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1177,1265],[1265,1300]],"claim":"Clocked path contains runtime iteration loop and selected kernel stub launches, followed by synchronization/result collection."},
+        {"file":"device-sass.txt","ranges":[[19,327],[328,620],[621,913],[914,1190],[1191,1467],[1468,1740]],"claim":"All six compiled TPR variants have row guards, nonzero accumulation and row stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Per-rank rows are subdivided into K contiguous chunks and CSR data is copied/rebased for each chunk; final local row pointers cover the full rank interval. The timed loop launches every selected TPR kernel each requested iteration, then synchronizes and gathers. All six possible final SASS TPR variants are embedded and traverse/store rows.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[210,256],[348,430],[448,470],[482,520],[545,570]],"claim":"TPR dispatch and full rank-local row partition through chunks, timed per-iteration launcher and output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1429,1485],[1910,1980]],"claim":"Timed repetition path calls the runtime-selected kernel and synchronization/output paths follow."},
+        {"file":"device-sass.txt","ranges":[[19,327],[328,636],[637,929],[930,1222],[1223,1515],[1516,1800]],"claim":"All six final group-size SASS variants include row bounds, CSR traversal/reduction and output stores."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank's rows and CSR interval are localized and rebased; a TPR chosen from average local row length selects one of six group kernels. Timed iterations invoke that launcher once per pass and collect the full local result. Final SASS variants contain row guards, nonzero loops and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[150,180],[320,383],[399,430],[485,519]],"claim":"Kernel group selector, row-aligned MPI distribution, timed per-iteration launches and local output copy/gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2178,2231],[2231,2290]],"claim":"Runtime count loop launches the selected kernel and synchronizes before completing timing."},
+        {"file":"device-sass.txt","ranges":[[19,311],[312,588],[589,865],[866,1142],[1143,1403],[1404,1660]],"claim":"All six embedded TPR variants bound rows, traverse CSR nonzeros, reduce and store outputs."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank-local row and CSR intervals are rebased. The selected TPR kernel launches once per runtime iteration in the timed loop, with synchronization and result gather afterward. All four variants supported by source dispatch are present in final SASS and cover full CSR intervals and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[181,221],[320,369],[395,421]],"claim":"TPR dispatch, MPI local CSR slice, timed per-iteration selected launches and output gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1327,1409],[1409,1450]],"claim":"Clocked runtime loop invokes selected device stub repeatedly and syncs before timing ends."},
+        {"file":"device-sass.txt","ranges":[[19,327],[328,636],[637,929],[930,1200]],"claim":"All four compiled specializations guard rows, process their CSR nonzeros and store row results."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI creates a contiguous rank-local CSR interval. Source dispatches among six group sizes; the timed loop invokes the selected group kernel for each requested pass and synchronizes before result collection. SASS row guards, nonzero traversal and stores establish the per-pass GPU arithmetic.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[100,133],[254,291],[305,329],[339,361]],"claim":"Group-size dispatch, local CSR ownership, repeated timed launches and output gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1689,1745],[1745,1810]],"claim":"Runtime-count launch loop and device synchronization are inside the timed interval."},
+        {"file":"device-sass.txt","ranges":[[19,327],[328,620],[621,913],[914,1190],[1191,1467],[1468,1740]],"claim":"All six possible final group-size kernels bound rows, traverse CSR and store outputs."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank row partitions include matching CSR counts/offsets and local row pointers are rebased. The timed loop launches a row kernel for each requested iteration; compiled host control and synchronization occur inside the measured interval. Final SASS covers local rows, traverses each row interval and stores results.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[250,290],[352,405],[427,466]],"claim":"Rank-aligned CSR distribution and timed per-iteration local-row kernel launches and result gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1432,1443],[1443,1505]],"claim":"Timed host count loop encloses kernel stub calls; device synchronization and output copies follow."},
+        {"file":"device-sass.txt","ranges":[[10,90],[91,170],[171,260]],"claim":"Final kernel row bound, CSR accumulation loop and output store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "MPI partitions rows with corresponding CSR values, columns and rebased delimiters. Timed loop launches a one-thread-per-row kernel once per requested iteration, synchronizes and copies full local output before gather. Final SASS consumes each full CSR interval and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[30,55],[277,315],[357,420],[430,447]],"claim":"CSR row kernel, rank-local row/nonzero setup, timed launches and output collection."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1806,1834],[1834,1905]],"claim":"Timed counter loop calls the kernel stub and synchronizes/copies before timing completes."},
+        {"file":"device-sass.txt","ranges":[[19,100],[101,180],[181,260]],"claim":"Final SASS row bound, full CSR nonzero traversal, arithmetic and store."}
+      ],
+      "notes":""
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rank rows and CSR intervals are scattered and local delimiters are rebased. The measured path with local rows has a runtime-count host launch backedge; ranks without local rows take the empty-work synchronization branch. Each active pass launches full-row CSR SpMV, then synchronizes and copies/gathers output. Final SASS bounds rows, traverses all stored nonzeros and stores.",
+      "source_evidence": [{"file":"spmv/spmv.cpp","ranges":[[34,53],[288,334],[344,375],[381,424]],"claim":"Full CSR row kernel and MPI distribution; measured per-iteration launches guarded only by local row count, then output retrieval/gather."}],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1584,1620],[1976,2038]],"claim":"Correct timed pair is the runtime-count GPU branch at bf9d; counter increments/backedges to launch setup and exits to sync/copy for no-work or completed-count paths."},
+        {"file":"device-sass.txt","ranges":[[19,110],[111,200],[201,290],[291,380]],"claim":"Final kernel row guard, CSR interval loop, multiply-add and output store."}
+      ],
+      "notes":"The assembly contains another timer pair on the zero-local-row branch; the inspected main timed path is the active-row branch at bf9d, bounded by runtime iterations."}
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

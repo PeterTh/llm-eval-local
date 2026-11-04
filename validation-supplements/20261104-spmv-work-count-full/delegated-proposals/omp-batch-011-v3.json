@@ -1,0 +1,455 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:35:58Z",
+  "review_finished_at": "2026-11-04T14:38:05Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clocked host GOMP launch executes the count-taking row kernel. The worker repeats its row computation to the requested iteration bound, traverses each assigned CSR interval, accumulates vector-indexed products and stores outputs; full outlined body inspected.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact OpenMP build configuration and compile flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              315
+            ]
+          ],
+          "claim": "Complete exact source includes runtime work/count inputs, CSR setup and count-taking timed row kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              576,
+              607
+            ],
+            [
+              901,
+              1272
+            ]
+          ],
+          "claim": "Clock-bounded GOMP_parallel launch and complete outlined worker, including repetition control, row partition, CSR nonzero arithmetic and output stores."
+        }
+      ],
+      "notes": "Count-taking OMP worker."
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clocked GOMP launch targets the iterations-taking OpenMP worker. It partitions rows and repeats for the requested count, traversing every nonzero in each assigned row, accumulating indexed products and storing outputs; entire outlined body reviewed.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact OpenMP build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              289
+            ]
+          ],
+          "claim": "Entire exact source shows runtime dimensions/count, CSR initialization and count-taking timed OpenMP routine."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              593
+            ],
+            [
+              883,
+              1243
+            ]
+          ],
+          "claim": "Clocked GOMP call and complete worker body show repetition and row/nonzero loops, indexed multiply/add and stores."
+        }
+      ],
+      "notes": "Count-taking persistent worker."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed GOMP region runs the count-taking OMP kernel. The outlined worker repeatedly processes its assigned rows and full CSR intervals, multiplies values by indexed vector elements, accumulates and writes outputs; full worker inspected.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              267
+            ]
+          ],
+          "claim": "Entire source includes runtime dimensions/iterations, full CSR initialization and count-taking kernel used by the timed path."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              588,
+              602
+            ],
+            [
+              905,
+              1237
+            ]
+          ],
+          "claim": "Clock-bounded GOMP launch and full outlined worker, including count, row/nonzero arithmetic and output stores."
+        }
+      ],
+      "notes": "Persistent/count-taking kernel."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clocked parallel worker receives the iteration count and repeats a complete row computation. It covers assigned rows and each row's CSR nonzeros, accumulates indexed products and stores output; the exact outlined body and repetition/row/nonzero loops were inspected.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Complete OpenMP build configuration and flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              285
+            ]
+          ],
+          "claim": "Entire exact source establishes runtime inputs, CSR work extent and timed iterations-taking kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              593
+            ],
+            [
+              984,
+              1209
+            ]
+          ],
+          "claim": "Clocked GOMP invocation and full outlined worker with repetition and assigned-row/CSR nonzero loops, arithmetic and stores."
+        }
+      ],
+      "notes": "Persistent team."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host's timed loop invokes a count-taking repeated-work OpenMP worker. The worker traverses each assigned row's complete CSR interval on each repetition, computes indexed product sums and stores the result; its full body includes count and row/nonzero loop control.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Complete OpenMP build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              286
+            ]
+          ],
+          "claim": "Full source includes runtime count, CSR construction and repeated-work timed kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              588,
+              601
+            ],
+            [
+              1105,
+              1437
+            ]
+          ],
+          "claim": "Clock-bounded GOMP call and full outlined worker, including counted repetition, row/nonzero arithmetic and output stores."
+        }
+      ],
+      "notes": "Persistent/count-taking worker."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed count-taking worker repeats its row work as requested. It partitions rows across the team, traverses each CSR interval, accumulates indexed value/vector products and stores every row result; the full outlined body includes repetition control and arithmetic.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              287
+            ]
+          ],
+          "claim": "Entire source covers runtime dimensions/count, CSR construction and timed count-taking SpMV."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              588,
+              602
+            ],
+            [
+              892,
+              1224
+            ]
+          ],
+          "claim": "Clocked GOMP launch and entire outlined worker, including count and row/nonzero loops, product accumulation and stores."
+        }
+      ],
+      "notes": "Persistent row kernel."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-low_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host clock region invokes a count-controlled OMP worker. Its full body loops over requested passes, covers assigned rows and all CSR nonzeros, accumulates indexed products and stores output; full repetition and arithmetic paths inspected.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Complete exact build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              292
+            ]
+          ],
+          "claim": "Entire source includes full matrix setup, runtime count and timed repeated row kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              592
+            ],
+            [
+              1096,
+              1416
+            ]
+          ],
+          "claim": "Clocked GOMP launch and complete outlined worker with repetition control, row/nonzero loops, arithmetic and output stores."
+        }
+      ],
+      "notes": "Count-taking worker."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured timed region launches a persistent OMP worker with the runtime iteration count. It repeats the full assigned-row CSR calculation, traverses each row's nonzero interval, accumulates indexed products and writes outputs; full worker body reviewed.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Complete exact OpenMP build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              284
+            ]
+          ],
+          "claim": "Entire source shows runtime dimensions/count, CSR construction and timed persistent iterations kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              579,
+              593
+            ],
+            [
+              982,
+              1094
+            ]
+          ],
+          "claim": "Clocked GOMP call and full count-taking worker, including row/nonzero loops, arithmetic/stores and repetition control."
+        }
+      ],
+      "notes": "Persistent team."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clocked count-controlled host loop repeats the complete OpenMP CSR kernel. The worker partitions rows, traverses each row's full nonzero interval, performs indexed product accumulation and writes each output including empty rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "Complete exact build configuration and optimization flags."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              266
+            ]
+          ],
+          "claim": "Entire source establishes runtime inputs, CSR setup and timed repeated row-kernel calls."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              581,
+              607
+            ],
+            [
+              916,
+              1225
+            ]
+          ],
+          "claim": "Clock-bounded counted GOMP_parallel calls and full worker row/nonzero loops, arithmetic, result stores and empty-row handling."
+        }
+      ],
+      "notes": "Static row schedule."
+    },
+    {
+      "id": "spmv_gpt-5.6-terra-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed path uses a persistent count-taking worker. Each pass traverses the full assigned row domain and all CSR nonzeros per row, accumulates indexed products and stores outputs, with a barrier before the next repetition.",
+      "source_evidence": [
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "Complete exact OpenMP build configuration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              283
+            ]
+          ],
+          "claim": "Entire source contains runtime iteration path, CSR setup and persistent loop around complete row work."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              588,
+              601
+            ],
+            [
+              988,
+              1208
+            ]
+          ],
+          "claim": "Clocked GOMP call and complete outlined worker repetition, row/nonzero arithmetic, stores and barrier."
+        }
+      ],
+      "notes": "Persistent team with per-pass synchronization."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "timing_provenance_note": "review_started_at/review_finished_at preserve the original explicit clock readings. They are not verified completion intervals: report filesystem modification timestamps differ and occurred after the claimed review finish. Exact original review completion time is unknown; discrepancy checked at 2026-11-04T14:40:13Z.",
+  "timing_audit_checked_at": "2026-11-04T14:40:13Z"
+}
+

@@ -1,0 +1,1442 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:40:48Z",
+  "review_finished_at": "2026-11-04T15:42:57Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source partitions rows and their CSR data, and the timed loop runs to the requested iteration count. For each nonempty local partition it launches the kernel; each assigned row consumes its full rowDelimiters[row]..rowDelimiters[row+1] interval, accumulates the products and writes the row output. The host dump confirms the loop, launch and device synchronization within the measured interval. Final sm86 SASS has the kernel's row bounds, CSR backedge, multiply-add and store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              342
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              964,
+              1051
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1398,
+              1430
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1731,
+              1820
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2030,
+              2089
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              10,
+              499
+            ],
+            [
+              500,
+              782
+            ]
+          ],
+          "claim": "Complete final-SASS kernel body in bounded spans; row guard, CSR interval/backedge, arithmetic and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2030,
+              2095
+            ]
+          ],
+          "claim": "The actual called device stub packages arguments and invokes cudaLaunchKernel; its caller is in the cited timed main interval."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank holds its complete local CSR partition. The runtime dispatch chooses width 4/8/16/32 based on average row length; the selected kernel processes its row groups and all nonzeros in each row before reduction and output. The timed main path loops exactly iterations times and synchronizes. The compiled host path confirms the loop and dispatch to one of the four stubs; all four final sm86 SASS variants contain the row/nonzero arithmetic and output path.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              392
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1213,
+              1236
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1944,
+              2277
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ],
+            [
+              312,
+              604
+            ],
+            [
+              605,
+              881
+            ],
+            [
+              882,
+              1158
+            ]
+          ],
+          "claim": "All four complete final-sm86 width-specialized kernel bodies; each has row coverage, full CSR traversal, accumulation/reduction and output."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2559,
+              2619
+            ]
+          ],
+          "claim": "Complete called width-4 host launch wrapper through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2620,
+              2680
+            ]
+          ],
+          "claim": "Complete called width-8 host launch wrapper through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2681,
+              2741
+            ]
+          ],
+          "claim": "Complete called width-16 host launch wrapper through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2742,
+              2802
+            ]
+          ],
+          "claim": "Complete called width-32 host launch wrapper through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The MPI partition and local row-pointer adjustment preserve the local CSR interval. The timed host loop launches once per requested iteration for each nonempty partition. The warp kernel assigns local rows, lanes stride through each row's CSR range in increments of 32, reduce the accumulated products, and write the row result. The exact host interval includes launch repetition and synchronization; final sm86 SASS shows row bounds, nonzero loop/backedge, arithmetic, warp reduction and store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              387
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1517,
+              1535
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2010,
+              2050
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2857,
+              2910
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS kernel: row bound, lane-derived CSR range traversal/backedge, accumulated products, reduction and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2857,
+              2917
+            ]
+          ],
+          "claim": "Complete called GPU device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source partitions rows and CSR data across ranks. The measured loop invokes the warp kernel when local average row length selects it, otherwise the thread-per-row kernel, exactly once for each requested repetition, followed by synchronization. The warp kernel iterates all row nonzeros by lane stride and reduces/stores; the thread kernel traverses the complete row interval and stores its sum. The bound executable contains both selectable final-sm86 kernels with the corresponding row/nonzero loops and stores.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              299
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1800,
+              1827
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1956,
+              1990
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2020,
+              2045
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2958,
+              3075
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3019,
+              3075
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ],
+            [
+              312,
+              800
+            ],
+            [
+              801,
+              1004
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS for both selectable warp and thread kernels, including each row bound, CSR traversal, arithmetic/reduction, and store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2958,
+              3018
+            ]
+          ],
+          "claim": "Complete thread-kernel device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3019,
+              3079
+            ]
+          ],
+          "claim": "Complete warp-kernel device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source creates contiguous MPI row partitions and local CSR offsets. The measured loop launches the warp-per-row kernel once per requested iteration, then checks and synchronizes before stopping the clock. Each warp maps to a row; lanes stride across the row's CSR interval, accumulate products, reduce and store one result. The single final-sm86 kernel body contains row bounds, the full nonzero backedge, arithmetic/reduction and output store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              383
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1189,
+              1236
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1406,
+              1450
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2256,
+              2317
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              327
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS kernel body: row bounds, nonzero traversal/backedge, accumulation, warp reduction and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2256,
+              2316
+            ]
+          ],
+          "claim": "Complete called GPU device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "After rank-local CSR setup, the measured loop launches the warp-row kernel once per requested iteration for nonempty local rows and synchronizes. The device kernel grid-strides rows and its lanes stride through each complete CSR row interval, accumulate products, reduce and store. Host timing and final-sm86 SASS confirm the repetition and compute paths.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              372
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1697,
+              1778
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2898,
+              2957
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              439
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS kernel body with row-grid progression, CSR nonzero traversal, product accumulation, reduction and store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2898,
+              2958
+            ]
+          ],
+          "claim": "Complete called GPU device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are split among the rank's local GPU workers with CSR delimiters and vector inputs prepared per device. The measured main path enters an OpenMP parallel-for outlined worker; each worker sets its device and for its assigned nonempty partition replays iterations/batch graphs plus remainder launches, then synchronizes its stream. The worker's graph and direct-launch backedges are bounded by the passed iteration count. Each dispatched width 4/8/16/32 kernel covers rows and all CSR entries, reduces and stores. The selected final-sm86 device functions are present.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              16
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              490
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1121,
+              1436
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1604,
+              1730
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2184,
+              2215
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3623,
+              3639
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1692
+            ],
+            [
+              1693,
+              2100
+            ],
+            [
+              2101,
+              2481
+            ],
+            [
+              2482,
+              2900
+            ],
+            [
+              2901,
+              3238
+            ]
+          ],
+          "claim": "All four complete final-sm86 selectable width kernels in bounded spans; row bounds/progression, CSR nonzero traversal, arithmetic, reduction and output store."
+        }
+      ],
+      "notes": "The separately outlined setup/cleanup workers are not treated as the timed compute worker; the cited _omp_fn.2 is the worker called by GOMP_parallel inside the measured interval."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The rank-local average selects Width 2, 4, 8, 16, or 32. A warmup and capture of up to 128 full launch nodes occur before the clock starts. In the measured run function, the quotient loop replays the graph and the residual branch dispatches direct launches using the selected width; a stream synchronization precedes the clock end. Each of all five selected final-sm86 kernels has row bounds, full CSR nonzero traversal, accumulation/reduction, and output store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              546
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3724,
+              3740
+            ],
+            [
+              4080,
+              4140
+            ],
+            [
+              4153,
+              4257
+            ],
+            [
+              4700,
+              4890
+            ],
+            [
+              4891,
+              5090
+            ],
+            [
+              5091,
+              5330
+            ],
+            [
+              3650,
+              3712
+            ]
+          ],
+          "claim": "Exact run-function clock bounds, pre-timing graph capture/instantiation path, timed graph quotient/remainder dispatch and synchronization, plus emitted selected-width launch branches."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1633,
+              1692
+            ]
+          ],
+          "claim": "Complete Width-2 stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1693,
+              1752
+            ]
+          ],
+          "claim": "Complete Width-4 stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1753,
+              1812
+            ]
+          ],
+          "claim": "Complete Width-8 stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1813,
+              1872
+            ]
+          ],
+          "claim": "Complete Width-16 stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1873,
+              1932
+            ]
+          ],
+          "claim": "Complete Width-32 stub through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              855
+            ],
+            [
+              856,
+              1300
+            ],
+            [
+              1301,
+              1692
+            ],
+            [
+              1693,
+              2100
+            ],
+            [
+              2101,
+              2497
+            ],
+            [
+              2498,
+              2900
+            ],
+            [
+              2901,
+              3270
+            ],
+            [
+              3271,
+              3700
+            ],
+            [
+              3701,
+              4011
+            ]
+          ],
+          "claim": "Complete final-sm86 SASS for all five source-selectable widths (2/4/8/16/32), in bounded spans through each function's end; row bounds, full nonzero traversals/backedges, product accumulation/reduction and stores are present."
+        }
+      ],
+      "notes": "No separate GPU setup OpenMP worker is claimed: graph setup, measured launch/replay control, and synchronization are in the compiled run function. Width 2 is runtime-selectable and is included with widths 4/8/16/32."
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank owns complete row and CSR intervals after MPI partitioning. Width dispatch selects 4/8/16/32; after an untimed warmup and graph capture, the measured path replays iterations/batch graph launches and the residual direct launches, then synchronizes. The host dump confirms graph repetition and clock boundaries. Each selected final-sm86 kernel covers its assigned row groups and each row's full nonzero interval, reduces and stores.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              458
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2869,
+              2913
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2634,
+              2821
+            ]
+          ],
+          "claim": "Supplemented host control-flow evidence for setup, timed repetitions and called launch paths; range roles are documented in the retained raw supplement."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3030,
+              3073
+            ]
+          ],
+          "claim": "Residual count test, width dispatch, default width32 launch and repetition backedge."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3500,
+              3600
+            ]
+          ],
+          "claim": "Pre-timing graph capture node loop and graph instantiate/upload path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3723,
+              3780
+            ]
+          ],
+          "claim": "Width4 residual launch body and counter progression."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3777,
+              3835
+            ]
+          ],
+          "claim": "Width8 residual launch branch/body."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3884,
+              3933
+            ]
+          ],
+          "claim": "Width4 capture/dispatch branch body."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3933,
+              3995
+            ]
+          ],
+          "claim": "Width-16 residual launch branch and launch."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4053,
+              4100
+            ]
+          ],
+          "claim": "Width8 capture/dispatch branch body."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1708
+            ],
+            [
+              1709,
+              2150
+            ],
+            [
+              2151,
+              2513
+            ],
+            [
+              2514,
+              2900
+            ],
+            [
+              2901,
+              3286
+            ]
+          ],
+          "claim": "All four selected final-sm86 width variants, split into bounded spans; row/nonzero control, arithmetic, reduction and stores are present."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1091,
+              1150
+            ]
+          ],
+          "claim": "Width-4 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1151,
+              1210
+            ]
+          ],
+          "claim": "Width-8 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1211,
+              1270
+            ]
+          ],
+          "claim": "Width-16 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1271,
+              1330
+            ]
+          ],
+          "claim": "Width-32 device stub through cudaLaunchKernel."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are divided among available GPUs per rank, with each partition receiving its rows, offsets, nonzeros and vector. Runtime row-length selection chooses Width 1/2/4/8/16/32. Each GPU captures a bounded graph of complete launches; the timed OpenMP worker distributes GPU partitions across threads, replays iterations/batch graphs plus residual launches for each nonempty partition, and synchronizes its stream. The outlined worker's graph quotient and remainder paths are bounded by iterations. Each selectable final-sm86 kernel covers its row groups and complete CSR ranges, reduces and stores.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              499
+            ],
+            [
+              500,
+              562
+            ]
+          ],
+          "claim": "Complete pinned source/build; original targeted claims retained in raw delegated report."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2913,
+              3215
+            ],
+            [
+              5687,
+              5719
+            ]
+          ],
+          "claim": "Complete outlined OpenMP timed worker: each assigned GPU's graph replay quotient, direct-launch remainder, stream synchronization and GPU-partition progression; main's clock surrounds GOMP_parallel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              450
+            ],
+            [
+              451,
+              871
+            ],
+            [
+              872,
+              1300
+            ],
+            [
+              1301,
+              1708
+            ],
+            [
+              1709,
+              2150
+            ],
+            [
+              2151,
+              2513
+            ],
+            [
+              2514,
+              2900
+            ],
+            [
+              2901,
+              3286
+            ],
+            [
+              3287,
+              3700
+            ],
+            [
+              3701,
+              4027
+            ],
+            [
+              4028,
+              4400
+            ],
+            [
+              4401,
+              4704
+            ]
+          ],
+          "claim": "All six runtime-selectable final-sm86 width variants, split into bounded spans; row/nonzero progression and bounds, arithmetic, reduction and output store."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2326,
+              2390
+            ]
+          ],
+          "claim": "Width-1 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2391,
+              2455
+            ]
+          ],
+          "claim": "Width-2 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2456,
+              2520
+            ]
+          ],
+          "claim": "Width-4 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2521,
+              2585
+            ]
+          ],
+          "claim": "Width-8 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2586,
+              2650
+            ]
+          ],
+          "claim": "Width-16 device stub through cudaLaunchKernel."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2651,
+              2715
+            ]
+          ],
+          "claim": "Width-32 device stub through cudaLaunchKernel."
+        }
+      ],
+      "notes": "The timed OpenMP outlined worker is lambda #2 (the lambda passed around the measured GOMP_parallel); lambda #1 setup and lambda #3 post-timing copies/cleanup are not substituted for it."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "a9b60c4fde9918784a6cb35581722b8c02454f0c41085011d028ccfbc142f793",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:55:58Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-sol-medium_hybrid_r2"
+    ],
+    "method": "Read every finding and evidence claim plus versioned corrections. Independently inspect sample complete relevant source/build, MPI partition and CSR transfer/rebasing, actual clock/capture/quotient/remainder host paths, complete called width-2 stub and entire sm86 width-2 SASS including grid-stride rows, full CSR arithmetic and reduction/store. Other four width bodies and remaining IDs inspected by Luna. Additional primary spot checks confirm r1 separate capture-node count loop and r3 actual graph quotient/residual branch; retain corrected complete host chains rather than unrelated main/setup wrappers. Verify all bindings and excerpt ranges.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Replace incomplete timing-only excerpts using the versioned host-path supplement; retain previously supplied complete called stubs and device bodies.",
+      "Remove r1 false graph-instantiation attribution to direct launch helper and r3 false attribution of timed run work to main/setup wrappers.",
+      "Retain v6 correction that sample runtime dispatch selects all five widths 2/4/8/16/32, including width 2.",
+      "Extend sample graph-count excerpts and correct r3 width-16 residual branch label.",
+      "Expand source references to complete pinned files."
+    ],
+    "supplemental_proposals": [
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003-supplement-v1.json",
+        "sha256": "46e8e776f6ad73d7ba9e655f339487799085cc37c96091899dc2a7f41db3cc8c"
+      },
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003-supplement-v2.json",
+        "sha256": "82440c5f887354869e665f45d51928ebc8532647eec909efa34e0a247dc20c06"
+      },
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003-v2.json",
+        "sha256": "ed75475a9121c24553c005c57070dc7dcd439ea622453dc7cb21a5a9c5e48705"
+      },
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003-v3.json",
+        "sha256": "dad52cf9f49bc004b1612be905ba48e42415fcf8915e1d7ebe7e9ba8dd2a2953"
+      },
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003-v4.json",
+        "sha256": "ba2d60c87ce5b00b4c323b34fd9248d15431ede25cda5c921ba1d7865c210043"
+      },
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003-v5.json",
+        "sha256": "6b7ad5bc82b7934abc9add9fe3db6cfcb7cbe7dd5c83c584b44e7fb4dfda79c9"
+      },
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003-v6.json",
+        "sha256": "a9b60c4fde9918784a6cb35581722b8c02454f0c41085011d028ccfbc142f793"
+      },
+      {
+        "file": "spmv-luna-hybrid-tail-batch-003.json",
+        "sha256": "3ebd77e33d254f48628d532b375666e63cbcb4ede370b8a72d19e117cd7fc623"
+      }
+    ],
+    "reported_review_intervals_used_for_time_or_cost_estimates": false
+  }
+}

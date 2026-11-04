@@ -1,0 +1,64 @@
+{
+  "id": "spmv_gpt-6.1-terra-xhigh_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The CLI iteration count is unmodified in timed loop 320–322. Nonzero-balanced monotone partitions, including the zero-nonzero fallback, cover every row. Complete chunked operand transfers and full-vector broadcast preserve CSR work; all local intervals are traversed each repetition and full output segments collected.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          54,
+          111
+        ],
+        [
+          162,
+          228
+        ],
+        [
+          230,
+          339
+        ]
+      ],
+      "claim": "The CLI iteration count is unmodified in timed loop 320–322. Nonzero-balanced monotone partitions, including the zero-nonzero fallback, cover every row. Complete chunked operand transfers and full-vector broadcast preserve CSR work; all local intervals are traversed each repetition and full output segments collected.",
+      "sha256": "6a723e4f3c3c81640be05d4d803d589d7f5cc1b5d338efe15ab297cb5b6a574a",
+      "git_blob": "d0728ea422a42d751824ac353687dc246e52caa2"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "MPI_Wtime 9eab/9f78 encloses multiply/add 9f4d/9f55, nonzero backedge 9f5c->9f40, row 9f6b->9f10, repetition 9f71->9f00.",
+      "complete_dump_sha256": "23a26f6cacdc4e0c5835bb651b1c21c225520d14e366976c3539d8c7582fd317",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6.1-terra-xhigh_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2053,
+          "last_line": 2112,
+          "text": "    9e85:\tcmp    %rcx,%rax\n    9e88:\tjne    9e7c <main+0x6fc>\n    9e8a:\tcmpl   $0x0,-0x1cc(%rbp)\n    9e91:\tjne    9e9f <main+0x71f>\n    9e93:\tlea    0x65a2(%rip),%rdi        # 1043c <_IO_stdin_used+0x43c>\n    9e9a:\tcall   93a0 <puts@plt>\n    9e9f:\tlea    0xb37a(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9ea6:\tcall   8e90 <MPI_Barrier@plt>\n    9eab:\tcall   91e0 <MPI_Wtime@plt>\n    9eb0:\tcmpl   $0x0,-0x1d8(%rbp)\n    9eb7:\tmov    -0xb0(%rbp),%r13\n    9ebe:\tvmovq  %xmm0,%r15\n    9ec3:\tmov    -0x90(%rbp),%r12\n    9eca:\tje     9f78 <main+0x7f8>\n    9ed0:\tcmpl   $0x0,-0x250(%rbp)\n    9ed7:\tmov    -0xd0(%rbp),%r9\n    9ede:\tje     9f78 <main+0x7f8>\n    9ee4:\tmov    -0x238(%rbp),%rax\n    9eeb:\tmov    -0x1d8(%rbp),%esi\n    9ef1:\txor    %ecx,%ecx\n    9ef3:\tvmovsd %xmm0,%xmm0,%xmm6\n    9ef7:\tlea    0x0(,%rax,4),%r8\n    9eff:\tnop\n    9f00:\txor    %r10d,%r10d\n    9f03:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f0e:\txchg   %ax,%ax\n    9f10:\tmov    (%r14,%r10,1),%eax\n    9f14:\tmov    0x4(%r14,%r10,1),%edx\n    9f19:\tcmp    %edx,%eax\n    9f1b:\tjae    a360 <main+0xbe0>\n    9f21:\tdec    %edx\n    9f23:\tlea    (%r9,%rax,4),%r11\n    9f27:\tlea    0x0(%r13,%rax,8),%rdi\n    9f2c:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f30:\tsub    %eax,%edx\n    9f32:\txor    %eax,%eax\n    9f34:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f3f:\tnop\n    9f40:\tmov    (%r11,%rax,4),%r15d\n    9f44:\tvmovsd (%rbx,%r15,8),%xmm2\n    9f4a:\tmov    %rax,%r15\n    9f4d:\tvmulsd (%rdi,%rax,8),%xmm2,%xmm2\n    9f52:\tinc    %rax\n    9f55:\tvaddsd %xmm2,%xmm1,%xmm1\n    9f59:\tcmp    %rdx,%r15\n    9f5c:\tjne    9f40 <main+0x7c0>\n    9f5e:\tvmovsd %xmm1,(%r12,%r10,2)\n    9f64:\tadd    $0x4,%r10\n    9f68:\tcmp    %r8,%r10\n    9f6b:\tjne    9f10 <main+0x790>\n    9f6d:\tinc    %ecx\n    9f6f:\tcmp    %ecx,%esi\n    9f71:\tjne    9f00 <main+0x780>\n    9f73:\tvmovq  %xmm6,%r15\n    9f78:\tcall   91e0 <MPI_Wtime@plt>\n    9f7d:\tvmovq  %r15,%xmm7\n    9f82:\tlea    0xb297(%rip),%rax        # 15220 <ompi_mpi_comm_world@@Base>\n    9f89:\tmovq   $0x0,-0x1b8(%rbp)\n    9f94:\tlea    -0x1b8(%rbp),%rsi\n    9f9b:\tvsubsd %xmm7,%xmm0,%xmm0\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261102-030935/spmv_gpt-6.1-terra-xhigh_mpi_r5",
+    "source_commit": "c070881d4b6186c32117ecd339e87d6f32db77e7",
+    "staged_source_sha256": "876248fd0cae4595f9cfeb6f4a7cfa81a4c3b5dc9893d27d37f589a45dacbe61"
+  },
+  "binary_sha256": "eb551e79b7c6ce2203fb2460b7ac796357a78ac230d88079b80a98e617a3cd2b",
+  "binding_sha256": "d7afe1db4c0dad1b547d1f7d3bbc828a2fc74500c331c400bc12efcf8b8ca8b2",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:38:46Z",
+  "review_finished_at": "2026-11-04T13:39:33Z",
+  "review_input_sha256": "c6b9d2897055ad48abf989c28eb75734d5f92e59bb6acf036044dad6de18c08c",
+  "pack_sha256": "1bf7c81b35c376a049df005ee183c5387b081321e6026212c3d686649a7c58c8",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

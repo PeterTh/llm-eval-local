@@ -1,0 +1,81 @@
+{
+  "id": "spmv_claude-haiku-4.5_hybrid_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "CPU-only hybrid path replicates full CSR/vector data to every MPI rank. Every timed runtime-count pass calls OpenMP SpMV across all rows; compiled host backedge encloses GOMP_parallel and the outlined worker traverses complete row delimiters and CSR entries, accumulating/storing each row. Replication preserves work; no omission identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          313
+        ]
+      ],
+      "claim": "Full array broadcasts and full-row CSR CPU routine invoked once per requested timed iteration.",
+      "sha256": "8b2e5b75b3ab432e4db9e1724366a2627baf04f1e1d175b0c24e9b1340b775c6",
+      "git_blob": "fbf24d4d2b0faefff057d797d45443e0b4825ede"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Runtime host counter repeats outlined worker; worker obtains guided chunks, loops rows and CSR entries, then stores each row output.",
+      "complete_dump_sha256": "1f6e188e8467ce79453d5f21ad8cd2c153b151eab189452d1f9b0d790e907ffe",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-4.5_hybrid_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1927,
+          "last_line": 1949,
+          "text": "    9bd8:\tcall   8bb0 <std::chrono::_V2::system_clock::now()@plt>\n    9bdd:\txor    %ebx,%ebx\n    9bdf:\tmov    -0x11c(%rbp),%ecx\n    9be5:\tmov    -0x90(%rbp),%r14\n    9bec:\tmov    %rax,-0x198(%rbp)\n    9bf3:\ttest   %ecx,%ecx\n    9bf5:\tje     9c36 <main+0x4a6>\n    9bf7:\tnopw   0x0(%rax,%rax,1)\n    9c00:\tvmovdqa -0x170(%rbp),%ymm4\n    9c08:\tmov    -0x124(%rbp),%eax\n    9c0e:\txor    %ecx,%ecx\n    9c10:\txor    %edx,%edx\n    9c12:\tmov    %r14,-0x50(%rbp)\n    9c16:\tmov    %r12,%rsi\n    9c19:\tmov    %r15,%rdi\n    9c1c:\tmov    %eax,-0x48(%rbp)\n    9c1f:\tvmovdqa %ymm4,-0x70(%rbp)\n    9c24:\tvzeroupper\n    9c27:\tcall   93e0 <GOMP_parallel@plt>\n    9c2c:\tinc    %ebx\n    9c2e:\tcmp    -0x11c(%rbp),%ebx\n    9c34:\tjb     9c00 <main+0x470>\n    9c36:\tcall   8bb0 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 2388,
+          "last_line": 2440,
+          "text": "000000000000a430 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>:\n    a430:\tendbr64\n    a434:\tpush   %r15\n    a436:\tpush   %r14\n    a438:\tpush   %r13\n    a43a:\tmov    $0x1,%ecx\n    a43f:\tpush   %r12\n    a441:\tpush   %rbp\n    a442:\tpush   %rbx\n    a443:\tmov    $0x1,%edx\n    a448:\tsub    $0x38,%rsp\n    a44c:\tmov    0x28(%rdi),%esi\n    a44f:\tmov    0x20(%rdi),%rbp\n    a453:\tmov    0x18(%rdi),%rbx\n    a457:\tmov    0x10(%rdi),%r12\n    a45b:\tlea    0x20(%rsp),%r9\n    a460:\tlea    0x18(%rsp),%r8\n    a465:\tmov    0x8(%rdi),%r14\n    a469:\tmov    (%rdi),%r13\n    a46c:\txor    %edi,%edi\n    a46e:\tmov    %fs:0x28,%rax\n    a477:\tmov    %rax,0x28(%rsp)\n    a47c:\txor    %eax,%eax\n    a47e:\tmov    %r9,0x8(%rsp)\n    a483:\tmov    %r8,(%rsp)\n    a487:\tcall   91a0 <GOMP_loop_nonmonotonic_guided_start@plt>\n    a48c:\ttest   %al,%al\n    a48e:\tjne    a4f2 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xc2>\n    a490:\tcall   8d70 <GOMP_loop_end_nowait@plt>\n    a495:\tmov    0x28(%rsp),%rax\n    a49a:\tsub    %fs:0x28,%rax\n    a4a3:\tjne    a572 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x142>\n    a4a9:\tadd    $0x38,%rsp\n    a4ad:\tpop    %rbx\n    a4ae:\tpop    %rbp\n    a4af:\tpop    %r12\n    a4b1:\tpop    %r13\n    a4b3:\tpop    %r14\n    a4b5:\tpop    %r15\n    a4b7:\tret\n    a4b8:\tnopl   0x0(%rax,%rax,1)\n    a4c0:\tvxorpd %xmm1,%xmm1,%xmm1\n    a4c4:\tadd    $0x4,%r10\n    a4c8:\tvmovsd %xmm1,0x0(%rbp,%rdi,8)\n    a4ce:\tcmp    %r15d,%r8d\n    a4d1:\tjb     a510 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    a4d3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a4de:\txchg   %ax,%ax\n    a4e0:\tmov    0x8(%rsp),%rsi\n    a4e5:\tmov    (%rsp),%rdi\n    a4e9:\tcall   9560 <GOMP_loop_nonmonotonic_guided_next@plt>\n    a4ee:\ttest   %al,%al\n    a4f0:\tje     a490 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x60>\n"
+        },
+        {
+          "first_line": 2441,
+          "last_line": 2475,
+          "text": "    a4f2:\tmov    0x18(%rsp),%rax\n    a4f7:\tmov    0x20(%rsp),%r15d\n    a4fc:\tmov    %eax,%edx\n    a4fe:\tmov    %eax,%r8d\n    a501:\tinc    %eax\n    a503:\tmov    (%r12,%rdx,4),%r9d\n    a507:\tlea    (%r12,%rax,4),%r10\n    a50b:\tnopl   0x0(%rax,%rax,1)\n    a510:\tmov    %r9d,%eax\n    a513:\tmov    (%r10),%r9d\n    a516:\tmov    %r8d,%edi\n    a519:\tinc    %r8d\n    a51c:\tcmp    %r9d,%eax\n    a51f:\tjae    a4c0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x90>\n    a521:\tmov    %r9d,%edx\n    a524:\tlea    (%r14,%rax,4),%rcx\n    a528:\tvxorpd %xmm1,%xmm1,%xmm1\n    a52c:\tsub    %eax,%edx\n    a52e:\tlea    -0x1(%rdx),%esi\n    a531:\tlea    0x0(%r13,%rax,8),%rdx\n    a536:\txor    %eax,%eax\n    a538:\tnopl   0x0(%rax,%rax,1)\n    a540:\tmov    (%rcx,%rax,4),%r11d\n    a544:\tvmovsd (%rbx,%r11,8),%xmm0\n    a54a:\tmov    %rax,%r11\n    a54d:\tvmulsd (%rdx,%rax,8),%xmm0,%xmm0\n    a552:\tinc    %rax\n    a555:\tvaddsd %xmm0,%xmm1,%xmm1\n    a559:\tcmp    %r11,%rsi\n    a55c:\tjne    a540 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x110>\n    a55e:\tvmovsd %xmm1,0x0(%rbp,%rdi,8)\n    a564:\tadd    $0x4,%r10\n    a568:\tcmp    %r15d,%r8d\n    a56b:\tjb     a510 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    a56d:\tjmp    a4e0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xb0>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "CPU-only hybrid is legitimate; replicated full work is unusual but not a missing CUDA path.",
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-haiku-4.5_hybrid_r2",
+    "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+    "staged_source_sha256": "37f365835efb2d20a92bac46fa510f7942ce1ff6b3921891107ec9866fc894e4"
+  },
+  "binary_sha256": "b3e4ee17fe867cddd8b2908371b70f48874ee6e57374883c94ce834713950941",
+  "binding_sha256": "28e8f1efef4d1135923a639fd41925d19273c3cef199f71897e5ac22be63e01f",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "84aada66095c818ca5d8a7f351cf7bf9156c5d90d0ba6431983b72bef83c6af4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:18:11 UTC",
+    "sampled_ids": [
+      "spmv_claude-fable-5-cc-medium_hybrid_r5"
+    ],
+    "method": "Read all ten report summaries/evidence claims and checked proposal bindings/ranges. Independently inspected the sampled implementation's complete relevant source/CMake, rank row and CSR partitioning, launcher selector, compiled timed loop with count backedge, synchronization/copy/gather/end clock, and all five final SASS specializations. Recovered the truncated middle SASS interval explicitly. Other IDs rely on Luna's completed source/control-flow inspection plus primary report checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded source citations to the complete cited files in bounded ranges to include CLI/setup and kernel control without relying on narrow copied offsets.",
+      "Expanded Fable hybrid r5 compiled host citations through actual post-loop synchronization/copy and added selector evidence; the original range ended before these operations."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:06:23Z",
+  "review_finished_at": "2026-11-04T14:14:13Z",
+  "review_input_sha256": "94a0ed9f06c24d761dd2934a7a7e5280f6102f4c8755e57e968fd7fcfcdd9f75",
+  "pack_sha256": "1b2148ffd90bde526f37e18f86e0bf6ebf67eecc7f5be3aea20c83df843635ad",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

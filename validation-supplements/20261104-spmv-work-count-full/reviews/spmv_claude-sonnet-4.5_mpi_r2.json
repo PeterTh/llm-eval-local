@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-sonnet-4.5_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The complete local CSR product repeats for every requested iteration, independently of optional reference computation and reference gathering.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          163,
+          196
+        ],
+        [
+          214,
+          218
+        ],
+        [
+          248,
+          293
+        ],
+        [
+          296,
+          338
+        ]
+      ],
+      "claim": "Balanced row ranges cover every row, complete local arrays are transferred and rebased, and all timed iterations call the full multiplication kernel.",
+      "sha256": "6ac7fd612c254c4d2cb969c56a3e54ee29db8d0ff862eb14ac06b8d318843bf4",
+      "git_blob": "b473a7775977619d23771ac5644f1f24e1cbd8f6"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The compiled multiply/add a34c/a354 is enclosed by entry a35b->a340, row a371->a310 and repetition a381->a300 loops.",
+      "complete_dump_sha256": "74060907541404d2218b05878f65b6400eb151fe142a3e9ec5e77c3cad432aaf",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-sonnet-4.5_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2254,
+          "last_line": 2307,
+          "text": "    a29e:\tlea    0xad7b(%rip),%rdi        # 15020 <ompi_mpi_comm_world@@Base>\n    a2a5:\tcall   8ea0 <MPI_Barrier@plt>\n    a2aa:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    a2af:\tmov    -0x218(%rbp),%r9d\n    a2b6:\tmov    %rax,%r15\n    a2b9:\ttest   %r9d,%r9d\n    a2bc:\tje     a38a <main+0xbda>\n    a2c2:\tcmpl   $0x0,-0x248(%rbp)\n    a2c9:\tmov    -0xf0(%rbp),%r11\n    a2d0:\tmov    -0x110(%rbp),%r9\n    a2d7:\tmov    -0x130(%rbp),%r12\n    a2de:\tmov    -0x150(%rbp),%rax\n    a2e5:\tje     a38a <main+0xbda>\n    a2eb:\tmov    -0x2a0(%rbp),%r10\n    a2f2:\txor    %edx,%edx\n    a2f4:\tmov    %rax,%rsi\n    a2f7:\tmov    %r14,%rdi\n    a2fa:\tshl    $0x2,%r10\n    a2fe:\txchg   %ax,%ax\n    a300:\txor    %r14d,%r14d\n    a303:\tmov    %edx,-0x230(%rbp)\n    a309:\tnopl   0x0(%rax)\n    a310:\tmov    (%r9,%r14,1),%eax\n    a314:\tmov    0x4(%r9,%r14,1),%ecx\n    a319:\tcmp    %ecx,%eax\n    a31b:\tjae    a640 <main+0xe90>\n    a321:\tmov    %rsi,%rdx\n    a324:\tdec    %ecx\n    a326:\tlea    (%r12,%rax,4),%r8\n    a32a:\tlea    (%rsi,%rax,8),%rsi\n    a32e:\tsub    %eax,%ecx\n    a330:\tvxorpd %xmm1,%xmm1,%xmm1\n    a334:\txor    %eax,%eax\n    a336:\tmov    %rdx,-0x228(%rbp)\n    a33d:\tnopl   (%rax)\n    a340:\tmov    (%r8,%rax,4),%edx\n    a344:\tvmovsd (%rbx,%rdx,8),%xmm0\n    a349:\tmov    %rax,%rdx\n    a34c:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    a351:\tinc    %rax\n    a354:\tvaddsd %xmm0,%xmm1,%xmm1\n    a358:\tcmp    %rdx,%rcx\n    a35b:\tjne    a340 <main+0xb90>\n    a35d:\tmov    -0x228(%rbp),%rsi\n    a364:\tvmovsd %xmm1,(%r11,%r14,2)\n    a36a:\tadd    $0x4,%r14\n    a36e:\tcmp    %r10,%r14\n    a371:\tjne    a310 <main+0xb60>\n    a373:\tmov    -0x230(%rbp),%edx\n    a379:\tinc    %edx\n    a37b:\tcmp    %edx,-0x218(%rbp)\n    a381:\tjne    a300 <main+0xb50>\n    a387:\tmov    %rdi,%r14\n    a38a:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260215-162417/spmv_claude-sonnet-4.5_mpi_r2",
+    "source_commit": "e897bbe48e877ecbd8873ee1c666b6f394c0344b",
+    "staged_source_sha256": "b08477db06fe4d6d776091e73150f91debecf4e080276941aca198346b797c0d"
+  },
+  "binary_sha256": "236a32ad380a9c0c30fb6b17a3a01a016b5a95ad80ee8df749c7d04866508994",
+  "binding_sha256": "2443bac30fa1d53fbee912c1a0402a35a165f8266ace709a9f5040b3f48694b8",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:00:26Z",
+  "review_finished_at": "2026-11-04T13:01:01Z",
+  "review_input_sha256": "992169a83e937c080fbb1ae4f7ba91a1bbfc50cacccaf280efb3c41d241def01",
+  "pack_sha256": "99dcb40e91e310c5952aa05b9fb46fe97f37c3b9f362ce0423564ab16b81688c",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

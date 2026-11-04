@@ -1,0 +1,502 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:49:50Z",
+  "review_finished_at": "2026-11-04T15:50:58Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6-luna-oc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clock interval starts at 964; the nonempty timed branch enters the loop at address 37b3 (host line1398), emits one kernel stub launch (3863) per iteration, increments the counter and returns to the loop condition at 37e0–37ed. This supplies the launch/counter evidence omitted from the earlier short clock excerpt.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              342
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              964,
+              1051
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1398,
+              1430
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1731,
+              1820
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2030,
+              2089
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clock bounds the measured loop in main: each iteration calls the actual launch lambda, increments the loop counter, compares it with the runtime count, and branches back. The cited lambda performs runtime-width dispatch and the corresponding CUDA launch; it is not a graph replay.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              392
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1213,
+              1236
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1944,
+              2277
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The measured interval has a fast path and an alternate batched launch path: the branch at the clock-region body enters the launch loop, which invokes the device stub and increments/compares its repetition counter before returning to the measured path. Synchronization precedes the end clock.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              387
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1517,
+              1535
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2010,
+              2050
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2857,
+              2910
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clock interval encloses the repetition branch. The loop counter is incremented and compared to the requested count in the dispatch body; one of the width-specific launch stubs is called for each pass, and the branch returns to the next pass. Device synchronization precedes clock end.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              299
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1800,
+              1827
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1956,
+              1990
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2020,
+              2045
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2958,
+              3075
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3019,
+              3075
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The clock excerpt's conditional launches are out of line in the same main function: the branch reaches the bounded loop, which increments and compares its iteration counter, invokes the GPU stub, then returns to the loop header. The synchronization/error path and end clock are retained.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              383
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1189,
+              1236
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1406,
+              1450
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2256,
+              2317
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6-sol-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop computes its batching/grid setup before looping, then each iteration invokes the actual GPU stub, increments the counter and branches to the loop header until the requested count is reached. Device synchronization occurs before the ending clock.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              372
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1697,
+              1778
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2898,
+              2957
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction: the timed worker at1604–1730 replays the captured batch quotient, then issues a direct-launch remainder and synchronizes. Setup/capture is a different outlined worker; its node loop invokes the launch helper until the batch count, then ends/instantiates/uploads the graph. The helper at1121–1436 only performs width dispatch and CUDA launch.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              490
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1121,
+              1436
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1604,
+              1730
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2184,
+              2215
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3623,
+              3639
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2184,
+              2215
+            ]
+          ],
+          "claim": "Actual setup worker capture sequence, including bounded node-count loop through launch helper and graph end/instantiate/upload."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction: main740–824 is only entry to run. The timed run clock region2869–2913 replays the graph quotient; when the quotient finishes it branches to residual work at3030, dispatches the selected width, and launches each residual iteration until remainder count is exhausted. Separate setup capture loops a bounded batch, selects width4/8/16/32 branches and instantiates/uploads the graph before timing.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              450
+            ],
+            [
+              451,
+              458
+            ]
+          ],
+          "claim": "Exact source control flow for requested repetitions, the corresponding timed launch/replay path, and its input/kernel context."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2869,
+              2913
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2634,
+              2821
+            ]
+          ],
+          "claim": "Exact callsite/branch/counter evidence for the corresponding timed repetition and launch path; see summary for range roles."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3030,
+              3073
+            ]
+          ],
+          "claim": "Residual count test, width dispatch, default width32 launch and repetition backedge."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3500,
+              3600
+            ]
+          ],
+          "claim": "Pre-timing graph capture node loop and graph instantiate/upload path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3723,
+              3780
+            ]
+          ],
+          "claim": "Width4 residual launch body and counter progression."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3777,
+              3835
+            ]
+          ],
+          "claim": "Width8 residual launch branch/body."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3884,
+              3933
+            ]
+          ],
+          "claim": "Width4 capture/dispatch branch body."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3933,
+              3995
+            ]
+          ],
+          "claim": "Width16 capture/dispatch branch and launch."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4053,
+              4100
+            ]
+          ],
+          "claim": "Width8 capture/dispatch branch body."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

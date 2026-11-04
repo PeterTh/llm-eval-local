@@ -1,0 +1,64 @@
+{
+  "id": "spmv_gpt-6-luna-oc-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "No requested iteration or assigned CSR arithmetic was found omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          97,
+          107
+        ],
+        [
+          162,
+          184
+        ],
+        [
+          191,
+          241
+        ]
+      ],
+      "claim": "Positive CLI iteration count is unmodified. Quotient/remainder row counts sum to numRows; all nonzeros and row lengths are scattered, reconstructing full local CSR. Every requested iteration invokes complete local CSR multiplication; one full Gatherv is additionally included in timing.",
+      "sha256": "149609d7bce9814f6f7c8f161fb2e20f1b544ceb4181fa90cc2e98dd034041bf",
+      "git_blob": "307ecb24d6886f36dcb2c447526662811e91ace1"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Mul/add a0bd/a0c5 remain inside nonzero a0cc->a0b0, row a0db->a080 and requested-iteration a0e1->a070. Full gather at a12b follows the repetition loop and precedes the end clock.",
+      "complete_dump_sha256": "5bfc57b6fe4d54c8a9f96e95d2a70cc234c33709ae280f82f89959c5e0c4be80",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_gpt-6-luna-oc-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2161,
+          "last_line": 2232,
+          "text": "    a017:\tmov    %r9,-0x290(%rbp)\n    a01e:\tmov    %r9,-0x270(%rbp)\n    a025:\tcmpl   $0x0,-0x228(%rbp)\n    a02c:\tjne    a03a <main+0x81a>\n    a02e:\tlea    0x5400(%rip),%rdi        # f435 <_IO_stdin_used+0x435>\n    a035:\tcall   9390 <puts@plt>\n    a03a:\tlea    0xa1df(%rip),%rdi        # 14220 <ompi_mpi_comm_world@@Base>\n    a041:\tcall   8e90 <MPI_Barrier@plt>\n    a046:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a04b:\tmov    -0x50(%rbp),%r13\n    a04f:\tmov    %rax,-0x2c8(%rbp)\n    a056:\tmov    -0x298(%rbp),%eax\n    a05c:\ttest   %eax,%eax\n    a05e:\tje     a0e3 <main+0x8c3>\n    a064:\tmov    -0x258(%rbp),%esi\n    a06a:\txor    %ecx,%ecx\n    a06c:\tmov    %eax,%r8d\n    a06f:\tnop\n    a070:\txor    %r9d,%r9d\n    a073:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a07e:\txchg   %ax,%ax\n    a080:\tmov    (%r12,%r9,4),%eax\n    a084:\tmov    0x4(%r12,%r9,4),%edx\n    a089:\tcmp    %edx,%eax\n    a08b:\tjae    a520 <main+0xd00>\n    a091:\tdec    %edx\n    a093:\tlea    (%r15,%rax,4),%r10\n    a097:\tlea    (%r14,%rax,8),%rdi\n    a09b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a09f:\tsub    %eax,%edx\n    a0a1:\txor    %eax,%eax\n    a0a3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a0ae:\txchg   %ax,%ax\n    a0b0:\tmov    (%r10,%rax,4),%r11d\n    a0b4:\tvmovsd (%rbx,%r11,8),%xmm0\n    a0ba:\tmov    %rax,%r11\n    a0bd:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a0c2:\tinc    %rax\n    a0c5:\tvaddsd %xmm0,%xmm1,%xmm1\n    a0c9:\tcmp    %r11,%rdx\n    a0cc:\tjne    a0b0 <main+0x890>\n    a0ce:\tvmovsd %xmm1,0x0(%r13,%r9,8)\n    a0d5:\tinc    %r9\n    a0d8:\tcmp    %r8,%r9\n    a0db:\tjne    a080 <main+0x860>\n    a0dd:\tinc    %ecx\n    a0df:\tcmp    %esi,%ecx\n    a0e1:\tjb     a070 <main+0x850>\n    a0e3:\txor    %ecx,%ecx\n    a0e5:\tcmpl   $0x0,-0x228(%rbp)\n    a0ec:\tmov    -0x1d0(%rbp),%rax\n    a0f3:\tlea    0xab26(%rip),%rsi        # 14c20 <ompi_mpi_double@@Base>\n    a0fa:\tmov    %rsi,%rdx\n    a0fd:\tmov    %rax,-0x2b0(%rbp)\n    a104:\tpush   %rdi\n    a105:\tmov    -0x288(%rbp),%r9\n    a10c:\tmov    %r13,%rdi\n    a10f:\tcmove  %rax,%rcx\n    a113:\tlea    0xa106(%rip),%rax        # 14220 <ompi_mpi_comm_world@@Base>\n    a11a:\tmov    -0x278(%rbp),%r8\n    a121:\tpush   %rax\n    a122:\tpush   $0x0\n    a124:\tpush   %rsi\n    a125:\tmov    -0x298(%rbp),%esi\n    a12b:\tcall   9550 <MPI_Gatherv@plt>\n    a130:\tadd    $0x20,%rsp\n    a134:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a139:\tmov    -0x2c8(%rbp),%rcx\n    a140:\tvxorpd %xmm2,%xmm2,%xmm2\n    a144:\tmovq   $0x0,-0x218(%rbp)\n    a14f:\tlea    -0x220(%rbp),%rdi\n    a156:\txor    %r9d,%r9d\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261018-224015/spmv_gpt-6-luna-oc-medium_mpi_r2",
+    "source_commit": "fd64978a13b9a4f3ac6a5e368972316d0c159aa1",
+    "staged_source_sha256": "0db823b34c2efdc8b7de154d4a635632a8d9c04f48646852eda3465383a1ce5f"
+  },
+  "binary_sha256": "f17cccc0d63f88fa1ec130c7cd6ed29403d73d0ff3a94e37c76f218c5e1383b6",
+  "binding_sha256": "f577624482df8c083263799daf2dc624a5590e56fc8de864c5660dae16fa0b31",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:31:09Z",
+  "review_finished_at": "2026-11-04T13:32:00Z",
+  "review_input_sha256": "09a6fb3f500bcbd9b57375540f13ce9cc197b8958962769c7fbe215c3b979c3f",
+  "pack_sha256": "72982a50139e64570e598d138ea0a8bf500eed882e8b32a64ca1fdb5279ac1b2",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

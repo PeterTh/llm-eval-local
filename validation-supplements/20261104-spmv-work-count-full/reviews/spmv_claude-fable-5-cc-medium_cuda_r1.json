@@ -1,0 +1,134 @@
+{
+  "id": "spmv_claude-fable-5-cc-medium_cuda_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The kernel assigns each warp a row and lanes traverse that row's CSR entries in stride 32, reduce their partial sums, and lane 0 stores the result. The measured host loop retains one launch per requested iteration and synchronizes after it. In SASS, the lane nonzero loop retains DFMA operations and its backward branch.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          35,
+          67
+        ],
+        [
+          209,
+          242
+        ],
+        [
+          256,
+          263
+        ],
+        [
+          275,
+          319
+        ]
+      ],
+      "claim": "Warp-per-row mapping and lane-strided CSR traversal/reduction produce each row output; CLI parses dimension, sparsity and iterations, initializes CSR/vector/value data; warmup is separate, while the timed loop launches for each iteration and later copies output.",
+      "sha256": "8bc0ac7103b763e60889e98b2146f9bcd2e0024c7f50d7928bb0358cf08128ad",
+      "git_blob": "c62428812ca080b1de71cb7f6aa3451eb5a347da"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          25
+        ]
+      ],
+      "claim": "Optimized CUDA build configuration.",
+      "sha256": "e06037001cd49ca19e42b8fc6dc9a65880f4e4789179a4027a5e0066a534160a",
+      "git_blob": "ca3fd3c4ff9bc5f1d7970ebf88487810a506aab7"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The timed loop at 1380-1412 contains the repeated launch stub and iteration control/backedge; the completion sequence checks launch status, synchronizes, then stops the clock at 1437.",
+      "complete_dump_sha256": "ab8771a98fc313634cc17edd1098190f2cfb2edf7d0dffefe4ec6030443034d3",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-fable-5-cc-medium_cuda_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1380,
+          "last_line": 1412,
+          "text": "    b488:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n    b48d:\tmov    -0x124(%rbp),%r14d\n    b494:\tmov    %rax,-0x158(%rbp)\n    b49b:\ttest   %r14d,%r14d\n    b49e:\tje     b5a0 <main+0x9c0>\n    b4a4:\tmovabs $0x100000001,%r14\n    b4ae:\tjmp    b4ca <main+0x8ea>\n    b4b0:\tincl   -0x118(%rbp)\n    b4b6:\tmov    -0x124(%rbp),%edi\n    b4bc:\tmov    -0x118(%rbp),%eax\n    b4c2:\tcmp    %edi,%eax\n    b4c4:\tje     b5a0 <main+0x9c0>\n    b4ca:\tmov    %r14,-0xd8(%rbp)\n    b4d1:\tmov    %r12d,-0xdc(%rbp)\n    b4d8:\tmov    -0xd4(%rbp),%esi\n    b4de:\tmov    -0xdc(%rbp),%rdi\n    b4e5:\txor    %r9d,%r9d\n    b4e8:\txor    %r8d,%r8d\n    b4eb:\tmovabs $0x100000100,%rdx\n    b4f5:\tmov    $0x1,%ecx\n    b4fa:\tmov    %r13,-0xe8(%rbp)\n    b501:\tmovl   $0x1,-0xe0(%rbp)\n    b50b:\tcall   20570 <__cudaPushCallConfiguration>\n    b510:\ttest   %eax,%eax\n    b512:\tjne    b4b0 <main+0x8d0>\n    b514:\tmov    -0xf0(%rbp),%r9\n    b51b:\tmov    -0xf8(%rbp),%rcx\n    b522:\tmov    %ebx,%r8d\n    b525:\tmov    -0x100(%rbp),%rdx\n    b52c:\tmov    -0x108(%rbp),%rsi\n    b533:\tmov    -0x110(%rbp),%rdi\n    b53a:\tcall   c400 <__device_stub__Z10spmvKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b53f:\tjmp    b4b0 <main+0x8d0>\n"
+        },
+        {
+          "first_line": 1431,
+          "last_line": 1437,
+          "text": "    b5a0:\tcall   4e940 <cudaGetLastError>\n    b5a5:\ttest   %eax,%eax\n    b5a7:\tjne    bb2c <main+0xf4c>\n    b5ad:\tcall   4bbe0 <cudaDeviceSynchronize>\n    b5b2:\ttest   %eax,%eax\n    b5b4:\tjne    bb4f <main+0xf6f>\n    b5ba:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "SASS compares the warp's row index to dim at 0x0050 and exits out-of-range rows at 0x0060. The 0x0130->0x06d0 branch guards a lane's nonzero index against the CSR row end. Four DFMA operations at 0x0450–0x0480 sit inside the stride-128 unrolled loop with backedge 0x0490->0x0270; lane-stride remainder paths and the warp reduction feed the lane-zero STG at 0x0810. The complete dump was inspected for r3 and is byte-identical across these five Fable cases.",
+      "complete_dump_sha256": "0010aae4a9b705c4e4d11a013d901abeb9b2548a6997a5eb20e0081108b8b64a",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-fable-5-cc-medium_cuda_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 18,
+          "last_line": 60,
+          "text": "\tcode for sm_86\n\t\tFunction : _Z10spmvKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;             /* 0x00000a00ff017624 */\n                                                                                       /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R8, SR_TID.X ;                                  /* 0x0000000000087919 */\n                                                                                       /* 0x000e280000002100 */\n        /*0020*/                   S2R R3, SR_CTAID.X ;                                /* 0x0000000000037919 */\n                                                                                       /* 0x000e620000002500 */\n        /*0030*/                   SHF.R.U32.HI R0, RZ, 0x5, R8 ;                      /* 0x00000005ff007819 */\n                                                                                       /* 0x001fca0000011608 */\n        /*0040*/                   IMAD R0, R3, 0x8, R0 ;                              /* 0x0000000803007824 */\n                                                                                       /* 0x002fca00078e0200 */\n        /*0050*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;    /* 0x0000600000007a0c */\n                                                                                       /* 0x000fda0003f06070 */\n        /*0060*/               @P0 EXIT ;                                              /* 0x000000000000094d */\n                                                                                       /* 0x000fea0003800000 */\n        /*0070*/                   MOV R9, 0x4 ;                                       /* 0x0000000400097802 */\n                                                                                       /* 0x000fe20000000f00 */\n        /*0080*/                   ULDC.64 UR4, c[0x0][0x118] ;                        /* 0x0000460000047ab9 */\n                                                                                       /* 0x000fe20000000a00 */\n        /*0090*/                   IADD3 R6, R0, 0x1, RZ ;                             /* 0x0000000100067810 */\n                                                                                       /* 0x000fc60007ffe0ff */\n        /*00a0*/                   IMAD.WIDE.U32 R4, R0, R9, c[0x0][0x170] ;           /* 0x00005c0000047625 */\n                                                                                       /* 0x000fc800078e0009 */\n        /*00b0*/                   IMAD.WIDE.U32 R6, R6, R9, c[0x0][0x170] ;           /* 0x00005c0006067625 */\n                                                                                       /* 0x000fe400078e0009 */\n        /*00c0*/                   LDG.E.CONSTANT R5, [R4.64] ;                        /* 0x0000000404057981 */\n                                                                                       /* 0x000ea8000c1e9900 */\n        /*00d0*/                   LDG.E.CONSTANT R11, [R6.64] ;                       /* 0x00000004060b7981 */\n                                                                                       /* 0x000ee2000c1e9900 */\n        /*00e0*/                   LOP3.LUT R8, R8, 0x1f, RZ, 0xc0, !PT ;              /* 0x0000001f08087812 */\n                                                                                       /* 0x000fe200078ec0ff */\n        /*00f0*/                   BSSY B0, 0x6e0 ;                                    /* 0x000005e000007945 */\n                                                                                       /* 0x000fe20003800000 */\n        /*0100*/                   CS2R R2, SRZ ;                                      /* 0x0000000000027805 */\n                                                                                       /* 0x000fc6000001ff00 */\n        /*0110*/                   IMAD.IADD R10, R8, 0x1, R5 ;                        /* 0x00000001080a7824 */\n                                                                                       /* 0x004fca00078e0205 */\n        /*0120*/                   ISETP.GE.U32.AND P0, PT, R10, R11, PT ;             /* 0x0000000b0a00720c */\n                                                                                       /* 0x008fda0003f06070 */\n        /*0130*/               @P0 BRA 0x6d0 ;                                         /* 0x0000059000000947 */\n                                                                                       /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 89,
+          "last_line": 95,
+          "text": "        /*0220*/                   PLOP3.LUT P0, PT, P2, PT, PT, 0x8, 0x0 ;            /* 0x000000000000781c */\n                                                                                       /* 0x000fc8000170e170 */\n        /*0230*/               @P2 DFMA R2, R4, R12, R2 ;                              /* 0x0000000c0402222b */\n                                                                                       /* 0x00804a0000000002 */\n        /*0240*/               @P1 BRA 0x4a0 ;                                         /* 0x0000025000001947 */\n                                                                                       /* 0x000fea0003800000 */\n        /*0250*/                   PLOP3.LUT P0, PT, PT, PT, PT, 0x8, 0x0 ;            /* 0x000000000000781c */\n"
+        },
+        {
+          "first_line": 155,
+          "last_line": 168,
+          "text": "        /*0430*/                   IADD3 R10, R10, 0x80, RZ ;                          /* 0x000000800a0a7810 */\n                                                                                       /* 0x000fc80007ffe0ff */\n        /*0440*/                   ISETP.GE.U32.AND P1, PT, R10, R17, PT ;             /* 0x000000110a00720c */\n                                                                                       /* 0x000fe20003f26070 */\n        /*0450*/                   DFMA R4, R4, R6, R2 ;                               /* 0x000000060404722b */\n                                                                                       /* 0x006ecc0000000002 */\n        /*0460*/                   DFMA R4, R12, R14, R4 ;                             /* 0x0000000e0c04722b */\n                                                                                       /* 0x008f0c0000000004 */\n        /*0470*/                   DFMA R4, R18, R20, R4 ;                             /* 0x000000141204722b */\n                                                                                       /* 0x010f4c0000000004 */\n        /*0480*/                   DFMA R2, R22, R26, R4 ;                             /* 0x0000001a1602722b */\n                                                                                       /* 0x0200620000000004 */\n        /*0490*/              @!P1 BRA 0x270 ;                                         /* 0xfffffdd000009947 */\n                                                                                       /* 0x000fea000383ffff */\n"
+        },
+        {
+          "first_line": 270,
+          "last_line": 283,
+          "text": "                                                                                       /* 0x0000a200000e0000 */\n        /*07d0*/               @P0 EXIT ;                                              /* 0x000000000000094d */\n                                                                                       /* 0x000fea0003800000 */\n        /*07e0*/                   LEA R4, P0, R0, c[0x0][0x188], 0x3 ;                /* 0x0000620000047a11 */\n                                                                                       /* 0x000fe200078018ff */\n        /*07f0*/                   DADD R2, R12, R2 ;                                  /* 0x000000000c027229 */\n                                                                                       /* 0x006e460000000002 */\n        /*0800*/                   LEA.HI.X R5, R0, c[0x0][0x18c], RZ, 0x3, P0 ;       /* 0x0000630000057a11 */\n                                                                                       /* 0x000fca00000f1cff */\n        /*0810*/                   STG.E.64 [R4.64], R2 ;                              /* 0x0000000204007986 */\n                                                                                       /* 0x002fe2000c101b04 */\n        /*0820*/                   EXIT ;                                              /* 0x000000000000794d */\n                                                                                       /* 0x000fea0003800000 */\n        /*0830*/                   BRA 0x830;                                          /* 0xfffffff000007947 */\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-fable-5-cc-medium_cuda_r1",
+    "source_commit": "db27e2872a28b900024d318f6a3004a3a7fddfa7",
+    "staged_source_sha256": "ae13f7df0ef00bec2317e7cf5e5cbddde1b5287344bf93925a963affb9185161"
+  },
+  "binary_sha256": "acb7760e41508268a4d3546b489194b26d3cd41c72665664687edc4aab807c83",
+  "binding_sha256": "04d3760034457a91ac1074b6aba2137880d31ff14ebeca36f5ae2ac3b98b7f4f",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "8a53ea171e8963b30e6b7d3d138786c18f49673728183bf6f4f2f2b3a3f843c4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T14:10:50Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5-cc-medium_cuda_r3",
+      "spmv_claude-haiku-4.5_cuda_r1"
+    ],
+    "method": "Independent full Fable r3 source, timed host flow and complete SASS; Haiku r1 full source, timed host flow and each architecture's cited arithmetic/backedge/store/guard checks. Separately inspected all four Beam timed host loops. Exact-byte comparisons show Beam r2-r5 SASS identical to independently inspected hybrid r1, and Fable r1/r2/r4/r5 SASS identical to r3. Other cases retain the independent Luna source review.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Distinguished row bounds from empty-row/per-lane nonzero predicates and expanded guard excerpts.",
+      "Corrected Haiku sm60 row-bound addresses from NOP0x0050 to compare0x0048/exit0x0058.",
+      "Beam r5 pre-timing operation is synchronization, not a warmup kernel.",
+      "Expanded Fable source intervals to include launch-grid sizing."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:01:14Z",
+  "review_finished_at": "2026-11-04T14:07:10Z",
+  "review_input_sha256": "d1c2ce214e315f00a051958ad60464bbf10881221985b7565f77084031aff12f",
+  "pack_sha256": "2b79aecf656d50847fd541146ea57a1f97d3412db1b4d23e735746f9c84cfce1",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-fable-5-cc-medium_mpi_r4",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The sequential partition construction assigns contiguous row ranges and lets the final rank consume the remainder. Each scattered local matrix is recomputed for every requested iteration, including all local nonzeros.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          108
+        ],
+        [
+          165,
+          181
+        ],
+        [
+          241,
+          291
+        ],
+        [
+          303,
+          315
+        ]
+      ],
+      "claim": "The full CSR product runs inside the original iteration bound; balancing is spatial only.",
+      "sha256": "290e44cb6de42d8282e5b80261f951a0f42b43e4e8daee41f52155606a55bedd",
+      "git_blob": "bfa60a4a7a1a410ef98fe79725d253a00b0376ed"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The dot-product loop 0x9fb0-0x9fcd remains within the repetition backedge 0x9fe1 -> 0x9f70.",
+      "complete_dump_sha256": "5869c7b3ac6793b64c0f846021590217f1faa1b10993dc3ccf15c2f33570a456",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-fable-5-cc-medium_mpi_r4/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2087,
+          "last_line": 2136,
+          "text": "    9f17:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9f1c:\tlea    0xb2fd(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9f23:\tmov    %rax,-0x258(%rbp)\n    9f2a:\tcall   8e90 <MPI_Barrier@plt>\n    9f2f:\tmov    -0x23c(%rbp),%esi\n    9f35:\ttest   %esi,%esi\n    9f37:\tje     9fea <main+0x89a>\n    9f3d:\tmov    -0x220(%rbp),%ecx\n    9f43:\tmov    -0x70(%rbp),%r8\n    9f47:\ttest   %ecx,%ecx\n    9f49:\tje     9fea <main+0x89a>\n    9f4f:\tmov    -0x23c(%rbp),%edx\n    9f55:\tmov    -0x2c8(%rbp),%r11\n    9f5c:\txor    %ecx,%ecx\n    9f5e:\tmov    %r13d,-0x260(%rbp)\n    9f65:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f70:\txor    %r10d,%r10d\n    9f73:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9f7e:\txchg   %ax,%ax\n    9f80:\tmov    (%r12,%r10,4),%eax\n    9f84:\tmov    0x4(%r12,%r10,4),%edi\n    9f89:\tcmp    %edi,%eax\n    9f8b:\tjae    a580 <main+0xe30>\n    9f91:\tdec    %edi\n    9f93:\tlea    (%r15,%rax,4),%r13\n    9f97:\tlea    (%r11,%rax,8),%r9\n    9f9b:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f9f:\tsub    %eax,%edi\n    9fa1:\txor    %eax,%eax\n    9fa3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9fae:\txchg   %ax,%ax\n    9fb0:\tmov    0x0(%r13,%rax,4),%esi\n    9fb5:\tvmovsd (%rbx,%rsi,8),%xmm0\n    9fba:\tmov    %rax,%rsi\n    9fbd:\tvmulsd (%r9,%rax,8),%xmm0,%xmm0\n    9fc3:\tinc    %rax\n    9fc6:\tvaddsd %xmm0,%xmm1,%xmm1\n    9fca:\tcmp    %rsi,%rdi\n    9fcd:\tjne    9fb0 <main+0x860>\n    9fcf:\tvmovsd %xmm1,(%r8,%r10,8)\n    9fd5:\tinc    %r10\n    9fd8:\tcmp    %r14,%r10\n    9fdb:\tjne    9f80 <main+0x830>\n    9fdd:\tinc    %ecx\n    9fdf:\tcmp    %ecx,%edx\n    9fe1:\tjne    9f70 <main+0x820>\n    9fe3:\tmov    -0x260(%rbp),%r13d\n    9fea:\tlea    0xb22f(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9ff1:\tcall   8e90 <MPI_Barrier@plt>\n    9ff6:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-fable-5-cc-medium_mpi_r4",
+    "source_commit": "4500d708ad5c7b5d1594f93704011d6dfbca09a1",
+    "staged_source_sha256": "38313bfa05938efd9513c0052ac02e9565624a9fed4cb1cb8c7bf19988bc5f40"
+  },
+  "binary_sha256": "b8461d3377b58728c2d6e0253e41c447f0c7d5e43020b96c2fb23343934da605",
+  "binding_sha256": "0a26ac4fa68cbddc0e2581ef18060ec17d1fb615e351d9d4c430836fbafabcab",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:42:01Z",
+  "review_finished_at": "2026-11-04T12:45:03Z",
+  "review_input_sha256": "933fbd474d9c30e6795a43a55bb8ec1aa2dd173ea066da33350e5a0f1d19c786",
+  "pack_sha256": "e75239da0e75982367d8da2732db11db10be52584abc590d4d5b9649e697c5a4",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

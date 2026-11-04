@@ -1,0 +1,26 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:53:31Z",
+  "review_finished_at": "2026-11-04T14:53:31Z",
+  "supersedes": "/tmp/spmv-luna-hybrid-batch-005.json compiled host evidence for spmv_claude-opus-5.5-cc-medium_hybrid_r4",
+  "reviews": [
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source selects one of five launchers by local average row length, then the timed runtime-count loop indirectly invokes that launcher once per repetition. Compiled evidence now includes the selector's function-pointer targets, timed indirect call/backedge, and all five actual launcher helper bodies (TPR 2, 4, 8, 16, 32), each of which launches its matching kernel specialization. Existing complete SASS evidence covers all five device variants.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[129,182],[400,490]],"claim":"Parameterized CSR-vector kernel and launch template; selector thresholds; rank-local CSR setup and runtime-count timed calls followed by synchronization/output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1182,1200],[2293,2350],[3470,3573],[3574,3677],[3678,3780],[3781,3883],[3884,3986]],"claim":"Compiled selector maps averages to the five exact launcher targets; timed loop indirectly calls the selected target under the requested repetition counter and then copies/synchronizes; each target helper launches the corresponding CUDA kernel through cudaLaunchKernel."},
+        {"file":"device-sass.txt","ranges":[[19,231],[232,444],[445,641],[642,838],[839,1035]],"claim":"All five selected TPR row-kernel SASS variants are cited through row/nonzero processing, arithmetic, and stores."}
+      ],
+      "notes":"The previous host excerpt covered the main loop but omitted the indirect launcher callees; these are now explicitly included."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

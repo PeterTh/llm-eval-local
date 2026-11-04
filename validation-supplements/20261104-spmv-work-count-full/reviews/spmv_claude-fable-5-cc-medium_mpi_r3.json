@@ -1,0 +1,68 @@
+{
+  "id": "spmv_claude-fable-5-cc-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Scattered CSR slices are rebased to local nonzero offsets and include the correct terminal delimiter. All local products are recomputed for the requested count; no repeated work is replaced by initialization or validation.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          108
+        ],
+        [
+          165,
+          181
+        ],
+        [
+          245,
+          298
+        ],
+        [
+          310,
+          322
+        ]
+      ],
+      "claim": "Contiguous nonzero-balanced partitions, complete local CSR storage and unchanged repetition count.",
+      "sha256": "0f7d2f4643118488a42f89ded3b2d003e93a05cf7d3f58329d4ea1760d1e1a82",
+      "git_blob": "1b6f2cad6a5bed32cfe26e1d9f8047af50a300b6"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The scalar product arithmetic at 0x9fe0-0x9ffc remains inside the repetition backedge 0xa011 -> 0x9fa0.",
+      "complete_dump_sha256": "ed1eb28acdd341ce5c3e2271467e09658da50472f5bbe895bb1e30e61721cfe1",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-fable-5-cc-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2108,
+          "last_line": 2152,
+          "text": "    9f6b:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9f70:\tmov    -0x250(%rbp),%r8d\n    9f77:\tmov    %rax,-0x258(%rbp)\n    9f7e:\ttest   %r8d,%r8d\n    9f81:\tje     a013 <main+0x8b3>\n    9f87:\tmov    -0x248(%rbp),%edi\n    9f8d:\tmov    -0x70(%rbp),%r8\n    9f91:\ttest   %edi,%edi\n    9f93:\tje     a013 <main+0x8b3>\n    9f95:\tmov    -0x250(%rbp),%esi\n    9f9b:\txor    %ecx,%ecx\n    9f9d:\tnopl   (%rax)\n    9fa0:\txor    %r9d,%r9d\n    9fa3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9fae:\txchg   %ax,%ax\n    9fb0:\tmov    (%r12,%r9,1),%eax\n    9fb4:\tmov    0x4(%r12,%r9,1),%edx\n    9fb9:\tcmp    %edx,%eax\n    9fbb:\tjae    a5d0 <main+0xe70>\n    9fc1:\tdec    %edx\n    9fc3:\tlea    (%r15,%rax,4),%r10\n    9fc7:\tlea    (%r14,%rax,8),%rdi\n    9fcb:\tvxorpd %xmm1,%xmm1,%xmm1\n    9fcf:\tsub    %eax,%edx\n    9fd1:\txor    %eax,%eax\n    9fd3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9fde:\txchg   %ax,%ax\n    9fe0:\tmov    (%r10,%rax,4),%r11d\n    9fe4:\tvmovsd (%rbx,%r11,8),%xmm0\n    9fea:\tmov    %rax,%r11\n    9fed:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9ff2:\tinc    %rax\n    9ff5:\tvaddsd %xmm0,%xmm1,%xmm1\n    9ff9:\tcmp    %rdx,%r11\n    9ffc:\tjne    9fe0 <main+0x880>\n    9ffe:\tvmovsd %xmm1,(%r8,%r9,2)\n    a004:\tadd    $0x4,%r9\n    a008:\tcmp    %r13,%r9\n    a00b:\tjne    9fb0 <main+0x850>\n    a00d:\tinc    %ecx\n    a00f:\tcmp    %ecx,%esi\n    a011:\tjne    9fa0 <main+0x840>\n    a013:\tlea    0xb206(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a01a:\tcall   8e90 <MPI_Barrier@plt>\n    a01f:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20260901-162328/spmv_claude-fable-5-cc-medium_mpi_r3",
+    "source_commit": "4500d708ad5c7b5d1594f93704011d6dfbca09a1",
+    "staged_source_sha256": "48f84be05c7d2875ce9ad2be03226b57ad7886ddd7f891e4842673cc8454e59d"
+  },
+  "binary_sha256": "b9d5dbaebe6077df1f82c944760190f97d563b0fcea782a0f53bdced288d682b",
+  "binding_sha256": "377ba5229baf3ca9d6e4e52f9101e0d80eb6183a20c457a5a9c970d3fa7db357",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:42:01Z",
+  "review_finished_at": "2026-11-04T12:45:03Z",
+  "review_input_sha256": "933fbd474d9c30e6795a43a55bb8ec1aa2dd173ea066da33350e5a0f1d19c786",
+  "pack_sha256": "c6ccc9cdf6cdb597a3325b9d3c1cdb3d741093cf629033cb415f62c553698957",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

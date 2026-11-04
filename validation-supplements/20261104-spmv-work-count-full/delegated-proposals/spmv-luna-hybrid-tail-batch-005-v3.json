@@ -1,0 +1,804 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T16:06:46Z",
+  "review_finished_at": "2026-11-04T16:07:05Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              314
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              14
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1008,
+              1487
+            ],
+            [
+              1488,
+              1967
+            ],
+            [
+              1968,
+              2357
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2966,
+              3026
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z10spmvKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              263
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed main path reaches the ordinary out-of-line counted launch loop (not a separate long-row strategy); it issues the selected kernel launch for each requested iteration, advances/checks the count, then synchronizes and ends timing. The launched kernel processes its assigned CSR rows and nonzero intervals, with arithmetic and stores in final SASS.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              314
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1001,
+              1480
+            ],
+            [
+              1481,
+              1960
+            ],
+            [
+              1961,
+              2440
+            ],
+            [
+              2441,
+              2515
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3023,
+              3083
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z10spmvKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              310
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              998,
+              1477
+            ],
+            [
+              1478,
+              1957
+            ],
+            [
+              1958,
+              2437
+            ],
+            [
+              2438,
+              2497
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3076,
+              3136
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z10spmvKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              480
+            ],
+            [
+              481,
+              679
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              309
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1008,
+              1487
+            ],
+            [
+              1488,
+              1967
+            ],
+            [
+              1968,
+              2447
+            ],
+            [
+              2448,
+              2498
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3111,
+              3171
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z10spmvKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              285
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              12
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              998,
+              1477
+            ],
+            [
+              1478,
+              1957
+            ],
+            [
+              1958,
+              2367
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2917,
+              2977
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z10spmvKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              311
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1007,
+              1486
+            ],
+            [
+              1487,
+              1966
+            ],
+            [
+              1967,
+              2446
+            ],
+            [
+              2447,
+              2524
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3185,
+              3245
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z10spmv_shortPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3246,
+              3306
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z9spmv_warpPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              480
+            ],
+            [
+              481,
+              960
+            ],
+            [
+              961,
+              1196
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              408
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1036,
+              1515
+            ],
+            [
+              1516,
+              1995
+            ],
+            [
+              1996,
+              2422
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              480
+            ],
+            [
+              481,
+              960
+            ],
+            [
+              961,
+              1440
+            ],
+            [
+              1441,
+              1920
+            ],
+            [
+              1921,
+              2400
+            ],
+            [
+              2401,
+              2880
+            ],
+            [
+              2881,
+              3291
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              294
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              13
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1021,
+              1500
+            ],
+            [
+              1501,
+              1980
+            ],
+            [
+              1981,
+              2460
+            ],
+            [
+              2461,
+              2940
+            ],
+            [
+              2941,
+              3092
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3742,
+              3802
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z10spmvScalarPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3803,
+              3863
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z8spmvWarpPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              480
+            ],
+            [
+              481,
+              956
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              400
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              15
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1002,
+              1481
+            ],
+            [
+              1482,
+              1961
+            ],
+            [
+              1962,
+              2441
+            ],
+            [
+              2442,
+              2483
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3204,
+              3264
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z9spmv_warpPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3265,
+              3325
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z11spmv_scalarPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              480
+            ],
+            [
+              481,
+              960
+            ],
+            [
+              961,
+              1440
+            ],
+            [
+              1441,
+              1628
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Exact source, complete main body and all launch-helper bodies establish the per-ID measured dispatch, counted repetition and synchronization; complete final native SASS establishes the dispatched device body's row/nonzero traversal, arithmetic and stores. CPU preprocessing/reference workers are not treated as timed GPU computation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              345
+            ]
+          ],
+          "claim": "Complete exact source: CLI dimensions/iterations, MPI partition and CSR setup, kernel arithmetic, timed launch/repetition and synchronization, and output path."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              17
+            ]
+          ],
+          "claim": "Exact build configuration for this source."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1005,
+              1484
+            ],
+            [
+              1485,
+              1964
+            ],
+            [
+              1965,
+              2444
+            ],
+            [
+              2445,
+              2823
+            ]
+          ],
+          "claim": "Complete exact main body in bounded chunks: includes argument/setup branches, timing start/end, timed repetition loop, each main-to-launch-helper callsite, counter/backedge, and synchronization/error path; does not attribute CPU preprocessing workers to timed GPU arithmetic."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3390,
+              3450
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z9spmvShortPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3451,
+              3511
+            ]
+          ],
+          "claim": "Complete exact called/available launch helper __device_stub__Z8spmvWarpPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) as bounded body chunks; invocation/selection is established in the cited main body and source dispatch."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              1,
+              480
+            ],
+            [
+              481,
+              960
+            ],
+            [
+              961,
+              1388
+            ]
+          ],
+          "claim": "Complete exact existing final native SASS in bounded chunks for this executable, covering all variants in the pack; use source/main dispatch and helper calls to identify the selected body/bodies and inspect row/nonzero traversal and stores."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

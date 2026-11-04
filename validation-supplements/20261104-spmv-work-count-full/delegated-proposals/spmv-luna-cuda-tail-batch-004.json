@@ -1,0 +1,26 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:51:45Z",
+  "review_finished_at": "2026-11-04T15:53:00Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-sol-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested iteration value is propagated from CLI into spmvGpu; CSR construction closes the final row at n=floor(dim²/sparsity). The closure selects one of row-width kernels 1/2/4/8/16/32 by average nnz, or spmvLongRows at average>=256. Row kernels launch enough blocks for all rows and accumulate each [rows[row],rows[row+1]) interval in ThreadsPerRow strides before storing; the long kernel caps blocks at 65535 but has a row grid-stride loop, and each block processes its selected row's full CSR interval in 128 strides then reduces/stores. Warmup and graph construction occur before timing. The host graph contains batch=min(iterations,64) launch calls; the timed graph loop runs iterations/batch times and the direct tail runs iterations%batch. Compiled host preserves the exact capture loop, graph loop, remainder, CUDA closure dispatch and event stop/sync. Inspected all seven native sm86 variants through their nonzero-loop/backedge, reduction and output store. No omission identified.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA build target and optimization flags."},
+        {"file":"spmv/spmv.cpp","ranges":[[51,80],[136,183],[185,256],[305,413]],"claim":"CSR terminal count; complete short/long row coverage; all variant selectors and launch geometry; warmup, capture, quotient/remainder timed count and output handling; CLI iteration parsing and complete input setup."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[2033,2531],[2532,2592],[2593,3091],[3092,3108]],"claim":"Actual launch closure with all selected kernel variants and main spmvGpu control flow: launch/capture count, warmup synchronization, timed graph quotient and direct tail, event stop/sync and result transfer."},
+        {"file":"device-sass.txt","ranges":[[19,500],[501,679],[680,1178],[1179,1324],[1325,1823],[1824,1969],[1970,2468],[2469,2614],[2615,3113],[3114,3243],[3244,3742],[3743,3856],[3857,4355],[4356,4629]],"claim":"All six short-row and one long-row selected native sm86 kernels through arithmetic loops/backedges, reductions, row stores and exits."}
+      ],
+      "notes": "The zero-iteration path returns before batch division/capture. No runtime or benchmark evidence used."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

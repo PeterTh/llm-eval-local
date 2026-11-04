@@ -1,0 +1,260 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:21:35Z",
+  "review_finished_at": "2026-11-04T13:26:40Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested SpMV iteration, assigned row, or CSR nonzero was found omitted; retained machine code performs the repeated local arithmetic.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              75,
+              88
+            ],
+            [
+              126,
+              198
+            ],
+            [
+              203,
+              245
+            ],
+            [
+              247,
+              323
+            ],
+            [
+              386,
+              414
+            ],
+            [
+              432,
+              500
+            ],
+            [
+              511,
+              545
+            ]
+          ],
+          "claim": "CLI -i is parsed without clipping and broadcast unchanged. Monotone row partitions cover [0,numRows], their nonzero intervals cover the CSR entries, and both collective and chunked point-to-point paths transfer complete partitions. The final local row delimiter is reconstructed from localNonzeros. Each of config.iterations timed iterations evaluates every assigned row and all its CSR nonzeros; the full result is gathered afterward."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              720,
+              776
+            ]
+          ],
+          "claim": "Between MPI_Wtime at 1c16 and 1cd5, mul/add at 1cad/1cb6 lie inside the nonzero backedge 1cbd->1ca0, row backedge 1ccd->1c70 and requested-iteration backedge 1cd3->1c60. Arithmetic is retained on every iteration."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested SpMV iteration, assigned row, or CSR nonzero was found omitted; retained machine code performs the repeated local arithmetic.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              66,
+              79
+            ],
+            [
+              116,
+              129
+            ],
+            [
+              145,
+              181
+            ],
+            [
+              200,
+              266
+            ],
+            [
+              310,
+              363
+            ],
+            [
+              374,
+              406
+            ]
+          ],
+          "claim": "Unclipped positive CLI iteration count is broadcast. Monotone closest-nonzero partitions include all rows, and the complete rows+1 delimiter arrays and corresponding nonzeros are scattered and rebased. The timed loop invokes full local CSR SpMV once per requested iteration, then gathers all row results."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2431,
+              2470
+            ],
+            [
+              3004,
+              3056
+            ]
+          ],
+          "claim": "The timed loop calls aef0 at a601 on every iteration, with requested-count backedge a609->a5e0. The callee retains mul/add at af4c/af54 inside nonzero backedge af5b->af40 and row backedge af6a->af20, with explicit zero output for empty rows."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested SpMV iteration, assigned row, or CSR nonzero was found omitted; retained machine code performs the repeated local arithmetic.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              104,
+              126
+            ],
+            [
+              131,
+              275
+            ],
+            [
+              279,
+              322
+            ],
+            [
+              389,
+              447
+            ],
+            [
+              492,
+              532
+            ],
+            [
+              542,
+              553
+            ]
+          ],
+          "claim": "The requested positive iteration count is parsed and broadcast unchanged. Monotone nnz-plus-row-weight partitions cover every row and nonzero; collective and chunked distribution/gather paths preserve complete counts. Each timed iteration performs full local CSR arithmetic and a compiler memory barrier preserving result observability."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2380,
+              2446
+            ]
+          ],
+          "claim": "Between MPI_Wtime at a4c4 and a5a1, mul/add a56c/a575 remain inside nonzero backedge a57c->a560, row backedge a58a->a530, and requested-iteration backedge a599->a4f0. Inputs are reloaded around the source compiler barrier; repeated arithmetic is not eliminated."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested SpMV iteration, assigned row, or CSR nonzero was found omitted; retained machine code performs the repeated local arithmetic.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              104,
+              116
+            ],
+            [
+              168,
+              208
+            ],
+            [
+              231,
+              290
+            ],
+            [
+              342,
+              398
+            ],
+            [
+              411,
+              434
+            ]
+          ],
+          "claim": "The root parses and broadcasts the unchanged positive iteration count. Clamped monotone nonzero-balanced row boundaries cover all rows; packed local delimiter arrays include both endpoints and all associated nonzeros are scattered. Every requested timed iteration invokes the full local CSR kernel; complete row outputs are gathered."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2261,
+              2290
+            ],
+            [
+              3051,
+              3103
+            ]
+          ],
+          "claim": "The timed loop calls b100 at a316 and uses counter backedge a32d->a2fb. Callee mul/add b15c/b164 are inside nonzero backedge b16b->b150 and row backedge b17a->b130. The entire local CSR traversal is repeated, not hoisted or replaced."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "No requested SpMV iteration, assigned row, or CSR nonzero was found omitted; retained machine code performs the repeated local arithmetic.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              101,
+              177
+            ],
+            [
+              242,
+              284
+            ],
+            [
+              330,
+              439
+            ],
+            [
+              449,
+              465
+            ],
+            [
+              476,
+              521
+            ]
+          ],
+          "claim": "All ranks parse the unchanged positive CLI iteration count. Monotone nnz-plus-row partitions span all rows. Both collective and chunked point-to-point paths distribute every localRows+1 delimiter and nonzero, rebase correctly, and gather all results. Each requested timed iteration calls the noinline full local CSR kernel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2282,
+              2319
+            ],
+            [
+              3211,
+              3263
+            ]
+          ],
+          "claim": "The timed call a341->b370 is inside counter backedge a349->a320. Callee mul/add b3cc/b3d4 are nested within nonzero backedge b3db->b3c0 and row backedge b3ea->b3a0. The noinline kernel executes complete local arithmetic for each requested repetition."
+        }
+      ]
+    }
+  ]
+}

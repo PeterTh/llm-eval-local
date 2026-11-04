@@ -1,0 +1,121 @@
+{
+  "id": "spmv_claude-haiku-5.5-cc-medium_cuda_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "CLI iterations controls the compiled timed host launch loop. Its single sm_86 kernel assigns warps to rows and lanes to CSR elements, performs reduction, and stores the row output; final SASS retains the nonzero arithmetic and backward loop edge.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          1,
+          351
+        ]
+      ],
+      "claim": "Warp-per-row/lanes-per-nonzero kernel reduces the full CSR row interval and stores the result. CLI and nItems determine the inputs; initialized operands feed the timed one-launch-per-iteration loop, synchronization and output copy.",
+      "sha256": "f611181454f49c2af6eb1f044d55355108e52ee3f4df0f5a1981d8fc50675037",
+      "git_blob": "b30e65eaa16159a26203fe9e88fb1e1e81d6c297"
+    },
+    {
+      "file": "spmv/CMakeLists.txt",
+      "ranges": [
+        [
+          1,
+          22
+        ]
+      ],
+      "claim": "CUDA target uses optimized build settings; embedded kernel is sm_86.",
+      "sha256": "936410257c6bf60db930143df7e36b2cbef28c06154c47095139eef66a238fde",
+      "git_blob": "53f6706ecc5964f6b24cab306e9f05db66403a33"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed loop at 1353 passes configured grid and row count to the device stub at 1375; count increment/compare/backedge at 1379-1381 is followed by cudaDeviceSynchronize at 1382 and stop clock at 1385.",
+      "complete_dump_sha256": "597d7dfb4714db5e9828276b21b5365baef0d7310caf73d3fc3fe9abcd8d284e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-cc-medium_cuda_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1353,
+          "last_line": 1385,
+          "text": "    b37a:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n    b37f:\tmov    %rax,%r15\n    b382:\ttest   %ebp,%ebp\n    b384:\tje     b3f6 <main+0x806>\n    b386:\ttest   %ebx,%ebx\n    b388:\tje     b3f6 <main+0x806>\n    b38a:\tnopw   0x0(%rax,%rax,1)\n    b390:\tmov    0x90(%rsp),%ecx\n    b397:\tmov    0x88(%rsp),%rdx\n    b39f:\txor    %r9d,%r9d\n    b3a2:\txor    %r8d,%r8d\n    b3a5:\tmov    0x94(%rsp),%rdi\n    b3ad:\tmov    0x9c(%rsp),%esi\n    b3b4:\tcall   202c0 <__cudaPushCallConfiguration>\n    b3b9:\ttest   %eax,%eax\n    b3bb:\tjne    b3e1 <main+0x7f1>\n    b3bd:\tmov    0x80(%rsp),%r9\n    b3c5:\tmov    0x78(%rsp),%rcx\n    b3ca:\tmov    %ebx,%r8d\n    b3cd:\tmov    0x70(%rsp),%rdx\n    b3d2:\tmov    0x68(%rsp),%rsi\n    b3d7:\tmov    0x60(%rsp),%rdi\n    b3dc:\tcall   c150 <__device_stub__Z19spmvCsrVectorKernelPKdPKjS2_S0_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b3e1:\tcall   4e690 <cudaGetLastError>\n    b3e6:\ttest   %eax,%eax\n    b3e8:\tjne    b832 <main+0xc42>\n    b3ee:\tinc    %r12d\n    b3f1:\tcmp    %ebp,%r12d\n    b3f4:\tjb     b390 <main+0x7a0>\n    b3f6:\tcall   4b930 <cudaDeviceSynchronize>\n    b3fb:\ttest   %eax,%eax\n    b3fd:\tjne    b8df <main+0xcef>\n    b403:\tcall   a090 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "The sm_86 function compares row index with dim and exits invalid rows; a separate interval predicate controls empty/inactive CSR work. Cited loop-body ranges retain DFMA operations and backward CSR control flow, and the final range contains the row-result STG.",
+      "complete_dump_sha256": "80c7ea472038f513a67dda4100ddb797db9b6cd1de1a46bbe1a08bc13470f51a",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-haiku-5.5-cc-medium_cuda_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 10,
+          "last_line": 26,
+          "text": "\t\tFunction : _Z19spmvCsrVectorKernelPKdPKjS2_S0_jPd\n\t.headerflags\t@\"EF_CUDA_TEXMODE_UNIFIED EF_CUDA_64BIT_ADDRESS EF_CUDA_SM86 EF_CUDA_VIRTUAL_SM(EF_CUDA_SM86)\"\n        /*0000*/                   IMAD.MOV.U32 R1, RZ, RZ, c[0x0][0x28] ;             /* 0x00000a00ff017624 */\n                                                                                       /* 0x000fe400078e00ff */\n        /*0010*/                   S2R R8, SR_TID.X ;                                  /* 0x0000000000087919 */\n                                                                                       /* 0x000e280000002100 */\n        /*0020*/                   S2R R3, SR_CTAID.X ;                                /* 0x0000000000037919 */\n                                                                                       /* 0x000e620000002500 */\n        /*0030*/                   SHF.R.U32.HI R0, RZ, 0x5, R8 ;                      /* 0x00000005ff007819 */\n                                                                                       /* 0x001fca0000011608 */\n        /*0040*/                   IMAD R0, R3, 0x8, R0 ;                              /* 0x0000000803007824 */\n                                                                                       /* 0x002fca00078e0200 */\n        /*0050*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x180], PT ;    /* 0x0000600000007a0c */\n                                                                                       /* 0x000fda0003f06070 */\n        /*0060*/               @P0 EXIT ;                                              /* 0x000000000000094d */\n                                                                                       /* 0x000fea0003800000 */\n        /*0070*/                   MOV R9, 0x4 ;                                       /* 0x0000000400097802 */\n"
+        },
+        {
+          "first_line": 44,
+          "last_line": 53,
+          "text": "        /*0100*/                   CS2R R2, SRZ ;                                      /* 0x0000000000027805 */\n                                                                                       /* 0x000fc6000001ff00 */\n        /*0110*/                   IMAD.IADD R10, R8, 0x1, R7 ;                        /* 0x00000001080a7824 */\n                                                                                       /* 0x004fca00078e0207 */\n        /*0120*/                   ISETP.GE.U32.AND P0, PT, R10, R11, PT ;             /* 0x0000000b0a00720c */\n                                                                                       /* 0x008fda0003f06070 */\n        /*0130*/               @P0 BRA 0x6d0 ;                                         /* 0x0000059000000947 */\n                                                                                       /* 0x000fea0003800000 */\n        /*0140*/                   ISETP.GE.U32.AND P2, PT, R10, R11, PT ;             /* 0x0000000b0a00720c */\n                                                                                       /* 0x000fda0003f46070 */\n"
+        },
+        {
+          "first_line": 77,
+          "last_line": 85,
+          "text": "                                                                                       /* 0x000fe2000001ff00 */\n        /*0210*/                   BSSY B1, 0x4b0 ;                                    /* 0x0000029000017945 */\n                                                                                       /* 0x000fe20003800000 */\n        /*0220*/                   PLOP3.LUT P0, PT, P2, PT, PT, 0x8, 0x0 ;            /* 0x000000000000781c */\n                                                                                       /* 0x000fc8000170e170 */\n        /*0230*/               @P2 DFMA R2, R12, R4, R2 ;                              /* 0x000000040c02222b */\n                                                                                       /* 0x00804a0000000002 */\n        /*0240*/               @P1 BRA 0x4a0 ;                                         /* 0x0000025000001947 */\n                                                                                       /* 0x000fea0003800000 */\n"
+        },
+        {
+          "first_line": 145,
+          "last_line": 159,
+          "text": "                                                                                       /* 0x000f62000c1e9b00 */\n        /*0430*/                   IADD3 R10, R10, 0x80, RZ ;                          /* 0x000000800a0a7810 */\n                                                                                       /* 0x000fc80007ffe0ff */\n        /*0440*/                   ISETP.GE.U32.AND P1, PT, R10, R17, PT ;             /* 0x000000110a00720c */\n                                                                                       /* 0x000fe20003f26070 */\n        /*0450*/                   DFMA R4, R4, R6, R2 ;                               /* 0x000000060404722b */\n                                                                                       /* 0x006ecc0000000002 */\n        /*0460*/                   DFMA R4, R12, R14, R4 ;                             /* 0x0000000e0c04722b */\n                                                                                       /* 0x008f0c0000000004 */\n        /*0470*/                   DFMA R4, R18, R20, R4 ;                             /* 0x000000141204722b */\n                                                                                       /* 0x010f4c0000000004 */\n        /*0480*/                   DFMA R2, R26, R22, R4 ;                             /* 0x000000161a02722b */\n                                                                                       /* 0x0200620000000004 */\n        /*0490*/              @!P1 BRA 0x270 ;                                         /* 0xfffffdd000009947 */\n                                                                                       /* 0x000fea000383ffff */\n"
+        },
+        {
+          "first_line": 265,
+          "last_line": 271,
+          "text": "                                                                                       /* 0x000fe200078018ff */\n        /*07f0*/                   DADD R2, R12, R2 ;                                  /* 0x000000000c027229 */\n                                                                                       /* 0x006e460000000002 */\n        /*0800*/                   LEA.HI.X R5, R0, c[0x0][0x18c], RZ, 0x3, P0 ;       /* 0x0000630000057a11 */\n                                                                                       /* 0x000fca00000f1cff */\n        /*0810*/                   STG.E.64 [R4.64], R2 ;                              /* 0x0000000204007986 */\n                                                                                       /* 0x002fe2000c101b04 */\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261012-111947/spmv_claude-haiku-5.5-cc-medium_cuda_r2",
+    "source_commit": "71ba7cc523997c8fd1537d7a8159b583f260793d",
+    "staged_source_sha256": "73ac6b508181b1480d74a798e50b3973dab2acfe91db13d76690b40107ad6b16"
+  },
+  "binary_sha256": "1b1e588428714fc1037767ab10e71278ced778da51e8b5bb0e0ef26b7ed7ada3",
+  "binding_sha256": "737ac5fa6650cb9a0a50717fdfadbcb391e0dfd0104dc67110b2403f43f1d2ba",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "f61cfd067f451545a4c7cdce9cd1845dfd092383752722c42f665ff632b7bcfa",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04 14:33:08 UTC",
+    "sampled_ids": [
+      "spmv_claude-haiku-5.5-cc-medium_cuda_r4"
+    ],
+    "method": "Primary read every submitted claim and independently inspected complete CC5.5 CUDA r4 source/build, exact measured host loop and full final SASS. Primary detected incorrect copied helper synchronization, row-guard and warp-mapping descriptions in the first proposal and returned the whole batch to Luna for exact-file reaudit. Version2 corrects these; other findings rely on Luna's reaudit plus primary report and pinned-evidence checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Used version2 after full batch reaudit; original proposal preserved.",
+      "Expanded references to complete cited source/build files.",
+      "Retained complete short r4 final SASS function so row guard, empty-CSR guard, arithmetic backedges and store remain together."
+    ]
+  },
+  "schema_version": 1,
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "review_started_at": "2026-11-04T14:29:20Z",
+  "review_finished_at": "2026-11-04T14:31:45Z",
+  "review_input_sha256": "a4af54af0a0b31166f2d1e2418688cdd5f5938ebf42bfbc26594cf55917b9740",
+  "pack_sha256": "65c48a508314816d759ad2fc42187ed9c5879cf7bf20e37d834d65739ba0cef7",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

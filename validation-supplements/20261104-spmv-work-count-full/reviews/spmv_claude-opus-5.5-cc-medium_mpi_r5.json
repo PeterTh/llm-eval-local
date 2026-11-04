@@ -1,0 +1,72 @@
+{
+  "id": "spmv_claude-opus-5.5-cc-medium_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Every requested iteration computes all local CSR nonzeros, using pointer slices on root and transferred arrays elsewhere. Direct root output storage and in-place gathering do not replace arithmetic.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          188,
+          204
+        ],
+        [
+          226,
+          237
+        ],
+        [
+          246,
+          279
+        ],
+        [
+          318,
+          368
+        ],
+        [
+          372,
+          391
+        ]
+      ],
+      "claim": "The cost-balanced partitions span all rows. spmvLocal rebases global delimiters by myBase and computes each local row in full inside the unmodified CLI iteration loop; root's direct final-buffer writes preserve the work.",
+      "sha256": "94bd28dd4a2e01f303f6d86f0ee4bce96cd3dcf86b122b09490eaab77a4a4e6f",
+      "git_blob": "21857b68f1d4405ffa13aa4533d64ee27bca500c"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "vmulsd/vaddsd a20b/a213 remains inside nonzero a21a->a200, row a230->a1c0 and iteration a23f->a1b0 backedges. Root/worker result gathering is selected only after repetitions.",
+      "complete_dump_sha256": "10ff4ad13ca43e1334e607a9719798c32d67c47abb52f15f25bde61dcc800583",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_claude-opus-5.5-cc-medium_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2196,
+          "last_line": 2269,
+          "text": "    a155:\tlea    0xb0e4(%rip),%rdi        # 15240 <ompi_mpi_comm_world@@Base>\n    a15c:\tlea    -0x130(%rbp),%r12\n    a163:\tcall   8eb0 <MPI_Barrier@plt>\n    a168:\tcall   8b90 <std::chrono::_V2::system_clock::now()@plt>\n    a16d:\tcmpl   $0x0,-0x224(%rbp)\n    a174:\tmov    %rax,-0x1f0(%rbp)\n    a17b:\tje     a24c <main+0xa7c>\n    a181:\tmov    -0x1e0(%rbp),%eax\n    a187:\ttest   %eax,%eax\n    a189:\tje     a24c <main+0xa7c>\n    a18f:\tmov    -0x210(%rbp),%r12\n    a196:\tmov    -0x1c8(%rbp),%rdi\n    a19d:\tmov    %eax,%r8d\n    a1a0:\txor    %edx,%edx\n    a1a2:\tmov    -0x260(%rbp),%r11d\n    a1a9:\tshl    $0x2,%r8\n    a1ad:\tnopl   (%rax)\n    a1b0:\txor    %r10d,%r10d\n    a1b3:\tmov    %rdi,-0x1c8(%rbp)\n    a1ba:\tnopw   0x0(%rax,%rax,1)\n    a1c0:\tmov    (%r14,%r10,1),%esi\n    a1c4:\tmov    0x4(%r14,%r10,1),%ecx\n    a1c9:\tmov    %esi,%eax\n    a1cb:\tsub    %r11d,%ecx\n    a1ce:\tsub    %r11d,%eax\n    a1d1:\tcmp    %ecx,%eax\n    a1d3:\tjae    a830 <main+0x1060>\n    a1d9:\tmov    %r11d,%edi\n    a1dc:\tvxorpd %xmm1,%xmm1,%xmm1\n    a1e0:\tsub    %esi,%edi\n    a1e2:\tlea    0x0(%r13,%rax,4),%rsi\n    a1e7:\tlea    -0x1(%rcx,%rdi,1),%r9d\n    a1ec:\tlea    (%r12,%rax,8),%rdi\n    a1f0:\txor    %eax,%eax\n    a1f2:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a1fd:\tnopl   (%rax)\n    a200:\tmov    (%rsi,%rax,4),%ecx\n    a203:\tvmovsd (%rbx,%rcx,8),%xmm0\n    a208:\tmov    %rax,%rcx\n    a20b:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a210:\tinc    %rax\n    a213:\tvaddsd %xmm0,%xmm1,%xmm1\n    a217:\tcmp    %r9,%rcx\n    a21a:\tjne    a200 <main+0xa30>\n    a21c:\tmov    -0x1c8(%rbp),%rax\n    a223:\tvmovsd %xmm1,(%rax,%r10,2)\n    a229:\tadd    $0x4,%r10\n    a22d:\tcmp    %r10,%r8\n    a230:\tjne    a1c0 <main+0x9f0>\n    a232:\tmov    %rax,%rdi\n    a235:\tmov    -0x224(%rbp),%eax\n    a23b:\tinc    %edx\n    a23d:\tcmp    %eax,%edx\n    a23f:\tjne    a1b0 <main+0x9e0>\n    a245:\tmov    %rdi,-0x1c8(%rbp)\n    a24c:\tcmpl   $0x0,-0x228(%rbp)\n    a253:\tjne    add0 <main+0x1600>\n    a259:\tlea    0xafe0(%rip),%rax        # 15240 <ompi_mpi_comm_world@@Base>\n    a260:\tpush   %r10\n    a262:\tmov    -0x130(%rbp),%rcx\n    a269:\tlea    0xb9d0(%rip),%rdx        # 15c40 <ompi_mpi_double@@Base>\n    a270:\tpush   %rax\n    a271:\tmov    -0x1d0(%rbp),%rax\n    a278:\tpush   $0x0\n    a27a:\tmov    %r15,%r9\n    a27d:\tpush   %rdx\n    a27e:\tmov    $0x1,%edi\n    a283:\tlea    -0x130(%rbp),%r12\n    a28a:\tmov    (%rax),%esi\n    a28c:\tmov    %rax,%r8\n    a28f:\tcall   95a0 <MPI_Gatherv@plt>\n    a294:\tadd    $0x20,%rsp\n    a298:\tlea    -0x130(%rbp),%r12\n    a29f:\tcall   8b90 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261002-142720/spmv_claude-opus-5.5-cc-medium_mpi_r5",
+    "source_commit": "d2d8446a37657d114b3ea1c171767218539cae54",
+    "staged_source_sha256": "d26932d3a32f63f7d51d4a36761f66e81a05ca225e4adfced5596671598a14f7"
+  },
+  "binary_sha256": "f1b37ea63dd41a9f92902b4179e29a81c31656c5e6e82b1ce7a2319e2b96ceb9",
+  "binding_sha256": "d5fbb7c2e738a54af0de6a00a193c4c3e9f7666c0ec3795db483d23c5052eede",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T12:59:00Z",
+  "review_finished_at": "2026-11-04T12:59:48Z",
+  "review_input_sha256": "bc40ae74194ce4003d73af2dc02d55b34f17f2178219aa959f6d13d3d9a33be4",
+  "pack_sha256": "800bb22926a51a1fee6d6b52069e60297a03268e1ef39d5c70d98902caef22cf",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

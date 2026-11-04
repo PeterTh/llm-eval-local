@@ -1,0 +1,881 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "backend": "cuda",
+  "batch": 6,
+  "review_started_at": "2026-11-04T14:58:42Z",
+  "review_finished_at": "2026-11-04T15:04:50Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host loop repeats spmvGpu to the CLI count and synchronizes before the stop clock. Dispatch selects a final TPR specialization; one subgroup covers each row's complete CSR slice, reduces and stores. Inputs are initialized/copied once before timing.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              344
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1390,
+              1402
+            ],
+            [
+              1485,
+              1496
+            ],
+            [
+              1874,
+              2342
+            ]
+          ],
+          "claim": "Clock bounds the runtime-count loop; compiled loop calls spmvGpu and increments/compares/backedges, then reaches post-loop synchronization and stop clock. Full dispatcher contains all six inline CUDA width launch paths."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              327
+            ],
+            [
+              328,
+              620
+            ],
+            [
+              621,
+              913
+            ],
+            [
+              914,
+              1190
+            ],
+            [
+              1191,
+              1467
+            ],
+            [
+              1468,
+              1840
+            ],
+            [
+              1841,
+              2175
+            ]
+          ],
+          "claim": "Complete final sm86 TPR32/16/8/4/2/1 kernels are retained, including row bound, nonzero arithmetic/control, shuffle reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed main loop repeats launchSpmvAuto per CLI iteration and synchronizes before stop clock. Its dispatcher chooses a TPR kernel; each subgroup processes all entries in its row, reduces, and stores.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              346
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1438,
+              1464
+            ],
+            [
+              1886,
+              2348
+            ]
+          ],
+          "claim": "Clocked host count backedge calls launchSpmvAuto repeatedly then synchronizes before end clock; complete compiled dispatcher contains selected-width launch/configuration paths."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              327
+            ],
+            [
+              328,
+              620
+            ],
+            [
+              621,
+              913
+            ],
+            [
+              914,
+              1190
+            ],
+            [
+              1191,
+              1467
+            ],
+            [
+              1468,
+              1840
+            ],
+            [
+              1841,
+              2175
+            ]
+          ],
+          "claim": "Complete final sm86 TPR32/16/8/4/2/1 kernels retain row guards, nonzero arithmetic/control, reductions and stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_claude-sonnet-5.5-cc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The host count loop repeatedly calls spmvGpu and synchronizes after the loop. Width dispatch selects a compiled subgroup kernel that traverses the row's full CSR interval, reduces and stores; data transfer precedes timing.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              342
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1405,
+              1418
+            ],
+            [
+              1502,
+              1517
+            ],
+            [
+              2034,
+              2497
+            ]
+          ],
+          "claim": "The clocked main loop's count branch reaches a repeated spmvGpu call and backedge; post-loop synchronization and stop clock follow. Full compiled dispatcher contains selection and launch submissions."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              327
+            ],
+            [
+              328,
+              620
+            ],
+            [
+              621,
+              913
+            ],
+            [
+              914,
+              1190
+            ],
+            [
+              1191,
+              1467
+            ],
+            [
+              1468,
+              1840
+            ],
+            [
+              1841,
+              2175
+            ]
+          ],
+          "claim": "All final TPR variants retain row/nonzero traversal, accumulation, reduction and output stores."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed host iteration configures and submits the warp-per-row CSR kernel; the host counter backedge continues to the CLI count, then device synchronization completes work before stop clock. Each warp traverses its row's nonzero interval and lane zero stores the reduction.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              363
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1351,
+              1390
+            ],
+            [
+              2240,
+              2300
+            ]
+          ],
+          "claim": "Clocked loop repeats launch configuration and generated stub calls until the runtime count and synchronizes before end clock; stub calls cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              359
+            ]
+          ],
+          "claim": "Complete final sm86 warp-per-row kernel retains row guard, all-nonzero arithmetic/backedge, shuffle reduction and row store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed host loop submits one row kernel per requested iteration and synchronizes after the loop. Each in-range row thread walks the whole CSR interval, accumulates, and stores the row result.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              340
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1352,
+              1391
+            ],
+            [
+              2204,
+              2271
+            ]
+          ],
+          "claim": "The host iteration backedge repeats the configured stub launch to the requested count, then synchronizes before end clock; stub reaches cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              400
+            ],
+            [
+              401,
+              711
+            ]
+          ],
+          "claim": "Both consecutive fragments cover the complete final sm86 kernel, including row validity, CSR arithmetic loop/backedge and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "This version times host-issued launches using CUDA events. The counted loop submits the row kernel each iteration, records/synchronizes the stop event, and measures after completion; each row kernel accumulates its CSR interval and stores.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              19
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              346
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1343,
+              1404
+            ],
+            [
+              2255,
+              2322
+            ]
+          ],
+          "claim": "Host event path calls a separate warm-up stub, records start event, loops stub calls under the runtime-count backedge, records/synchronizes stop event and queries elapsed time. Stub submits cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              400
+            ],
+            [
+              401,
+              711
+            ]
+          ],
+          "claim": "Complete final sm86 row kernel remains, including row bound, nonzero arithmetic and loop control, plus output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each requested host iteration sets launch configuration and submits the warp-per-row kernel; the count backedge repeats until done and synchronization follows. Warp lanes traverse each full CSR row and reduce/store its output.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              338
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1299,
+              1334
+            ],
+            [
+              2035,
+              2095
+            ]
+          ],
+          "claim": "Clocked host launch loop configures and calls the stub each iteration, then synchronizes before stop clock; generated stub submits cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ]
+          ],
+          "claim": "Complete sm86 warp kernel retains row bound, CSR nonzero arithmetic/backedge, reduction and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4-flash_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed host loop submits the one-thread-per-row kernel for every requested iteration and synchronizes before stop clock. Each in-range thread iterates through its complete CSR interval and writes the row sum.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              18
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              349
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1352,
+              1391
+            ],
+            [
+              2166,
+              2233
+            ]
+          ],
+          "claim": "Host loop repeats configured stub calls to the loaded iteration count and synchronizes before stop clock; stub reaches cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              400
+            ],
+            [
+              401,
+              711
+            ]
+          ],
+          "claim": "Complete final sm86 row-kernel code, split into two fragments, retains row guard, nonzero arithmetic/control and output store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Source selects either scalar-row or warp-row kernel by average nonzeros per row; both cover all rows and their complete CSR intervals. Compiled host loop repeats launchSpMV to runtime count, with the launcher selecting and submitting the configured kernel; synchronization completes each batch before end clock.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              444
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1349,
+              1388
+            ],
+            [
+              2301,
+              2367
+            ],
+            [
+              2368,
+              2434
+            ],
+            [
+              2435,
+              2512
+            ]
+          ],
+          "claim": "Timed loop repeats launchSpMV to CLI count, synchronizes and stops clock. Compiled launcher selects scalar or warp and routes to the corresponding generated stub, which submits the kernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              380
+            ],
+            [
+              381,
+              743
+            ],
+            [
+              744,
+              1164
+            ]
+          ],
+          "claim": "Full final sm86 scalar and warp kernels are retained: scalar grid-stride rows plus CSR loops/arithmetic/store; warp row-stride and lane-stride nonzero arithmetic, reduction and store."
+        }
+      ]
+    },
+    {
+      "id": "spmv_deepseek-v4.1-flash-oc-high_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "CUDA-event timed host loop calls the selected launchSpMV once per requested iteration. Its avg-nnz branch chooses one-thread-per-row or warp-per-row kernel; both traverse every row and complete CSR interval, reduce if warp-based, and store.",
+      "source_evidence": [
+        {
+          "file": "common/hash.hpp",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "common/results_output.hpp",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/CMakeLists.txt",
+          "ranges": [
+            [
+              1,
+              21
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              1,
+              413
+            ]
+          ],
+          "claim": "Complete pinned source/build for delegated static control-flow inspection; original targeted claims preserved in raw proposal."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1343,
+              1395
+            ],
+            [
+              2267,
+              2327
+            ],
+            [
+              2328,
+              2388
+            ],
+            [
+              2389,
+              2482
+            ]
+          ],
+          "claim": "Main records events around the runtime-count backedge, synchronizes the stop event and obtains elapsed time. Compiled dispatcher branches to the row/warp launch stubs, which call cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              311
+            ],
+            [
+              312,
+              650
+            ],
+            [
+              651,
+              1004
+            ]
+          ],
+          "claim": "Complete final sm86 warp and row kernels retained: row coverage, CSR arithmetic/backedges, shuffle reduction for warp variant and output stores."
+        }
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0,
+  "proposal_sha256": "433ee2e156681fdac2905534066b65f14255965a9cf67fd5498dbf13f453d851",
+  "primary_quality_check": {
+    "checked_at": "2026-11-04T15:09:02Z",
+    "sampled_ids": [
+      "spmv_deepseek-v4.1-flash-oc-high_cuda_r3"
+    ],
+    "method": "Read all proposal claims; independently inspected sample complete relevant source/build, event start/count loop/stop synchronization, full actual dispatcher, both called launch stubs and all final sm86 SASS for both row and warp variants. Verified ceil-grid covers all rows, CSR intervals and lane-stride reduction retain all work, and compiled counter repeats to runtime count. Also read every ID's cited timed main interval and verified exact helper/stub bounds. Other nine full source/device inspections are Luna's with primary claims and binding checks.",
+    "work_count_disagreement": false,
+    "corrections": [
+      "Expanded Sonnet5.5r3 timed loop excerpt to include argument setup1485–1496.",
+      "Trimmed/extended Deepseekv4 emitted-stub citations to their exact function boundaries, avoiding unrelated initializer text and retaining complete returns. Work-count findings unchanged."
+    ]
+  }
+}

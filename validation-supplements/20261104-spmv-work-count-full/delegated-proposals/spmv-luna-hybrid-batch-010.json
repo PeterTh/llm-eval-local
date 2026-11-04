@@ -1,0 +1,142 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T15:19:43Z",
+  "review_finished_at": "2026-11-04T15:25:00Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks receive contiguous rows, corresponding complete NNZ slices, and rebased row pointers. The timed loop is controlled by the requested iteration count and invokes the warp-row CUDA kernel for each pass; its lane-strided CSR loop covers every entry in each row and lane zero stores the sum. The compiled timed path has the repetition backedge, launch stub and synchronization before timer end.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,367]],"claim":"Full source: CLI count and validation, row/NNZ MPI split and rebase, warmup, timed repetition loop, complete warp-row CSR kernel and output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1714,1734],[2125,2175],[3180,3247]],"claim":"Timed boundaries, counted launch loop/backedge, actual CUDA stub call and its launch helper."},
+        {"file":"device-sass.txt","ranges":[[47,337]],"claim":"sm_86 kernel includes row bounds, nonzero/reduction arithmetic and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The source distributes balanced row blocks, their exact CSR nonzeros and delimiters (root sends its own block and sends delimiters to other ranks), then rebases local pointers. A warmup precedes the timed loop. The timed host backedge repeats the CUDA kernel for the requested count; kernel warps stride over rows and lanes stride through each complete row interval before reduction/store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,252]],"claim":"Full source includes warp grid-stride kernel, runtime count, all rank data movement/rebase, warmup, timed launch loop and gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1734,1784],[2735,2795]],"claim":"Clocked repetition backedge, actual launch stub and synchronization."},
+        {"file":"device-sass.txt","ranges":[[19,293]],"claim":"sm_86 warp/row grid-stride, CSR arithmetic, reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Balanced row partitions carry the corresponding full CSR intervals and rebased row offsets. The timed host branch runs the iteration-counted warp-kernel launch loop and synchronizes before ending timing. The kernel has a row grid stride and per-lane CSR stride, so it covers each local row and all of its entries on every launch.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,20]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,241]],"claim":"Full source includes kernel row/NNZ strides, runtime parameters, MPI distribution/rebase and timed repetition/output paths."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1712,1750],[2238,2265],[2735,2795]],"claim":"Timed host control/sync, actual timed launch call and complete CUDA stub."},
+        {"file":"device-sass.txt","ranges":[[19,293]],"claim":"sm_86 warp grid-stride and lane-strided CSR work through the output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "All ranks receive contiguous rows and exact NNZ intervals with delimiter boundaries rebased locally. The clocked host loop uses the requested count and launches the one-thread-per-row kernel for nonempty partitions. The SASS kernel bounds rows, loops across each full row CSR range, and stores the sum.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,19]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,244]],"claim":"Full source includes kernel, row/CSR partition/scatter, local rebase, timed counted loop and gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1691,1740],[1965,1990],[2710,2770]],"claim":"Timed loop/backedge and synchronization, actual kernel stub call and cudaLaunchKernel stub."},
+        {"file":"device-sass.txt","ranges":[[19,293]],"claim":"sm_86 scalar row kernel covers full CSR interval and stores output."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-low_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows and their matching CSR values/columns/delimiters are distributed to each rank, with local delimiters rebased. The timed iteration loop launches the warp-row kernel once per pass after an untimed warmup. Its row-grid stride and lane-strided nonzero loop cover every local row and stored entry before reduction/store.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,18]],"claim":"CUDA/OpenMP/MPI build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,234]],"claim":"Full source includes row/CSR distribution, rebase, warmup and timed repetition loop, kernel work bounds and optional output gather."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1817,1875],[2870,2930]],"claim":"Timed iteration backedge, actual launch and sync, plus full generated CUDA stub."},
+        {"file":"device-sass.txt","ranges":[[19,293]],"claim":"sm_86 warp grid-stride/CSR work through final store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The vector is broadcast and ranks receive contiguous row blocks, corresponding CSR slices and locally rebased boundaries. An untimed warmup is followed by the timed requested-count launch loop, with a compiled loop backedge and synchronization before timer end. Each warp maps one row and strides across its complete CSR interval, then reduces and stores.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,23]],"claim":"CUDA/MPI/OpenMP build and architecture configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,413]],"claim":"Full source includes launch kernel, CLI count, row/NNZ partition and rebase, warmup, timed launches and complete output collection."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1621,1669],[2971,3038]],"claim":"Clocked counted launch loop and synchronization plus actual generated launch stub."},
+        {"file":"device-sass.txt","ranges":[[11,300]],"claim":"sm_86 warp-row mapping and full CSR/reduction/store path."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Contiguous row partitions receive their complete NNZ slices and rebased delimiters, with the dense vector broadcast. The timed loop repeats the kernel for the runtime iteration count; each warp grid-strides across all assigned rows, and its lanes cover the complete CSR interval. Synchronization precedes the end timestamp.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,28]],"claim":"CUDA/MPI/OpenMP build and target settings."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,289]],"claim":"Full source includes row/CSR kernel work, dimensions, distribution/rebase and timed repetitions/output path."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1298,1366],[2248,2315]],"claim":"Clocked launch loop/backedge, synchronization, actual call and complete generated stub."},
+        {"file":"device-sass.txt","ranges":[[21,293]],"claim":"sm_86 grid-stride warp CSR accumulation/reduction and output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks own contiguous row ranges with complete value/column intervals and rebased row boundaries. The timed host loop repeats iterations times and launches one warp-per-row kernel for nonempty partitions; each lane visits the row's full CSR interval and lane zero stores the reduction. The compiled timed path includes loop backedge, launch and synchronization.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,31]],"claim":"CUDA/OpenMP/MPI build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,406]],"claim":"Full source includes kernel, runtime controls, row/NNZ scatter and rebase, timed repetition and output path."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1451,1574],[2534,2601]],"claim":"Timed loop/backedge and synchronization plus actual generated launch stub."},
+        {"file":"device-sass.txt","ranges":[[19,300]],"claim":"sm_86 row/CSR work, warp reduction and final output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each MPI rank receives contiguous rows, exact CSR slices and rebased row offsets. Warmup/synchronization are outside timing. The timed loop issues one warp kernel per requested iteration for local rows; the kernel covers each row's entire CSR interval with lane-striding and writes the reduced result. Compiled host dispatch is the actual stub for this kernel.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,23]],"claim":"CUDA/MPI/OpenMP build."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,327]],"claim":"Full source includes CLI count, row/NNZ scatter and rebase, warmup, timed loop and warp CSR kernel/output handling."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1302,1326],[1590,1635],[2614,2681]],"claim":"Timed clocked repeated launch path and actual CUDA stub/launch helper."},
+        {"file":"device-sass.txt","ranges":[[19,300]],"claim":"sm_86 warp-row kernel's full CSR/reduction path through output store."}
+      ]
+    },
+    {
+      "id": "spmv_gpt-5.6-sol-xhigh_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed work is a captured CUDA graph: source and compiled host both build a graph containing an iteration-counted sequence of launchSpmv calls, instantiate it, then launch that graph once between timing calls and synchronize. launchSpmv dispatches by average NNZ (<12 scalar, otherwise warp); both kernels cover all rows and each row's full CSR interval and store outputs. Row/NNZ slices and local delimiters are distributed/rebased before capture.",
+      "source_evidence": [
+        {"file":"spmv/CMakeLists.txt","ranges":[[1,35]],"claim":"CUDA/MPI/OpenMP build configuration."},
+        {"file":"spmv/spmv.cpp","ranges":[[1,484]],"claim":"Full source includes both kernels and average-NNZ dispatch, complete MPI row/NNZ distribution and rebasing, graph capture loop, timed graph launch and output collection."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[1378,1517],[2835,2901],[2902,2968],[2969,3066]],"claim":"Compiled graph-capture iteration backedge, timed graph launch/sync, both generated kernel stubs and complete runtime dispatch helper."},
+        {"file":"device-sass.txt","ranges":[[19,310],[312,640],[641,974]],"claim":"sm_86 warp and scalar kernel paths independently reach row/NNZ arithmetic and stores."}
+      ]
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}

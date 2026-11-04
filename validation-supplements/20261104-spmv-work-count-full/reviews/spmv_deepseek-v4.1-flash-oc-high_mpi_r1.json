@@ -1,0 +1,68 @@
+{
+  "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Nonzero-balanced row partitions cover the complete matrix and all local products are recomputed on every requested iteration.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          109
+        ],
+        [
+          174,
+          201
+        ],
+        [
+          243,
+          292
+        ],
+        [
+          299,
+          318
+        ]
+      ],
+      "claim": "Monotone row boundaries span zero to numRows. Complete local CSR arrays, including the final delimiter, feed full spmvCpu calls under the unchanged CLI iteration count.",
+      "sha256": "350db25c637bed02ab7a1511252889c9058364c6ca5d36853df9b85450226126",
+      "git_blob": "5e81950571b12dddb1339a08abf62aa175df38cb"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Between clocks 9f68 and a05e, multiply/add a00c/a015 remains inside entry a01c->a000, row a032->9fd0 and iteration a03b->9fc0 loops.",
+      "complete_dump_sha256": "f8a3e0b32a20ffe582c2da47f66f0ed4cfe559bfcddd3b78613a05a4da41649c",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_deepseek-v4.1-flash-oc-high_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2106,
+          "last_line": 2173,
+          "text": "    9f34:\tlea    -0x150(%rbp),%rax\n    9f3b:\tlea    0x64ac(%rip),%rdi        # 103ee <_IO_stdin_used+0x3ee>\n    9f42:\tmov    %rax,-0x208(%rbp)\n    9f49:\tcall   9390 <puts@plt>\n    9f4e:\tlea    -0x150(%rbp),%rax\n    9f55:\tlea    0xb2c4(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9f5c:\tmov    %rax,-0x208(%rbp)\n    9f63:\tcall   8e90 <MPI_Barrier@plt>\n    9f68:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9f6d:\tmov    -0x224(%rbp),%edi\n    9f73:\tmov    %rax,-0x220(%rbp)\n    9f7a:\ttest   %edi,%edi\n    9f7c:\tje     a044 <main+0x8f4>\n    9f82:\tmov    -0x210(%rbp),%eax\n    9f88:\tmov    -0x50(%rbp),%r9\n    9f8c:\ttest   %eax,%eax\n    9f8e:\tje     a044 <main+0x8f4>\n    9f94:\tmov    %eax,%r8d\n    9f97:\tmov    -0x224(%rbp),%edx\n    9f9d:\tmov    -0x260(%rbp),%rax\n    9fa4:\txor    %ecx,%ecx\n    9fa6:\tshl    $0x2,%r8\n    9faa:\tmov    %r14d,-0x294(%rbp)\n    9fb1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9fbc:\tnopl   0x0(%rax)\n    9fc0:\txor    %r11d,%r11d\n    9fc3:\tmov    %rax,%rsi\n    9fc6:\tcs nopw 0x0(%rax,%rax,1)\n    9fd0:\tmov    (%rsi,%r11,1),%eax\n    9fd4:\tmov    0x4(%rsi,%r11,1),%edi\n    9fd9:\tcmp    %edi,%eax\n    9fdb:\tjae    a430 <main+0xce0>\n    9fe1:\tdec    %edi\n    9fe3:\tlea    0x0(%r13,%rax,4),%r14\n    9fe8:\tlea    (%r12,%rax,8),%r10\n    9fec:\tvxorpd %xmm1,%xmm1,%xmm1\n    9ff0:\tsub    %eax,%edi\n    9ff2:\tmov    %rsi,-0x208(%rbp)\n    9ff9:\txor    %eax,%eax\n    9ffb:\tnopl   0x0(%rax,%rax,1)\n    a000:\tmov    (%r14,%rax,4),%esi\n    a004:\tvmovsd (%rbx,%rsi,8),%xmm0\n    a009:\tmov    %rax,%rsi\n    a00c:\tvmulsd (%r10,%rax,8),%xmm0,%xmm0\n    a012:\tinc    %rax\n    a015:\tvaddsd %xmm0,%xmm1,%xmm1\n    a019:\tcmp    %rdi,%rsi\n    a01c:\tjne    a000 <main+0x8b0>\n    a01e:\tmov    -0x208(%rbp),%rsi\n    a025:\tvmovsd %xmm1,(%r9,%r11,2)\n    a02b:\tadd    $0x4,%r11\n    a02f:\tcmp    %r8,%r11\n    a032:\tjne    9fd0 <main+0x880>\n    a034:\tinc    %ecx\n    a036:\tmov    %rsi,%rax\n    a039:\tcmp    %edx,%ecx\n    a03b:\tjne    9fc0 <main+0x870>\n    a03d:\tmov    -0x294(%rbp),%r14d\n    a044:\tlea    -0x150(%rbp),%rax\n    a04b:\tlea    0xb1ce(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a052:\tmov    %rax,-0x208(%rbp)\n    a059:\tcall   8e90 <MPI_Barrier@plt>\n    a05e:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a063:\tmovabs $0x431bde82d7b634db,%rdx\n    a06d:\tsub    $0x8,%rsp\n    a071:\tmovq   $0x0,-0x1d8(%rbp)\n    a07c:\tmov    -0x220(%rbp),%rcx\n    a083:\tlea    -0x1e0(%rbp),%rdi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261019-134042/spmv_deepseek-v4.1-flash-oc-high_mpi_r1",
+    "source_commit": "65363cf3710daa9e0d3409306efee5a49e18c8dd",
+    "staged_source_sha256": "ec940c2233808a3a466b56b80b0ac785bb39421ce6ad0e4a2a26cbe5482a3033"
+  },
+  "binary_sha256": "74764499f5c434dd431e8e1051c0eed10a9fc4d5873d5e210e4ebf0a65bee0d5",
+  "binding_sha256": "64e37a633d90ebcc3a27f04c558fb069e7661ce538f7b652cb232ca6dc342b77",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:07:32Z",
+  "review_finished_at": "2026-11-04T13:08:14Z",
+  "review_input_sha256": "949727d664ba9261f20d7c90f97bfe04139c57001b44d64b1189beb6a23116eb",
+  "pack_sha256": "959b1e332f5f828412e0fab3fd44afd1ccbda7f7e3aca649851f7e52424f6d7d",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

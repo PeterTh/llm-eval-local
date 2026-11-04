@@ -1,0 +1,72 @@
+{
+  "id": "spmv_deepseek-v4.1-flash-oc-high_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Restrict-qualified pointers do not lead to removed repetitions in the bound executable. Every balanced local CSR product repeats as requested.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          100,
+          111
+        ],
+        [
+          179,
+          206
+        ],
+        [
+          223,
+          228
+        ],
+        [
+          256,
+          288
+        ],
+        [
+          301,
+          330
+        ]
+      ],
+      "claim": "Floor-scaled row boundaries cover all rows. Local delimiters terminate at localNnz, and each timed call traverses complete local rows under the unmodified CLI count.",
+      "sha256": "a91860e5de5d5239478d7ae9a86e4c2bc6e2a7e74d5e01ff5084740be38ea29b",
+      "git_blob": "ce0eb47a5d11e3698f6cb8df1487d838a5cb0be1"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Compiled multiply/add 9f2d/9f36 is retained under entry 9f3d->9f20, row 9f53->9ef0 and repetition 9f5c->9ee0 branches, before ending barrier/clock.",
+      "complete_dump_sha256": "461d7f3a1ecc325d632b257f3beed93b1d057131ff9efa522247a3b380ad8d4f",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/validation-strengthening-20261103.aXM3pL/build/spmv_deepseek-v4.1-flash-oc-high_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2037,
+          "last_line": 2098,
+          "text": "    9e71:\tcall   ab40 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    9e76:\tmov    -0x208(%rbp),%eax\n    9e7c:\ttest   %eax,%eax\n    9e7e:\tjne    9e8c <main+0x78c>\n    9e80:\tlea    0x6567(%rip),%rdi        # 103ee <_IO_stdin_used+0x3ee>\n    9e87:\tcall   9390 <puts@plt>\n    9e8c:\tlea    0xb38d(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9e93:\tcall   8e90 <MPI_Barrier@plt>\n    9e98:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9e9d:\tmov    %rax,-0x238(%rbp)\n    9ea4:\tmov    -0x218(%rbp),%eax\n    9eaa:\ttest   %eax,%eax\n    9eac:\tje     9f5e <main+0x85e>\n    9eb2:\tmov    -0x248(%rbp),%r11d\n    9eb9:\tmov    -0xd0(%rbp),%r8\n    9ec0:\ttest   %r11d,%r11d\n    9ec3:\tje     9f5e <main+0x85e>\n    9ec9:\tmov    -0x218(%rbp),%esi\n    9ecf:\tmov    -0x228(%rbp),%rax\n    9ed6:\txor    %ecx,%ecx\n    9ed8:\tnopl   0x0(%rax,%rax,1)\n    9ee0:\txor    %r9d,%r9d\n    9ee3:\tmov    %rax,%rdi\n    9ee6:\tcs nopw 0x0(%rax,%rax,1)\n    9ef0:\tmov    0x4(%rdi,%r9,1),%edx\n    9ef5:\tmov    (%rdi,%r9,1),%eax\n    9ef9:\tmov    %rdi,%r11\n    9efc:\tcmp    %edx,%eax\n    9efe:\tjae    a2f0 <main+0xbf0>\n    9f04:\tdec    %edx\n    9f06:\tlea    0x0(%r13,%rax,8),%r10\n    9f0b:\tlea    (%r14,%rax,4),%rdi\n    9f0f:\tvxorpd %xmm1,%xmm1,%xmm1\n    9f13:\tsub    %eax,%edx\n    9f15:\tmov    %r11,-0x228(%rbp)\n    9f1c:\txor    %eax,%eax\n    9f1e:\txchg   %ax,%ax\n    9f20:\tmov    (%rdi,%rax,4),%r11d\n    9f24:\tvmovsd (%rbx,%r11,8),%xmm0\n    9f2a:\tmov    %rax,%r11\n    9f2d:\tvmulsd (%r10,%rax,8),%xmm0,%xmm0\n    9f33:\tinc    %rax\n    9f36:\tvaddsd %xmm0,%xmm1,%xmm1\n    9f3a:\tcmp    %r11,%rdx\n    9f3d:\tjne    9f20 <main+0x820>\n    9f3f:\tmov    -0x228(%rbp),%rdi\n    9f46:\tvmovsd %xmm1,(%r8,%r9,2)\n    9f4c:\tadd    $0x4,%r9\n    9f50:\tcmp    %r9,%r12\n    9f53:\tjne    9ef0 <main+0x7f0>\n    9f55:\tinc    %ecx\n    9f57:\tmov    %rdi,%rax\n    9f5a:\tcmp    %esi,%ecx\n    9f5c:\tjne    9ee0 <main+0x7e0>\n    9f5e:\tlea    0xb2bb(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9f65:\tcall   8e90 <MPI_Barrier@plt>\n    9f6a:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    9f6f:\tmov    -0x238(%rbp),%rcx\n    9f76:\tmovabs $0x431bde82d7b634db,%rdx\n    9f80:\tsub    $0x8,%rsp\n    9f84:\tmovq   $0x0,-0x1f8(%rbp)\n    9f8f:\tlea    -0x1f8(%rbp),%rsi\n"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "source_path": "20261019-134042/spmv_deepseek-v4.1-flash-oc-high_mpi_r2",
+    "source_commit": "40ad0bc6da259d4584e75b8f23f43c77e9751b24",
+    "staged_source_sha256": "c8cb6220f62cdafe2912a2b378e4ca67ea4950e2126ff7867c6103151ce8fc75"
+  },
+  "binary_sha256": "873811b2805de68d4c5d2771559092887bfb5de0d6e84889ec09f18174723556",
+  "binding_sha256": "741b26cbbbdb3c535e278ab6aeb3fddd88cc97b64f1260a6bb56130d3f9bfa4f",
+  "schema_version": 1,
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:07:32Z",
+  "review_finished_at": "2026-11-04T13:08:14Z",
+  "review_input_sha256": "949727d664ba9261f20d7c90f97bfe04139c57001b44d64b1189beb6a23116eb",
+  "pack_sha256": "47f2a7ccd5fd32902d0793ba0687ac29db26868fe32ba6736012e8e0ff240720",
+  "program_executions": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,192 @@
+{
+  "reviewer": "Primary agent; manual source/control-flow and bound-executable disassembly inspection; no delegated reviews or program execution.",
+  "review_started_at": "2026-11-04T13:38:46Z",
+  "review_finished_at": "2026-11-04T13:39:33Z",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i value controls timed loop 328–331. Each invocation computes every assigned CSR row/nonzero. Monotone weighted boundaries span all rows; complete chunked transfers/broadcasts supply all operands and delimiters, with nonroot offsets rebased. Chunked result collection covers the whole output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              110
+            ],
+            [
+              161,
+              237
+            ],
+            [
+              239,
+              348
+            ]
+          ],
+          "claim": "The unchanged -i value controls timed loop 328–331. Each invocation computes every assigned CSR row/nonzero. Monotone weighted boundaries span all rows; complete chunked transfers/broadcasts supply all operands and delimiters, with nonroot offsets rebased. Chunked result collection covers the whole output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2274,
+              2337
+            ]
+          ],
+          "claim": "MPI_Wtime a333/a412 encloses multiply/add a3dc/a3e5, nonzero backedge a3ec->a3d0, row a3fb->a3a0, repetition a409->a390."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested -i value reaches timed loop 320–322 unchanged. Weighted monotone boundaries cover all rows; complete chunked operand transfers and rebased delimiters preserve every local CSR interval. Each iteration traverses all assigned nonzeros and Gatherv gathers all rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              111
+            ],
+            [
+              161,
+              228
+            ],
+            [
+              230,
+              348
+            ]
+          ],
+          "claim": "The requested -i value reaches timed loop 320–322 unchanged. Weighted monotone boundaries cover all rows; complete chunked operand transfers and rebased delimiters preserve every local CSR interval. Each iteration traverses all assigned nonzeros and Gatherv gathers all rows."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2369,
+              2429
+            ]
+          ],
+          "claim": "MPI_Wtime a475/a548 encloses multiply/add a51d/a525, nonzero backedge a52c->a510, row a53b->a4e0, repetition a541->a4d0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged CLI iteration count controls timed loop 331–334. Monotone nonzero-balanced boundaries, with a zero-nonzero row fallback, span the complete matrix. Chunked transfers and full broadcast supply complete operand segments; all offsets are rebased, every local row/nonzero is recomputed each iteration, and complete output segments are collected.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              111
+            ],
+            [
+              162,
+              238
+            ],
+            [
+              240,
+              359
+            ]
+          ],
+          "claim": "The unchanged CLI iteration count controls timed loop 331–334. Monotone nonzero-balanced boundaries, with a zero-nonzero row fallback, span the complete matrix. Chunked transfers and full broadcast supply complete operand segments; all offsets are rebased, every local row/nonzero is recomputed each iteration, and complete output segments are collected."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2302,
+              2361
+            ]
+          ],
+          "claim": "MPI_Wtime a383/a451 encloses multiply/add a41c/a424, nonzero backedge a42b->a410, row a43a->a3e0, repetition a44c->a3d0."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The unchanged -i count controls timed loop 332–334. Nearest weighted cuts are monotone and span 0..numRows; complete delimiters/nonzero segments are sent and rebased, with full vector broadcast. Each iteration computes all local CSR intervals and Gatherv assembles the whole output.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              110
+            ],
+            [
+              160,
+              228
+            ],
+            [
+              243,
+              353
+            ]
+          ],
+          "claim": "The unchanged -i count controls timed loop 332–334. Nearest weighted cuts are monotone and span 0..numRows; complete delimiters/nonzero segments are sent and rebased, with full vector broadcast. Each iteration computes all local CSR intervals and Gatherv assembles the whole output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2123,
+              2182
+            ]
+          ],
+          "claim": "MPI_Wtime a00a/a0d9 encloses multiply/add a0ad/a0b5, nonzero backedge a0bc->a0a0, row a0cc->a070, repetition a0d2->a060."
+        }
+      ]
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-xhigh_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The CLI iteration count is unmodified in timed loop 320–322. Nonzero-balanced monotone partitions, including the zero-nonzero fallback, cover every row. Complete chunked operand transfers and full-vector broadcast preserve CSR work; all local intervals are traversed each repetition and full output segments collected.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              111
+            ],
+            [
+              162,
+              228
+            ],
+            [
+              230,
+              339
+            ]
+          ],
+          "claim": "The CLI iteration count is unmodified in timed loop 320–322. Nonzero-balanced monotone partitions, including the zero-nonzero fallback, cover every row. Complete chunked operand transfers and full-vector broadcast preserve CSR work; all local intervals are traversed each repetition and full output segments collected."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2053,
+              2112
+            ]
+          ],
+          "claim": "MPI_Wtime 9eab/9f78 encloses multiply/add 9f4d/9f55, nonzero backedge 9f5c->9f40, row 9f6b->9f10, repetition 9f71->9f00."
+        }
+      ]
+    }
+  ]
+}

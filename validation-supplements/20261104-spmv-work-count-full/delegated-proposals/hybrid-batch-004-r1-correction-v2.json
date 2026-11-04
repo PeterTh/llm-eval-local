@@ -1,0 +1,26 @@
+{
+  "reviewer": "gpt-6-luna; independent static source/control-flow and bound-executable inspection",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-04T14:23:35Z",
+  "review_finished_at": "2026-11-04T14:25:11Z",
+  "reviews": [
+    {
+      "id": "spmv_claude-opus-5.5-cc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Correction to batch 004's r1 description: the rare long rows are computed by an OpenMP host worker, not a separate long-row GPU kernel. The SELL kernel explicitly returns for LONG_ROW rows; those rows' entire CSR values/columns are copied to host long-row arrays. `spmvHybrid()` launches SELL for regular rows and executes a host CSR loop for each long row, and the timed `iter < iterations` loop invokes `spmvHybrid()` on every pass. Compiled host code confirms the timed counter encloses SELL stub launches and an outlined GOMP worker whose CSR inner backedge spans the row's CSR end; long-row results are copied into their row slots before gather. Final SASS has only CSR-to-SELL preprocessing and SELL SpMV functions; SELL's guard skips LONG_ROW, as intended, while host worker fills these rows.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[580,625],[682,725]],"claim":"Classifies long rows and builds full CSR host arrays; SELL excludes them; `spmvHybrid` computes each long row's full CSR range on host, invoked once per timed repetition, and writes each long-row result into the output."},
+        {"file":"spmv/spmv.cpp","ranges":[[354,398],[401,420]],"claim":"SELL kernel has LONG_ROW early return; regular rows consume packed SELL entries and store output. Only these two GPU kernels are declared."}
+      ],
+      "compiled_evidence": [
+        {"file":"host-assembly.txt","ranges":[[5906,5965],[1198,1240]],"claim":"Timed counter/backedge encloses the SELL launch and GOMP long-row worker; worker assigns long-row IDs, traverses CSR from row begin to end with multiply-add and stores host result."},
+        {"file":"device-sass.txt","ranges":[[248,510],[19,247]],"claim":"The only final GPU SpMV kernel is SELL, and its compiled row checks/SELL traversal/store correspond to the regular-row path; CSR-to-SELL conversion is separate and untimed."}
+      ],
+      "notes": "Batch 004's source claim that long rows use a separate CSR device kernel was incorrect. This version supersedes that ID entry only; it is a CPU hybrid split, which is legitimate."
+    }
+  ],
+  "program_executions": 0,
+  "compilation": 0,
+  "program_changes": 0,
+  "benchmark_runs": 0
+}
