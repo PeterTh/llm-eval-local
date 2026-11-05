@@ -25,11 +25,12 @@ searches the complete lag range serially.
 The leading valid implementations share this distributed GPU design, but their
 phase costs differ. Retained medians, in milliseconds:
 
-| Implementation | Precomputation | Propagation | Correlation | Total |
-| --- | ---: | ---: | ---: | ---: |
-| Sol 5.6 Medium r2 | 240 | 351 | 76 | 667 |
-| Opus 5.5 Medium r1 | 170 | 374 | 143 | 687 |
-| Opus 5 Medium r3 | 195 | 509 | 3 | 707 |
+| Phase | Sol 5.6 Medium r2 | Opus 5.5 Medium r1 | Opus 5 Medium r3 |
+| --- | ---: | ---: | ---: |
+| Precomp. | 240 | 170 | 195 |
+| Prop. | 351 | 374 | 509 |
+| Corr. | 76 | 143 | 3 |
+| Total | 667 | 687 | 707 |
 
 Sol's lower correlation and propagation times offset its slower precomputation
 against Opus 5.5. Opus 5 parallelizes receiver/lag pairs before a separate argmax,

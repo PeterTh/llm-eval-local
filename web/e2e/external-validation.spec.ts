@@ -38,4 +38,12 @@ test("Roomsim retains its excluded historical review and reviewed replacement wi
   await expect(analysis.getByRole("heading", { name: "Finding", exact: true })).toBeVisible();
   await expect(analysis.getByRole("heading", { name: "Close-group comparison", exact: true })).toBeVisible();
   await expect(analysis).toContainText("All 320 observed distances pass");
+  const numericLineCounts = await analysis.locator("td").evaluateAll(cells => cells
+    .filter(cell => /^\d+$/.test(cell.textContent ?? ""))
+    .map(cell => {
+      const range = document.createRange();
+      range.selectNodeContents(cell);
+      return range.getClientRects().length;
+    }));
+  expect(numericLineCounts).toEqual(Array(12).fill(1));
 });
