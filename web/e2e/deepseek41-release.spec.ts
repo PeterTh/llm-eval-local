@@ -70,14 +70,18 @@ test("DeepSeek cost and time exports keep their distinct observation counts", as
   expect(Number(timeRows[0]!.mean_generation_seconds)).toBeCloseTo(274940.692 / 220, 8);
 });
 
-test("DeepSeek scoped replacements use only current source and measurement evidence", async ({ page }, testInfo) => {
+test("DeepSeek scoped replacements retain current provenance after supplemental exclusion", async ({ page }, testInfo) => {
   const replacementOriginal = "2c84ee55733daf9fc48a869e5d1f4a068f404f1f";
   const replacementCorrected = "ce4a44804c3a5dca64f03c4ec524df959238940f";
   const evidence = `batches/${batch}/replacements/20261024-isolated`;
   await page.goto(basePath + `#/run/roomsim_${model}_hybrid_r1?model-set=all`);
+  await expect(page.getByRole("heading", { name: "Stopped at stage 4", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /Original generated source directory/ })).toHaveAttribute("href", new RegExp(replacementOriginal));
   await expect(page.getByRole("link", { name: /Timing-corrected source directory/ })).toHaveAttribute("href", new RegExp(replacementCorrected));
-  await expect(page.getByRole("link", { name: /Benchmark JSONL evidence/ })).toHaveAttribute("href", new RegExp(`${evidence}/benchmark/records`));
+  await expect(page.getByRole("link", { name: /^Benchmark JSONL evidence/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Archived benchmark evidence \(excluded\)/ })).toHaveAttribute("href", new RegExp(`${evidence}/benchmark/records`));
+  await expect(page.getByRole("link", { name: /Earlier validation JSONL evidence/ })).toHaveAttribute("href", new RegExp(`${evidence}/timing-corrections/revalidation/validation/records\\.jsonl#L\\d+$`));
+  await expect(page.getByRole("link", { name: /^Validation JSONL evidence/ })).toHaveAttribute("href", /validation-supplements\/20261105-full-array-full\/eligibility\/roomsim\/records\.jsonl#L\d+$/);
   await expect(page.getByText(/contaminat/i)).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("deepseek-replacement-corrected.png"), fullPage: true });
 

@@ -13,11 +13,17 @@ test("Sonnet 5 replacements preserve timing history and remove obsolete failed-p
   page.on("pageerror", (error) => errors.push(error.message));
   for (const id of [`nbody_${model}_mpi_r3`, `roomsim_${model}_mpi_r5`]) {
     await page.goto(basePath + `#/run/${id}?model-set=all`);
-    await expect(page.getByRole("heading", { name: "Validation passed", exact: true })).toBeVisible();
-    await expect(page.getByText("Successful benchmark execution.", { exact: true })).toBeVisible();
+    const excluded = id.startsWith("roomsim_");
+    await expect(page.getByRole("heading", { name: excluded ? "Stopped at stage 4" : "Validation passed", exact: true })).toBeVisible();
+    await expect(page.getByText("Successful benchmark execution.", { exact: true })).toHaveCount(excluded ? 0 : 1);
     await expect(page.getByRole("link", { name: /Original generated source directory/ })).toHaveAttribute("href", new RegExp(`${original}/${batch}/${id}$`));
     await expect(page.getByRole("link", { name: /Timing-corrected source directory/ })).toHaveAttribute("href", new RegExp(`${corrected}/${batch}/${id}$`));
-    await expect(page.getByRole("link", { name: /Benchmark JSONL evidence/ })).toHaveAttribute("href", new RegExp(`${evidence}/benchmark/records/`));
+    await expect(page.getByRole("link", { name: excluded ? /Archived benchmark evidence \(excluded\)/ : /^Benchmark JSONL evidence/ })).toHaveAttribute("href", new RegExp(`${evidence}/benchmark/records/`));
+    if (excluded) {
+      await expect(page.getByRole("link", { name: /^Benchmark JSONL evidence/ })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /Earlier validation JSONL evidence/ })).toHaveAttribute("href", new RegExp(`${evidence}/timing-corrections/revalidation/validation/records\\.jsonl#L\\d+$`));
+      await expect(page.getByRole("link", { name: /^Validation JSONL evidence/ })).toHaveAttribute("href", /validation-supplements\/20261105-full-array-full\/eligibility\/roomsim\/records\.jsonl#L\d+$/);
+    }
   }
   await page.screenshot({ path: testInfo.outputPath("sonnet5-replacement-corrected.png"), fullPage: true });
 

@@ -9,6 +9,9 @@ for (const [id, timingFixed, validationCase, evidenceDirectory] of [
   ["floydwarshall_gpt-5.6-luna-low_hybrid_r3", false, "floyd-integer-hash-v1", "20261103-floyd-integer-hash"],
   ["stencil3d_gpt-5.6-luna-medium_mpi_r2", false, "stencil-interior-v1", "20261103-stencil-interior"],
   ["nbody_claude-opus-4.6_hybrid_r1", true, "nbody-shape-topology-v1", "20261103-shape-topology-full/nbody-shape-topology-v1"],
+  ["roomsim_gpt-5.6-sol-xhigh_hybrid_r3", false, "full-array-roomsim-v1", "20261105-full-array-full/eligibility/roomsim"],
+  ["nbody_claude-haiku-4.5_hybrid_r3", true, "full-array-nbody-v1", "20261105-full-array-full/eligibility/nbody"],
+  ["spmv_gpt-4.1_mpi_r4", false, "full-array-spmv-v1", "20261105-full-array-full/eligibility/spmv"],
 ] as const) {
   test(`supplemental failure retains historical evidence: ${id}`, async ({ page }, testInfo) => {
     await page.goto(`${basePath}#/run/${id}?model-set=all`);
@@ -23,3 +26,16 @@ for (const [id, timingFixed, validationCase, evidenceDirectory] of [
     await page.screenshot({ path: testInfo.outputPath(`${id}.png`), fullPage: true });
   });
 }
+
+test("Roomsim retains its excluded historical review and reviewed replacement winner", async ({ page }) => {
+  await page.goto(`${basePath}#/run/roomsim_gpt-5.6-sol-xhigh_hybrid_r3?model-set=all`);
+  const analysis = page.locator('[aria-labelledby="implementation-analysis-heading"]');
+  await expect(analysis).toContainText("failed external validation in the complete-array check");
+  await expect(analysis.getByRole("link", { name: "Sol Medium review" })).toHaveAttribute("href", /roomsim_gpt-5\.6-sol-medium_hybrid_r2\.md$/);
+
+  await page.goto(`${basePath}#/run/roomsim_gpt-5.6-sol-medium_hybrid_r2?model-set=all`);
+  await expect(page.getByRole("heading", { name: "Validation passed", exact: true })).toBeVisible();
+  await expect(analysis.getByRole("heading", { name: "Finding", exact: true })).toBeVisible();
+  await expect(analysis.getByRole("heading", { name: "Close-group comparison", exact: true })).toBeVisible();
+  await expect(analysis).toContainText("All 320 observed distances pass");
+});
