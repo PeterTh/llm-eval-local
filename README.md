@@ -24,7 +24,7 @@ SHA-256 digest.
 - immutable provenance, environment, preflight, calibration, and amendment records;
 - all 8,580 current validation outcomes and scoped revalidations, including exact execution output;
 - original benchmark outcomes, measured values and wall times, including results now excluded by external validation;
-- the current eligible view: 7,440 validated programs and 7,032 successful measurements;
+- the current eligible view: 7,344 validated programs and 6,941 successful measurements;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
 - static MPI/hybrid timing audits, all-backend QT boundary audits,
   1,263 timing-fixed implementations, and scoped rerun comparisons;
@@ -59,7 +59,7 @@ The current combined release is under [`release/`](release/README.md): 8,580 sco
 programs across 39 model/effort/harness profiles, using the same scoring procedure applied jointly to fourteen
 campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Terra 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6, DeepSeek V4.1 Flash, Haiku 5.5 and Beam 1.0 in OpenCode, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
-analyses; superseded reviews are retained too (94 notes in total).
+analyses; superseded reviews are retained too (95 notes in total).
 
 Codex cost estimates use exact reported token counts from retained
 Codex session records.
@@ -79,22 +79,23 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 
 | Campaign | Programs | Fully validated | Successful benchmarks |
 | --- | ---: | ---: | ---: |
-| [Original model set](data/release_summary.yaml) | 4,620 | 3,671 | 3,361 |
-| [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 636 | 623 |
-| [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 599 | 578 |
+| [Original model set](data/release_summary.yaml) | 4,620 | 3,597 | 3,291 |
+| [Claude 5: Fable, Opus, Sonnet](batches/20260901-162328/README.md) | 660 | 626 | 613 |
+| [GPT-6: Sol, Luna, Astra](batches/20260929-135931/README.md) | 660 | 598 | 577 |
 | [Opus 5.5 Medium](batches/20261002-142720/README.md) | 220 | 219 | 219 |
 | [Sol 6.1 Medium and XHigh](batches/20261006-204623/README.md) | 440 | 439 | 439 |
 | [Haiku 5.5 Medium](batches/20261012-111947/README.md) | 220 | 219 | 219 |
-| [Sonnet 5.5 Medium](batches/20261014-212207/README.md) | 220 | 214 | 214 |
+| [Sonnet 5.5 Medium](batches/20261014-212207/README.md) | 220 | 211 | 211 |
 | [Sol 6.1 Medium in OpenCode](batches/20261017-192226/README.md) | 220 | 219 | 219 |
-| [Luna 6 Medium in OpenCode](batches/20261018-224015/README.md) | 220 | 175 | 145 |
-| [DeepSeek V4.1 Flash High in OpenCode](batches/20261019-134042/README.md) | 220 | 214 | 214 |
+| [Luna 6 Medium in OpenCode](batches/20261018-224015/README.md) | 220 | 173 | 143 |
+| [DeepSeek V4.1 Flash High in OpenCode](batches/20261019-134042/README.md) | 220 | 211 | 211 |
 | [Haiku 5.5 Medium in OpenCode](batches/20261025-170040/README.md) | 220 | 219 | 217 |
 | [Terra 6.1 Medium in Codex](batches/20261028-200951/README.md) | 220 | 220 | 220 |
-| [Beam 1.0 Medium in OpenCode](batches/20261025-170121/README.md) | 220 | 176 | 144 |
+| [Beam 1.0 Medium in OpenCode](batches/20261025-170121/README.md) | 220 | 173 | 142 |
 | [Terra 6.1 XHigh in Codex](batches/20261102-030935/README.md) | 220 | 220 | 220 |
 
-Counts include the [supplemental correctness checks](analysis/notes/2026-11-04-validation-strengthening.md)
+Counts include the [supplemental correctness checks](analysis/notes/2026-11-04-validation-strengthening.md),
+[complete-array validation](analysis/notes/2026-11-04-full-array-validation.md)
 and [Unstructured boundary check](analysis/notes/2026-11-01-unstructured-boundary-validation.md).
 Original validation and measurement records remain retained; linked campaign summaries
 describe their archived observations, while the table gives current eligibility.

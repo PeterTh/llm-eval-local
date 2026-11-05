@@ -143,8 +143,10 @@ export function MethodologyView() {
               inputs exercise size-dependent OpenMP paths. Stencil checks sample interior values;
               Unstructured MPI and hybrid checks include a 32×32 grid with 512 iterations on four ranks.</p>
             <p>All cases use unchanged generated programs and sequential references. Floyd–Warshall
-              also requires an exact hash match for its integer distance matrix. Floating-point hashes
-              remain informational; numerical comparisons use the established tolerances. A failed
+              requires an exact hash match for its integer distance matrix. Floating-point result arrays
+              are observed without modifying the executable and compared elementwise at absolute tolerance
+              10⁻⁵, or 5 for Roomsim distances. Each capture must match its own printed result hash;
+              differing floating-point hashes between programs are not themselves failures. A failed
               supplemental correctness check is classified as failed external validation, including
               when it invalidates an earlier pass. Historical measurements remain available as evidence
               but are excluded from performance comparisons.</p>
@@ -176,7 +178,8 @@ export function MethodologyView() {
             </div>
             <p>Shape and topology validation uses the performance resource profiles, including
               128 MPI ranks or four ranks with 32 threads each for hybrid programs. These are
-              correctness checks, not additional performance measurements.</p>
+              correctness checks, not additional performance measurements. Full-array observation
+              uses the base validation resource profiles.</p>
             <details className="toolchain-record">
               <summary>Recorded toolchain</summary>
               <dl>

@@ -13,15 +13,15 @@ harness effect.
 
 | All-program measure | Codex | OpenCode |
 | --- | ---: | ---: |
-| Passed validation | 166/220 | 175/220 |
-| Successfully benchmarked | 145/220 | 145/220 |
-| Mean joint score | 5.823 | 5.968 |
+| Passed validation | 165/220 | 173/220 |
+| Successfully benchmarked | 144/220 | 143/220 |
+| Mean joint score | 5.805 | 5.932 |
 | Mean generation time | 100.4 s | 70.3 s |
 | Mean total tokens | 152,423 | 137,793 |
 | Mean API-rate cost | $0.002580 | $0.002680 |
 | Timing-corrected programs | 18 | 39 |
 
-OpenCode finishes generation 30.0% faster and uses 9.6% fewer tokens. Its nine
+OpenCode finishes generation 30.0% faster and uses 9.6% fewer tokens. Its eight
 additional validation passes do not translate into more completed benchmarks:
 30 validated programs fail at the benchmark configuration, versus 21 in Codex.
 OpenCode improves validation and benchmark coverage in OpenMP and hybrid, while
@@ -43,17 +43,18 @@ at least one successful program in both harnesses are included.
 
 | Backend | Runtime ratio | Eligible cells / 11 |
 | --- | ---: | ---: |
-| OpenMP | 0.998 | 10 |
+| OpenMP | 0.998 | 9 |
 | CUDA | 1.003 | 9 |
-| MPI | 1.087 | 11 |
+| MPI | 1.103 | 11 |
 | Hybrid | 1.849 | 6 |
-| All | 1.137 | 36 / 44 |
+| All | 1.146 | 35 / 44 |
 
-OpenCode has lower cell medians in 14 of the 36 comparable cells; Codex has lower
-medians in 22. OpenMP and CUDA are nearly equal in aggregate. The six comparable
+OpenCode has lower cell medians in 12 of the 35 comparable cells; Codex has lower
+medians in 23. OpenMP and CUDA are nearly equal in aggregate. The six comparable
 hybrid cells all favor Codex, but their successful-program counts are small and
-unequal. OpenCode also succeeds in Floyd–Warshall hybrid, where Codex has no
-successful program; conversely, only Codex succeeds in QT CUDA and hybrid.
+unequal. OpenCode also succeeds in Floyd–Warshall hybrid and Roomsim OpenMP,
+where Codex has no successful program; conversely, only Codex succeeds in QT
+CUDA and hybrid.
 
 Differences vary considerably by workload. Black–Scholes MPI is 62.459 versus
 12.516 ms, while Cahn–Hilliard CUDA is 4,267 versus 8,510 ms and SpMV OpenMP is

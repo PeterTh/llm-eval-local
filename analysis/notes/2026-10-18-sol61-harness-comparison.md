@@ -13,7 +13,7 @@ so this compares complete setups, not a separately identified causal harness eff
 | All-program measure | Codex | OpenCode |
 | --- | ---: | ---: |
 | Validated and successfully benchmarked | 219/220 | 219/220 |
-| Mean joint score | 8.173 | 8.059 |
+| Mean joint score | 8.173 | 8.064 |
 | Mean generation time | 5.16 min | 5.75 min |
 | Mean total tokens | 491,436 | 310,757 |
 | Mean API-rate cost | $0.1092 | $0.0914 |

@@ -112,6 +112,13 @@ class GPT6CampaignExport
       raise "Validation outcome differs #{id}" unless LocalEvalArtifact::VALIDATION_STAGES.all? { |s| metadata.fetch("stages").fetch(s) == result.public_send(s) }
       logs = Dir[File.join(directory, "{cmake,build,validation_out}_*.log")].sort.to_h { |p| [File.basename(p), sha256(p)] }
       retained = logs.keys.select { |n| n.start_with?("validation_out_") || !result.validation_build || n.end_with?("_command.log", "_wall_time.log", "_exitcode.log") }
+      if (entry = metadata['full_array_validation'])
+        require File.join(@experiment, 'tools/validation_audit/native_full_array_validation')
+        ValidationAudit::NativeFullArray.export_files(directory, entry,
+          benchmark: info.fetch('benchmark'), id: id, passed: !!result.output_comparison).each do |source_path, name|
+          copy(source_path, "#{destination}/validation/full-array/#{id}/#{name}")
+        end
+      end
       { "id" => id, "source_batch" => info.fetch("batch"), "source_commit" => manifest.data.dig("experiment_repository", "commit"),
         "metadata" => metadata, "metadata_sha256" => sha256(metadata_path),
         "result" => File.read(File.join(directory, "validation_result.txt")),

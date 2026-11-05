@@ -1,0 +1,86 @@
+{
+  "schema_version": 3,
+  "kind": "full-array-external-validation",
+  "case": {
+    "id": "full-array-spmv-v1",
+    "benchmark": "spmv",
+    "args": [
+      "-v",
+      "-r",
+      "-n",
+      "1025",
+      "-s",
+      "40",
+      "-i",
+      "67"
+    ],
+    "comparison": "complete-arrays-and-existing-summary",
+    "timeout": 30
+  },
+  "record_count": 1,
+  "failed_stage": "output_comparison",
+  "authorization": {
+    "source": "user",
+    "statement": "Apply the approved validation-strengthening checks; subsume failures into the existing failed external validation category. Preserve original source and performance measurements."
+  },
+  "reference": {
+    "stdout": "\nProgram stopped.\n0x00007f3e7b024540 in ?? () from /lib64/ld-linux-x86-64.so.2\n[Thread debugging using libthread_db enabled]\nUsing host libthread_db library \"/lib/x86_64-linux-gnu/libthread_db.so.1\".\nSparse Matrix-Vector Multiplication (SpMV) Benchmark\nMatrix size: 1025 x 1025\nSparsity: 1 out of 40 entries is non-zero\nNon-zero elements: 26265 (97.50% sparse)\nIterations: 67\nMax value: 1.00\nValidation: enabled\nInitializing data structures...\nComputing reference solution...\nComputing SpMV...\nComputation time: 1 ms\nAverage time per iteration: 0.015 ms\nPerformance: 3.520 GFLOPS\n=== RESULTS ===\nName: OutputVector\nElements: 1025\nSum: 6.59467941491110378e+03\nMin: 2.09472818713260267e+00\nMax: 5.07717730588482254e+01\nSample[0]: 8.84111125859921287e+00\nSample[256]: 6.09705248695510260e+00\nSample[512]: 6.79288621726934849e+00\nSample[768]: 9.59935696877620792e+00\nSample[1024]: 5.07717730588482254e+01\nHash: 08b54bd5519e8eeb\n=== END RESULTS ===\nValidating result...\nValidation: PASSED\n[Inferior 1 (process 2044593) exited normally]\n",
+    "stdout_sha256": "dbb68e644aabca601a7e0d3d23713b4297c64f8f9b3271ec8fdb94c3ab5f01c7"
+  },
+  "records": [
+    {
+      "id": "spmv_gpt-4.1_mpi_r4",
+      "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+      "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r4",
+      "validation_record": {
+        "path": "data/validation/records/spmv/mpi.jsonl",
+        "line": 29,
+        "line_sha256": "814ef7ab5d3bc9846e314ae655280da0f6a7f39f43b0397bfc91ebcba9103277"
+      },
+      "case_id": "full-array-spmv-v1",
+      "stages": {
+        "basic_para": true,
+        "validation_build": true,
+        "validation_run": true,
+        "internal_validation": true,
+        "output_comparison": false
+      },
+      "result": {
+        "id": "spmv_gpt-4.1_mpi_r4",
+        "source_commit": "e8d10c43d7fcdca42862537b0eb7d0d5fab6da66",
+        "source_path": "20260215-162417/spmv_gpt-4.1_mpi_r4",
+        "definition": {
+          "id": "full-array-spmv-v1",
+          "benchmark": "spmv",
+          "args": [
+            "-v",
+            "-r",
+            "-n",
+            "1025",
+            "-s",
+            "40",
+            "-i",
+            "67"
+          ],
+          "comparison": "complete-arrays-and-existing-summary",
+          "timeout": 30
+        },
+        "passed": false,
+        "performance_measurement": false,
+        "comparison": [
+          false,
+          "The unchanged program aborts in MPI_Gather with MPI_ERR_TRUNCATE: the last rank sends 257 doubles but the root expects 256 per rank. The same four-rank validation fails without the observer."
+        ],
+        "full_array_comparison_sha256": "56df14611994570b2c0aab543227a37b206bf495d8864e79e7ad6769ed1a888a",
+        "raw_evidence": {
+          "directory": "20261105-full-array-full",
+          "path": "records/spmv-mpi-001.jsonl",
+          "line": 69,
+          "line_sha256": "682968ca252d6eed76b1213008d8c46c48408402a273bba86a0f3e079dd003da"
+        }
+      },
+      "result_sha256": "0dbae963736a18847d60fb85d5d46f04ea2acf946c0bf6781d3e8a7c83f2ec59",
+      "stdout": "\nProgram stopped.\n0x00007bb0b89bf540 in ?? () from /lib64/ld-linux-x86-64.so.2\n\nProgram stopped.\n0x000075581c782540 in ?? () from /lib64/ld-linux-x86-64.so.2\n\nProgram stopped.\n0x000071b8c53b4540 in ?? () from /lib64/ld-linux-x86-64.so.2\n\nProgram stopped.\n0x00007ba3c0e9a540 in ?? () from /lib64/ld-linux-x86-64.so.2\n[Thread debugging using libthread_db enabled]\nUsing host libthread_db library \"/lib/x86_64-linux-gnu/libthread_db.so.1\".\n[Thread debugging using libthread_db enabled]\nUsing host libthread_db library \"/lib/x86_64-linux-gnu/libthread_db.so.1\".\n[Thread debugging using libthread_db enabled]\nUsing host libthread_db library \"/lib/x86_64-linux-gnu/libthread_db.so.1\".\n[Thread debugging using libthread_db enabled]\nUsing host libthread_db library \"/lib/x86_64-linux-gnu/libthread_db.so.1\".\nSparse Matrix-Vector Multiplication (SpMV) Benchmark\nMatrix size: 1025 x 1025\nSparsity: 1 out of 40 entries is non-zero\nNon-zero elements: 26265 (97.50% sparse)\nIterations: 67\nMax value: 1.00\nValidation: enabled\nInitializing data structures...\nComputing reference solution...\nComputing SpMV (MPI)...\n[Inferior 1 (process 2368058) exited with code 017]\n"
+    }
+  ]
+}

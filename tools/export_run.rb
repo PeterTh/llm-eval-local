@@ -254,6 +254,13 @@ class ArtifactExporter
         "execution" => validation_execution(directory)
       }
       @validation_records << record
+      if (entry = metadata['full_array_validation'])
+        require File.join(@pipeline_root, 'tools/validation_audit/native_full_array_validation')
+        ValidationAudit::NativeFullArray.export_files(directory, entry, benchmark: metadata.fetch('benchmark'),
+          id: id, passed: !!metadata.fetch('stages').fetch('output_comparison')).each do |source_path, name|
+          copy_file(source_path, "data/validation/full-array/#{id}/#{name}")
+        end
+      end
       partitions[[record.fetch("benchmark"), record.fetch("backend")]] << record
 
       export_validation_failure_evidence(directory, record) unless LocalEvalArtifact.fully_valid?(record)

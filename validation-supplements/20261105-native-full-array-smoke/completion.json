@@ -1,0 +1,89 @@
+{
+  "status": "complete",
+  "checks": [
+    {
+      "definition": {
+        "id": "full-array-matmul-v1",
+        "benchmark": "matmul",
+        "args": [
+          "-v",
+          "-r",
+          "-n",
+          "513"
+        ],
+        "topology": "validation",
+        "timeout": 30,
+        "comparison": "complete-arrays-and-existing-summary"
+      },
+      "evidence_directory": "full-array",
+      "receipt_sha256": "877eb66f8ab1671718b78a1fb52eb3961fb999fe0449b6e4b488a8d615f89430",
+      "passed": true,
+      "arrays": [
+        {
+          "elements": 263169,
+          "absolute_tolerance": 1.0e-05,
+          "mismatches": 0,
+          "maximum_absolute_error": 2.842170943040401e-14,
+          "examples": [
+
+          ],
+          "name": "MatrixC",
+          "reference_array_sha256": "78fd9f1919dd3f90c1ddd9a85c5ea3dd45390f307bf58c3941f3f0dd6ddbb588",
+          "actual_array_sha256": "5e964a14cdfafdff747bba66180a6182e845ee582be2987b2855e538a7c0492f"
+        }
+      ],
+      "sparse_comparison": [
+        true,
+        "Validation successful. All objects match reference output.\n - Object MatrixC: PASSED (hash match: false)\n"
+      ],
+      "id": "matmul_gpt-6.1-sol-medium_omp_r1",
+      "source_binding_sha256": "306bb7ee6136273526b6bb78aa0a5a3d5880ff6dda000cd0a734ca2ca81dbece"
+    },
+    {
+      "definition": {
+        "id": "full-array-matmul-v1",
+        "benchmark": "matmul",
+        "args": [
+          "-v",
+          "-r",
+          "-n",
+          "513"
+        ],
+        "topology": "validation",
+        "timeout": 30,
+        "comparison": "complete-arrays-and-existing-summary"
+      },
+      "evidence_directory": "full-array",
+      "receipt_sha256": "edcd7b40df9076d9413837b5e5becf1f623b391132a926016034a1887ba93400",
+      "passed": true,
+      "arrays": [
+        {
+          "elements": 263169,
+          "absolute_tolerance": 1.0e-05,
+          "mismatches": 0,
+          "maximum_absolute_error": 0.0,
+          "examples": [
+
+          ],
+          "name": "MatrixC",
+          "reference_array_sha256": "78fd9f1919dd3f90c1ddd9a85c5ea3dd45390f307bf58c3941f3f0dd6ddbb588",
+          "actual_array_sha256": "78fd9f1919dd3f90c1ddd9a85c5ea3dd45390f307bf58c3941f3f0dd6ddbb588"
+        }
+      ],
+      "sparse_comparison": [
+        true,
+        "Validation successful. All objects match reference output.\n - Object MatrixC: PASSED (hash match: true)\n"
+      ],
+      "id": "matmul_gpt-5.6-sol-low_mpi_r1",
+      "source_binding_sha256": "d7eb73035b33c0011cd28b7e21aa747069ee3fa6e9b2c18b48e230701d66f39c"
+    }
+  ],
+  "sequential_reference_executions": 1,
+  "unchanged_program_control_executions": 2,
+  "benchmark_runs": 0,
+  "llm_invocations": 0,
+  "elapsed_seconds": 19.049572167918086,
+  "script": "# frozen_string_literal: true\nrequire '/home/petert/llm_eval/experiment/tools/validation_audit/native_full_array_validation'\nevidence = '/home/petert/llm_para_campaigns/20261103-validation-strengthening'\nworkspace = '/tmp/validation-strengthening-20261103.aXM3pL'\ncompletion = ValidationAudit.read(File.join(evidence, 'full-array-full/completion.json'))\nraise 'Retrospective sweep is not complete' unless completion.fetch('status') == 'complete'\ndestination = File.join(evidence, 'native-full-array-smoke')\nraise 'Smoke receipt already exists' if File.exist?(File.join(destination, 'completion.json'))\nids = %w[matmul_gpt-6.1-sol-medium_omp_r1 matmul_gpt-5.6-sol-low_mpi_r1]\nreference = ValidationAudit.read(File.join(evidence, 'bindings/reference_matmul.json'))\nsession = ValidationAudit::NativeFullArray::Session.new\nrecords = []\nstarted = Process.clock_gettime(Process::CLOCK_MONOTONIC)\nbegin\n  ValidationAudit::Runner.new(workspace: workspace, evidence: evidence).with_host do\n    ids.each do |id|\n      binding = ValidationAudit.read(File.join(evidence, 'bindings', id + '.json'))\n      backend = id.split('_')[-2]\n      output = File.join(destination, id)\n      value = session.check(id: id, benchmark: 'matmul', backend: backend,\n        executable: binding.fetch('executable'), source_root: File.join(binding.fetch('reused_cache').fetch('directory'), 'source'),\n        reference_executable: reference.fetch('executable'),\n        reference_source_root: File.join(reference.fetch('reused_cache').fetch('directory'), 'source'), output_dir: output)\n      raise 'Control unexpectedly failed' unless value.fetch('passed')\n      exported = ValidationAudit::NativeFullArray.export_files(output, value, benchmark: 'matmul', id: id, passed: true)\n      raise 'Unexpected retained smoke evidence' unless exported.map(&:last) == %w[actual.json comparison.json receipt.json reference.json]\n      records << value.merge('id' => id, 'source_binding_sha256' => ValidationAudit.sha(File.join(evidence, 'bindings', id + '.json')))\n    end\n  end\nensure\n  session.close\nend\nraise 'Successful native temporary workspace was not cleaned up' if File.exist?(session.workspace)\nresult = { 'status' => 'complete', 'checks' => records, 'sequential_reference_executions' => 1,\n  'unchanged_program_control_executions' => 2, 'benchmark_runs' => 0, 'llm_invocations' => 0,\n  'elapsed_seconds' => Process.clock_gettime(Process::CLOCK_MONOTONIC) - started,\n  'script' => File.read(__FILE__), 'script_sha256' => ValidationAudit.sha(__FILE__), 'completed_at' => Time.now.utc.iso8601 }\nValidationAudit.save(File.join(destination, 'completion.json'), result)\nputs JSON.pretty_generate(result.reject { |key, _| key == 'script' })\n",
+  "script_sha256": "12b70aab168f6d60733b2be4fa6d35a3cac3e00f4c96d6f412af9a56a34dc98e",
+  "completed_at": "2026-11-05T03:50:03Z"
+}

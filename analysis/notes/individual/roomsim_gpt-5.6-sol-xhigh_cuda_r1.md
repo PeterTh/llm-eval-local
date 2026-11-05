@@ -2,11 +2,11 @@
 
 Date: 2026-08-25
 
-Status: static performance explanation; no validation, measurement, or scoring change
+Status: failed external validation in the complete-array check (2026-11-05); historical timings retained
 
 ## Scope
 
-This is the first-place CUDA result in the `roomsim` cell of data release
+This was the first-place CUDA result in the `roomsim` cell of data release
 `local-eval-2026-08-25` at data commit `f83773e`. The benchmark used 5,120 triangles
 and 10,000 time steps. Its five total computation times are 4714, 4738, 4735, 4729,
 and 4722 ms, giving a 4729 ms median. The runner-up median is 5840 ms.
@@ -38,22 +38,19 @@ correlation phases are about 3400 and 2440 ms.
 
 Both implementations therefore use the same physical model and broad GPU-resident
 solution, but the winner has materially different and better parallel reductions,
-especially in propagation. This is a real kernel-organization advantage rather than
-close-group noise.
+especially in propagation. This accounts for a substantial difference in the
+archived phase times, rather than a close-group ordering.
 
 ## Correctness and timing validity
 
 Reciprocal form-factor writes preserve both directed coefficients, all simulation
 steps execute, and the complete lag range is searched. Each phase's host timer is
 followed by device synchronization before its value is reported; total time is the
-sum of those completed phases. Retained validation passed.
+sum of those completed phases. The earlier summary validation passed, but the
+complete-array check fails: distance index 6 is 25.5 rather than 2, exceeding
+tolerance 5. The implementation is excluded from eligible performance comparisons.
 
 ## Interpretation
 
-This is a credible structural CUDA win. Its score reflects more complete parallelism
-in the dominant reductions, not missing geometry or asynchronously reported work.
-
-## Non-decisions
-
-- No generated source or benchmark result is changed.
-- No controlled rerun replaces the retained measurement.
+The kernel organization explains the recorded execution time, but the numerical
+failure prevents treating it as a valid CUDA performance win.

@@ -3,6 +3,7 @@
 require_relative "artifact_common"
 require_relative "supplemental_validation_registry"
 require_relative "validation_sweep_receipt"
+require_relative "full_array_sweep_receipt"
 require_relative "../method/external-validation/tools/timing_audit/lib/external_validation_exclusions"
 
 # A derived eligibility view; archived native validation and timings are not edited.
@@ -10,7 +11,7 @@ class ExternalValidationOverlay
   include LocalEvalArtifact
   attr_reader :registry, :applied_ids
 
-  def initialize(reader, configuration)
+  def initialize(reader, configuration, sweep: nil)
     @reader, @configuration = reader, configuration
     export_path = reader.path(File.join(File.dirname(configuration.fetch("registry")), "export.json"))
     raise "External-validation export receipt differs" unless sha256(export_path) == configuration.fetch("export_sha256")
@@ -21,7 +22,12 @@ class ExternalValidationOverlay
     end
     registry_path = reader.path(configuration.fetch("registry"))
     schema = JSON.parse(File.read(registry_path)).fetch("schema_version")
-    @registry = (schema == 1 ? ExternalValidationExclusions : SupplementalValidationRegistry).new(registry_path)
+    @registry = case schema
+      when 1 then ExternalValidationExclusions.new(registry_path)
+      when 2 then SupplementalValidationRegistry.new(registry_path)
+      when 3 then FullArrayValidationRegistry.new(configuration, sweep)
+      else raise 'Unsupported external-validation registry schema'
+      end
     raise "External-validation registry digest differs" unless @registry.digest == configuration.fetch("registry_sha256")
     @applied_ids = configuration.fetch("applied_ids")
     unless @applied_ids == @applied_ids.uniq.sort && (@applied_ids - @registry.records.keys).empty?
@@ -92,13 +98,22 @@ class ExternalValidationOverlays
     @sweeps = grouped.map do |path, members|
       digests = members.map { |configuration| configuration.fetch('campaign_receipt_sha256') }.uniq
       raise 'Conflicting sweep receipt digests' unless digests.size == 1
-      sweep = ValidationSweepReceipt.new(reader, path, digests.first)
+      kind = JSON.parse(File.read(reader.path(path)))['kind']
+      verifier = case kind
+        when nil then ValidationSweepReceipt
+        when 'full-array-correctness-sweep' then FullArraySweepReceipt
+        else raise 'Unsupported validation sweep kind'
+        end
+      sweep = verifier.new(reader, path, digests.first)
       members.each { |configuration| sweep.verify_configuration!(configuration) }
       expected = sweep.case_configurations.values.map { |configuration| configuration.fetch('registry') }.sort
       raise 'Incomplete sweep release configuration' unless members.map { |configuration| configuration.fetch('registry') }.sort == expected
       sweep
     end
-    @members = configurations.map { |configuration| ExternalValidationOverlay.new(reader, configuration) }
+    sweeps_by_path = grouped.keys.zip(@sweeps).to_h
+    @members = configurations.map do |configuration|
+      ExternalValidationOverlay.new(reader, configuration, sweep: sweeps_by_path[configuration['campaign_receipt']])
+    end
     @members_by_case = @members.to_h { |member| [member.case_id, member] }
     raise 'Overlapping external-validation case definitions' unless @members_by_case.size == @members.size
     records = {}
@@ -120,5 +135,8 @@ class ExternalValidationOverlays
     inputs = arguments.last
     @sweeps.each { |sweep| inputs.merge!(sweep.inputs) }
     inputs['tools/validation_sweep_receipt.rb'] = LocalEvalArtifact.sha256(@reader.path('tools/validation_sweep_receipt.rb')) unless @sweeps.empty?
+    if @sweeps.any? { |sweep| sweep.is_a?(FullArraySweepReceipt) }
+      inputs['tools/full_array_sweep_receipt.rb'] = LocalEvalArtifact.sha256(@reader.path('tools/full_array_sweep_receipt.rb'))
+    end
   end
 end

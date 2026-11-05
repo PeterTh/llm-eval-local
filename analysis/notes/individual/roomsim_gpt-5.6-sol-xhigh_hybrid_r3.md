@@ -2,11 +2,11 @@
 
 Date: 2026-08-25
 
-Status: static performance explanation; no validation, measurement, or scoring change
+Status: failed external validation in the complete-array check (2026-11-05); historical timings retained
 
 ## Scope
 
-This is the first-place hybrid result in the `roomsim` cell of data release
+This was the first-place hybrid result in the `roomsim` cell of data release
 `local-eval-2026-08-25` at data commit `f83773e`. The benchmark used 5,120 triangles
 and 2,000 time steps on four MPI ranks and four GPUs. Its five total times are 341,
 342, 342, 342, and 344 ms, giving a 342 ms median. The runner-up median is 356 ms.
@@ -43,15 +43,14 @@ accounts for its small advantage.
 All receiver rows and time steps are computed, and each all-gather completes the
 replicated state needed by later steps. Reported phase times use the maximum across
 ranks, so a faster local rank cannot stand in for the distributed runtime. Retained
-internal validation and external output comparison passed.
+internal validation and summary comparison passed, but the complete-array check
+fails at distance indices 5 and 6: both are 25.5 rather than 2, exceeding the
+distance tolerance of 5. The implementation is excluded from eligible performance
+comparisons. These numerical failures do not invalidate its rank-maximum timing.
 
 ## Interpretation
 
-The result is a modest implementation-level lead inside a common distributed design,
-not a fundamentally different hybrid algorithm. The 342 versus 356 ms ordering is
-credible but should not be overinterpreted.
-
-## Non-decisions
-
-- No generated source or benchmark result is changed.
-- No alternative timing result replaces the retained score.
+The 342 and 356 ms implementations both fail complete-array validation. Their
+timings explain the historical ordering but cannot establish a valid performance
+lead. The eligible group is discussed in the
+[Sol Medium review](roomsim_gpt-5.6-sol-medium_hybrid_r2.md).

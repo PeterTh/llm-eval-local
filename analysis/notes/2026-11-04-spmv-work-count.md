@@ -48,6 +48,11 @@ covers at most 16,776,960 rows with that grid, while its archived benchmark uses
 10,000 rows. Such concerns remain visible without being converted into unsupported
 scientific exclusions.
 
+The subsequent [complete-array sweep](2026-11-04-full-array-validation.md)
+confirmed the previously noted uneven-`MPI_Gather` concern in
+`spmv_gpt-4.1_mpi_r4` as an external-validation execution failure. That later
+runtime finding does not change this static phase's work-count verdict.
+
 ## Retention and reproduction
 
 The [export receipt](../../validation-supplements/20261104-spmv-work-count-full/export.json) binds 2,411 JSON

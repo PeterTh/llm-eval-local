@@ -25,6 +25,10 @@ published program sources, benchmark sources, pipeline source, and documented sy
 - Source-pinned supplemental external-validation cases and dispositions, including
   bounded execution logs and build receipts for targeted correctness checks.
   Earlier passes and timings remain immutable when current eligibility changes.
+  Complete numerical failure arrays and small reviewed replica ambiguities are
+  retained as scalar-byte witnesses, deduplicated by SHA-256. Successful bulk
+  arrays are omitted; their observations and comparisons remain bound to the
+  source, executable and exact validation method.
 - The final pipeline source snapshot named by the last amendment.
 - Compact exact reported Codex usage with session/run identity, cumulative counters,
   original terminal counter, and transcript/session hashes; recovery code is retained
@@ -80,7 +84,7 @@ whole.
 
 - curated `data/`: at most 60 MiB;
 - `analysis/`: at most 20 MiB;
-- complete scientific artifact tree (excluding the website): at most 512 MiB;
+- complete scientific artifact tree (excluding the website): at most 640 MiB;
 - individual file: at most 10 MiB.
 
 Git LFS is not used. Any exception requires an explicit policy change and must explain
@@ -92,3 +96,6 @@ outputs and provenance. The per-file, historical `data/`, and analysis budgets r
 separate constraints. Binaries, duplicate program sources and raw agent streams
 are excluded. Historical QT replacements are a scoped overlay under `corrections/`;
 their prior observations remain in the immutable source campaigns.
+The complete-array sweep contributes about 96 MB for 6,747 checked programs,
+including complete failure witnesses and source-bound observer reviews. This
+evidence is required to audit the exclusions; successful bulk arrays are not retained.

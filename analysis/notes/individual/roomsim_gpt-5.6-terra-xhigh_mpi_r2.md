@@ -2,11 +2,11 @@
 
 Date: 2026-08-25
 
-Status: static performance explanation; no validation, measurement, or scoring change
+Status: failed external validation in the complete-array check (2026-11-05); historical timings retained
 
 ## Scope
 
-This is the first-place MPI result in the `roomsim` cell of data release
+This was the first-place MPI result in the `roomsim` cell of data release
 `local-eval-2026-08-25` at data commit `f83773e`. The benchmark used 5,120 triangles
 and 500 time steps on 128 ranks. Its times are 4406, 4449, 4429, 4961, and 4540 ms,
 with a 4449 ms median. The immediate runner-up median is 4461 ms.
@@ -44,15 +44,12 @@ run variation.
 
 The winner performs every required per-step exchange, every local dense update, and
 the complete correlation. Its timing is reduced with maximum semantics across all
-ranks. Retained internal validation and external output comparison passed.
+ranks. Retained internal validation and summary comparison passed, but the
+complete-array check fails: distance index 6 is 25.5 rather than 2, exceeding
+tolerance 5. The implementation is excluded from eligible performance comparisons.
 
 ## Interpretation
 
-This should be read as a three-way close group, not as proof that unbatched exchanges
-are generally faster. The retained workload happens not to reward the runner-up's
-more complicated communication schedule.
-
-## Non-decisions
-
-- No generated source or benchmark result is changed.
-- No outlier sample or retained score is altered.
+The historical close group illustrates communication and precomputation trade-offs,
+but this implementation's numerical failure removes it from the eligible ranking.
+Its recorded timing does not establish that unbatched exchanges are generally faster.
