@@ -16,9 +16,14 @@ class HistoricalReviewSamplesTest < Minitest::Test
     source = File.read(CHECKER)
     original = "samples == peer.fetch('times_ms')"
     assert_equal 1, source.scan(original).size
-    changed = source.sub(original, "(archived ? samples.map { |value| value + 1 } : samples) == peer.fetch('times_ms')")
-    _, error, status = Open3.capture3(RbConfig.ruby, "-e", "eval(#{changed.inspect}, TOPLEVEL_BINDING, #{CHECKER.inspect})")
-    refute status.success?
-    assert_includes error, "Changed comparison samples roomsim_claude-sonnet-5-cc-medium_mpi_r5"
+    # Scope each mutation so adding an earlier archived peer cannot make this
+    # test report a different (correctly rejected) record first.
+    %w[roomsim_claude-sonnet-5-cc-medium_mpi_r5 roomsim_gpt-5.6-sol-xhigh_cuda_r1].each do |id|
+      changed = source.sub(original,
+        "(archived && peer.fetch('id') == #{id.inspect} ? samples.map { |value| value + 1 } : samples) == peer.fetch('times_ms')")
+      _, error, status = Open3.capture3(RbConfig.ruby, "-e", "eval(#{changed.inspect}, TOPLEVEL_BINDING, #{CHECKER.inspect})")
+      refute status.success?, id
+      assert_includes error, "Changed comparison samples #{id}"
+    end
   end
 end
