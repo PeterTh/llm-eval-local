@@ -17,6 +17,7 @@ export interface CostModelSummary {
   scoreRunCount: number;
   costRunCount: number;
   unavailableCostRunCount: number;
+  recordedUsageLowerBoundRunCount: number;
   meanScore: number;
   meanEstimatedCostUsd: number | null;
   meanPricedTokens: number | null;
@@ -131,6 +132,7 @@ export function analyzeCost(
   const profiles = new Map(dataset.profiles.map((profile) => [profile.id, profile]));
   const summaries = [...grouped].map(([modelId, runs]): CostModelSummary => {
     const costable = runs.filter((run): run is CostRunRecord & { estimatedCostUsd: number } => run.estimatedCostUsd !== null);
+    const recordedUsageLowerBoundRunCount = costable.filter((run) => run.usageComplete === false).length;
     const profileIds = new Set(costable.flatMap((run) => run.pricingProfileId === null ? [] : [run.pricingProfileId]));
     const pricingProfileId = profileIds.size === 1 ? [...profileIds][0]! : null;
     const profile = pricingProfileId === null ? null : profiles.get(pricingProfileId) ?? null;
@@ -149,7 +151,8 @@ export function analyzeCost(
       : null;
     const modelLabel = modelMetadata.get(modelId)?.label ?? modelId;
     const hash = stableStringHash(modelId);
-    const costMethod = profileMethod(profile, convention);
+    const costMethod = runs.some((run) => run.accountingScope === "parent_and_descendants") && profile
+      ? profile.costMethod : profileMethod(profile, convention);
     const runCountsLabel = `${formatCount(runs.length)} scored · ${formatCount(costable.length)} costed`;
     const tokenSummaryLabel = [
       `${formatCount(meanInputTokens)} input`,
@@ -186,6 +189,7 @@ export function analyzeCost(
       scoreRunCount: runs.length,
       costRunCount: costable.length,
       unavailableCostRunCount: runs.length - costable.length,
+      recordedUsageLowerBoundRunCount,
       meanScore,
       meanEstimatedCostUsd,
       meanPricedTokens,
@@ -215,7 +219,7 @@ export function analyzeCost(
       pointShape: POINT_SHAPES[hash % POINT_SHAPES.length]!,
       styleIndex: hash % 7,
       scoreLabel: formatScore(meanScore),
-      costLabel: formatUsd(meanEstimatedCostUsd),
+      costLabel: `${recordedUsageLowerBoundRunCount > 0 ? "≥ " : ""}${formatUsd(meanEstimatedCostUsd)}`,
       scoreRunCountLabel: formatCount(runs.length),
       costRunCountLabel: formatCount(costable.length),
       runCountsLabel,
@@ -231,7 +235,7 @@ export function analyzeCost(
       rateSummaryLabel,
       providerSummaryLabel,
       sourceAvailabilityLabel,
-      accessibleDescription: `${modelLabel}; mean score ${formatScore(meanScore)} from ${formatCount(runs.length)} runs; estimated mean cost ${formatUsd(meanEstimatedCostUsd)} from ${formatCount(costable.length)} runs`,
+      accessibleDescription: `${modelLabel}; mean score ${formatScore(meanScore)} from ${formatCount(runs.length)} runs; estimated mean cost ${formatUsd(meanEstimatedCostUsd)} from ${formatCount(costable.length)} runs${recordedUsageLowerBoundRunCount > 0 ? `; ${recordedUsageLowerBoundRunCount} costs are recorded-usage lower bounds` : ""}`,
     };
   });
   summaries.sort((left, right) => {

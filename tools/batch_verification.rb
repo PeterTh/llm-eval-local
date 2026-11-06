@@ -1,13 +1,100 @@
 # frozen_string_literal: true
 require_relative "artifact_common"
+require_relative "codex_usage_records"
 require_relative "../method/external-validation/tools/timing_audit/lib/external_validation_exclusions"
 
 # Checks retained batch evidence without needing the native workspace or Git sources.
 module BatchVerification
+  def verify_codex_tree_completeness!(observation, row, record)
+    CodexTreeUsage.validate_record!(record)
+    uncertain = record.fetch('interrupted_request_usage_uncertain')
+    raise 'Codex tree generation did not complete' unless observation.fetch('outcome') == 'completed' &&
+      ['', 'completed'].include?(row['generation_outcome'].to_s) &&
+      %w[generation_failure_reason termination_record_sha256].all? { |key| row[key].to_s.empty? }
+    raise 'Codex tree interruption flag differs' unless row.fetch('token_usage_complete') == (!uncertain).to_s
+    if uncertain
+      raise 'Recorded Codex tree counters differ' unless JSON.parse(row.fetch('partial_token_counts')) == record.fetch('usage')
+    else
+      raise 'Unexpected partial Codex tree counters' unless row['partial_token_counts'].to_s.empty?
+    end
+  end
+
   def evidence_base(campaign)
     base = campaign.fetch('evidence_root', "batches/#{campaign.fetch('id')}")
     path(base) # Apply the release-relative path safety check.
     base
+  end
+
+  def verify_native_spmv!(campaign, original, summary)
+    base = evidence_base(campaign)
+    binding = summary.fetch('native_spmv_review')
+    relative = 'validation/spmv-work-count/export.json'
+    raise 'Native SpMV export path differs' unless binding.fetch('export') == relative
+    export_path = path("#{base}/#{relative}")
+    raise 'Native SpMV export changed' unless sha256(export_path) == binding.fetch('export_sha256')
+    root = File.dirname(export_path)
+    report = JSON.parse(File.read(export_path))
+    expected = original.select do |_, record|
+      metadata = record.fetch('metadata')
+      metadata.fetch('benchmark') == 'spmv' &&
+        LocalEvalArtifact::VALIDATION_STAGES.all? { |stage| metadata.fetch('stages').fetch(stage) == true }
+    end.keys.sort
+    unless report.fetch('status') == 'complete' && report.fetch('full_scope_accounted_for') &&
+        report.fetch('evidence_verified') && report.fetch('population') == expected.size &&
+        binding.fetch('population') == expected.size && binding.fetch('new_failures').empty? &&
+        report.fetch('new_failures').empty? && report.fetch('remaining').zero? &&
+        %w[program_executions compilation benchmark_runs program_changes binaries generated_source_copies complete_disassembly_dumps].all? { |key| report.fetch(key) == 0 }
+      raise 'Native SpMV static scope differs'
+    end
+    files = report.fetch('files_sha256')
+    files.each do |name, digest|
+      raise 'Unsafe native SpMV evidence path' unless name.end_with?('.json') && !Pathname.new(name).absolute? &&
+        name.split('/').none? { |part| ['', '.', '..'].include?(part) }
+      file = File.join(root, name)
+      raise 'Native SpMV evidence changed' unless File.file?(file) && !File.symlink?(file) && sha256(file) == digest
+    end
+    inventory = JSON.parse(File.read(File.join(root, 'native-spmv-inventory.json')))
+    completion = JSON.parse(File.read(File.join(root, 'completion.json')))
+    raise 'Native SpMV inventory changed' unless completion.fetch('inventory_sha256') == files.fetch('native-spmv-inventory.json') &&
+      completion.fetch('authorization_sha256') == files.fetch('authorization.json') &&
+      completion.fetch('review_sha256').keys.sort == expected &&
+      inventory.fetch('rows').map { |row| row.fetch('id') }.sort == expected &&
+      inventory.fetch('validation_manifest_sha256') == sha256(path(campaign.fetch('manifest')))
+    inventory.fetch('rows').each do |row|
+      id = row.fetch('id')
+      review_name = "reviews/#{id}.json"
+      review = JSON.parse(File.read(File.join(root, review_name)))
+      unless files.fetch(review_name) == completion.fetch('review_sha256').fetch(id) &&
+          review.fetch('id') == id && review.fetch('finding') == 'no_work_count_omission_identified' &&
+          review.fetch('source').fetch('source_commit') == campaign.fetch('source_commit') &&
+          row.fetch('source_commit') == campaign.fetch('source_commit') &&
+          row.fetch('source_path') == "#{campaign.fetch('id')}/#{id}" &&
+          review.fetch('source').fetch('source_path') == row.fetch('source_path') &&
+          row.fetch('validation_stdout_sha256') == original.fetch(id).fetch('log_sha256').fetch('validation_out_stdout.log') &&
+          review.fetch('binding_sha256') == files.fetch("bindings/#{id}.json")
+        raise "Native SpMV review identity differs: #{id}"
+      end
+    end
+  end
+
+  def verify_native_generation_revisions!(campaign, generation)
+    base = evidence_base(campaign)
+    revisions = JSON.parse(File.read(path("#{base}/generation/method-revisions.json")))
+    declared = generation.fetch('method_revisions')
+    raise 'Native generation method history differs' unless revisions.size == 2 && declared.size == 3 &&
+      declared.last.fetch('commit') == generation.fetch('source_commit')
+    revisions.each_with_index do |revision, index|
+      manifest_path = path("#{base}/#{revision.fetch('manifest')}")
+      manifest = JSON.parse(File.read(manifest_path))
+      raise 'Native historical method manifest differs' unless sha256(manifest_path) == revision.fetch('manifest_sha256') &&
+        manifest.fetch('campaign_id') == campaign.fetch('id') &&
+        manifest.fetch('source_commit') == revision.fetch('source_commit') &&
+        revision.fetch('source_commit') == declared.fetch(index).fetch('commit') &&
+        revision.fetch('files').keys.sort == manifest.fetch('files').keys.sort
+      revision.fetch('files').each do |name, relative|
+        raise 'Native historical method changed' unless sha256(path(relative)) == manifest.fetch('files').fetch(name)
+      end
+    end
   end
 
   def verify_opencode_termination!(campaign, observation, row)
@@ -139,6 +226,7 @@ module BatchVerification
       row = rows.fetch(id)
       if usage
         record = usage.fetch(id)
+        verify_codex_tree_completeness!(observation, row, record) if record['schema_version'] == 2
         raise "generation usage identity differs #{id}" unless record.fetch('batch') == campaign.fetch('id') &&
           record.fetch('session_id') == observation.fetch('session_id') &&
           record.fetch('session_cwd') == observation.fetch('session_cwd') &&
@@ -414,6 +502,7 @@ module BatchVerification
     read_json = ->(relative) { JSON.parse(File.read(path("#{base}/#{relative}"))) }
     read_yaml = ->(relative) { LocalEvalArtifact.load_yaml(path("#{base}/#{relative}")) }
     summary = read_json.call("summary.json")
+    verify_native_spmv!(campaign, original, summary) if campaign['native_spmv_review'] || summary['native_spmv_review']
     benchmark_summary = read_json.call("benchmark/summary.json")
     raise "stale batch summary" unless summary.fetch("benchmark") == benchmark_summary
     counts = { "records" => records.size, "successful" => records.values.count { |r| r.fetch("success") },
@@ -535,9 +624,13 @@ module BatchVerification
         usage_path = path(campaign.fetch('exact_codex_usage'))
         raise 'native aggregate Codex usage binding differs' unless metadata.fetch('codex_usage_sha256') == sha256(usage_path)
         recovery = read_json.call('generation/usage-recovery.json')
-        usage = CodexUsage.load_records(usage_path)
+        usage = CodexUsageRecords.load_records(usage_path)
         raise 'generation usage receipt differs' unless recovery.fetch('sha256') == sha256(usage_path) &&
           recovery.fetch('records') == usage.size && recovery.fetch('unavailable').empty?
+        if usage.values.any? { |record| record['schema_version'] == 2 }
+          raise 'Native tree usage missing SpMV review evidence' unless summary['native_spmv_review']
+          verify_native_generation_revisions!(campaign, generation)
+        end
       end
       verify_generation_observations!(campaign, observations, rows, usage: usage)
       if campaign['generation_harness'] == 'opencode'

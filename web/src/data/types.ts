@@ -31,6 +31,7 @@ export interface HarnessMetadata {
   label: string;
   commandTemplate: string;
   parameters: string[];
+  parameterNotes?: string;
   configurationSource?: { label?: string; url: string; sha256: string; artifactPath?: string };
 }
 
@@ -145,6 +146,8 @@ export interface CostRunRecord {
   outputTokens: number | null;
   totalTokens: number | null;
   estimatedCostUsd: number | null;
+  usageComplete?: boolean;
+  accountingScope?: "parent_and_descendants";
 }
 
 export interface CostDataset {
@@ -234,6 +237,18 @@ export interface GenerationTermination {
   evidenceUrl: string;
 }
 
+export interface GenerationUsage {
+  source: "codex_rollout_unique_thread_requests";
+  accountingScope: "parent_and_descendants";
+  usageComplete: boolean;
+  recordedSessions: number;
+  recordedRequests: number;
+  interruptedSessions: number;
+  recordedTotalTokens: number;
+  evidenceSha256: string;
+  evidenceUrl: string;
+}
+
 export interface RunRecord {
   id: string;
   modelId: string;
@@ -244,6 +259,7 @@ export interface RunRecord {
   generationTimeSeconds: number | null;
   generationTimeRecovery?: GenerationTimeRecovery | null;
   generationTermination?: GenerationTermination | null;
+  generationUsage?: GenerationUsage | null;
   scoreBandId: string;
   validationStatus: number;
   validationMessage: string;

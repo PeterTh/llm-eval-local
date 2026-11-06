@@ -1,0 +1,77 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_omp_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i is parsed into iterations, and its timed region contains one persistent OpenMP team with a static row loop nested inside the iteration loop. The scheduled row domain is the complete [0, numRows), and each row traverses its CSR entries and stores h_out[i]. The outlined worker assembly retains an iteration-count back edge enclosing row/CSR work, with actual loads, multiply/adds, and stores. No omitted or hoisted timed iterations identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          158,
+          170
+        ],
+        [
+          220,
+          247
+        ]
+      ],
+      "claim": "The -i option populates iterations. The timed region runs iter<iterations, then a static OpenMP for over all rows 0..numRows-1; each row traverses h_rowDelimiters and accumulates h_val[j]*h_vec[h_cols[j]] into h_out[i].",
+      "sha256": "2113cc082c1432512f9ad343aaadf45e4a6536e0b61da789a9a22c340d62a12f",
+      "git_blob": "ca3710022934600dec08a035d1de88664ec47f0b"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The outlined worker establishes its static partition, then enters the outer iteration loop. Its row body reads row delimiters, columns, values, and vector entries, multiplies and accumulates, and stores output; after row completion it increments the iteration counter and branches back until the requested count.",
+      "complete_dump_sha256": "07106a6bacf019ec61d2e7484abb362f88708d6d149c4fa8710138803939dc04",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_omp_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 904,
+          "last_line": 933,
+          "text": "    1f29:\tcall   1240 <omp_get_num_threads@plt>\n    1f2e:\tmov    %eax,%r13d\n    1f31:\tcall   1220 <omp_get_thread_num@plt>\n    1f36:\txor    %edx,%edx\n    1f38:\tmov    %eax,%esi\n    1f3a:\tmov    %r14d,%eax\n    1f3d:\tdiv    %r13d\n    1f40:\tcmp    %edx,%esi\n    1f42:\tmov    %edx,%edi\n    1f44:\tmov    %r15d,%edx\n    1f47:\tadc    $0x0,%eax\n    1f4a:\txor    %ecx,%ecx\n    1f4c:\tmov    %eax,%r9d\n    1f4f:\tmov    %eax,%r8d\n    1f52:\tlea    -0x1(%rax),%eax\n    1f55:\timul   %esi,%r9d\n    1f59:\tlea    0x4(,%rax,4),%r14\n    1f61:\tjmp    1f7a <main._omp_fn.0+0x9a>\n    1f63:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    1f6e:\txchg   %ax,%ax\n    1f70:\tinc    %ecx\n    1f72:\tcmp    %ecx,%edx\n    1f74:\tje     204d <main._omp_fn.0+0x16d>\n    1f7a:\txor    %eax,%eax\n    1f7c:\tcmp    %edi,%esi\n    1f7e:\tcmovae %edi,%eax\n    1f81:\tadd    %r9d,%eax\n    1f84:\tlea    (%r8,%rax,1),%r10d\n    1f88:\tcmp    %r10d,%eax\n    1f8b:\tjae    1f70 <main._omp_fn.0+0x90>\n"
+        },
+        {
+          "first_line": 950,
+          "last_line": 983,
+          "text": "    1fd0:\tmov    (%r15,%r10,1),%eax\n    1fd4:\tmov    0x0(%r13,%r10,1),%ecx\n    1fd9:\tcmp    %ecx,%eax\n    1fdb:\tjae    2060 <main._omp_fn.0+0x180>\n    1fe1:\tmov    (%rbx),%rdx\n    1fe4:\tmov    (%r12),%r9\n    1fe8:\tdec    %ecx\n    1fea:\tvxorpd %xmm1,%xmm1,%xmm1\n    1fee:\tsub    %eax,%ecx\n    1ff0:\tlea    (%rdx,%rax,8),%r8\n    1ff4:\tmov    0x0(%rbp),%rdx\n    1ff8:\tlea    (%rdx,%rax,4),%rsi\n    1ffc:\txor    %eax,%eax\n    1ffe:\txchg   %ax,%ax\n    2000:\tmov    (%rsi,%rax,4),%edx\n    2003:\tvmovsd (%r9,%rdx,8),%xmm0\n    2009:\tmov    %rax,%rdx\n    200c:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    2012:\tinc    %rax\n    2015:\tvaddsd %xmm0,%xmm1,%xmm1\n    2019:\tcmp    %rcx,%rdx\n    201c:\tjne    2000 <main._omp_fn.0+0x120>\n    201e:\tvmovsd %xmm1,(%r11,%r10,2)\n    2024:\tadd    $0x4,%r10\n    2028:\tcmp    %r10,%r14\n    202b:\tjne    1fd0 <main._omp_fn.0+0xf0>\n    202d:\tmov    0x1c(%rsp),%ecx\n    2031:\tmov    0x10(%rsp),%edx\n    2035:\tmov    0xc(%rsp),%r8d\n    203a:\tmov    0x14(%rsp),%esi\n    203e:\tmov    0x18(%rsp),%r9d\n    2043:\tinc    %ecx\n    2045:\tcmp    %ecx,%edx\n    2047:\tjne    1f7a <main._omp_fn.0+0x9a>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The static schedule assigns the same rows to each worker on each pass. Recomputing same-input A*x and overwriting the output is prescribed behavior; the persistent team is allowed.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_omp_r5",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "bcd52d11d5089a865b4f5400302e3f0a32491d971e88942ff19adaa0824710f4"
+  },
+  "binary_sha256": "7c864990c0c3c8c50d7d34cac6dd65c64cb5f68735e9140a1461c7708c63f813",
+  "binding_sha256": "5acd097c16750cfb90fbad6803b092813c7ad41ca74059f9e815e17ee896234a",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "1268e1d5665087470aed99784059fe2115b3e5a8b58d61e69231cfe1fb196d4b",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T06:55:30Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_omp_r4"
+    ],
+    "work_count_disagreement": false,
+    "method": "Source lines 99–125 and 239–249 establish contiguous full-row partition and timed parsed iteration count. Host assembly 900–960 shows proportional partition arithmetic, CSR indexed loads/multiply/add/stores and the outer iteration inc/cmp/back edge. Read all four proposal entries."
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_omp",
+  "review_started_at": "2026-11-06T06:50:09Z",
+  "review_finished_at": "2026-11-06T06:51:37Z",
+  "review_input_sha256": "b00a4ab2d585aa664ad23aeef57c874cf6de00f035e1e261e7eba8146c1b9a8d",
+  "pack_sha256": "78fe8a141a0fe2afa14ded0deec7b4cf6b422bf9d12cfb7c9647a3d2ee5f5961",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

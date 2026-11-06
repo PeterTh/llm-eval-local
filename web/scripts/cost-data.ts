@@ -1,4 +1,5 @@
-import type { CostPricingProfile, CostRunRecord } from "../src/data/types";
+import type { CostPricingProfile, CostRunRecord, GenerationUsage } from "../src/data/types";
+import { TREE_USAGE_SOURCE } from "./generation-usage-data";
 import { z } from "zod";
 
 export type CsvRow = Record<string, string>;
@@ -342,6 +343,7 @@ export function costRunFromScoredRow(
   scoreMinimum: number,
   scoreMaximum: number,
   contextUsage: ReadonlyMap<string, ContextUsageRecord> = new Map(),
+  generationUsage?: GenerationUsage,
 ): CostRunRecord {
   const modelId = required(row.model, "cost run model");
   const benchmarkId = required(row.benchmark, `${modelId}.benchmark`);
@@ -351,6 +353,8 @@ export function costRunFromScoredRow(
   const overallScore = requiredInteger(row.overall_score, `${modelId}/${benchmarkId}/${backendId}/r${repetition}.overall_score`);
   invariant(overallScore >= scoreMinimum && overallScore <= scoreMaximum, `${modelId}/${benchmarkId}/${backendId}/r${repetition}.overall_score is out of bounds`);
   const id = `${benchmarkId}_${modelId}_${backendId}_r${repetition}`;
+  invariant((row.token_usage_source === TREE_USAGE_SOURCE) === Boolean(generationUsage), `${id} requires bound native tree cost evidence`);
+  if (generationUsage) invariant(row.token_usage_complete === String(generationUsage.usageComplete), `${id} usage completeness differs`);
   const inputTokens = optionalInteger(row.input_tokens, `${id}.input_tokens`);
   const cachedInputTokens = optionalInteger(row.cached_tokens, `${id}.cached_tokens`);
   const outputTokens = optionalInteger(row.output_tokens, `${id}.output_tokens`);
@@ -364,6 +368,7 @@ export function costRunFromScoredRow(
     invariant(suppliedTotalTokens === inputTokens + outputTokens!, `${id} total tokens disagree with input plus output`);
   }
   const totalTokens = suppliedTotalTokens ?? (inputTokens === null ? null : inputTokens + outputTokens!);
+  if (generationUsage) invariant(totalTokens === generationUsage.recordedTotalTokens, `${id} bound tree token total differs`);
   const pricingProfileId = profiles.has(modelId) ? modelId : aliases[modelId] ?? null;
   const profile = pricingProfileId === null ? null : profiles.get(pricingProfileId) ?? null;
   invariant(pricingProfileId === null || profile !== null, `${id} references missing profile ${pricingProfileId}`);
@@ -388,6 +393,7 @@ export function costRunFromScoredRow(
     pricingProfileId,
     ...tokenRecord,
     estimatedCostUsd,
+    ...(generationUsage ? { usageComplete: generationUsage.usageComplete, accountingScope: generationUsage.accountingScope } : {}),
   };
 }
 

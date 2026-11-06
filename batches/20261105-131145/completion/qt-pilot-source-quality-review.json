@@ -1,0 +1,57 @@
+{
+  "checked_at": "2026-11-06T06:49:16Z",
+  "passed": true,
+  "samples": [
+    {
+      "id": "qtclustering_gpt-6.1-terra-ultra_cuda_r1",
+      "result_sha256": "431876e9a79ede41ae4d583a18498d6acaca33cc6eeda0dab25d3fa169f88abf",
+      "source_sha256": "4cd953837efd243c32a963efb94ba976b1948d10135490bb19433ee727d4735a",
+      "ranges": [
+        [
+          243,
+          309
+        ],
+        [
+          417,
+          430
+        ]
+      ],
+      "finding": "Distance matrix, candidate kernels, blocking copies and result reconstruction are inside the timed qtClustering call."
+    },
+    {
+      "id": "qtclustering_gpt-6.1-terra-ultra_omp_r1",
+      "result_sha256": "5c2d7517203eb00bee15d25addc798720bfda5cd9300e68db2493118cdc50ddb",
+      "source_sha256": "6855bd133b79b9921cebf869f132f90c4660c48cf3eb0f7a2588f7bc7bebf4f2",
+      "ranges": [
+        [
+          130,
+          161
+        ],
+        [
+          353,
+          369
+        ]
+      ],
+      "finding": "Optional input-dependent distance cache construction and the on-demand path are inside the timed call; OpenMP regions join before return."
+    },
+    {
+      "id": "qtclustering_gpt-6.1-terra-ultra_mpi_r4",
+      "result_sha256": "614aa1bc15828ae5eb15cfee7b1caed8cf8896b71aa9203e586273affb580cd4",
+      "source_sha256": "61369e6ee7778aa875508f82532ae365c5af07e89fbca15f4759e117a124e613",
+      "ranges": [
+        [
+          355,
+          385
+        ]
+      ],
+      "finding": "Root prints its own local interval, while other ranks finalize without a maximum-duration reduction. Timing-only correction required."
+    }
+  ],
+  "method": "Primary source-grounded usability check of CUDA preprocessing/completion, OpenMP preprocessing boundary and distributed root-local timing; all 16 verdict/category summaries reviewed.",
+  "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+  "material_disagreement": false,
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

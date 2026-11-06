@@ -1,0 +1,39 @@
+{
+  "program_id": "qtclustering_gpt-6.1-terra-ultra_hybrid_r5",
+  "verdict": "valid",
+  "issue_categories": [
+    "none"
+  ],
+  "confidence": "high",
+  "timed_region": "The timer encloses the complete qtClustering call. Distance-matrix preprocessing is included when allocated (lines 218-224); otherwise on-demand distance computation occurs inside candidateKernel during the interval (lines 139-150). Blocking device-to-host copies complete the relevant CUDA work before MPI reductions or return. Final singleton emission and cleanup are also inside the interval.",
+  "start_synchronization": "No explicit barrier is required: rank 0 starts timing before entering qtClustering's first MPI_Bcast, which all ranks must pass before algorithmic setup, preprocessing, or candidate kernels begin.",
+  "stop_synchronization": "Each candidate batch has completed CUDA work before MPI_Allreduce. The reductions therefore gate all distributed candidate computation; selected-cluster recomputation is completed by a blocking copy before broadcast. The final reduction completes the last clustering decision before redundant singleton result assembly and return.",
+  "rank_aggregation": "No MPI_MAX is printed, but rank 0's interval is a demonstrated global makespan: its start precedes useful rank work, and every rank's useful candidate computation is completed before the collective reductions that gate subsequent decisions. The replicated final result does not require waiting for redundant output assembly on other ranks.",
+  "reported_value": "Rank 0 prints duration_cast<std::chrono::milliseconds>(cluster_end - cluster_start).count() with %ld and the ms label. The supplied LP64 platform evidence establishes that count() is long and 8 bytes. The required hybrid workload uses n=5000, so the canonical timing is not materially exposed to sub-millisecond truncation.",
+  "semantic_equivalence_basis": "All ranks receive the same points. Candidate seeds are partitioned by rank, MPI_MAXLOC selects the global best candidate, the owning rank computes its complete membership and broadcasts it, and all ranks maintain the same clustering state. Root's timer consequently covers the distributed decision makespan and its complete result.",
+  "evidence": [
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "118-150",
+      "finding": "candidateKernel performs the required input-dependent candidate growth and distance/max-distance computation on the GPU; this is algorithmic work inside qtClustering."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "218-224",
+      "finding": "When memory permits, the complete pairwise distance preprocessing kernel is launched inside the timed qtClustering call."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "249-262",
+      "finding": "Candidate kernels are followed by blocking device-to-host copies, host candidate selection, and MPI_Allreduce, proving completion and gating distributed decisions."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "440-451",
+      "finding": "The local timer surrounds qtClustering, and rank 0 reports the elapsed millisecond count under the canonical Clustering time label."
+    }
+  ],
+  "timing_only_fix_possible": false,
+  "minimal_fix": "",
+  "notes": "Valid for the supplied hybrid full-benchmark configuration and target platform: n=5000 with four MPI ranks and one GPU per rank. The supplied LP64 probe supports the printf datatype compatibility; no portability conclusion is made for other ABIs."
+}

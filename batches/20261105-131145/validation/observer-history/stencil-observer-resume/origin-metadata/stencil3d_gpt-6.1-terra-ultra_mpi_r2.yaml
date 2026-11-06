@@ -1,0 +1,165 @@
+---
+id: stencil3d_gpt-6.1-terra-ultra_mpi_r2
+benchmark: stencil3d
+model: gpt-6.1-terra-ultra
+par_type: mpi
+run: 2
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: stencil-interior-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-x"
+  - '65'
+  - "-y"
+  - '61'
+  - "-z"
+  - '67'
+  - "-i"
+  - '21'
+  definition:
+    id: stencil-interior-v1
+    benchmark: stencil3d
+    args: *1
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Grid: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 1.5691587086766958
+    argv:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=1
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/tmp/local-external-validation-20261106-3059133-n1n1xg/stencil3d"
+    - "-v"
+    - "-r"
+    - "-x"
+    - '65'
+    - "-y"
+    - '61'
+    - "-z"
+    - '67'
+    - "-i"
+    - '21'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-e576b3359224
+  reference_sha256: bd7ef40d411605b26bc5a745416feaf1f5110f64402f3f091d50025782db5d44
+  logs:
+    validation_out_stencil-interior-v1_command.log: 426c073d61f84fb334048a47df1d813ebd195c972741b451a35f90b80d670e21
+    validation_out_stencil-interior-v1_stdout.log: cd006d132fb6f87adcc748fbab00a70ed8139d94376b55143f195252d0f222ea
+    validation_out_stencil-interior-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_stencil-interior-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_stencil-interior-v1_wall_time.log: 394d76ed73cb28658fa37dcd74e2181c0594f8bde4582cd238216c351b2e89d1
+- id: stencil3d-shape-mpi128-v2
+  args: &2
+  - "-v"
+  - "-r"
+  - "-x"
+  - '129'
+  - "-y"
+  - '131'
+  - "-z"
+  - '257'
+  - "-i"
+  - '21'
+  definition:
+    id: stencil3d-shape-mpi128-v2
+    benchmark: stencil3d
+    args: *2
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Grid: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 11.23645087145269
+    argv:
+    - mpirun
+    - "--np"
+    - '128'
+    - "--map-by"
+    - ppr:64:socket:PE=1
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/tmp/local-external-validation-20261106-3059133-eyi117/stencil3d"
+    - "-v"
+    - "-r"
+    - "-x"
+    - '129'
+    - "-y"
+    - '131'
+    - "-z"
+    - '257'
+    - "-i"
+    - '21'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-4e078b12ed26
+  reference_sha256: e389505e597b2b53a1ed2442bee715157f414448e492bfff85c1a321d44d6059
+  logs:
+    validation_out_stencil3d-shape-mpi128-v2_command.log: 00cc7aaad93e67c0551a6b649f4f3606b21cb3fa467a55f7e3a45c95b652a07d
+    validation_out_stencil3d-shape-mpi128-v2_stdout.log: de6fa171ae46d790a537dc080efcb35c5881f2d3d47abbfbd712e53555e98a4f
+    validation_out_stencil3d-shape-mpi128-v2_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_stencil3d-shape-mpi128-v2_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_stencil3d-shape-mpi128-v2_wall_time.log: 91d1a90fd47a9a453370271c282b9981346a63857d77a554961e6d8124285954
+full_array_validation:
+  definition:
+    id: full-array-stencil3d-v1
+    benchmark: stencil3d
+    args:
+    - "-v"
+    - "-r"
+    - "-x"
+    - '65'
+    - "-y"
+    - '61'
+    - "-z"
+    - '67'
+    - "-i"
+    - '21'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: b8626e8dc59e5130c3e9710f6aa772e8d10b99e5dc9b8392caf8275ea21edc08
+  passed: true
+  arrays:
+  - elements: 265655
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 0.0
+    examples: []
+    name: Grid
+    reference_array_sha256: bacbe9d4574c7703eead5d0a5786d3901a28816206acbe8b4bdb98844daeb3b4
+    actual_array_sha256: bacbe9d4574c7703eead5d0a5786d3901a28816206acbe8b4bdb98844daeb3b4
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object Grid: PASSED (hash match: true)
+comparison_policy:
+completed_at: '2026-11-06T07:14:29+01:00'

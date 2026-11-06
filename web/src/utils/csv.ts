@@ -17,6 +17,8 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
     "wrapper_exit_status_available", "generation_recovery_sha256", "generation_recovery_evidence_url",
     "generation_outcome", "generation_failure_reason", "token_usage_complete", "partial_total_tokens",
     "generation_termination_sha256", "generation_termination_evidence_url",
+    "token_accounting_scope", "recorded_sessions", "recorded_requests", "interrupted_sessions",
+    "recorded_total_tokens", "generation_usage_sha256", "generation_usage_evidence_url",
   ];
   const rows = runs.map((run) => [
     run.id,
@@ -41,12 +43,19 @@ export function runsToCsv(runs: readonly RunRecord[]): string {
     run.generationTimeRecovery?.wrapperExitStatusAvailable ?? "",
     run.generationTimeRecovery?.evidenceSha256 ?? "",
     run.generationTimeRecovery?.evidenceUrl ?? "",
-    run.generationTermination?.outcome ?? "",
+    run.generationTermination?.outcome ?? (run.generationUsage ? "completed" : ""),
     run.generationTermination?.reason ?? "",
-    run.generationTermination?.usageComplete ?? "",
+    run.generationTermination?.usageComplete ?? run.generationUsage?.usageComplete ?? "",
     run.generationTermination?.partialTotalTokens ?? "",
     run.generationTermination?.evidenceSha256 ?? "",
     run.generationTermination?.evidenceUrl ?? "",
+    run.generationUsage?.accountingScope ?? "",
+    run.generationUsage?.recordedSessions ?? "",
+    run.generationUsage?.recordedRequests ?? "",
+    run.generationUsage?.interruptedSessions ?? "",
+    run.generationUsage?.recordedTotalTokens ?? "",
+    run.generationUsage?.evidenceSha256 ?? "",
+    run.generationUsage?.evidenceUrl ?? "",
   ].map(csvCell).join(","));
   return `${headers.join(",")}\n${rows.join("\n")}\n`;
 }
@@ -63,6 +72,7 @@ export function costSummariesToCsv(summaries: readonly CostModelSummary[]): stri
     "pricing_endpoint_url", "pricing_source_url", "secondary_pricing_source_url",
     "request_input_threshold_tokens", "long_input_price_usd_per_million",
     "long_cached_input_price_usd_per_million", "long_output_price_usd_per_million",
+    "recorded_usage_lower_bound_run_count",
   ];
   const rows = summaries.map((summary) => [
     summary.modelId,
@@ -99,6 +109,7 @@ export function costSummariesToCsv(summaries: readonly CostModelSummary[]): stri
     summary.longContext?.inputPriceUsdPerMillion ?? null,
     summary.longContext?.cachedInputPriceUsdPerMillion ?? null,
     summary.longContext?.outputPriceUsdPerMillion ?? null,
+    summary.recordedUsageLowerBoundRunCount,
   ].map(csvCell).join(","));
   return `${headers.join(",")}\n${rows.join("\n")}\n`;
 }

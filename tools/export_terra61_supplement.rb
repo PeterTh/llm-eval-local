@@ -4,7 +4,8 @@
 # Compact Terra evidence; the established exporters own validation, corrections
 # and measurements. This exporter does not execute generated programs.
 require_relative "artifact_common"
-require_relative "../method/codex-usage/codex_usage"
+require_relative "codex_usage_records"
+require_relative "terra61_ultra_evidence"
 
 module Terra61Supplement
   BATCH = "20261028-200951"
@@ -14,7 +15,10 @@ module Terra61Supplement
       "campaign_suffix" => "terra61-codex-medium", "audit" => "20261029-terra61-codex" },
     "20261102-030935" => { "original" => "c070881d4b6186c32117ecd339e87d6f32db77e7",
       "profile" => "gpt-6.1-terra-xhigh", "effort" => "xhigh",
-      "campaign_suffix" => "terra61-codex-xhigh", "audit" => "20261102-terra61-xhigh-codex" }
+      "campaign_suffix" => "terra61-codex-xhigh", "audit" => "20261102-terra61-xhigh-codex" },
+    "20261105-131145" => { "original" => "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+      "profile" => "gpt-6.1-terra-ultra", "effort" => "ultra", "tree_usage" => true,
+      "campaign_suffix" => "terra61-codex-ultra", "audit" => "20261106-terra61-ultra-codex" }
   }.transform_values(&:freeze).freeze
   POLICY = "luna_first_uncertainty_or_disagreement_v1"
   module_function
@@ -22,6 +26,7 @@ module Terra61Supplement
   def run(root:, home:, phase:, batch_id: BATCH)
     raise "Unknown supplement phase" unless %w[audit complete].include?(phase)
     configuration = CAMPAIGNS.fetch(batch_id)
+    tree_usage = configuration.fetch("tree_usage", false)
     original_commit = configuration.fetch("original")
     profile = configuration.fetch("profile")
     batch = File.join(root, "batches", batch_id)
@@ -94,8 +99,16 @@ module Terra61Supplement
         jsonl.call("#{destination}/attempts.jsonl", attempts)
         Dir[File.join(source, "final/*")].sort.each { |path| copy.call(path, "#{destination}/final/#{File.basename(path)}") if File.file?(path) }
       end
+      if tree_usage
+        selected.call(audit + '-cross-review-sol61', 'timing-audit/supplemental',
+          %w[input-review-1.json input-review-2.json])
+        selected.call(evaluation, 'completion', %w[audit-completion-before-cross-review.json
+          reconcile-timing-overlap.rb finalize-timing-overlap.rb verify-audit-before-cross-review.rb timing-overlap-integration.json])
+        selected.call(evaluation, 'completion', %w[resume-correction-pilot.rb correction-pilot-resume.json correction-pilot-progress-before-resume.json])
+      end
       decisions = {}
-      inputs = %w[primary qtclustering].map do |stage|
+      stages = tree_usage ? %w[primary qtclustering supplemental] : %w[primary qtclustering]
+      inputs = stages.map do |stage|
         relative = "timing-audit/#{stage}/final/decisions.jsonl"
         LocalEvalArtifact.read_jsonl(File.join(batch, relative)).each do |row|
           id = row.fetch("program_id")
@@ -112,13 +125,13 @@ module Terra61Supplement
       json.call("timing-audit/resolved-selection.json", {
         "schema_version" => 1, "source_commit" => original_commit, "record_count" => decisions.size,
         "ordered_decisions" => inputs, "verdict_counts" => counts, "correction_ids" => correction_ids,
-        "policy" => "Same-source all-backend QT boundary decisions overlay the general MPI/hybrid audit; all review evidence is retained."
+        "policy" => "Same-source all-backend QT boundary decisions overlay the general MPI/hybrid audit; explicitly reconciled overlap verdicts take precedence. All review evidence is retained."
       })
       write.call("timing-audit/conditional-decisions.jsonl", "")
       selected.call(evaluation, "completion", %w[audit-completion-review.json verify-audit-completion.rb review-policy.json
         prepare-review-policy.rb verify-primary-pilot.rb audit-pilot-driver.rb audit-full-driver-policy.rb
         audit-pilot-launch.json audit-full-launch.json timing-platform-context.txt
-        pilot-source-quality-review.json record-pilot-source-check.rb])
+        pilot-source-quality-review.json record-pilot-source-check.rb qt-pilot-source-quality-review.json accept-static-pilots.rb])
       summary = JSON.parse(File.read(File.join(batch, "summary.json")))
       summary["timing_audit_final_verdicts"] = counts
       %w[qtclustering qtclustering-sol61].each do |suffix|
@@ -128,7 +141,7 @@ module Terra61Supplement
       summary["timing_audit_selection"] = "timing-audit/resolved-selection.json"
       summary["unique_timing_audited_programs"] = decisions.size
       json.call("summary.json", summary)
-      puts "Retained five audit stages, #{decisions.size} resolved programs, #{correction_ids.size} timing corrections."
+      puts "Retained #{report.fetch('reviews').size} audit stages, #{decisions.size} resolved programs, #{correction_ids.size} timing corrections."
       return
     end
 
@@ -136,7 +149,8 @@ module Terra61Supplement
     completion = JSON.parse(File.read(File.join(campaign, "completion-audit.json")))
     raise "Generation completion changed" unless completion.fetch("source_commit") == original_commit &&
       completion.fetch("observations") == 220 && completion.fetch("outcomes") == { "completed" => 220 } &&
-      completion.fetch("accepted_generation_invocations") == 220 && completion.fetch("usage_complete")
+      completion.fetch("accepted_generation_invocations") == 220 &&
+      (tree_usage ? completion.fetch("archive_tree_accounting_verified") : completion.fetch("usage_complete"))
     selected.call(campaign, "generation", %w[campaign.json run-ids.txt preflight-ids.txt preflight-gate.json
       preflight-review.json filesystem-preflight.json model-access.json tool-host-amendment.json
       completion.json completion-audit.json usage-recovery.json preflight-usage-recovery.json
@@ -153,7 +167,8 @@ module Terra61Supplement
     end
     layout = manifest.fetch("files").to_h do |name, digest|
       raise "Unsafe method path" if Pathname.new(name).absolute? || name.split('/').include?('..')
-      source = File.join(campaign, "method", name)
+      method_root = tree_usage ? File.join(manifest.fetch("full_campaign_evidence_root"), "method") : File.join(campaign, "method")
+      source = File.join(method_root, name)
       raise "Generation method changed: #{name}" unless LocalEvalArtifact.sha256(source) == digest
       relative = reusable[digest]
       unless relative
@@ -167,7 +182,7 @@ module Terra61Supplement
     json.call("generation/method-layout.json", layout)
     observations = Dir[File.join(campaign, "observations/*.json")].sort.map { |path| JSON.parse(File.read(path)) }
     usage_path = File.join(campaign, "codex-usage.jsonl")
-    usage = CodexUsage.load_records(usage_path)
+    usage = CodexUsageRecords.load_records(usage_path)
     receipt = JSON.parse(File.read(File.join(campaign, "usage-recovery.json")))
     raise "Usage receipt changed" unless receipt.fetch("records") == 220 && receipt.fetch("unavailable").empty? &&
       receipt.fetch("sha256") == LocalEvalArtifact.sha256(usage_path) && receipt.fetch("sha256") == completion.fetch("usage_sha256")
@@ -184,13 +199,13 @@ module Terra61Supplement
     FileUtils.cp(usage_path, usage_destination)
     jsonl.call("generation/observations.jsonl", observations)
     jsonl.call("generation/cleanup.jsonl", Dir[File.join(campaign, "cleanup/*.json")].sort.map { |path| JSON.parse(File.read(path)) })
-    completion.fetch("unaccepted_setup_attempts").each do |attempt|
+    (tree_usage ? [] : completion.fetch("unaccepted_setup_attempts")).each do |attempt|
       source = File.join(campaign, attempt.fetch("path"))
       raise "Setup evidence changed" unless LocalEvalArtifact.sha256(source) == attempt.fetch("sha256")
       selected.call(File.dirname(source), "generation/#{File.dirname(attempt.fetch('path'))}",
         %w[review.json campaign.json filesystem-preflight.json preflight-gate.json preflight-usage-recovery.json])
     end
-    completion.fetch("provider_capacity_recoveries").each do |attempt|
+    (tree_usage ? [] : completion.fetch("provider_capacity_recoveries")).each do |attempt|
       source = File.join(campaign, attempt.fetch("recovery_path"))
       raise "Capacity evidence changed" unless LocalEvalArtifact.sha256(source) == attempt.fetch("recovery_sha256") &&
         LocalEvalArtifact.sha256(File.join(File.dirname(source), "retry-completed.json")) == attempt.fetch("retry_completion_sha256")
@@ -209,19 +224,32 @@ module Terra61Supplement
       audit_report.fetch("cache_write_input_tokens_known_zero")
     selected.call(pricing, "generation/pricing", %w[pricing-reference.json source-capture.json request-pricing-audit.json
       codex-request-usage.jsonl read-request-usage.rb test-request-usage.rb audit-pricing.rb])
+    if tree_usage
+      Terra61UltraEvidence.verify_usage!(completion: completion, usage: usage, pricing: audit_report)
+      Terra61UltraEvidence.retain(campaign: campaign, copy: copy, selected: selected, json: json,
+        reusable: reusable, batch_id: batch_id, pricing_report: audit_report)
+    end
     selected.call(evaluation, "completion", %w[campaign.json review-tooling.json timing-platform-context.txt
-      validation-launch-gate.json validation-completion-review.json correction-pilot-gate.json correction-commit.json
+      validation-launch-gate.json validation-completion-review.json correction-pilot-gate.json correction-pilot-diff-check.json record-correction-pilot-check.rb correction-commit.json
       revalidation-completion-review.json benchmark-canary-gate.json benchmark-completion-review.json benchmark-progress.json
       verify-validation-completion.rb verify-correction-pilot.rb verify-revalidation-completion.rb verify-benchmark-records.rb
       commit-corrections.rb benchmark-driver.rb prepare-release-export.rb export-completed-batch.rb])
     summary = JSON.parse(File.read(File.join(batch, "summary.json")))
     summary["benchmarking_performed"] = true
     summary.fetch("timing_corrections")["benchmarking_performed"] = true if summary["timing_corrections"]
-    summary["generation"] = { "records" => 220, "exact_counters_verified" => 220,
-      "provider_capacity_retries" => completion.fetch("provider_capacity_recoveries").size,
-      "excluded_setup_attempts" => completion.fetch("unaccepted_setup_attempts").size }
+    summary["generation"] = if tree_usage
+      { "records" => 220, "recorded_counters_verified" => 220, "accounting_scope" => "parent_and_descendants",
+        "sessions" => completion.fetch("sessions"), "recorded_requests" => completion.fetch("request_records"),
+        "interrupted_request_usage_uncertain_count" => completion.fetch("interrupted_request_usage_uncertain_count"),
+        "complete_billing_coverage_claimed" => false, "provider_capacity_retries" => 0,
+        "excluded_setup_attempts" => completion.fetch("excluded_catalog_fallback_attempts") }
+    else
+      { "records" => 220, "exact_counters_verified" => 220,
+        "provider_capacity_retries" => completion.fetch("provider_capacity_recoveries").size,
+        "excluded_setup_attempts" => completion.fetch("unaccepted_setup_attempts").size }
+    end
     json.call("summary.json", summary)
-    puts "Retained 220 exact Terra generation observations, compact request-level pricing and campaign provenance."
+    puts "Retained 220 Terra generation observations, verified recorded usage, compact request-level pricing and campaign provenance."
   end
 end
 

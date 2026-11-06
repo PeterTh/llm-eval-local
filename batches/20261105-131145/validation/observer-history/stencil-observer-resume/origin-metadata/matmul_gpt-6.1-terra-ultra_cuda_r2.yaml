@@ -1,0 +1,85 @@
+---
+id: matmul_gpt-6.1-terra-ultra_cuda_r2
+benchmark: matmul
+model: gpt-6.1-terra-ultra
+par_type: cuda
+run: 2
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: matmul-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '513'
+  definition:
+    id: matmul-shape-topology-v1
+    benchmark: matmul
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object MatrixC: PASSED (hash match: false)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 1.4691042993217707
+    argv:
+    - numactl
+    - "--physcpubind=0-63"
+    - "--membind=0"
+    - "/tmp/local-external-validation-20261106-3059133-4za1i/matmul"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '513'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-3b95ba3ea07e
+  reference_sha256: ccefa379d59da7f2ac84eca2401edaaa83944b49e4d4d4d0aff681d6c4b730c6
+  logs:
+    validation_out_matmul-shape-topology-v1_command.log: 3a9f01abd3cd7e27b967a369c0313db49ef065d32d636b7386b9c138f744e920
+    validation_out_matmul-shape-topology-v1_stdout.log: 07b34640bc51ff14447d79bd69607498846c150313cbbca48e7edd4945f88fb0
+    validation_out_matmul-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_matmul-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_matmul-shape-topology-v1_wall_time.log: 3c3a81bfb2ec24a9106c7443adf6faafb1f9d858b67c19fcbf0d6dd2b65d946c
+full_array_validation:
+  definition:
+    id: full-array-matmul-v1
+    benchmark: matmul
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '513'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 0ee359bb8c933e93a76659a4025abe4de47c0e0c1f8955c45bfc36ad79fcd723
+  passed: true
+  arrays:
+  - elements: 263169
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 8.526512829121202e-14
+    examples: []
+    name: MatrixC
+    reference_array_sha256: 78fd9f1919dd3f90c1ddd9a85c5ea3dd45390f307bf58c3941f3f0dd6ddbb588
+    actual_array_sha256: 2c58a51c31eb18096fed90ef9a5c03b3afe7684efc32950ea99f5a9f68172afb
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object MatrixC: PASSED (hash match: false)
+comparison_policy:
+completed_at: '2026-11-06T06:36:35+01:00'

@@ -25,6 +25,7 @@ import type {
 import { parseGenerationTime } from "./time-data";
 import { generationRecoveryPath, parseGenerationRecovery } from "./generation-recovery-data";
 import { generationTerminationPath, parseGenerationTermination } from "./generation-termination-data";
+import { generationUsagePath, parseTreeUsageRecords, bindGenerationUsage } from "./generation-usage-data";
 import {
   costRunFromScoredRow,
   parseCostPricingProfiles,
@@ -545,9 +546,19 @@ export async function buildData(): Promise<void> {
   const runIds = new Set<string>();
   const generationRecoveries = new Map<string, NonNullable<RunRecord["generationTimeRecovery"]>>();
   const generationTerminations = new Map<string, NonNullable<RunRecord["generationTermination"]>>();
+  const generationUsages = new Map<string, NonNullable<RunRecord["generationUsage"]>>();
+  const treeUsageFiles = new Map<string, ReturnType<typeof parseTreeUsageRecords>>();
   for (const row of scoredRows) {
     const id = recordId(row);
-    const evidencePath = generationTerminationPath(row, id);
+    const treePath = generationUsagePath(row, id);
+    if (treePath) {
+      if (!treeUsageFiles.has(treePath)) treeUsageFiles.set(treePath, parseTreeUsageRecords(await readFile(resolve(repositoryRoot, treePath), "utf8")));
+      const evidence = treeUsageFiles.get(treePath)!.get(id);
+      invariant(evidence, `Native tree evidence missing: ${id}`);
+      generationUsages.set(id, bindGenerationUsage(row, id, evidence,
+        `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(treePath)}`));
+    }
+    const evidencePath = generationTerminationPath(row, id, generationUsages.get(id));
     if (evidencePath === null) continue;
     const evidence = await readFile(resolve(repositoryRoot, evidencePath), "utf8");
     const url = `${artifactRepository}/blob/${artifactCommit}/${encodeRepositoryPath(evidencePath)}`;
@@ -656,6 +667,7 @@ export async function buildData(): Promise<void> {
       generationTimeSeconds: parseGenerationTime(row.total_time, id),
       generationTimeRecovery: generationRecoveries.get(id) ?? null,
       generationTermination: generationTerminations.get(id) ?? null,
+      generationUsage: generationUsages.get(id) ?? null,
       scoreBandId: bandFor(score, config.scoreScale.bands).id,
       validationStatus,
       validationMessage: row.validation_err_string ?? "",
@@ -731,6 +743,7 @@ export async function buildData(): Promise<void> {
     config.scoreScale.minimum,
     config.scoreScale.maximum,
     contextUsage,
+    generationUsages.get(recordId(row)),
   ));
   const runsById = new Map(runs.map((run) => [run.id, run]));
   const costRunIds = new Set<string>();

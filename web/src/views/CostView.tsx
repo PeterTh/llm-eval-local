@@ -328,6 +328,10 @@ export function CostView() {
               fitContainerWidth
             />
             <ParetoLegend />
+            {analysis.models.some((model) => model.recordedUsageLowerBoundRunCount > 0) && <p className="chart-footnote">
+              Costs marked ≥ use recorded parent-and-child usage. Interrupted child requests may have unrecorded usage,
+              so those costs—and their position on the cost frontier—are lower bounds.
+            </p>}
             {(analysis.unavailableCostRunCount > 0 || analysis.unpricedModelCount > 0) && (
               <p className="chart-footnote">
                 {analysis.unavailableCostRunCount > 0 && `${formatCount(analysis.unavailableCostRunCount)} scored ${analysis.unavailableCostRunCount === 1 ? "run has" : "runs have"} no cost estimate.`}
@@ -359,7 +363,7 @@ export function CostView() {
                   <tr key={summary.modelId} className={highlights.selected.has(summary.modelId) ? "is-highlighted" : undefined}>
                     <th scope="row">{summary.modelLabel}</th>
                     <td className="numeric">{formatScore(summary.meanScore)}</td>
-                    <td className="numeric">{formatUsd(summary.meanEstimatedCostUsd)}</td>
+                    <td className="numeric">{summary.costLabel}</td>
                     <td>{!plottedModels.has(summary.modelId) ? "Not evaluated" : paretoModels.has(summary.modelId) ? "Yes" : "No"}</td>
                     <td className="numeric">{formatCount(summary.scoreRunCount)}</td>
                     <td className="numeric">{formatCount(summary.costRunCount)}</td>

@@ -1,0 +1,112 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_cuda_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i is parsed into iterations, and the timed region launches the selected CUDA kernel once per iteration when dimensions/count are nonzero. The row-strided kernel covers all rows and traverses their CSR entries. No separate warm-up exists in this version, but no timed work is omitted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          105,
+          138
+        ],
+        [
+          209,
+          221
+        ],
+        [
+          271,
+          305
+        ]
+      ],
+      "claim": "-i stores the requested count; the kernel distributes rows across lanes and visits each row's CSR entries. The timed loop launches once per iter and synchronizes before stopping timing.",
+      "sha256": "a2bf47fa4b9dbf2c5742287ecccca5bd1dcc614201fc3a8eec8cfbcc125e9f5a",
+      "git_blob": "1bdbfaa4806f1c547e81c20a94c9f0d8c38510fa"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The main launch path contains the timed host counter comparison/backedge and repeats selected CUDA launch dispatch until iterations is reached.",
+      "complete_dump_sha256": "ff64e984714e0eddf20b2790baac7e3011fc829e70fee5130295dcc2d0a67dc1",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_cuda_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1680,
+          "last_line": 1810,
+          "text": "    bb1a:\tjne    bb70 <main+0xf10>\n    bb1c:\tmov    -0x158(%rbp),%rsi\n    bb23:\tmov    -0x150(%rbp),%edx\n    bb29:\tlea    -0x70(%rbp),%r9\n    bb2d:\tlea    0x164c(%rip),%rdi        # d180 <void spmvCuda<2u>(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    bb34:\tmov    -0x148(%rbp),%rcx\n    bb3b:\tmov    -0x140(%rbp),%r8d\n    bb42:\tmov    %rsi,-0x1b8(%rbp)\n    bb49:\tmov    %edx,-0x1b0(%rbp)\n    bb4f:\tmov    %rcx,-0x1c8(%rbp)\n    bb56:\tmov    %r8d,-0x1c0(%rbp)\n    bb5d:\tpush   -0x178(%rbp)\n    bb63:\tpush   -0x188(%rbp)\n    bb69:\tcall   76eb0 <cudaLaunchKernel>\n    bb6e:\tpop    %rcx\n    bb6f:\tpop    %rsi\n    bb70:\tmov    -0x244(%rbp),%eax\n    bb76:\tadd    $0x1,%ebx\n    bb79:\tcmp    %eax,%ebx\n    bb7b:\tjae    b83f <main+0xbdf>\n    bb81:\tmov    -0x208(%rbp),%rax\n    bb88:\tmov    %r13,%rdx\n    bb8b:\txor    %r9d,%r9d\n    bb8e:\txor    %r8d,%r8d\n    bb91:\tmov    %r12d,-0x13c(%rbp)\n    bb98:\tmov    $0x1,%ecx\n    bb9d:\tmov    -0x200(%rbp),%r14\n    bba4:\tmov    %rax,-0x240(%rbp)\n    bbab:\tmov    -0x210(%rbp),%rax\n    bbb2:\tmov    %r13,-0x168(%rbp)\n    bbb9:\tmov    -0x218(%rbp),%r15\n    bbc0:\tmov    %rax,-0x238(%rbp)\n    bbc7:\tmov    -0x1f8(%rbp),%rax\n    bbce:\tmovl   $0x1,-0x160(%rbp)\n    bbd8:\tmov    %rax,-0x250(%rbp)\n    bbdf:\tmovabs $0x100000001,%rax\n    bbe9:\tmov    %rax,-0x138(%rbp)\n    bbf0:\tmov    -0x13c(%rbp),%rdi\n    bbf7:\tmov    -0x134(%rbp),%esi\n    bbfd:\tcall   21730 <__cudaPushCallConfiguration>\n    bc02:\ttest   %eax,%eax\n    bc04:\tjne    bb70 <main+0xf10>\n    bc0a:\tjmp    ba2a <main+0xdca>\n    bc0f:\tmov    -0x248(%rbp),%eax\n    bc15:\tlea    -0x178(%rbp),%rcx\n    bc1c:\tlea    -0x188(%rbp),%rdx\n    bc23:\tmov    %r14,-0x1f0(%rbp)\n    bc2a:\tlea    -0x148(%rbp),%rsi\n    bc31:\tlea    -0x158(%rbp),%rdi\n    bc38:\tmov    %r15,-0x1b8(%rbp)\n    bc3f:\tmov    %eax,-0x228(%rbp)\n    bc45:\tmov    -0x250(%rbp),%rax\n    bc4c:\tmovl   $0x1,-0x150(%rbp)\n    bc56:\tmov    %rax,-0x1e8(%rbp)\n    bc5d:\tmov    -0x240(%rbp),%rax\n    bc64:\tmovl   $0x1,-0x140(%rbp)\n    bc6e:\tmov    %rax,-0x1d8(%rbp)\n    bc75:\tmov    -0x238(%rbp),%rax\n    bc7c:\tmov    %rax,-0x1c8(%rbp)\n    bc83:\tlea    -0x1f0(%rbp),%rax\n    bc8a:\tmovq   %rax,%xmm0\n    bc8f:\tlea    -0x1e8(%rbp),%rax\n    bc96:\tmovq   %rax,%xmm6\n    bc9b:\tlea    -0x1d8(%rbp),%rax\n    bca2:\tpunpcklqdq %xmm6,%xmm0\n    bca6:\tmovaps %xmm0,-0x70(%rbp)\n    bcaa:\tmovq   %rax,%xmm0\n    bcaf:\tlea    -0x1c8(%rbp),%rax\n    bcb6:\tmovq   %rax,%xmm6\n    bcbb:\tlea    -0x228(%rbp),%rax\n    bcc2:\tpunpcklqdq %xmm6,%xmm0\n    bcc6:\tmovaps %xmm0,-0x60(%rbp)\n    bcca:\tmovq   %rax,%xmm0\n    bccf:\tlea    -0x1b8(%rbp),%rax\n    bcd6:\tmovq   %rax,%xmm6\n    bcdb:\tmov    0x85dc6(%rip),%rax        # 91aa8 <libcudart_static_17cb5f807914dde50de9f48427f24567f09ed95c+0x30>\n    bce2:\tpunpcklqdq %xmm6,%xmm0\n    bce6:\tmov    %rax,-0x158(%rbp)\n    bced:\tmov    %rax,-0x148(%rbp)\n    bcf4:\tmovaps %xmm0,-0x50(%rbp)\n    bcf8:\tcall   217c0 <__cudaPopCallConfiguration>\n    bcfd:\ttest   %eax,%eax\n    bcff:\tjne    bd56 <main+0x10f6>\n    bd01:\tmov    -0x158(%rbp),%rsi\n    bd08:\tmov    -0x150(%rbp),%edx\n    bd0e:\tlea    -0x70(%rbp),%r9\n    bd12:\tlea    0x1597(%rip),%rdi        # d2b0 <void spmvCuda<4u>(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    bd19:\tmov    -0x148(%rbp),%rcx\n    bd20:\tmov    -0x140(%rbp),%r8d\n    bd27:\tmov    %rsi,-0x198(%rbp)\n    bd2e:\tmov    %edx,-0x190(%rbp)\n    bd34:\tmov    %rcx,-0x1a8(%rbp)\n    bd3b:\tmov    %r8d,-0x1a0(%rbp)\n    bd42:\tpush   -0x178(%rbp)\n    bd48:\tpush   -0x188(%rbp)\n    bd4e:\tcall   76eb0 <cudaLaunchKernel>\n    bd53:\tpop    %rdi\n    bd54:\tpop    %r8\n    bd56:\tmov    -0x244(%rbp),%eax\n    bd5c:\tadd    $0x1,%ebx\n    bd5f:\tcmp    %eax,%ebx\n    bd61:\tjae    b83f <main+0xbdf>\n    bd67:\tmov    -0x210(%rbp),%rax\n    bd6e:\tmov    %r13,%rdx\n    bd71:\txor    %r9d,%r9d\n    bd74:\txor    %r8d,%r8d\n    bd77:\tmov    %r12d,-0x13c(%rbp)\n    bd7e:\tmov    $0x1,%ecx\n    bd83:\tmov    -0x208(%rbp),%r15\n    bd8a:\tmov    %rax,-0x238(%rbp)\n    bd91:\tmov    -0x1f8(%rbp),%rax\n    bd98:\tmov    %r13,-0x168(%rbp)\n    bd9f:\tmov    -0x218(%rbp),%r14\n    bda6:\tmov    %rax,-0x240(%rbp)\n    bdad:\tmov    -0x200(%rbp),%rax\n    bdb4:\tmovl   $0x1,-0x160(%rbp)\n    bdbe:\tmov    %rax,-0x250(%rbp)\n    bdc5:\tmovabs $0x100000001,%rax\n    bdcf:\tmov    %rax,-0x138(%rbp)\n    bdd6:\tmov    -0x13c(%rbp),%rdi\n    bddd:\tmov    -0x134(%rbp),%esi\n    bde3:\tcall   21730 <__cudaPushCallConfiguration>\n    bde8:\ttest   %eax,%eax\n    bdea:\tjne    bd56 <main+0x10f6>\n    bdf0:\tjmp    bc0f <main+0xfaf>\n    bdf5:\tmov    -0x2a8(%rbp),%rax\n    bdfc:\tlea    -0x218(%rbp),%rdi\n    be03:\tlea    0x0(,%rax,8),%rbx\n    be0b:\tmov    %rbx,%rsi\n    be0e:\tcall   58f50 <cudaMalloc>\n    be13:\ttest   %eax,%eax\n"
+        }
+      ]
+    },
+    {
+      "file": "device-ptx.txt",
+      "claim": "PTX shows CSR loads and fma instructions in sparse traversal.",
+      "complete_dump_sha256": "61e805cd923961633f929f5c1c2f1a0e982fdb973b9dad292130d1577f9def7e",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-ptx",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_cuda_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 85,
+          "last_line": 140,
+          "text": "ld.global.nc.u32 %r6, [%rd63];\nmul.wide.u32 %rd42, %r6, 8;\nadd.s64 %rd43, %rd1, %rd42;\nld.global.nc.f64 %fd12, [%rd43];\nld.global.nc.f64 %fd13, [%rd62];\nfma.rn.f64 %fd29, %fd13, %fd12, %fd29;\nadd.s64 %rd65, %rd65, 1;\nadd.s64 %rd63, %rd63, 4;\nadd.s64 %rd62, %rd62, 8;\nadd.s64 %rd61, %rd61, 1;\nsetp.ne.s64 %p4, %rd61, 0;\n@%p4 bra $L__BB0_4;\n\n$L__BB0_5:\nnot.b64 %rd44, %rd5;\nadd.s64 %rd45, %rd44, %rd6;\nsetp.lt.u64 %p5, %rd45, 3;\n@%p5 bra $L__BB0_8;\n\nshl.b64 %rd46, %rd65, 2;\nadd.s64 %rd47, %rd2, %rd46;\nadd.s64 %rd67, %rd47, 8;\nshl.b64 %rd48, %rd65, 3;\nadd.s64 %rd49, %rd3, %rd48;\nadd.s64 %rd66, %rd49, 16;\n\n$L__BB0_7:\nld.global.nc.u32 %r7, [%rd67+-8];\nmul.wide.u32 %rd50, %r7, 8;\nadd.s64 %rd51, %rd1, %rd50;\nld.global.nc.f64 %fd14, [%rd51];\nld.global.nc.f64 %fd15, [%rd66+-16];\nfma.rn.f64 %fd16, %fd15, %fd14, %fd29;\nld.global.nc.u32 %r8, [%rd67+-4];\nmul.wide.u32 %rd52, %r8, 8;\nadd.s64 %rd53, %rd1, %rd52;\nld.global.nc.f64 %fd17, [%rd53];\nld.global.nc.f64 %fd18, [%rd66+-8];\nfma.rn.f64 %fd19, %fd18, %fd17, %fd16;\nld.global.nc.u32 %r9, [%rd67];\nmul.wide.u32 %rd54, %r9, 8;\nadd.s64 %rd55, %rd1, %rd54;\nld.global.nc.f64 %fd20, [%rd55];\nld.global.nc.f64 %fd21, [%rd66];\nfma.rn.f64 %fd22, %fd21, %fd20, %fd19;\nld.global.nc.u32 %r10, [%rd67+4];\nmul.wide.u32 %rd56, %r10, 8;\nadd.s64 %rd57, %rd1, %rd56;\nld.global.nc.f64 %fd23, [%rd57];\nld.global.nc.f64 %fd24, [%rd66+8];\nfma.rn.f64 %fd29, %fd24, %fd23, %fd22;\nadd.s64 %rd67, %rd67, 16;\nadd.s64 %rd66, %rd66, 32;\nadd.s64 %rd65, %rd65, 4;\nsetp.lt.u64 %p6, %rd65, %rd6;\n@%p6 bra $L__BB0_7;\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "The compiled kernel loads CSR data, executes DFMA at line 147, and has an explicit backward branch at line 149 (BRA 0x0400 to 0x02e0).",
+      "complete_dump_sha256": "c2a81c104c45f088d06c8dd9796b47098cb580af5651003db3d593914a8dd3af",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_cuda_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 113,
+          "last_line": 149,
+          "text": "        /*02e0*/                   LDG.E.CONSTANT R8, [R12.64] ;                               /* 0x000000040c087981 */\n                                                                                               /* 0x001ea2000c1e9900 */\n        /*02f0*/                   IMAD.MOV.U32 R9, RZ, RZ, 0x8 ;                              /* 0x00000008ff097424 */\n                                                                                               /* 0x000fe400078e00ff */\n        /*0300*/                   IMAD.MOV.U32 R10, RZ, RZ, R15 ;                             /* 0x000000ffff0a7224 */\n                                                                                               /* 0x000fc400078e000f */\n        /*0310*/                   IMAD.MOV.U32 R11, RZ, RZ, R16 ;                             /* 0x000000ffff0b7224 */\n                                                                                               /* 0x000fcc00078e0010 */\n        /*0320*/                   LDG.E.64.CONSTANT R10, [R10.64] ;                           /* 0x000000040a0a7981 */\n                                                                                               /* 0x000ee2000c1e9b00 */\n        /*0330*/                   IADD3 R6, P2, R6, 0x1, RZ ;                                 /* 0x0000000106067810 */\n                                                                                               /* 0x000fe20007f5e0ff */\n        /*0340*/                   IMAD.WIDE.U32 R8, R8, R9, c[0x0][0x178] ;                   /* 0x00005e0008087625 */\n                                                                                               /* 0x004fcc00078e0009 */\n        /*0350*/                   LDG.E.64.CONSTANT R8, [R8.64] ;                             /* 0x0000000408087981 */\n                                                                                               /* 0x000ee2000c1e9b00 */\n        /*0360*/                   IMAD.X R14, RZ, RZ, R14, P2 ;                               /* 0x000000ffff0e7224 */\n                                                                                               /* 0x000fe200010e060e */\n        /*0370*/                   ISETP.NE.U32.AND P2, PT, R6, RZ, PT ;                       /* 0x000000ff0600720c */\n                                                                                               /* 0x000fc80003f45070 */\n        /*0380*/                   ISETP.NE.AND.EX P2, PT, R14, RZ, PT, P2 ;                   /* 0x000000ff0e00720c */\n                                                                                               /* 0x000fe40003f45320 */\n        /*0390*/                   IADD3 R4, P3, R4, 0x20, RZ ;                                /* 0x0000002004047810 */\n                                                                                               /* 0x000fe40007f7e0ff */\n        /*03a0*/                   IADD3 R12, P4, R12, 0x80, RZ ;                              /* 0x000000800c0c7810 */\n                                                                                               /* 0x000fe40007f9e0ff */\n        /*03b0*/                   IADD3 R15, P5, R15, 0x100, RZ ;                             /* 0x000001000f0f7810 */\n                                                                                               /* 0x000fe20007fbe0ff */\n        /*03c0*/                   IMAD.X R7, RZ, RZ, R7, P3 ;                                 /* 0x000000ffff077224 */\n                                                                                               /* 0x000fe400018e0607 */\n        /*03d0*/                   IMAD.X R13, RZ, RZ, R13, P4 ;                               /* 0x000000ffff0d7224 */\n                                                                                               /* 0x000fe400020e060d */\n        /*03e0*/                   IMAD.X R16, RZ, RZ, R16, P5 ;                               /* 0x000000ffff107224 */\n                                                                                               /* 0x000fe200028e0610 */\n        /*03f0*/                   DFMA R34, R8, R10, R34 ;                                    /* 0x0000000a0822722b */\n                                                                                               /* 0x00a0620000000022 */\n        /*0400*/               @P2 BRA 0x2e0 ;                                                 /* 0xfffffed000002947 */\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Repeated A*x with unchanged inputs and output overwrite is prescribed behavior.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_cuda_r5",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "25edce5f11d18acfae7aa3ed90ee814a06dc5631a3803010e3ddd9fd56c4aa61"
+  },
+  "binary_sha256": "487472a05422a534a2809078eaf87222ac0bf6760e73b3fd3eef968a637b7eb8",
+  "binding_sha256": "1e73425ad08f743d1f65c9d82e7762596db6c6aa1da738e9c3ec04f40937ac7c",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "480c28c6a62c5d768e4dba9b1a9e1d97398d3aa02c38b30ccc22343bd61706b4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T07:00:03Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_cuda_r3",
+      "spmv_gpt-6.1-terra-ultra_hybrid_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all eight summaries. Primary check identified incomplete SASS citations in v1; Luna rechecked all eight, retaining v1 and supplying v2. Rechecked cuda_r3 host assembly 1505–1545 and SASS111–149: untimed warmup, counted timed launches, CSR loads, DFMA and sparse-loop back edge. Rechecked hybrid_r3 source234–249/443–455, host3460–3700 and SASS133–157/700–705/940–955: counted scalar and warp launch paths, synchronization, device loads/arithmetic and traversal back edges. No scientific disagreement; citation defect corrected before acceptance.",
+    "proposal_v1_sha256": "86167af916534fd89448586e48bf89e6b0d574729f0e690280d79282027299ba"
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_gpu",
+  "review_started_at": "2026-11-06T06:55:07Z",
+  "review_finished_at": "2026-11-06T06:58:32Z",
+  "review_input_sha256": "eb60717effeae03bc504dc186a19cceeb10b7643f2897a1ce3fa3125e8124f39",
+  "pack_sha256": "0911d75eb11dcdeaf699c3b024fbe598fa7ec39480ef3bba26ee59c25a6c12e8",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

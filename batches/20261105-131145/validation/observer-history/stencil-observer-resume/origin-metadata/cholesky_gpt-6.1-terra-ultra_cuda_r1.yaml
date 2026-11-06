@@ -1,0 +1,85 @@
+---
+id: cholesky_gpt-6.1-terra-ultra_cuda_r1
+benchmark: cholesky
+model: gpt-6.1-terra-ultra
+par_type: cuda
+run: 1
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: cholesky-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '513'
+  definition:
+    id: cholesky-shape-topology-v1
+    benchmark: cholesky
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object CholeskyL: PASSED (hash match: false)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 1.4695949982851744
+    argv:
+    - numactl
+    - "--physcpubind=0-63"
+    - "--membind=0"
+    - "/tmp/local-external-validation-20261106-3059133-l64hs6/cholesky"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '513'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-f8fe7688e8be
+  reference_sha256: 7e6197005bab7d925097c138cab40e78c7bb98732f94ad4a15314cbd234899cd
+  logs:
+    validation_out_cholesky-shape-topology-v1_command.log: 40abc3fc490de5842031d48838ad473da0e5a073d787e65f9a0dfd897ee765ff
+    validation_out_cholesky-shape-topology-v1_stdout.log: 3995495a83d8a4521343d38a1264e45e80cc9a4ccb985a4d5b8f3cb602e4c58c
+    validation_out_cholesky-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_cholesky-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_cholesky-shape-topology-v1_wall_time.log: b8f719600079596cc8a36839e9a368754913fff938e3abb2181231a078294570
+full_array_validation:
+  definition:
+    id: full-array-cholesky-v1
+    benchmark: cholesky
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '513'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: ebb62ddc5d177c3353e7cf2e1a8e086aa4d80ec86aeccd7b495a18bc40578ba3
+  passed: true
+  arrays:
+  - elements: 263169
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 1.4210854715202004e-14
+    examples: []
+    name: CholeskyL
+    reference_array_sha256: 4f70cfc629c8f7d3533e7d73f3ea9ea7535fd3d72a00148f43e3a2e7b37b9c28
+    actual_array_sha256: 4019e3497936a34f6ee9348f50b9e7c8a900f5b6d1f527e4c6ee4df409becbb2
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object CholeskyL: PASSED (hash match: false)
+comparison_policy:
+completed_at: '2026-11-06T06:25:14+01:00'

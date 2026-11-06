@@ -5,6 +5,18 @@ import { costSummariesToCsv } from "../utils/csv";
 import { adaptiveScoreDomain, analyzeCost, costDomain, pricedTokenCountForRun } from "./cost";
 
 describe("score and cost analysis", () => {
+  it("marks recorded-usage lower bounds in filtered summaries and CSV", () => {
+    const dataset = structuredClone(costDatasetFixture);
+    dataset.runs[0]!.usageComplete = false;
+    dataset.runs[0]!.accountingScope = "parent_and_descendants";
+    dataset.profiles[0]!.costMethod = "Recorded parent-and-child requests; interrupted usage may be missing";
+    const result = analyzeCost(dataset, manifestFixture, { models: ["model/a?x"], benchmarks: [], backends: [] });
+    expect(result.models[0]!.recordedUsageLowerBoundRunCount).toBe(1);
+    expect(result.models[0]!.costLabel).toMatch(/^≥/);
+    expect(result.models[0]!.costMethod).toContain("parent-and-child");
+    expect(costSummariesToCsv(result.models)).toContain("recorded_usage_lower_bound_run_count");
+    expect(result.models[0]!.accessibleDescription).toContain("lower bounds");
+  });
   it("shows both request-context tiers and retains them in downloaded CSV", () => {
     const dataset = {
       ...costDatasetFixture,

@@ -1,0 +1,153 @@
+---
+id: stencil3d_gpt-6.1-terra-ultra_cuda_r3
+benchmark: stencil3d
+model: gpt-6.1-terra-ultra
+par_type: cuda
+run: 3
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: stencil-interior-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-x"
+  - '65'
+  - "-y"
+  - '61'
+  - "-z"
+  - '67'
+  - "-i"
+  - '21'
+  definition:
+    id: stencil-interior-v1
+    benchmark: stencil3d
+    args: *1
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Grid: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 1.2689219787716866
+    argv:
+    - numactl
+    - "--physcpubind=0-7"
+    - "--membind=0"
+    - "/tmp/local-external-validation-20261106-3059133-wzt16p/stencil3d"
+    - "-v"
+    - "-r"
+    - "-x"
+    - '65'
+    - "-y"
+    - '61'
+    - "-z"
+    - '67'
+    - "-i"
+    - '21'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-dd5dcf774579
+  reference_sha256: bd7ef40d411605b26bc5a745416feaf1f5110f64402f3f091d50025782db5d44
+  logs:
+    validation_out_stencil-interior-v1_command.log: e6e602c3f707316340504901aa42bdbcd12d45baa3789f3d6ee1267c79d1e274
+    validation_out_stencil-interior-v1_stdout.log: ad1b21a12829aedcb416b622545035102a5d09130775278203f22cf299585345
+    validation_out_stencil-interior-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_stencil-interior-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_stencil-interior-v1_wall_time.log: 3f77a61ba256b972d10cad673687ecdbb947c46880447ba268ca68557889eeed
+- id: stencil3d-shape-topology-v1
+  args: &2
+  - "-v"
+  - "-r"
+  - "-x"
+  - '65'
+  - "-y"
+  - '61'
+  - "-z"
+  - '67'
+  - "-i"
+  - '21'
+  definition:
+    id: stencil3d-shape-topology-v1
+    benchmark: stencil3d
+    args: *2
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Grid: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 1.2678744681179523
+    argv:
+    - numactl
+    - "--physcpubind=0-63"
+    - "--membind=0"
+    - "/tmp/local-external-validation-20261106-3059133-gwm6ak/stencil3d"
+    - "-v"
+    - "-r"
+    - "-x"
+    - '65'
+    - "-y"
+    - '61'
+    - "-z"
+    - '67'
+    - "-i"
+    - '21'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-9b8b6457dd5b
+  reference_sha256: bd7ef40d411605b26bc5a745416feaf1f5110f64402f3f091d50025782db5d44
+  logs:
+    validation_out_stencil3d-shape-topology-v1_command.log: 353a4b31afedb1373cdf015b90002abf20e1a1f2c5afb5efa08e5e5313e05811
+    validation_out_stencil3d-shape-topology-v1_stdout.log: ad1b21a12829aedcb416b622545035102a5d09130775278203f22cf299585345
+    validation_out_stencil3d-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_stencil3d-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_stencil3d-shape-topology-v1_wall_time.log: bcad8b568d3a619d03c382120583cff6f0ef8795be4d6a1e510c5f2faaae7ddf
+full_array_validation:
+  definition:
+    id: full-array-stencil3d-v1
+    benchmark: stencil3d
+    args:
+    - "-v"
+    - "-r"
+    - "-x"
+    - '65'
+    - "-y"
+    - '61'
+    - "-z"
+    - '67'
+    - "-i"
+    - '21'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: a74022ab48a3b79fd5f5f7ca328209a9b34bf92b99a973dbc94e0bfa88f2ba7c
+  passed: true
+  arrays:
+  - elements: 265655
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 0.0
+    examples: []
+    name: Grid
+    reference_array_sha256: bacbe9d4574c7703eead5d0a5786d3901a28816206acbe8b4bdb98844daeb3b4
+    actual_array_sha256: bacbe9d4574c7703eead5d0a5786d3901a28816206acbe8b4bdb98844daeb3b4
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object Grid: PASSED (hash match: true)
+comparison_policy:
+completed_at: '2026-11-06T07:09:51+01:00'

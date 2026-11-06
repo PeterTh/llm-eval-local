@@ -1,0 +1,81 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_omp_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i is parsed into iterations and the timed region calls spmvParallel with that count. A persistent OpenMP team statically partitions the full [0, dim) row loop on each pass; each row traverses its CSR range and writes out[i]. The outlined worker assembly has an iteration-count back edge enclosing row processing, plus CSR loads, multiply/adds, and output stores. No omitted or hoisted timed iterations identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          184,
+          192
+        ],
+        [
+          96,
+          127
+        ],
+        [
+          241,
+          249
+        ]
+      ],
+      "claim": "The -i option populates iterations; the timed interval invokes spmvParallel with that value. Its persistent parallel region loops over iter<iterations, and each static OpenMP for covers rows 0 through dim-1 with inner rowDelimiters[i]..rowDelimiters[i+1] CSR accumulation and out[i] store.",
+      "sha256": "95f139e93f9005b3d26e9c9cc1349ff56a0634f1134b0adb4051640a1b0521a4",
+      "git_blob": "b73aba39d5ec5693854e5ba100bd1d71ad95fcc5"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The outlined worker derives its OpenMP thread partition, then the outer worker loop increments the iteration counter and branches back until the requested count. Within that loop, it loads row delimiters and CSR columns, loads vector/value data, multiplies and accumulates, stores each output, and loops over assigned rows and nonzeros.",
+      "complete_dump_sha256": "058a1e244866700054bff17c2cb435946ded7ccb54485f5547cba89ecadf8d93",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_omp_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 909,
+          "last_line": 939,
+          "text": "    1f47:\txor    %edx,%edx\n    1f49:\tmov    (%rsp),%esi\n    1f4c:\tmov    %eax,%r15d\n    1f4f:\tmov    %r14d,%eax\n    1f52:\tdiv    %r13d\n    1f55:\tmov    %r15d,%r9d\n    1f58:\tcmp    %edx,%r15d\n    1f5b:\tmov    %edx,%edi\n    1f5d:\tadc    $0x0,%eax\n    1f60:\txor    %ecx,%ecx\n    1f62:\tmov    %eax,%r14d\n    1f65:\tmov    %eax,%r8d\n    1f68:\tlea    -0x1(%rax),%eax\n    1f6b:\timul   %r15d,%r14d\n    1f6f:\tlea    0x4(,%rax,4),%r13\n    1f77:\tmov    %r14d,%edx\n    1f7a:\tjmp    1f8a <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x9a>\n    1f7c:\tnopl   0x0(%rax)\n    1f80:\tinc    %ecx\n    1f82:\tcmp    %ecx,%esi\n    1f84:\tje     2038 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x148>\n    1f8a:\txor    %r10d,%r10d\n    1f8d:\tcmp    %edi,%r9d\n    1f90:\tcmovae %edi,%r10d\n    1f94:\tadd    %edx,%r10d\n    1f97:\tlea    (%r8,%r10,1),%eax\n    1f9b:\tcmp    %eax,%r10d\n    1f9e:\tjae    1f80 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x90>\n    1fa0:\tmov    0x18(%rsp),%r11\n    1fa5:\tmov    %r10d,%eax\n    1fa8:\tinc    %r10d\n"
+        },
+        {
+          "first_line": 952,
+          "last_line": 981,
+          "text": "    1fda:\tjae    2050 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x160>\n    1fdc:\tdec    %esi\n    1fde:\tlea    0x0(%rbp,%rax,4),%r9\n    1fe3:\tlea    (%r12,%rax,8),%r8\n    1fe7:\tvxorpd %xmm1,%xmm1,%xmm1\n    1feb:\tsub    %eax,%esi\n    1fed:\txor    %eax,%eax\n    1fef:\tnop\n    1ff0:\tmov    (%r9,%rax,4),%edx\n    1ff4:\tvmovsd (%rbx,%rdx,8),%xmm0\n    1ff9:\tmov    %rax,%rdx\n    1ffc:\tvmulsd (%r8,%rax,8),%xmm0,%xmm0\n    2002:\tinc    %rax\n    2005:\tvaddsd %xmm0,%xmm1,%xmm1\n    2009:\tcmp    %rsi,%rdx\n    200c:\tjne    1ff0 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x100>\n    200e:\tvmovsd %xmm1,(%r11,%r10,2)\n    2014:\tadd    $0x4,%r10\n    2018:\tcmp    %r10,%r13\n    201b:\tjne    1fd0 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    201d:\tmov    0x4(%rsp),%esi\n    2021:\tinc    %ecx\n    2023:\tmov    (%rsp),%r8d\n    2027:\tmov    0x8(%rsp),%r9d\n    202c:\tmov    0xc(%rsp),%edx\n    2030:\tcmp    %ecx,%esi\n    2032:\tjne    1f8a <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x9a>\n    2038:\tadd    $0x28,%rsp\n    203c:\tpop    %rbx\n    203d:\tpop    %rbp\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The same-input A*x result is overwritten on each iteration as prescribed by the sequential benchmark. The persistent team and static schedule are compatible with that behavior; the schedule assigns the same rows to the same workers despite nowait.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_omp_r3",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "298041095fcdf0a5d1d1b954d63afb6c6fea862453a1740397f64616f42d471d"
+  },
+  "binary_sha256": "3c690c693737086df435671da614dc1466fd55324742ce06a1b4aad5279f2324",
+  "binding_sha256": "371a5ca2a00e55e818e99697602e5182d3b4d003fb0c2a95395771a8f407bce7",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "1268e1d5665087470aed99784059fe2115b3e5a8b58d61e69231cfe1fb196d4b",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T06:55:30Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_omp_r4"
+    ],
+    "work_count_disagreement": false,
+    "method": "Source lines 99–125 and 239–249 establish contiguous full-row partition and timed parsed iteration count. Host assembly 900–960 shows proportional partition arithmetic, CSR indexed loads/multiply/add/stores and the outer iteration inc/cmp/back edge. Read all four proposal entries."
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_omp",
+  "review_started_at": "2026-11-06T06:50:09Z",
+  "review_finished_at": "2026-11-06T06:51:37Z",
+  "review_input_sha256": "b00a4ab2d585aa664ad23aeef57c874cf6de00f035e1e261e7eba8146c1b9a8d",
+  "pack_sha256": "4fae4747d3da244b97f5efe97b46297a6d5b8e3e7d9a82c117a832225976e59c",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

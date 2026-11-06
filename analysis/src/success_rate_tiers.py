@@ -24,6 +24,7 @@ DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "8_success_rate_tiers.
 
 MODEL_LABELS = {
     "beam-1.0-oc-medium": "Beam 1.0 Medium (OpenCode)",
+    "gpt-6.1-terra-ultra": "GPT-6.1 Terra Ultra",
     "gpt-6.1-terra-xhigh": "GPT-6.1 Terra XHigh",
     "gpt-6.1-terra-medium": "GPT-6.1 Terra Medium",
     "claude-haiku-5.5-oc-medium": "Haiku 5.5 Medium (OpenCode)",

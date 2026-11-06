@@ -1,0 +1,100 @@
+---
+id: black-scholes_gpt-6.1-terra-ultra_hybrid_r5
+benchmark: black-scholes
+model: gpt-6.1-terra-ultra
+par_type: hybrid
+run: 5
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: black-scholes-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '10003'
+  definition:
+    id: black-scholes-shape-topology-v1
+    benchmark: black-scholes
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object OptionPrices: PASSED (hash match: false)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 5.580825028941035
+    argv:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=32
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/tmp/terra61-ultra-evaluation-20261106-0k0RpK/experiment/local_gpu_rank_wrapper.rb"
+    - "/tmp/local-external-validation-20261106-3049027-hwf2oz/black_scholes"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '10003'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3049027-ff9874f33240
+  reference_sha256: ecfa991f8ec02a8d2c0e35f46ce730abd1a0cc2900fdfe93949e1cd4c009a8b0
+  logs:
+    validation_out_black-scholes-shape-topology-v1_command.log: cc292a31f0e517e1d3531dea33af686666ffedb1c262f692e4e301cd533ad4e7
+    validation_out_black-scholes-shape-topology-v1_stdout.log: 39dbe6b36a12d69b295de404c003fb3f0d2a2765d62abb18a6a21f8abe86555c
+    validation_out_black-scholes-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_black-scholes-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_black-scholes-shape-topology-v1_wall_time.log: b2f703cf72337a80baa04139e64b6fb5eff95967be57acd6229cc66ea09e6a93
+full_array_validation:
+  definition:
+    id: full-array-black-scholes-v1
+    benchmark: black-scholes
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '10003'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 2c8674b5ce2803e99fa67842e28de56c3771ecc7dc93722974497b56bef99e7b
+  passed: true
+  arrays:
+  - elements: 10003
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 2.5011104298755527e-12
+    examples: []
+    name: OptionPrices
+    reference_array_sha256: 44d5d4bb542fd10cb195fa468594c9222df824263edce693068c44e0db0b20f4
+    actual_array_sha256: 767a2ca509bd04a55811d094983c791515a3521e0397abd94e1e451545a92298
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object OptionPrices: PASSED (hash match: false)
+comparison_policy:
+completed_at: '2026-11-06T06:03:11+01:00'
+imported_validation:
+  run_dir: "/home/petert/llm_para_local_evaluation/20261106-terra61-ultra-codex-validation"
+  manifest_sha256: bf4948291ad77e7b73b8f55588c999fd1e2feacd5fe37f2df26af386ab568b29
+  metadata_sha256: e1477e5d773aab638f80ed14e46d1e7a9044c0d56227624f4b1ebcf77e100b74
+  reason: Rebind the manifest only; reuse an unaffected complete validation after
+    a binary-scoped observer addition. Original method receipts and all scientific
+    evidence remain byte-identical.

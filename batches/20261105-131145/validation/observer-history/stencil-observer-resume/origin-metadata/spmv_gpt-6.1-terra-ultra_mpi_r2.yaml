@@ -1,0 +1,103 @@
+---
+id: spmv_gpt-6.1-terra-ultra_mpi_r2
+benchmark: spmv
+model: gpt-6.1-terra-ultra
+par_type: mpi
+run: 2
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: spmv-shape-mpi128-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '1025'
+  - "-s"
+  - '40'
+  - "-i"
+  - '67'
+  definition:
+    id: spmv-shape-mpi128-v1
+    benchmark: spmv
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object OutputVector: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 11.185831798240542
+    argv:
+    - mpirun
+    - "--np"
+    - '128'
+    - "--map-by"
+    - ppr:64:socket:PE=1
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/tmp/local-external-validation-20261106-3059133-3qpkol/spmv"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1025'
+    - "-s"
+    - '40'
+    - "-i"
+    - '67'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-84bcbea81d62
+  reference_sha256: 57fb989d447a3e7d8794b5c39b15138e6e20525743eb6a95a5dc9743f5fb4082
+  logs:
+    validation_out_spmv-shape-mpi128-v1_command.log: 91ec3d348e298fd0ae2f39264fa38b28998e027164372c22143a96b8b413c9f6
+    validation_out_spmv-shape-mpi128-v1_stdout.log: 69884d547bba658d1ddeb654c8cd45d865a9450c81e241906cda53eeccbf4c96
+    validation_out_spmv-shape-mpi128-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_spmv-shape-mpi128-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_spmv-shape-mpi128-v1_wall_time.log: 3d0ea9d5178b6b53eafc197e343fe3bcf7c0ffa27f25ec9b9d680a295a7736a7
+full_array_validation:
+  definition:
+    id: full-array-spmv-v1
+    benchmark: spmv
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1025'
+    - "-s"
+    - '40'
+    - "-i"
+    - '67'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 3fb8853bd0c8c7be1e274e9e208a9b2e3186a62ffafe534585d7af4429795dbd
+  passed: true
+  arrays:
+  - elements: 1025
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 0.0
+    examples: []
+    name: OutputVector
+    reference_array_sha256: 607b33f4f9795236942aad6d7a2bcc10bd840caa9a5f46c8a9afaf64de5166cc
+    actual_array_sha256: 607b33f4f9795236942aad6d7a2bcc10bd840caa9a5f46c8a9afaf64de5166cc
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object OutputVector: PASSED (hash match: true)
+comparison_policy:
+completed_at: '2026-11-06T07:07:26+01:00'

@@ -1,0 +1,97 @@
+---
+id: spmv_gpt-6.1-terra-ultra_cuda_r2
+benchmark: spmv
+model: gpt-6.1-terra-ultra
+par_type: cuda
+run: 2
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: spmv-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '1025'
+  - "-s"
+  - '40'
+  - "-i"
+  - '67'
+  definition:
+    id: spmv-shape-topology-v1
+    benchmark: spmv
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object OutputVector: PASSED (hash match: false)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 1.2681561093777418
+    argv:
+    - numactl
+    - "--physcpubind=0-63"
+    - "--membind=0"
+    - "/tmp/local-external-validation-20261106-3059133-qb3lmo/spmv"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1025'
+    - "-s"
+    - '40'
+    - "-i"
+    - '67'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-a126258597f2
+  reference_sha256: 57fb989d447a3e7d8794b5c39b15138e6e20525743eb6a95a5dc9743f5fb4082
+  logs:
+    validation_out_spmv-shape-topology-v1_command.log: 007ae0cb4bb19c3d1bc6cdfe8af4a4329ac49868b74e1f1596b291dbcf8f5fc3
+    validation_out_spmv-shape-topology-v1_stdout.log: ffae99f631435ab1259cac3aa6d81862b569a3ca5f795bb9089d808569a80bdc
+    validation_out_spmv-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_spmv-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_spmv-shape-topology-v1_wall_time.log: '09045dfe0a08805c61bbdddf5d6597ac25ff938c41f527721a195515d75e1451'
+full_array_validation:
+  definition:
+    id: full-array-spmv-v1
+    benchmark: spmv
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1025'
+    - "-s"
+    - '40'
+    - "-i"
+    - '67'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: d864c7116d987f574d6fab633b7d19e5fd8310f6057ad6209b79781e6327f497
+  passed: true
+  arrays:
+  - elements: 1025
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 1.4210854715202004e-14
+    examples: []
+    name: OutputVector
+    reference_array_sha256: 607b33f4f9795236942aad6d7a2bcc10bd840caa9a5f46c8a9afaf64de5166cc
+    actual_array_sha256: cd6f0d18864bc915ad08a19b34738751cbe9040fa8cb5866639d9c041f4c52ec
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object OutputVector: PASSED (hash match: false)
+comparison_policy:
+completed_at: '2026-11-06T07:03:13+01:00'

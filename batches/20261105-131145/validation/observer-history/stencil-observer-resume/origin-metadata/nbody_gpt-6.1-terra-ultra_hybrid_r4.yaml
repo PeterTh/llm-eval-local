@@ -1,0 +1,99 @@
+---
+id: nbody_gpt-6.1-terra-ultra_hybrid_r4
+benchmark: nbody
+model: gpt-6.1-terra-ultra
+par_type: hybrid
+run: 4
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: nbody-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '1031'
+  - "-s"
+  - '11'
+  definition:
+    id: nbody-shape-topology-v1
+    benchmark: nbody
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Bodies: PASSED (hash match: false)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 5.6799754537642
+    argv:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=32
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/tmp/terra61-ultra-evaluation-20261106-0k0RpK/observer-pipeline/local_gpu_rank_wrapper.rb"
+    - "/tmp/local-external-validation-20261106-3059133-az1fcv/nbody"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1031'
+    - "-s"
+    - '11'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-cc8b51241c5e
+  reference_sha256: 6dfddde0716eed6663eec581e6e6c618d772528456d01c5c25d0498cd742a4af
+  logs:
+    validation_out_nbody-shape-topology-v1_command.log: 45e1b81f8acbc0f41d6ab18576e3570578e36aecfd2189477b30a51c8144b8bb
+    validation_out_nbody-shape-topology-v1_stdout.log: 192fd6af6d92d4f94cafedcf1157529ab0d4d62bfc880179c37388fa2bc1a830
+    validation_out_nbody-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_nbody-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_nbody-shape-topology-v1_wall_time.log: f40e61fde179aecc981f8f6bfcd7f6c9792250bdd25848250400f039dacd15b5
+full_array_validation:
+  definition:
+    id: full-array-nbody-v1
+    benchmark: nbody
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1031'
+    - "-s"
+    - '11'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 8131f14be987d900ef4e45df9ed3f69d6780c90f81b635ccac530d43a161ab4f
+  passed: true
+  arrays:
+  - elements: 6186
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 1.346851163930296e-08
+    examples: []
+    name: Bodies
+    reference_array_sha256: b8cb18e2fa12cf78f51994f1b8c0ad17dd87e1e0f8ff1829238ef56b46205733
+    actual_array_sha256: 493dbd4792d5a3dd66c0e0a8704f528f455db32cea43428e82c9a3e7a245e284
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object Bodies: PASSED (hash match: false)
+comparison_policy:
+completed_at: '2026-11-06T06:45:30+01:00'

@@ -1,0 +1,93 @@
+---
+id: matmul_gpt-6.1-terra-ultra_hybrid_r4
+benchmark: matmul
+model: gpt-6.1-terra-ultra
+par_type: hybrid
+run: 4
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: matmul-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '513'
+  definition:
+    id: matmul-shape-topology-v1
+    benchmark: matmul
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object MatrixC: PASSED (hash match: false)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 6.0313794780522585
+    argv:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=32
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/tmp/terra61-ultra-evaluation-20261106-0k0RpK/observer-pipeline/local_gpu_rank_wrapper.rb"
+    - "/tmp/local-external-validation-20261106-3059133-nn5d7l/matmul"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '513'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-ff9358ba6f11
+  reference_sha256: ccefa379d59da7f2ac84eca2401edaaa83944b49e4d4d4d0aff681d6c4b730c6
+  logs:
+    validation_out_matmul-shape-topology-v1_command.log: c5f0b2526116576a166157209c6986770e94b31d43bddbb90e44d01e7072c1ac
+    validation_out_matmul-shape-topology-v1_stdout.log: e511017311206986a862e84b1652856b3fc1af23c19cbb1bcf08f8bd703e6d10
+    validation_out_matmul-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_matmul-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_matmul-shape-topology-v1_wall_time.log: b468067cc5c1c4e0a5f0b07b00107d2e559da555dd5da032052109f5261f0634
+full_array_validation:
+  definition:
+    id: full-array-matmul-v1
+    benchmark: matmul
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '513'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: c0db08f593f8537c6d35beb08cdf08e775aee6b101528f099b4b96d2961e2d7d
+  passed: true
+  arrays:
+  - elements: 263169
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 8.526512829121202e-14
+    examples: []
+    name: MatrixC
+    reference_array_sha256: 78fd9f1919dd3f90c1ddd9a85c5ea3dd45390f307bf58c3941f3f0dd6ddbb588
+    actual_array_sha256: 2c58a51c31eb18096fed90ef9a5c03b3afe7684efc32950ea99f5a9f68172afb
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object MatrixC: PASSED (hash match: false)
+comparison_policy:
+completed_at: '2026-11-06T06:39:08+01:00'

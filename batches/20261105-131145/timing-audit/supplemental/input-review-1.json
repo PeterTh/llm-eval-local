@@ -1,0 +1,55 @@
+{
+  "program_id": "qtclustering_gpt-6.1-terra-ultra_hybrid_r5",
+  "verdict": "invalid",
+  "issue_categories": [
+    "missing_rank_aggregation",
+    "rank_local_timing"
+  ],
+  "confidence": "high",
+  "timed_region": "Each rank times the complete qtClustering call, including device setup, distributed clustering, result construction, and cleanup (qtclustering/qtclustering.cpp:441-447). Validation and external result printing occur afterward; benchmark mode uses the same computation.",
+  "start_synchronization": "The root-issued fused-mode broadcast inside qtClustering gates subsequent useful computation on every rank (qtclustering/qtclustering.cpp:187-202). Root starts timing before issuing it, so the absence of a start barrier does not defeat the start-boundary proof.",
+  "stop_synchronization": "Blocking device-to-host copies complete candidate kernels before their results enter MPI collectives (qtclustering/qtclustering.cpp:252-262, 273-279). However, after the terminal collective, ranks still construct final clusters: either the singleton-emission loop or the final cluster assembly and membership updates (265-286). A nonroot can perform this work after root returns and stops timing. No completion dependency encloses that tail across ranks.",
+  "rank_aggregation": "Every rank obtains a complete local duration, but none is reduced. MPI_MAXLOC at line 262 combines candidate counts and seed indices, not elapsed times. The exit-code broadcast at line 505 occurs after root has stopped and printed its timer.",
+  "reported_value": "The canonical Clustering time line prints only rank 0's cluster_time.count(), in milliseconds (qtclustering/qtclustering.cpp:445-451).",
+  "semantic_equivalence_basis": "This is cooperative computation, not independent complete-result replication. At the benchmark configuration of 5000 points and four ranks, each rank evaluates only its 1250 owned seeds. Global candidate selection and selected-member broadcasts supply results computed by other ranks. Although the initial broadcast establishes a valid root start boundary, the final collective does not enclose all subsequent clustering work, so root's interval is not a proven global makespan.",
+  "evidence": [
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "230-262",
+      "finding": "Seed ownership is rank-strided; candidate evaluations cover only locally owned seeds and require a global MAXLOC selection."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "187-202",
+      "finding": "The root-issued fused-mode broadcast precedes useful computation on every rank and occurs inside root's timed call."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "252-262",
+      "finding": "A blocking device-to-host copy completes each candidate batch before local selection and the global candidate reduction."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "265-286",
+      "finding": "Both termination paths contain algorithmic host work after their last collective: singleton cluster generation, or selected-cluster construction and membership updates. Root has no dependency on completion of this tail on other ranks."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "273-295",
+      "finding": "The winning owner's kernel completes through a blocking copy before broadcasting members. Each rank finishes its own result construction and device cleanup before returning."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "441-451",
+      "finding": "Local timers surround qtClustering on every rank, but only root's unaggregated duration is printed."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "480-506",
+      "finding": "Result printing and validation are outside timing; neither changes clustering dispatch. The subsequent exit-code broadcast cannot extend the already-stopped timer."
+    }
+  ],
+  "timing_only_fix_possible": true,
+  "minimal_fix": "After every rank computes cluster_time and before entering the rank-0 output block, reduce local_ms = cluster_time.count() with MPI_Reduce using MPI_LONG and MPI_MAX. Print the reduced maximum under Clustering time.",
+  "notes": "The supplied target-platform evidence establishes that the millisecond count has C++ type long, so the existing %ld formatting and the proposed MPI_LONG reduction match this target. Whole-millisecond formatting is not a timing defect. No tools or execution were used."
+}

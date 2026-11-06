@@ -85,7 +85,7 @@ export function MethodologyView() {
             <p>
               The assigned harness and invoked provider model are recorded per profile below. Explicit reasoning
               levels are retained in the model metadata. Command templates
-              and the exact additional parameters are shown for each harness.
+              and the additional parameters, including profile-specific exceptions, are shown for each harness.
               Effort names are model-specific: DeepSeek High is the middle option among low, high and max.
             </p>
             <div className="harness-list">
@@ -101,6 +101,7 @@ export function MethodologyView() {
                       <span key={model.id} title={modelInvocationTitle(model, harness.label)}>{model.label}</span>
                     ))}
                   </p>
+                  {harness.parameterNotes && <p>{harness.parameterNotes}</p>}
                   <details className="harness-parameters">
                     <summary>Exact harness parameters</summary>
                     {harness.parameters.length > 0
@@ -273,7 +274,9 @@ export function MethodologyView() {
               native request-accounting events and session records, including compaction.
               Cached input is included in input;
               reasoning tokens are included in output and are not charged twice.
-              Incomplete generation usage is explicitly labeled and excluded from full-task cost estimates, while the program's scientific outcomes remain in the dataset.
+              Failed-generation partial counts are excluded from full-task cost estimates, while the program's scientific outcomes remain in the dataset.
+              Terra Ultra sums unique recorded requests across the parent and child agents. Where a child request was interrupted,
+              token counts and API-equivalent costs are labeled as recorded-usage lower bounds; missing usage is not assumed to be zero.
             </p>
             <p>
               Haiku 5.5 uses request-length-dependent rates: requests above 100,000 input tokens, including cache reads and writes,

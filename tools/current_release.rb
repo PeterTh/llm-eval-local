@@ -6,7 +6,7 @@ require_relative "shared_corrections"
 require_relative "observation_replacements"
 require_relative "external_validation_overlay"
 require_relative "../method/timing-audit/scoring_threshold_review"
-require_relative "../method/codex-usage/codex_usage"
+require_relative "codex_usage_records"
 
 # The release is a view over immutable campaigns, not a second copy of their logs.
 class CurrentRelease
@@ -92,6 +92,7 @@ class CurrentRelease
       records = load_records(campaign.fetch("benchmark_records"))
       verify_batch(campaign, original_validations, corrections, records) if campaign.fetch("validation_format") == "batch"
       native = table.map(&:to_h)
+      normalize_codex_tree_outcomes!(campaign, native)
       @shared&.apply!(validations, records, native)
       @replacements.apply!(campaign, validations, records, native)
       headers |= native.flat_map(&:keys)
@@ -223,7 +224,7 @@ class CurrentRelease
     if @shared
       Dir.glob(path("#{@shared.base}/**/*")).sort.select { |p| File.file?(p) && File.basename(p) != "checksums.sha256" }.each { |p| inputs[relative_path(@root, p)] = sha256(p) }
     end
-    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb tools/shared_corrections.rb tools/observation_replacements.rb method/timing-audit/scoring_threshold_review.rb method/codex-usage/codex_usage.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
+    %w[release/catalog.json tools/current_release.rb tools/batch_verification.rb tools/shared_corrections.rb tools/observation_replacements.rb tools/codex_usage_records.rb method/timing-audit/scoring_threshold_review.rb method/codex-usage/codex_usage.rb method/codex-usage/codex_tree_usage.rb data/scoring/scored_results.csv data/scoring/local_scoring_threshold_review.yaml].each { |p| inputs[p] = sha256(path(p)) }
     metadata = {
       "schema_version" => 1, "generated_at" => @catalog.fetch("generated_at"), "counts" => actual,
       "scored_csv_sha256" => Digest::SHA256.hexdigest(scored), "thresholds_sha256" => Digest::SHA256.hexdigest(thresholds),
@@ -240,13 +241,27 @@ class CurrentRelease
     }
   end
 
+  # The native aggregate only labels exceptional generation outcomes. Expose a
+  # completed root explicitly in the derived release, separately from incomplete
+  # child-request accounting. Never infer completion from validation or counters.
+  def normalize_codex_tree_outcomes!(campaign, rows)
+    return unless campaign["validation_format"] == "batch" && campaign["exact_codex_usage"]
+    usage = CodexUsageRecords.load_records(path(campaign.fetch("exact_codex_usage")))
+    tree_ids = usage.select { |_, record| record["schema_version"] == 2 }.keys
+    return if tree_ids.empty?
+    observations = LocalEvalArtifact.read_jsonl(path("#{evidence_base(campaign)}/generation/observations.jsonl"))
+    by_id = rows.to_h { |row| [self.class.id(row), row] }
+    verify_generation_observations!(campaign, observations, by_id, usage: usage)
+    tree_ids.each { |id| by_id.fetch(id)["generation_outcome"] = "completed" }
+  end
+
   # Correct usage metadata only; the archived campaign CSVs and all measurements
   # remain immutable. Every overlay must cover its entire named source batch.
   def apply_codex_usage!(rows, headers, inputs)
     @catalog.fetch("codex_usage_overlays", []).each do |overlay|
       relative = overlay.fetch("path")
       inputs[relative] = sha256(path(relative))
-      records = CodexUsage.load_records(path(relative))
+      records = CodexUsageRecords.load_records(path(relative))
       batch = overlay.fetch("batch")
       selected = rows.select { |row| row.fetch("source_batch") == batch }
       unless records.size == overlay.fetch("expected_runs") && records.keys.sort == selected.map { |row| self.class.id(row) }.sort

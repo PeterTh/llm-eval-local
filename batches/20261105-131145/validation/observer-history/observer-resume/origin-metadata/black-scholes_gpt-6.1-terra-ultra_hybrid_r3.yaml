@@ -1,0 +1,93 @@
+---
+id: black-scholes_gpt-6.1-terra-ultra_hybrid_r3
+benchmark: black-scholes
+model: gpt-6.1-terra-ultra
+par_type: hybrid
+run: 3
+manifest_sha256: bf4948291ad77e7b73b8f55588c999fd1e2feacd5fe37f2df26af386ab568b29
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: black-scholes-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '10003'
+  definition:
+    id: black-scholes-shape-topology-v1
+    benchmark: black-scholes
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object OptionPrices: PASSED (hash match: false)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 5.578961944207549
+    argv:
+    - mpirun
+    - "--np"
+    - '4'
+    - "--map-by"
+    - ppr:2:socket:PE=32
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/usr/bin/ruby3.2"
+    - "/tmp/terra61-ultra-evaluation-20261106-0k0RpK/experiment/local_gpu_rank_wrapper.rb"
+    - "/tmp/local-external-validation-20261106-3049027-ae1kur/black_scholes"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '10003'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3049027-38463f8c5649
+  reference_sha256: ecfa991f8ec02a8d2c0e35f46ce730abd1a0cc2900fdfe93949e1cd4c009a8b0
+  logs:
+    validation_out_black-scholes-shape-topology-v1_command.log: 5952ac285e2f743117025aba0781134a3d5f4b2b4f2ab7eaac86743e3c314538
+    validation_out_black-scholes-shape-topology-v1_stdout.log: eb54eda9e2e35700e946cdb6cb247ceea84480e290b83bc6d11948f46ffa1b12
+    validation_out_black-scholes-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_black-scholes-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_black-scholes-shape-topology-v1_wall_time.log: 6ab05bd8caa9325c4421dc28f18b2e0b9431d5e99375b79d2f364f86d25df3c5
+full_array_validation:
+  definition:
+    id: full-array-black-scholes-v1
+    benchmark: black-scholes
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '10003'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 796a1ee59e30381a8b4381da0c3b6745abb65dea954b8a7dac50dfb378f49d87
+  passed: true
+  arrays:
+  - elements: 10003
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 3.410605131648481e-12
+    examples: []
+    name: OptionPrices
+    reference_array_sha256: 44d5d4bb542fd10cb195fa468594c9222df824263edce693068c44e0db0b20f4
+    actual_array_sha256: 3ebf881a324dd1f7c74c5fda2f60c1bd544a6a85c6019bd8237134b03b8ba835
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object OptionPrices: PASSED (hash match: false)
+comparison_policy:
+completed_at: '2026-11-06T06:02:05+01:00'

@@ -1,0 +1,117 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_cuda_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i is parsed into iterations, and the timed event interval encloses a host loop that invokes the selected launch dispatcher once per iteration. The kernel's row groups cover dim and traverse each assigned CSR row. The separate first-use launch precedes timing; no timed iteration is omitted or hoisted.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          202,
+          217
+        ],
+        [
+          20,
+          52
+        ],
+        [
+          289,
+          320
+        ]
+      ],
+      "claim": "-i populates iterations; the lane-width dispatcher selects a kernel; its row and CSR loops cover rows to dim. A warm-up precedes the event interval, whose for-loop launches once per iter.",
+      "sha256": "f48815b6f0e14cc5c60676b1417ff706ec11d5705cbffa40bb6fa54ce23afccb",
+      "git_blob": "a6749117d7306c52fcca3e7754857d65fa00c547"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed main launch path invokes the CUDA stub, increments and checks the host iteration counter, and returns to dispatch another launch until the bound is reached.",
+      "complete_dump_sha256": "b933673626c18103f2f981634bb41cecb05b869ed9bd35b355860c4bc224ec77",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_cuda_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1580,
+          "last_line": 1669,
+          "text": "    b7ef:\tshl    $0x8,%rdx\n    b7f3:\tmov    %r13d,0x8(%rsp)\n    b7f8:\tmov    %r12,0xb8(%rsp)\n    b800:\tcall   219d0 <__cudaPushCallConfiguration>\n    b805:\ttest   %eax,%eax\n    b807:\tje     bf4b <main+0x133b>\n    b80d:\tmov    $0x2,%r13d\n    b813:\tjmp    b54f <main+0x93f>\n    b818:\tlea    0x7da5b(%rip),%rsi        # 8927a <libcudart_static_166496603f4caf3ceaeafa69020d94ab90cd53d6+0x1b4>\n    b81f:\tmov    $0x2,%edi\n    b824:\txor    %eax,%eax\n    b826:\tcall   a030 <__printf_chk@plt>\n    b82b:\tjmp    b285 <main+0x675>\n    b830:\tmov    %r12,%rdx\n    b833:\tlea    0x7d81f(%rip),%rsi        # 89059 <libcudart_static_54bf323c0cfafbbcabfdf683d82f2813d803131e+0x4d>\n    b83a:\tmov    $0x2,%edi\n    b83f:\txor    %eax,%eax\n    b841:\tcall   a030 <__printf_chk@plt>\n    b846:\tmov    (%r14),%rdi\n    b849:\tmov    $0x1,%ebx\n    b84e:\tcall   d000 <printUsage(char const*)>\n    b853:\tjmp    b2c3 <main+0x6b3>\n    b858:\tmov    0x18(%rsp),%rsi\n    b85d:\tmov    0x10(%rsp),%rdi\n    b862:\tmov    %r15,%r9\n    b865:\tmov    %ebp,%r8d\n    b868:\tmov    %r14,%rcx\n    b86b:\tmov    %r13,%rdx\n    b86e:\tcall   c610 <__device_stub__Z8spmvCudaILi2EEvPKdPKjS3_S1_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b873:\tmov    0x20(%rsp),%eax\n    b877:\tinc    %ebx\n    b879:\tcmp    %eax,%ebx\n    b87b:\tjae    bb40 <main+0xf30>\n    b881:\tmov    0x98(%rsp),%rax\n    b889:\tmov    %r12,%rdx\n    b88c:\txor    %r9d,%r9d\n    b88f:\txor    %r8d,%r8d\n    b892:\tmov    $0x1,%ecx\n    b897:\tmov    0x90(%rsp),%r15\n    b89f:\tmov    0x88(%rsp),%r14\n    b8a7:\tmov    %r12,0xb8(%rsp)\n    b8af:\tmov    0xa0(%rsp),%r13\n    b8b7:\tmovl   $0x1,0xc0(%rsp)\n    b8c2:\tmov    %rax,0x18(%rsp)\n    b8c7:\tmov    0x80(%rsp),%rax\n    b8cf:\tmov    %rax,0x10(%rsp)\n    b8d4:\tmov    0x8(%rsp),%eax\n    b8d8:\tmov    %eax,0xc4(%rsp)\n    b8df:\tmovabs $0x100000001,%rax\n    b8e9:\tmov    %rax,0xc8(%rsp)\n    b8f1:\tmov    0xc4(%rsp),%rdi\n    b8f9:\tmov    0xcc(%rsp),%esi\n    b900:\tcall   219d0 <__cudaPushCallConfiguration>\n    b905:\ttest   %eax,%eax\n    b907:\tjne    b873 <main+0xc63>\n    b90d:\tjmp    b858 <main+0xc48>\n    b912:\tmov    0x18(%rsp),%rsi\n    b917:\tmov    0x10(%rsp),%rdi\n    b91c:\tmov    %r15,%r9\n    b91f:\tmov    %ebp,%r8d\n    b922:\tmov    %r14,%rcx\n    b925:\tmov    %r13,%rdx\n    b928:\tcall   c760 <__device_stub__Z8spmvCudaILi4EEvPKdPKjS3_S1_jPd(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    b92d:\tmov    0x20(%rsp),%eax\n    b931:\tinc    %ebx\n    b933:\tcmp    %eax,%ebx\n    b935:\tjae    bb40 <main+0xf30>\n    b93b:\tmov    0x98(%rsp),%rax\n    b943:\tmov    %r12,%rdx\n    b946:\txor    %r9d,%r9d\n    b949:\txor    %r8d,%r8d\n    b94c:\tmov    $0x1,%ecx\n    b951:\tmov    0x90(%rsp),%r15\n    b959:\tmov    0x88(%rsp),%r14\n    b961:\tmov    %r12,0xb8(%rsp)\n    b969:\tmov    0xa0(%rsp),%r13\n    b971:\tmovl   $0x1,0xc0(%rsp)\n    b97c:\tmov    %rax,0x18(%rsp)\n    b981:\tmov    0x80(%rsp),%rax\n    b989:\tmov    %rax,0x10(%rsp)\n    b98e:\tmov    0x8(%rsp),%eax\n    b992:\tmov    %eax,0xc4(%rsp)\n    b999:\tmovabs $0x100000001,%rax\n    b9a3:\tmov    %rax,0xc8(%rsp)\n    b9ab:\tmov    0xc4(%rsp),%rdi\n    b9b3:\tmov    0xcc(%rsp),%esi\n    b9ba:\tcall   219d0 <__cudaPushCallConfiguration>\n    b9bf:\ttest   %eax,%eax\n    b9c1:\tjne    b92d <main+0xd1d>\n    b9c7:\tjmp    b912 <main+0xd02>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-ptx.txt",
+      "claim": "PTX shows row-delimiter/CSR loads and fma instructions in the sparse-entry work; the PTX excerpt is used for the operations, not as the SASS branch citation.",
+      "complete_dump_sha256": "99f48b177c03e8745824cbfe34075dc66691e8d4f08e91da2371436e2d6591c4",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-ptx",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_cuda_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 98,
+          "last_line": 170,
+          "text": "@%p4 bra $L__BB0_8;\n\nshl.b64 %rd53, %rd18, 3;\nadd.s64 %rd22, %rd3, %rd53;\nshl.b64 %rd54, %rd18, 2;\nadd.s64 %rd23, %rd2, %rd54;\nld.global.nc.u32 %r9, [%rd23];\nmul.wide.u32 %rd55, %r9, 8;\nadd.s64 %rd56, %rd1, %rd55;\nld.global.nc.f64 %fd14, [%rd56];\nld.global.nc.f64 %fd15, [%rd22];\nfma.rn.f64 %fd37, %fd15, %fd14, 0d0000000000000000;\nadd.s64 %rd74, %rd18, 2;\nsetp.eq.s64 %p5, %rd21, 1;\n@%p5 bra $L__BB0_8;\n\nld.global.nc.u32 %r10, [%rd23+8];\nmul.wide.u32 %rd57, %r10, 8;\nadd.s64 %rd58, %rd1, %rd57;\nld.global.nc.f64 %fd16, [%rd58];\nld.global.nc.f64 %fd17, [%rd22+16];\nfma.rn.f64 %fd37, %fd17, %fd16, %fd37;\nadd.s64 %rd74, %rd18, 4;\nsetp.eq.s64 %p6, %rd21, 2;\n@%p6 bra $L__BB0_8;\n\nld.global.nc.u32 %r11, [%rd23+16];\nmul.wide.u32 %rd59, %r11, 8;\nadd.s64 %rd60, %rd1, %rd59;\nld.global.nc.f64 %fd18, [%rd60];\nld.global.nc.f64 %fd19, [%rd22+32];\nfma.rn.f64 %fd37, %fd19, %fd18, %fd37;\nadd.s64 %rd74, %rd18, 6;\n\n$L__BB0_8:\nsetp.lt.u64 %p7, %rd20, 6;\n@%p7 bra $L__BB0_11;\n\nshl.b64 %rd61, %rd74, 2;\nadd.s64 %rd76, %rd10, %rd61;\nshl.b64 %rd62, %rd74, 3;\nadd.s64 %rd75, %rd11, %rd62;\n\n$L__BB0_10:\nld.global.nc.u32 %r12, [%rd76+-16];\nmul.wide.u32 %rd63, %r12, 8;\nadd.s64 %rd64, %rd1, %rd63;\nld.global.nc.f64 %fd20, [%rd64];\nld.global.nc.f64 %fd21, [%rd75+-32];\nfma.rn.f64 %fd22, %fd21, %fd20, %fd37;\nld.global.nc.u32 %r13, [%rd76+-8];\nmul.wide.u32 %rd65, %r13, 8;\nadd.s64 %rd66, %rd1, %rd65;\nld.global.nc.f64 %fd23, [%rd66];\nld.global.nc.f64 %fd24, [%rd75+-16];\nfma.rn.f64 %fd25, %fd24, %fd23, %fd22;\nld.global.nc.u32 %r14, [%rd76];\nmul.wide.u32 %rd67, %r14, 8;\nadd.s64 %rd68, %rd1, %rd67;\nld.global.nc.f64 %fd26, [%rd68];\nld.global.nc.f64 %fd27, [%rd75];\nfma.rn.f64 %fd28, %fd27, %fd26, %fd25;\nld.global.nc.u32 %r15, [%rd76+8];\nmul.wide.u32 %rd69, %r15, 8;\nadd.s64 %rd70, %rd1, %rd69;\nld.global.nc.f64 %fd29, [%rd70];\nld.global.nc.f64 %fd30, [%rd75+16];\nfma.rn.f64 %fd37, %fd30, %fd29, %fd28;\nadd.s64 %rd76, %rd76, 32;\nadd.s64 %rd75, %rd75, 64;\nadd.s64 %rd74, %rd74, 8;\nsetp.lt.u64 %p8, %rd74, %rd19;\n@%p8 bra $L__BB0_10;\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "The sm_86 kernel performs CSR global loads and DFMA accumulation (e.g. lines 163-177), and the traversal has an explicit backward BRA from 0x0ee0 to 0x0950 at line 497.",
+      "complete_dump_sha256": "b20497ea7f65e36bd2662d4fb9f265bcc43256002d75469a838e96e082af7f14",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_cuda_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 155,
+          "last_line": 215,
+          "text": "        /*0430*/                   LDG.E.CONSTANT R14, [R18.64] ;                        /* 0x00000004120e7981 */\n                                                                                         /* 0x000ea2000c1e9900 */\n        /*0440*/                   IMAD.MOV.U32 R17, RZ, RZ, 0x8 ;                       /* 0x00000008ff117424 */\n                                                                                         /* 0x000fe200078e00ff */\n        /*0450*/                   LEA R12, P3, R24, c[0x0][0x160], 0x3 ;                /* 0x00005800180c7a11 */\n                                                                                         /* 0x000fc800078618ff */\n        /*0460*/                   LEA.HI.X R13, R24, c[0x0][0x164], R25, 0x3, P3 ;      /* 0x00005900180d7a11 */\n                                                                                         /* 0x000fca00018f1c19 */\n        /*0470*/                   LDG.E.64.CONSTANT R22, [R12.64] ;                     /* 0x000000040c167981 */\n                                                                                         /* 0x000ee2000c1e9b00 */\n        /*0480*/                   IMAD.WIDE.U32 R14, R14, R17, c[0x0][0x178] ;          /* 0x00005e000e0e7625 */\n                                                                                         /* 0x004fcc00078e0011 */\n        /*0490*/                   LDG.E.64.CONSTANT R14, [R14.64] ;                     /* 0x000000040e0e7981 */\n                                                                                         /* 0x000ee2000c1e9b00 */\n        /*04a0*/                   ISETP.NE.U32.AND P3, PT, R16, 0x1, PT ;               /* 0x000000011000780c */\n                                                                                         /* 0x000fc80003f65070 */\n        /*04b0*/                   ISETP.NE.AND.EX P3, PT, RZ, RZ, PT, P3 ;              /* 0x000000ffff00720c */\n                                                                                         /* 0x000fe40003f65330 */\n        /*04c0*/                   IADD3 R28, P4, R24, 0x20, RZ ;                        /* 0x00000020181c7810 */\n                                                                                         /* 0x000fc80007f9e0ff */\n        /*04d0*/                   IADD3.X R11, RZ, R25, RZ, P4, !PT ;                   /* 0x00000019ff0b7210 */\n                                                                                         /* 0x000fe200027fe4ff */\n        /*04e0*/                   DFMA R22, R14, R22, RZ ;                              /* 0x000000160e16722b */\n                                                                                         /* 0x00804c00000000ff */\n        /*04f0*/              @!P3 BRA 0x600 ;                                           /* 0x000001000000b947 */\n                                                                                         /* 0x000fea0003800000 */\n        /*0500*/                   ISETP.NE.U32.AND P3, PT, R16, 0x2, PT ;               /* 0x000000021000780c */\n                                                                                         /* 0x000fe20003f65070 */\n        /*0510*/                   LDG.E.CONSTANT R26, [R18.64+0x80] ;                   /* 0x00008004121a7981 */\n                                                                                         /* 0x000ea6000c1e9900 */\n        /*0520*/                   ISETP.NE.AND.EX P3, PT, RZ, RZ, PT, P3 ;              /* 0x000000ffff00720c */\n                                                                                         /* 0x000fe20003f65330 */\n        /*0530*/                   LDG.E.64.CONSTANT R20, [R12.64+0x100] ;               /* 0x000100040c147981 */\n                                                                                         /* 0x000ed8000c1e9b00 */\n        /*0540*/               @P3 LDG.E.CONSTANT R16, [R18.64+0x100] ;                  /* 0x0001000412103981 */\n                                                                                         /* 0x000f28000c1e9900 */\n        /*0550*/               @P3 LDG.E.64.CONSTANT R14, [R12.64+0x200] ;               /* 0x000200040c0e3981 */\n                                                                                         /* 0x001f62000c1e9b00 */\n        /*0560*/                   IMAD.WIDE.U32 R26, R26, R17, c[0x0][0x178] ;          /* 0x00005e001a1a7625 */\n                                                                                         /* 0x004fcc00078e0011 */\n        /*0570*/                   LDG.E.64.CONSTANT R26, [R26.64] ;                     /* 0x000000041a1a7981 */\n                                                                                         /* 0x000ee2000c1e9b00 */\n        /*0580*/               @P3 IMAD.WIDE.U32 R16, R16, R17, c[0x0][0x178] ;          /* 0x00005e0010103625 */\n                                                                                         /* 0x010fcc00078e0011 */\n        /*0590*/               @P3 LDG.E.64.CONSTANT R16, [R16.64] ;                     /* 0x0000000410103981 */\n                                                                                         /* 0x000f62000c1e9b00 */\n        /*05a0*/                   IADD3 R28, P4, R24.reuse, 0x40, RZ ;                  /* 0x00000040181c7810 */\n                                                                                         /* 0x040fe40007f9e0ff */\n        /*05b0*/               @P3 IADD3 R28, P5, R24, 0x60, RZ ;                        /* 0x00000060181c3810 */\n                                                                                         /* 0x000fc60007fbe0ff */\n        /*05c0*/                   IMAD.X R11, RZ, RZ, R25.reuse, P4 ;                   /* 0x000000ffff0b7224 */\n                                                                                         /* 0x100fe400020e0619 */\n        /*05d0*/               @P3 IMAD.X R11, RZ, RZ, R25, P5 ;                         /* 0x000000ffff0b3224 */\n                                                                                         /* 0x000fe200028e0619 */\n        /*05e0*/                   DFMA R22, R26, R20, R22 ;                             /* 0x000000141a16722b */\n                                                                                         /* 0x00af4c0000000016 */\n        /*05f0*/               @P3 DFMA R22, R16, R14, R22 ;                             /* 0x0000000e1016322b */\n                                                                                         /* 0x02004c0000000016 */\n        /*0600*/                   BSYNC B1 ;                                            /* 0x0000000000017941 */\n                                                                                         /* 0x000fea0003800000 */\n        /*0610*/              @!P0 BRA 0x1430 ;                                          /* 0x00000e1000008947 */\n"
+        },
+        {
+          "first_line": 490,
+          "last_line": 500,
+          "text": "                                                                                         /* 0x000fe400020e060d */\n        /*0eb0*/                   IMAD.X R15, RZ, RZ, R15, P5 ;                         /* 0x000000ffff0f7224 */\n                                                                                         /* 0x000fe200028e060f */\n        /*0ec0*/                   DFMA R16, R26, R16, R20 ;                             /* 0x000000101a10722b */\n                                                                                         /* 0x004f4c0000000014 */\n        /*0ed0*/                   DFMA R22, R32, R18, R16 ;                             /* 0x000000122016722b */\n                                                                                         /* 0x0200620000000010 */\n        /*0ee0*/              @!P3 BRA 0x950 ;                                           /* 0xfffffa600000b947 */\n                                                                                         /* 0x000fea000383ffff */\n        /*0ef0*/                   BSYNC B1 ;                                            /* 0x0000000000017941 */\n                                                                                         /* 0x000fea0003800000 */\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Warm-up is extra work outside timing. Same-input A*x repetitions and output overwrite are prescribed behavior.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_cuda_r2",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "d02c7f8fedb3c48242b4017f22463917ca522999e9da9f62e3678b1a16a79a67"
+  },
+  "binary_sha256": "3f2a7b8dc14c18c9eaa7701550c602d0ff9083b51e677d4823cc266da03d3ba4",
+  "binding_sha256": "cdcbf5d0a9819abb77c6ff18eb7a91a9393a20009ae87a9c7b6bafca18bba2f6",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "480c28c6a62c5d768e4dba9b1a9e1d97398d3aa02c38b30ccc22343bd61706b4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T07:00:03Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_cuda_r3",
+      "spmv_gpt-6.1-terra-ultra_hybrid_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all eight summaries. Primary check identified incomplete SASS citations in v1; Luna rechecked all eight, retaining v1 and supplying v2. Rechecked cuda_r3 host assembly 1505–1545 and SASS111–149: untimed warmup, counted timed launches, CSR loads, DFMA and sparse-loop back edge. Rechecked hybrid_r3 source234–249/443–455, host3460–3700 and SASS133–157/700–705/940–955: counted scalar and warp launch paths, synchronization, device loads/arithmetic and traversal back edges. No scientific disagreement; citation defect corrected before acceptance.",
+    "proposal_v1_sha256": "86167af916534fd89448586e48bf89e6b0d574729f0e690280d79282027299ba"
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_gpu",
+  "review_started_at": "2026-11-06T06:55:07Z",
+  "review_finished_at": "2026-11-06T06:58:32Z",
+  "review_input_sha256": "eb60717effeae03bc504dc186a19cceeb10b7643f2897a1ce3fa3125e8124f39",
+  "pack_sha256": "b6039eba931309a5e0a5d3c662d1d0bd5a750f73f479bcaa5224c110f97f6b00",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

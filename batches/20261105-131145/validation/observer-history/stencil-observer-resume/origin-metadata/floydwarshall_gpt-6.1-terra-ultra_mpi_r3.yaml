@@ -1,0 +1,64 @@
+---
+id: floydwarshall_gpt-6.1-terra-ultra_mpi_r3
+benchmark: floydwarshall
+model: gpt-6.1-terra-ultra
+par_type: mpi
+run: 3
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: floydwarshall-shape-mpi128-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '513'
+  definition:
+    id: floydwarshall-shape-mpi128-v1
+    benchmark: floydwarshall
+    args: *1
+    topology: measurement
+    timeout: 30
+    comparison: integer_hash
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object DistanceMatrix: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 11.388815000653267
+    argv:
+    - mpirun
+    - "--np"
+    - '128'
+    - "--map-by"
+    - ppr:64:socket:PE=1
+    - "--bind-to"
+    - core
+    - "--rank-by"
+    - slot
+    - "/tmp/local-external-validation-20261106-3059133-xhz1fu/floydwarshall"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '513'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-2f64bef7937c
+  reference_sha256: e5c9434947d07e4ccc39c5adcec71d4cd3af6b30e1aa47df7b1addd034ab0eda
+  logs:
+    validation_out_floydwarshall-shape-mpi128-v1_command.log: c9c5b00583b2275ab9e08859bc905af02f2e38d53c88628a5e58be9acf65e229
+    validation_out_floydwarshall-shape-mpi128-v1_stdout.log: fe1c11c4c4c20d924bd32c6343f943e00700a764afd450baab8a048a8b61759a
+    validation_out_floydwarshall-shape-mpi128-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_floydwarshall-shape-mpi128-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_floydwarshall-shape-mpi128-v1_wall_time.log: 44566203a15091246564f1550ed940a2e2b88db590d9639f599c25723f7c07e0
+full_array_validation:
+comparison_policy: floyd-integer-hash-v1
+completed_at: '2026-11-06T06:35:19+01:00'

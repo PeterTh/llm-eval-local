@@ -112,7 +112,7 @@ class ReleaseVerifier
       ensure_safe_relative!(relative)
       target = require_file(relative)
       equal!(batch.fetch("sha256"), LocalEvalArtifact.sha256(target), "Codex usage digest #{relative}")
-      entries = CodexUsage.load_records(target).values
+      entries = CodexUsageRecords.load_records(target).values
       equal!(batch.fetch("records"), entries.size, "Codex usage count #{relative}")
       equal!([batch.fetch("batch")], entries.map { |r| r.fetch("batch") }.uniq, "Codex usage batch #{relative}")
       equal!([batch.fetch("cli_version")], entries.map { |r| r.fetch("cli_version") }.uniq, "Codex CLI #{relative}")

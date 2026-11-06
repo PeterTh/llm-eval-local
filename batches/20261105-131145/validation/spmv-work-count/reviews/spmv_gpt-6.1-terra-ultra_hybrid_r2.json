@@ -1,0 +1,117 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_hybrid_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i bounds the timed CUDA launch loop on each rank with local rows. Contiguous rank boundaries span the row interval; each local kernel covers localRows and traverses local CSR. The pre-timing launch is additional warm-up work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          103,
+          116
+        ],
+        [
+          160,
+          177
+        ],
+        [
+          228,
+          264
+        ]
+      ],
+      "claim": "-i sets iterations, rank boundaries establish local row slices, and row offsets are rebased locally. Warm-up is before timing; local launch loop runs iterations times when localRows is nonzero.",
+      "sha256": "0b39cd884e2b870adcbaccee58f9178c25466e86b71bc8c233756e609d81bb8c",
+      "git_blob": "847447d4703de992c40041f6def5c5cf16b603b2"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "MPI_Wtime brackets the launch region; host counter increments and branches back until iterations is reached, followed by CUDA synchronization.",
+      "complete_dump_sha256": "77d5ea2462a8adb69497da7b738a3ac89950fa54c460fb64a77e3072bfbd195d",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_hybrid_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 665,
+          "last_line": 720,
+          "text": "    b830:\tjmp    *0xb74b2(%rip)        # c2ce8 <getpid@GLIBC_2.2.5>\n    b836:\tpush   $0x80\n    b83b:\tjmp    b020 <_init+0x20>\n\n000000000000b840 <pthread_mutex_lock@plt>:\n    b840:\tjmp    *0xb74aa(%rip)        # c2cf0 <pthread_mutex_lock@GLIBC_2.2.5>\n    b846:\tpush   $0x81\n    b84b:\tjmp    b020 <_init+0x20>\n\n000000000000b850 <pthread_mutexattr_settype@plt>:\n    b850:\tjmp    *0xb74a2(%rip)        # c2cf8 <pthread_mutexattr_settype@GLIBC_2.34>\n    b856:\tpush   $0x82\n    b85b:\tjmp    b020 <_init+0x20>\n\n000000000000b860 <pthread_mutexattr_destroy@plt>:\n    b860:\tjmp    *0xb749a(%rip)        # c2d00 <pthread_mutexattr_destroy@GLIBC_2.34>\n    b866:\tpush   $0x83\n    b86b:\tjmp    b020 <_init+0x20>\n\n000000000000b870 <pthread_mutex_init@plt>:\n    b870:\tjmp    *0xb7492(%rip)        # c2d08 <pthread_mutex_init@GLIBC_2.2.5>\n    b876:\tpush   $0x84\n    b87b:\tjmp    b020 <_init+0x20>\n\n000000000000b880 <fread@plt>:\n    b880:\tjmp    *0xb748a(%rip)        # c2d10 <fread@GLIBC_2.2.5>\n    b886:\tpush   $0x85\n    b88b:\tjmp    b020 <_init+0x20>\n\n000000000000b890 <pthread_rwlock_wrlock@plt>:\n    b890:\tjmp    *0xb7482(%rip)        # c2d18 <pthread_rwlock_wrlock@GLIBC_2.34>\n    b896:\tpush   $0x86\n    b89b:\tjmp    b020 <_init+0x20>\n\n000000000000b8a0 <gethostname@plt>:\n    b8a0:\tjmp    *0xb747a(%rip)        # c2d20 <gethostname@GLIBC_2.2.5>\n    b8a6:\tpush   $0x87\n    b8ab:\tjmp    b020 <_init+0x20>\n\n000000000000b8b0 <opendir@plt>:\n    b8b0:\tjmp    *0xb7472(%rip)        # c2d28 <opendir@GLIBC_2.2.5>\n    b8b6:\tpush   $0x88\n    b8bb:\tjmp    b020 <_init+0x20>\n\n000000000000b8c0 <setenv@plt>:\n    b8c0:\tjmp    *0xb746a(%rip)        # c2d30 <setenv@GLIBC_2.2.5>\n    b8c6:\tpush   $0x89\n    b8cb:\tjmp    b020 <_init+0x20>\n\n000000000000b8d0 <poll@plt>:\n    b8d0:\tjmp    *0xb7462(%rip)        # c2d38 <poll@GLIBC_2.2.5>\n    b8d6:\tpush   $0x8a\n    b8db:\tjmp    b020 <_init+0x20>\n\n000000000000b8e0 <pthread_cond_timedwait@plt>:\n    b8e0:\tjmp    *0xb745a(%rip)        # c2d40 <pthread_cond_timedwait@GLIBC_2.3.2>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-ptx.txt",
+      "claim": "PTX shows CSR loads and floating-point product accumulation in the sparse-entry path.",
+      "complete_dump_sha256": "19d02a168ad93fbf430778a64e5d49aa124974a594ee603bcfd93212b334a103",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-ptx",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_hybrid_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 95,
+          "last_line": 164,
+          "text": "add.s64 %rd74, %rd37, 1;\nsetp.eq.s64 %p4, %rd12, 1;\n@%p4 bra $L__BB0_7;\n\nld.global.nc.u32 %r11, [%rd41+4];\nmul.wide.u32 %rd50, %r11, 8;\nadd.s64 %rd51, %rd42, %rd50;\nld.global.nc.f64 %fd15, [%rd51];\nld.global.nc.f64 %fd16, [%rd13+8];\nmul.rn.f64 %fd17, %fd16, %fd15;\nadd.rn.f64 %fd39, %fd39, %fd17;\nadd.s64 %rd74, %rd37, 2;\nsetp.eq.s64 %p5, %rd12, 2;\n@%p5 bra $L__BB0_7;\n\nld.global.nc.u32 %r12, [%rd41+8];\nmul.wide.u32 %rd57, %r12, 8;\nadd.s64 %rd58, %rd42, %rd57;\nld.global.nc.f64 %fd18, [%rd58];\nld.global.nc.f64 %fd19, [%rd13+16];\nmul.rn.f64 %fd20, %fd19, %fd18;\nadd.rn.f64 %fd39, %fd39, %fd20;\nadd.s64 %rd74, %rd37, 3;\n\n$L__BB0_7:\nnot.b64 %rd59, %rd10;\nadd.s64 %rd60, %rd59, %rd11;\nsetp.lt.u64 %p6, %rd60, 3;\n@%p6 bra $L__BB0_10;\n\nshl.b64 %rd61, %rd74, 2;\nadd.s64 %rd76, %rd4, %rd61;\nshl.b64 %rd62, %rd74, 3;\nadd.s64 %rd75, %rd5, %rd62;\ncvta.to.global.u64 %rd20, %rd30;\n\n$L__BB0_9:\nld.global.nc.u32 %r13, [%rd76+-8];\nmul.wide.u32 %rd63, %r13, 8;\nadd.s64 %rd64, %rd20, %rd63;\nld.global.nc.f64 %fd21, [%rd64];\nld.global.nc.f64 %fd22, [%rd75+-16];\nmul.rn.f64 %fd23, %fd22, %fd21;\nadd.rn.f64 %fd24, %fd39, %fd23;\nld.global.nc.u32 %r14, [%rd76+-4];\nmul.wide.u32 %rd65, %r14, 8;\nadd.s64 %rd66, %rd20, %rd65;\nld.global.nc.f64 %fd25, [%rd66];\nld.global.nc.f64 %fd26, [%rd75+-8];\nmul.rn.f64 %fd27, %fd26, %fd25;\nadd.rn.f64 %fd28, %fd24, %fd27;\nld.global.nc.u32 %r15, [%rd76];\nmul.wide.u32 %rd67, %r15, 8;\nadd.s64 %rd68, %rd20, %rd67;\nld.global.nc.f64 %fd29, [%rd68];\nld.global.nc.f64 %fd30, [%rd75];\nmul.rn.f64 %fd31, %fd30, %fd29;\nadd.rn.f64 %fd32, %fd28, %fd31;\nld.global.nc.u32 %r16, [%rd76+4];\nmul.wide.u32 %rd69, %r16, 8;\nadd.s64 %rd70, %rd20, %rd69;\nld.global.nc.f64 %fd33, [%rd70];\nld.global.nc.f64 %fd34, [%rd75+8];\nmul.rn.f64 %fd35, %fd34, %fd33;\nadd.rn.f64 %fd39, %fd32, %fd35;\nadd.s64 %rd76, %rd76, 16;\nadd.s64 %rd75, %rd75, 32;\nadd.s64 %rd74, %rd74, 4;\nsetp.lt.u64 %p7, %rd74, %rd11;\n@%p7 bra $L__BB0_9;\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "SASS performs global sparse-data loads and DMUL/DADD accumulation (lines 115-177); its explicit backward BRA at line 781 (0x17c0 to 0x0130) retains traversal control flow.",
+      "complete_dump_sha256": "6b841747a976521fceb687fbcd5bfb9248a6bc5950cab22dacd63cc508ad7207",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_hybrid_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 115,
+          "last_line": 177,
+          "text": "        /*02f0*/                   LDG.E.CONSTANT R18, [R16.64] ;                      /* 0x0000000810127981 */\n                                                                                       /* 0x000ea2000c1e9900 */\n        /*0300*/                   IMAD.MOV.U32 R21, RZ, RZ, 0x8 ;                     /* 0x00000008ff157424 */\n                                                                                       /* 0x000fe200078e00ff */\n        /*0310*/                   LEA R10, P1, R6, c[0x0][0x160], 0x3 ;               /* 0x00005800060a7a11 */\n                                                                                       /* 0x000fc800078218ff */\n        /*0320*/                   LEA.HI.X R11, R6, c[0x0][0x164], R13, 0x3, P1 ;     /* 0x00005900060b7a11 */\n                                                                                       /* 0x000fca00008f1c0d */\n        /*0330*/                   LDG.E.64.CONSTANT R8, [R10.64] ;                    /* 0x000000080a087981 */\n                                                                                       /* 0x000ee2000c1e9b00 */\n        /*0340*/                   IMAD.WIDE.U32 R18, R18, R21, c[0x0][0x178] ;        /* 0x00005e0012127625 */\n                                                                                       /* 0x004fcc00078e0015 */\n        /*0350*/                   LDG.E.64.CONSTANT R18, [R18.64] ;                   /* 0x0000000812127981 */\n                                                                                       /* 0x000ee2000c1e9b00 */\n        /*0360*/                   ISETP.NE.U32.AND P1, PT, R12, 0x1, PT ;             /* 0x000000010c00780c */\n                                                                                       /* 0x000fc80003f25070 */\n        /*0370*/                   ISETP.NE.AND.EX P1, PT, RZ, RZ, PT, P1 ;            /* 0x000000ffff00720c */\n                                                                                       /* 0x000fe20003f25310 */\n        /*0380*/                   DMUL R14, R18, R8 ;                                 /* 0x00000008120e7228 */\n                                                                                       /* 0x0080640000000000 */\n        /*0390*/                   IADD3 R8, P2, R6, 0x20, RZ ;                        /* 0x0000002006087810 */\n                                                                                       /* 0x001fc80007f5e0ff */\n        /*03a0*/                   DADD R14, RZ, R14 ;                                 /* 0x00000000ff0e7229 */\n                                                                                       /* 0x002e22000000000e */\n        /*03b0*/                   IMAD.X R9, RZ, RZ, R13, P2 ;                        /* 0x000000ffff097224 */\n                                                                                       /* 0x000fca00010e060d */\n        /*03c0*/              @!P1 BRA 0x4f0 ;                                         /* 0x0000012000009947 */\n                                                                                       /* 0x000fea0003800000 */\n        /*03d0*/                   ISETP.NE.U32.AND P1, PT, R12, 0x2, PT ;             /* 0x000000020c00780c */\n                                                                                       /* 0x001fe20003f25070 */\n        /*03e0*/                   LDG.E.CONSTANT R18, [R16.64+0x80] ;                 /* 0x0000800810127981 */\n                                                                                       /* 0x000ea6000c1e9900 */\n        /*03f0*/                   ISETP.NE.AND.EX P1, PT, RZ, RZ, PT, P1 ;            /* 0x000000ffff00720c */\n                                                                                       /* 0x000fe20003f25310 */\n        /*0400*/                   LDG.E.64.CONSTANT R8, [R10.64+0x100] ;              /* 0x000100080a087981 */\n                                                                                       /* 0x000ed8000c1e9b00 */\n        /*0410*/               @P1 LDG.E.CONSTANT R20, [R16.64+0x100] ;                /* 0x0001000810141981 */\n                                                                                       /* 0x000f28000c1e9900 */\n        /*0420*/               @P1 LDG.E.64.CONSTANT R22, [R10.64+0x200] ;             /* 0x000200080a161981 */\n                                                                                       /* 0x000f62000c1e9b00 */\n        /*0430*/                   IMAD.WIDE.U32 R18, R18, R21, c[0x0][0x178] ;        /* 0x00005e0012127625 */\n                                                                                       /* 0x004fcc00078e0015 */\n        /*0440*/                   LDG.E.64.CONSTANT R18, [R18.64] ;                   /* 0x0000000812127981 */\n                                                                                       /* 0x000ee2000c1e9b00 */\n        /*0450*/               @P1 IMAD.WIDE.U32 R20, R20, R21, c[0x0][0x178] ;        /* 0x00005e0014141625 */\n                                                                                       /* 0x010fcc00078e0015 */\n        /*0460*/               @P1 LDG.E.64.CONSTANT R20, [R20.64] ;                   /* 0x0000000814141981 */\n                                                                                       /* 0x000f62000c1e9b00 */\n        /*0470*/                   DMUL R8, R18, R8 ;                                  /* 0x0000000812087228 */\n                                                                                       /* 0x008e0c0000000000 */\n        /*0480*/                   DADD R14, R14, R8 ;                                 /* 0x000000000e0e7229 */\n                                                                                       /* 0x0011e40000000008 */\n        /*0490*/                   IADD3 R8, P2, R6.reuse, 0x40, RZ ;                  /* 0x0000004006087810 */\n                                                                                       /* 0x041fe40007f5e0ff */\n        /*04a0*/               @P1 IADD3 R8, P3, R6, 0x60, RZ ;                        /* 0x0000006006081810 */\n                                                                                       /* 0x000fe20007f7e0ff */\n        /*04b0*/               @P1 DMUL R22, R20, R22 ;                                /* 0x0000001614161228 */\n                                                                                       /* 0x020e240000000000 */\n        /*04c0*/                   IMAD.X R9, RZ, RZ, R13.reuse, P2 ;                  /* 0x000000ffff097224 */\n                                                                                       /* 0x100fe400010e060d */\n        /*04d0*/               @P1 IMAD.X R9, RZ, RZ, R13, P3 ;                        /* 0x000000ffff091224 */\n                                                                                       /* 0x000fe400018e060d */\n        /*04e0*/               @P1 DADD R14, R14, R22 ;                                /* 0x000000000e0e1229 */\n"
+        },
+        {
+          "first_line": 775,
+          "last_line": 785,
+          "text": "        /*1790*/                   ISETP.GE.U32.AND P0, PT, R2, c[0x0][0x180], PT ;    /* 0x0000600002007a0c */\n                                                                                       /* 0x000fc80003f06070 */\n        /*17a0*/                   ISETP.GE.U32.AND.EX P0, PT, R3, RZ, PT, P0 ;        /* 0x000000ff0300720c */\n                                                                                       /* 0x000fda0003f06100 */\n        /*17b0*/               @P0 CALL.REL.NOINC 0x17d0 ;                             /* 0x0000001000000944 */\n                                                                                       /* 0x001fe20003c00000 */\n        /*17c0*/                   BRA 0x130 ;                                         /* 0xffffe96000007947 */\n                                                                                       /* 0x000fea000383ffff */\n        /*17d0*/                   EXIT ;                                              /* 0x000000000000794d */\n                                                                                       /* 0x000fea0003800000 */\n        /*17e0*/                   IMAD.MOV.U32 R11, RZ, RZ, R15 ;                     /* 0x000000ffff0b7224 */\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Ranks with zero rows skip local launches, while the row partitions collectively cover the matrix. Warm-up is extra work. Same-input repetition is prescribed.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_hybrid_r2",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "7f3b69825b33aef63c21d853cee2ce251dcc9c44896de35bef2a8696677b3ba3"
+  },
+  "binary_sha256": "67ba4683dfb084b9162d763e36a09e4c914bfa957b6aeccf9b57f243142570f0",
+  "binding_sha256": "52a0b5e326f198fb9bd5d3ec3482fd75316d538843e23b1bd904b7f8b5758568",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "480c28c6a62c5d768e4dba9b1a9e1d97398d3aa02c38b30ccc22343bd61706b4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T07:00:03Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_cuda_r3",
+      "spmv_gpt-6.1-terra-ultra_hybrid_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all eight summaries. Primary check identified incomplete SASS citations in v1; Luna rechecked all eight, retaining v1 and supplying v2. Rechecked cuda_r3 host assembly 1505–1545 and SASS111–149: untimed warmup, counted timed launches, CSR loads, DFMA and sparse-loop back edge. Rechecked hybrid_r3 source234–249/443–455, host3460–3700 and SASS133–157/700–705/940–955: counted scalar and warp launch paths, synchronization, device loads/arithmetic and traversal back edges. No scientific disagreement; citation defect corrected before acceptance.",
+    "proposal_v1_sha256": "86167af916534fd89448586e48bf89e6b0d574729f0e690280d79282027299ba"
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_gpu",
+  "review_started_at": "2026-11-06T06:55:07Z",
+  "review_finished_at": "2026-11-06T06:58:32Z",
+  "review_input_sha256": "eb60717effeae03bc504dc186a19cceeb10b7643f2897a1ce3fa3125e8124f39",
+  "pack_sha256": "1e4f295da4766e54e663e668a3ee0355e9ef72f6b865db16de415dbac91539d2",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

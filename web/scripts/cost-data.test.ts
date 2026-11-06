@@ -99,6 +99,20 @@ function nativeContextFixture() {
 }
 
 describe("cost data generation", () => {
+  it("requires bound native tree evidence before pricing recorded lower bounds", () => {
+    const profile = splitProfile();
+    const row = { model: "model-a", benchmark: "bench", par_type: "cpu", run: "1", overall_score: "7",
+      input_tokens: "100", cached_tokens: "80", output_tokens: "20", total_tokens: "120",
+      token_usage_source: "codex_rollout_unique_thread_requests", token_usage_complete: "false" };
+    const profiles = new Map([[profile.id, profile]]);
+    expect(() => costRunFromScoredRow(row, profiles, {}, {}, 0, 10)).toThrow(/bound native tree/);
+    const usage = { source: "codex_rollout_unique_thread_requests" as const, accountingScope: "parent_and_descendants" as const,
+      usageComplete: false, recordedSessions: 2, recordedRequests: 4, interruptedSessions: 1, recordedTotalTokens: 120,
+      evidenceSha256: "a".repeat(64), evidenceUrl: "https://example.test/usage.jsonl#L1" };
+    expect(costRunFromScoredRow(row, profiles, {}, {}, 0, 10, new Map(), usage)).toMatchObject({
+      estimatedCostUsd: .000108, usageComplete: false, accountingScope: "parent_and_descendants" });
+    expect(() => costRunFromScoredRow(row, profiles, {}, {}, 0, 10, new Map(), { ...usage, recordedTotalTokens: 100 })).toThrow(/bound tree token/);
+  });
   it("prices exact native request outputs without inferring list-cost splits", () => {
     const { profile, evidence, tokens } = nativeContextFixture();
     expect(estimateContextRunCost(tokens, profile, evidence)).toBe(0.0114855);

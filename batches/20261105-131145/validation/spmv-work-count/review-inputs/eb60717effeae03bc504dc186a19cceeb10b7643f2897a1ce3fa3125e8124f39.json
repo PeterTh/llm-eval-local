@@ -1,0 +1,560 @@
+{
+  "reviewer": "/root/terra_ultra_spmv_gpu",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-06T06:55:07Z",
+  "review_finished_at": "2026-11-06T06:58:32Z",
+  "review_timing_metadata": {
+    "review_started_at_status": "clock_observed",
+    "review_finished_at_status": "clock_observed",
+    "duration": "not_measured"
+  },
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i is parsed into iterations, and the timed event interval encloses a host loop that invokes the selected launch dispatcher once per iteration. The kernel's row groups cover dim and traverse each assigned CSR row. The separate first-use launch precedes timing; no timed iteration is omitted or hoisted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              202,
+              217
+            ],
+            [
+              20,
+              52
+            ],
+            [
+              289,
+              320
+            ]
+          ],
+          "claim": "-i populates iterations; the lane-width dispatcher selects a kernel; its row and CSR loops cover rows to dim. A warm-up precedes the event interval, whose for-loop launches once per iter."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1580,
+              1669
+            ]
+          ],
+          "claim": "Timed main launch path invokes the CUDA stub, increments and checks the host iteration counter, and returns to dispatch another launch until the bound is reached."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              98,
+              170
+            ]
+          ],
+          "claim": "PTX shows row-delimiter/CSR loads and fma instructions in the sparse-entry work; the PTX excerpt is used for the operations, not as the SASS branch citation."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              155,
+              215
+            ],
+            [
+              490,
+              500
+            ]
+          ],
+          "claim": "The sm_86 kernel performs CSR global loads and DFMA accumulation (e.g. lines 163-177), and the traversal has an explicit backward BRA from 0x0ee0 to 0x0950 at line 497."
+        }
+      ],
+      "notes": "Warm-up is extra work outside timing. Same-input A*x repetitions and output overwrite are prescribed behavior."
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i is parsed into iterations and the timed host loop calls the selected density-specific launch once per pass when numRows is nonzero. The kernel assigns work across the full dimension and traverses CSR entries. Warm-up is outside timing.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              224,
+              240
+            ],
+            [
+              115,
+              143
+            ],
+            [
+              289,
+              322
+            ]
+          ],
+          "claim": "The CLI stores -i in iterations; the selected kernel strides over row groups through numRows and traverses CSR entries. A warm-up precedes the timed for-loop, which launches once per requested iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1505,
+              1545
+            ]
+          ],
+          "claim": "Compiled main dispatches a warm-up, then calls the selected density launcher inside counted timed control; the counter comparison branches back for another launch until the requested bound."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              84,
+              139
+            ]
+          ],
+          "claim": "PTX shows CSR loads and fma operations for sparse-entry work."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              111,
+              149
+            ]
+          ],
+          "claim": "The emitted device code loads CSR data, executes DFMA at line 145, and has an explicit traversal backedge at line 147 (BRA 0x03f0 to 0x02d0)."
+        }
+      ],
+      "notes": "The one-time warm-up is outside the timed interval and is additional work. Repeating same-input A*x with output overwrite is prescribed benchmark behavior."
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i bounds a timed for-loop that dispatches the selected-width CUDA launch on every pass when hasWork is true. The kernel strides across rows to numRows and processes each row's CSR range. Warm-up precedes timing.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              22,
+              44
+            ],
+            [
+              189,
+              201
+            ],
+            [
+              251,
+              304
+            ]
+          ],
+          "claim": "The kernel strides across rows and CSR entries; -i populates iterations. A warm-up launch occurs before the timer; then the timed loop calls the selected dispatcher once per iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1310,
+              1340
+            ]
+          ],
+          "claim": "Main's compiled path performs the warm-up before the timed region; inside timing, it calls the launch lambda, increments the counter and branches back while the requested count remains."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              88,
+              158
+            ]
+          ],
+          "claim": "PTX shows sparse row/entry loads and fma operations."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              133,
+              157
+            ],
+            [
+              465,
+              475
+            ]
+          ],
+          "claim": "SASS shows global CSR accesses and DFMA work (lines 133-155), plus the backward traversal BRA 0x0e10 to 0x0880 at line 471."
+        }
+      ],
+      "notes": "The warm-up is extra and untimed. Same-input A*x with output overwrite is prescribed behavior."
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i is parsed into iterations, and the timed region launches the selected CUDA kernel once per iteration when dimensions/count are nonzero. The row-strided kernel covers all rows and traverses their CSR entries. No separate warm-up exists in this version, but no timed work is omitted.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              105,
+              138
+            ],
+            [
+              209,
+              221
+            ],
+            [
+              271,
+              305
+            ]
+          ],
+          "claim": "-i stores the requested count; the kernel distributes rows across lanes and visits each row's CSR entries. The timed loop launches once per iter and synchronizes before stopping timing."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1680,
+              1810
+            ]
+          ],
+          "claim": "The main launch path contains the timed host counter comparison/backedge and repeats selected CUDA launch dispatch until iterations is reached."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              85,
+              140
+            ]
+          ],
+          "claim": "PTX shows CSR loads and fma instructions in sparse traversal."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              113,
+              149
+            ]
+          ],
+          "claim": "The compiled kernel loads CSR data, executes DFMA at line 147, and has an explicit backward branch at line 149 (BRA 0x0400 to 0x02e0)."
+        }
+      ],
+      "notes": "Repeated A*x with unchanged inputs and output overwrite is prescribed behavior."
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i bounds the timed CUDA launch loop on each rank with local rows. Contiguous rank boundaries span the row interval; each local kernel covers localRows and traverses local CSR. The pre-timing launch is additional warm-up work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              103,
+              116
+            ],
+            [
+              160,
+              177
+            ],
+            [
+              228,
+              264
+            ]
+          ],
+          "claim": "-i sets iterations, rank boundaries establish local row slices, and row offsets are rebased locally. Warm-up is before timing; local launch loop runs iterations times when localRows is nonzero."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              665,
+              720
+            ]
+          ],
+          "claim": "MPI_Wtime brackets the launch region; host counter increments and branches back until iterations is reached, followed by CUDA synchronization."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              95,
+              164
+            ]
+          ],
+          "claim": "PTX shows CSR loads and floating-point product accumulation in the sparse-entry path."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              115,
+              177
+            ],
+            [
+              775,
+              785
+            ]
+          ],
+          "claim": "SASS performs global sparse-data loads and DMUL/DADD accumulation (lines 115-177); its explicit backward BRA at line 781 (0x17c0 to 0x0130) retains traversal control flow."
+        }
+      ],
+      "notes": "Ranks with zero rows skip local launches, while the row partitions collectively cover the matrix. Warm-up is extra work. Same-input repetition is prescribed."
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Main calls run(1) before the barrier/timer and run(iterations) inside timing. The compiled run method retains separate scalar and warp launch paths under the counted loop. MPI partitions contiguous row slices; both selected device kernels traverse their CSR rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              234,
+              249
+            ],
+            [
+              179,
+              200
+            ],
+            [
+              370,
+              424
+            ],
+            [
+              443,
+              455
+            ]
+          ],
+          "claim": "GpuSpmv::run launches once per i in the requested range when rows exist. Main's run(1) is before MPI_Barrier/MPI_Wtime; run(iterations) is timed. Distributed offsets define local CSR row partitions."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1750,
+              1770
+            ],
+            [
+              3460,
+              3700
+            ]
+          ],
+          "claim": "Main calls run(1) before MPI_Wtime and run(iterations) between timer calls; GpuSpmv::run has a counted launch loop and both scalar and warp launch branches in the cited method body."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              66,
+              100
+            ],
+            [
+              156,
+              228
+            ]
+          ],
+          "claim": "The scalar and warp PTX entries show CSR loads and fma operations; these PTX ranges do not stand in for the SASS branch evidence."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              133,
+              157
+            ],
+            [
+              700,
+              705
+            ],
+            [
+              940,
+              955
+            ]
+          ],
+          "claim": "The warp entry performs sparse loads and DFMA, with a backward branch in its traversal at line 701 (0x1540 to 0x01c0); the scalar entry performs DFMA at line 952 and branches backward at line 954 (0x0300 to 0x0230)."
+        }
+      ],
+      "notes": "The extra run(1) is outside timing. Ranks with empty local slices launch no row work. Repeated same-input A*x/output overwrite is prescribed behavior."
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i is parsed into iterations; after a warm-up, MPI timing encloses a loop that dispatches the scalar or warp kernel once per iteration for ranks with local rows. RowStart-derived slices are contiguous and span the matrix.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              165,
+              192
+            ],
+            [
+              245,
+              263
+            ],
+            [
+              313,
+              379
+            ]
+          ],
+          "claim": "The kernels stride over local rows and CSR entries; rowStart determines rank slices. A warm-up precedes the timed interval, where the selected kernel is launched exactly iterations times."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1714,
+              1793
+            ]
+          ],
+          "claim": "MPI_Wtime brackets the repeated host launch path, whose counter increments and compares to the parsed iteration count while dispatching scalar/warp stubs."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              95,
+              157
+            ],
+            [
+              282,
+              342
+            ]
+          ],
+          "claim": "Scalar and warp PTX entries show CSR accesses and fma operations in both sparse traversal bodies."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              87,
+              115
+            ],
+            [
+              230,
+              236
+            ],
+            [
+              420,
+              465
+            ],
+            [
+              738,
+              748
+            ]
+          ],
+          "claim": "Scalar SASS has CSR loads and DMUL/DADD accumulation, plus a backward BRA at line 235 (0x06b0 to 0x0440); warp SASS has CSR loads/DFMA (lines 420-462) and a backward traversal BRA at line 744 (0x0e70 to 0x08e0)."
+        }
+      ],
+      "notes": "A rank with no local rows skips its launch; the collective partitions still cover all rows. Warm-up is extra and untimed."
+    },
+    {
+      "id": "spmv_gpt-6.1-terra-ultra_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i bounds the timed host loop dispatching a scalar or warp launch once per iteration when local blocks exist. Work-balanced boundaries assign contiguous ordered rows from zero through numRows, and each rank's kernel traverses its CSR rows. The warm-up is before MPI_Wtime.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              80,
+              110
+            ],
+            [
+              139,
+              146
+            ],
+            [
+              200,
+              218
+            ],
+            [
+              276,
+              299
+            ]
+          ],
+          "claim": "The kernels cover local rows and their CSR entries. -i stores iterations; monotone boundaries finish at numRows and define localRows. Conditional warm-up precedes timing; timed dispatch loops once per iter."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1720,
+              1855
+            ]
+          ],
+          "claim": "MPI_Wtime brackets the repeated main launch path; host loop control increments and compares the iteration counter while dispatching selected scalar/warp stubs."
+        },
+        {
+          "file": "device-ptx.txt",
+          "ranges": [
+            [
+              86,
+              140
+            ],
+            [
+              220,
+              280
+            ]
+          ],
+          "claim": "Warp and scalar PTX show CSR loads and fma operations in the entry traversal bodies."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              133,
+              157
+            ],
+            [
+              468,
+              475
+            ],
+            [
+              940,
+              988
+            ],
+            [
+              1338,
+              1348
+            ]
+          ],
+          "claim": "Warp SASS has sparse loads/DFMA and a backward traversal branch at line 471 (0x0e10 to 0x0880). Scalar SASS has CSR data/multiply-accumulate work and a backward branch at line 1346 (0x0f40 to 0x0710)."
+        }
+      ],
+      "notes": "Empty local partitions launch no work, but partitions cover the full row interval. Warm-up is extra; same-input overwrite is prescribed."
+    }
+  ],
+  "proposal_sha256": "480c28c6a62c5d768e4dba9b1a9e1d97398d3aa02c38b30ccc22343bd61706b4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T07:00:03Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_cuda_r3",
+      "spmv_gpt-6.1-terra-ultra_hybrid_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all eight summaries. Primary check identified incomplete SASS citations in v1; Luna rechecked all eight, retaining v1 and supplying v2. Rechecked cuda_r3 host assembly 1505–1545 and SASS111–149: untimed warmup, counted timed launches, CSR loads, DFMA and sparse-loop back edge. Rechecked hybrid_r3 source234–249/443–455, host3460–3700 and SASS133–157/700–705/940–955: counted scalar and warp launch paths, synchronization, device loads/arithmetic and traversal back edges. No scientific disagreement; citation defect corrected before acceptance.",
+    "proposal_v1_sha256": "86167af916534fd89448586e48bf89e6b0d574729f0e690280d79282027299ba"
+  }
+}

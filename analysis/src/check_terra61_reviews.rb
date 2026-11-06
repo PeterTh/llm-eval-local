@@ -6,7 +6,8 @@ root = File.expand_path('../..', __dir__)
 winners = JSON.parse(File.read(File.join(root, 'release/winners.json')))
 {
   'medium' => '2026-10-29-terra61-codex-winner-context.json',
-  'xhigh' => '2026-11-02-terra61-xhigh-codex-winner-context.json'
+  'xhigh' => '2026-11-02-terra61-xhigh-codex-winner-context.json',
+  'ultra' => '2026-11-06-terra61-ultra-codex-winner-context.json'
 }.each do |effort, filename|
   context = JSON.parse(File.read(File.join(root, 'analysis/notes', filename)))
   reviews = context.fetch('reviews')

@@ -28,4 +28,15 @@ class Terra61SupplementTest < Minitest::Test
       Terra61Supplement.run(root: "/nonexistent", home: "/nonexistent", phase: "audit", batch_id: "unknown")
     end
   end
+
+  def test_ultra_has_separate_tree_accounting_and_source_identity
+    configuration = Terra61Supplement::CAMPAIGNS.fetch('20261105-131145')
+    assert_equal 'e8a5a56facfc3feedc8de8dc0cca41af590acd66', configuration.fetch('original')
+    assert_equal 'gpt-6.1-terra-ultra', configuration.fetch('profile')
+    assert_equal 'ultra', configuration.fetch('effort')
+    assert_equal true, configuration.fetch('tree_usage')
+    assert_equal '20261106-terra61-ultra-codex', configuration.fetch('audit')
+    assert configuration.frozen?
+    refute Terra61Supplement::CAMPAIGNS.fetch('20261102-030935').fetch('tree_usage', false)
+  end
 end

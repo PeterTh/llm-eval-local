@@ -65,6 +65,23 @@ class BatchGenerationTest < Minitest::Test
     assert_match(/identity differs/, assert_raises(RuntimeError) { verify }.message)
   end
 
+  def test_completed_native_tree_preserves_interruption_uncertainty_without_a_generation_failure
+    record = @record.merge('schema_version' => 2, 'interrupted_request_usage_uncertain' => true)
+    observation = @observation.merge('outcome' => 'completed')
+    row = @row.merge('token_usage_complete' => 'false', 'partial_token_counts' => JSON.generate(record.fetch('usage')))
+    check = ->(candidate) { @release.verify_codex_tree_completeness!(observation, candidate, record) }
+    CodexTreeUsage.stub(:validate_record!, record) do
+      check.call(row)
+      assert_raises(RuntimeError) { check.call(row.merge('token_usage_complete' => 'true')) }
+      assert_raises(RuntimeError) { check.call(row.merge('partial_token_counts' => '{}')) }
+      assert_raises(RuntimeError) { check.call(row.merge('generation_outcome' => 'generation_model_terminated')) }
+      assert_raises(RuntimeError) { check.call(row.merge('generation_failure_reason' => 'invented')) }
+      record['interrupted_request_usage_uncertain'] = false
+      assert_raises(RuntimeError) { check.call(row.merge('token_usage_complete' => 'true')) }
+      check.call(row.merge('token_usage_complete' => 'true', 'partial_token_counts' => nil))
+    end
+  end
+
   def test_rejects_unmatched_session_or_scope
     @row["token_usage_session_id"] = "another"
     assert_match(/provenance differs/, assert_raises(RuntimeError) { verify }.message)

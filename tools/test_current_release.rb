@@ -43,6 +43,27 @@ class CurrentReleaseTest < Minitest::Test
     assert_output(/Current release verified/) { CurrentRelease.new(ROOT).run(check: true, require_reviews: true) }
   end
 
+  def test_native_tree_completion_is_bound_and_does_not_change_usage_or_raw_evidence
+    release = CurrentRelease.new(ROOT)
+    campaign = JSON.parse(File.read(File.join(ROOT, "release/catalog.json"))).fetch("campaigns")
+      .find { |entry| entry.fetch("id") == "20261105-131145" }
+    aggregate = File.join(ROOT, campaign.fetch("aggregate_csv"))
+    digest = Digest::SHA256.file(aggregate).hexdigest
+    rows = CSV.read(aggregate, headers: true).map(&:to_h)
+    before = Marshal.load(Marshal.dump(rows))
+    assert_equal 220, rows.size
+    assert rows.all? { |row| row["generation_outcome"].to_s.empty? }
+    release.normalize_codex_tree_outcomes!(campaign, rows)
+    assert rows.all? { |row| row.fetch("generation_outcome") == "completed" }
+    assert_equal 49, rows.count { |row| row.fetch("token_usage_complete") == "false" }
+    assert_equal before.map { |row| row.except("generation_outcome") }, rows.map { |row| row.except("generation_outcome") }
+    assert_equal digest, Digest::SHA256.file(aggregate).hexdigest
+    rows.first["generation_outcome"] = "generation_model_terminated"
+    assert_match(/generation did not complete/, assert_raises(RuntimeError) {
+      release.normalize_codex_tree_outcomes!(campaign, rows)
+    }.message)
+  end
+
   def test_terra61_xhigh_retains_native_boundary_validation
     batch = File.join(ROOT, "batches/20261102-030935")
     records = LocalEvalArtifact.read_jsonl(File.join(batch, "validation/records.jsonl"))

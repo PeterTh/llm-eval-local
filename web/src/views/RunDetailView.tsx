@@ -176,7 +176,7 @@ export function RunDetailView() {
                   ? "No token or cost record"
                   : costRun.estimatedCostUsd === null
                     ? "Estimated API cost unavailable"
-                    : `${formatUsd(costRun.estimatedCostUsd)} estimated API cost`}
+                    : `${costRun.usageComplete === false ? "≥ " : ""}${formatUsd(costRun.estimatedCostUsd)} estimated API cost`}
           </h2>
           <p>
             {costError
@@ -204,6 +204,13 @@ export function RunDetailView() {
           {run.generationTermination && <p>
             Usage is incomplete: at least {formatCount(run.generationTermination.partialTotalTokens)} tokens are recorded from completed requests.
             This lower bound is not used as a full-task cost estimate.
+          </p>}
+          {run.generationUsage && <p>
+            Recorded usage includes the parent and child agents: {formatCount(run.generationUsage.recordedRequests)} requests
+            {" "}across {formatCount(run.generationUsage.recordedSessions)} sessions.
+            {!run.generationUsage.usageComplete && <> An interrupted child request may have unrecorded usage;
+              these token counts and the API-equivalent cost are lower bounds.</>}
+            {" "}<a href={run.generationUsage.evidenceUrl} target="_blank" rel="noreferrer">Usage evidence ↗</a>
           </p>}
         </section>
 

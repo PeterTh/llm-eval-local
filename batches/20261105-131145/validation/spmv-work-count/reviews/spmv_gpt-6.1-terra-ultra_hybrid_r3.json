@@ -1,0 +1,136 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_hybrid_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Main calls run(1) before the barrier/timer and run(iterations) inside timing. The compiled run method retains separate scalar and warp launch paths under the counted loop. MPI partitions contiguous row slices; both selected device kernels traverse their CSR rows.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          234,
+          249
+        ],
+        [
+          179,
+          200
+        ],
+        [
+          370,
+          424
+        ],
+        [
+          443,
+          455
+        ]
+      ],
+      "claim": "GpuSpmv::run launches once per i in the requested range when rows exist. Main's run(1) is before MPI_Barrier/MPI_Wtime; run(iterations) is timed. Distributed offsets define local CSR row partitions.",
+      "sha256": "8d82a54dc1a4792ce5940b294b6ee1be8d6267423ceec4e141c1571bd6487739",
+      "git_blob": "d2401fb4ff3982b9ab657b2c05106a64bd108217"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Main calls run(1) before MPI_Wtime and run(iterations) between timer calls; GpuSpmv::run has a counted launch loop and both scalar and warp launch branches in the cited method body.",
+      "complete_dump_sha256": "760ae695068d4cb658e619e71532d4dbc461cf0e47a4dddaf2eb39987d284d42",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_hybrid_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1750,
+          "last_line": 1770,
+          "text": "    cae4:\tmov    %rax,-0x228(%rbp)\n    caeb:\tcall   e590 <GpuSpmv::GpuSpmv(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, unsigned int, int)>\n    caf0:\tadd    $0x20,%rsp\n    caf4:\tcmpl   $0x0,-0x200(%rbp)\n    cafb:\tje     d21d <main+0x14fd>\n    cb01:\tcmpl   $0x0,-0x230(%rbp)\n    cb08:\tje     cb1b <main+0xdfb>\n    cb0a:\tmov    -0x268(%rbp),%rdi\n    cb11:\tmov    $0x1,%esi\n    cb16:\tcall   e7f0 <GpuSpmv::run(unsigned int)>\n    cb1b:\tlea    0xabf5e(%rip),%rdi        # b8a80 <ompi_mpi_comm_world@@Base>\n    cb22:\tcall   b3a0 <MPI_Barrier@plt>\n    cb27:\tcall   b6f0 <MPI_Wtime@plt>\n    cb2c:\tmov    -0x230(%rbp),%esi\n    cb32:\tmov    -0x268(%rbp),%rdi\n    cb39:\tmovsd  %xmm0,-0x228(%rbp)\n    cb41:\tcall   e7f0 <GpuSpmv::run(unsigned int)>\n    cb46:\tcall   b6f0 <MPI_Wtime@plt>\n    cb4b:\tsubsd  -0x228(%rbp),%xmm0\n    cb53:\txor    %r9d,%r9d\n    cb56:\tmov    $0x1,%edx\n"
+        },
+        {
+          "first_line": 3460,
+          "last_line": 3700,
+          "text": "000000000000e7f0 <GpuSpmv::run(unsigned int)>:\n    e7f0:\tendbr64\n    e7f4:\tpush   %r15\n    e7f6:\tpush   %r14\n    e7f8:\tpush   %r13\n    e7fa:\tpush   %r12\n    e7fc:\tpush   %rbp\n    e7fd:\tpush   %rbx\n    e7fe:\tsub    $0x148,%rsp\n    e805:\tmov    %fs:0x28,%rax\n    e80e:\tmov    %rax,0x138(%rsp)\n    e816:\txor    %eax,%eax\n    e818:\tmov    (%rdi),%eax\n    e81a:\ttest   %eax,%eax\n    e81c:\tje     ea6d <GpuSpmv::run(unsigned int)+0x27d>\n    e822:\tmov    %esi,%ebp\n    e824:\ttest   %esi,%esi\n    e826:\tje     ea6d <GpuSpmv::run(unsigned int)+0x27d>\n    e82c:\tmov    0x4(%rdi),%edx\n    e82f:\tlea    0x0(,%rax,4),%rcx\n    e837:\tmov    %rdi,%r14\n    e83a:\tcmp    %rdx,%rcx\n    e83d:\tjb     eaa8 <GpuSpmv::run(unsigned int)+0x2b8>\n    e843:\tlea    0x58(%rsp),%rdx\n    e848:\tlea    0x50(%rsp),%rcx\n    e84d:\tadd    $0xff,%rax\n    e853:\tmov    0x841ce(%rip),%r12        # 92a28 <libcudart_static_71f028fdd4617209d54f8c1be3ec8f7a667e1384+0x38>\n    e85a:\tmovq   %rdx,%xmm2\n    e85f:\tlea    0x68(%rsp),%rdx\n    e864:\tshr    $0x8,%rax\n    e868:\tmovq   %rcx,%xmm0\n    e86d:\tmovq   %rdx,%xmm3\n    e872:\tlea    0x70(%rsp),%rdx\n    e877:\tlea    0x60(%rsp),%rcx\n    e87c:\tmovabs $0x100000001,%r13\n    e886:\tmovq   %rdx,%xmm4\n    e88b:\tmov    $0xffff,%edx\n    e890:\tmovq   %rcx,%xmm1\n    e895:\tlea    0x48(%rsp),%rcx\n    e89a:\tpunpcklqdq %xmm2,%xmm0\n    e89e:\tpunpcklqdq %xmm3,%xmm1\n    e8a2:\tcmp    %rdx,%rax\n    e8a5:\tcmovbe %rax,%rdx\n    e8a9:\tmovq   %rcx,%xmm2\n    e8ae:\tmovaps %xmm0,0x20(%rsp)\n    e8b3:\txor    %r15d,%r15d\n    e8b6:\tlea    0xa8(%rsp),%rax\n    e8be:\tpunpcklqdq %xmm4,%xmm2\n    e8c2:\tmovaps %xmm1,0x10(%rsp)\n    e8c7:\tmov    %rax,0x30(%rsp)\n    e8cc:\tlea    0xa0(%rsp),%rax\n    e8d4:\tmov    %rdx,%rbx\n    e8d7:\tmov    %rax,0x38(%rsp)\n    e8dc:\tmovaps %xmm2,(%rsp)\n    e8e0:\tjmp    e8f5 <GpuSpmv::run(unsigned int)+0x105>\n    e8e2:\tnopw   0x0(%rax,%rax,1)\n    e8e8:\tadd    $0x1,%r15d\n    e8ec:\tcmp    %ebp,%r15d\n    e8ef:\tjae    ea60 <GpuSpmv::run(unsigned int)+0x270>\n    e8f5:\tmov    %ebx,0xdc(%rsp)\n    e8fc:\txor    %r9d,%r9d\n    e8ff:\txor    %r8d,%r8d\n    e902:\tmov    %r12,%rdx\n    e905:\tmov    %r13,0xe0(%rsp)\n    e90d:\tmov    $0x1,%ecx\n    e912:\tmov    0xdc(%rsp),%rdi\n    e91a:\tmov    0xe4(%rsp),%esi\n    e921:\tmov    %r12,0xb0(%rsp)\n    e929:\tmovl   $0x1,0xb8(%rsp)\n    e934:\tcall   23200 <__cudaPushCallConfiguration>\n    e939:\ttest   %eax,%eax\n    e93b:\tjne    e8e8 <GpuSpmv::run(unsigned int)+0xf8>\n    e93d:\tmov    0x18(%r14),%rax\n    e941:\tmov    (%r14),%edx\n    e944:\tmovl   $0x1,0xc8(%rsp)\n    e94f:\tmov    0x10(%r14),%rcx\n    e953:\tmov    0x28(%r14),%rsi\n    e957:\tmovl   $0x1,0xd8(%rsp)\n    e962:\tmov    0x20(%r14),%rdi\n    e966:\tmov    0x8(%r14),%r8\n    e96a:\tmov    %edx,0x48(%rsp)\n    e96e:\tmovdqa 0x20(%rsp),%xmm7\n    e974:\tmovdqa (%rsp),%xmm1\n    e979:\tmov    %rcx,0x68(%rsp)\n    e97e:\tmovdqa 0x10(%rsp),%xmm0\n    e984:\tmov    0x30(%rsp),%rcx\n    e989:\tmov    %rax,0x70(%rsp)\n    e98e:\tmov    0x38(%rsp),%rdx\n    e993:\tmov    0x84076(%rip),%rax        # 92a10 <libcudart_static_71f028fdd4617209d54f8c1be3ec8f7a667e1384+0x20>\n    e99a:\tmov    %rdi,0x58(%rsp)\n    e99f:\tlea    0xc0(%rsp),%rdi\n    e9a7:\tmov    %rsi,0x60(%rsp)\n    e9ac:\tlea    0xd0(%rsp),%rsi\n    e9b4:\tmov    %r8,0x50(%rsp)\n    e9b9:\tmov    %rax,0xc0(%rsp)\n    e9c1:\tmov    %rax,0xd0(%rsp)\n    e9c9:\tmovaps %xmm7,0x100(%rsp)\n    e9d1:\tmovaps %xmm0,0x110(%rsp)\n    e9d9:\tmovaps %xmm1,0x120(%rsp)\n    e9e1:\tcall   23290 <__cudaPopCallConfiguration>\n    e9e6:\ttest   %eax,%eax\n    e9e8:\tjne    e8e8 <GpuSpmv::run(unsigned int)+0xf8>\n    e9ee:\tmov    0xc0(%rsp),%rsi\n    e9f6:\tmov    0xc8(%rsp),%edx\n    e9fd:\tlea    -0xb74(%rip),%rdi        # de90 <spmvThreadKernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    ea04:\tadd    $0x1,%r15d\n    ea08:\tmov    0xd0(%rsp),%rcx\n    ea10:\tmov    0xd8(%rsp),%r8d\n    ea18:\tmov    %rsi,0xf4(%rsp)\n    ea20:\tmov    %edx,0xfc(%rsp)\n    ea27:\tmov    %rcx,0xe8(%rsp)\n    ea2f:\tmov    %r8d,0xf0(%rsp)\n    ea37:\tpush   0xa8(%rsp)\n    ea3e:\tpush   0xa8(%rsp)\n    ea45:\tlea    0x110(%rsp),%r9\n    ea4d:\tcall   78980 <cudaLaunchKernel>\n    ea52:\tpop    %rax\n    ea53:\tpop    %rdx\n    ea54:\tcmp    %ebp,%r15d\n    ea57:\tjb     e8f5 <GpuSpmv::run(unsigned int)+0x105>\n    ea5d:\tnopl   (%rax)\n    ea60:\tcall   515d0 <cudaGetLastError>\n    ea65:\ttest   %eax,%eax\n    ea67:\tjne    ecf7 <GpuSpmv::run(unsigned int)+0x507>\n    ea6d:\tcall   4e870 <cudaDeviceSynchronize>\n    ea72:\ttest   %eax,%eax\n    ea74:\tjne    ecd1 <GpuSpmv::run(unsigned int)+0x4e1>\n    ea7a:\tmov    0x138(%rsp),%rax\n    ea82:\tsub    %fs:0x28,%rax\n    ea8b:\tjne    ecf2 <GpuSpmv::run(unsigned int)+0x502>\n    ea91:\tadd    $0x148,%rsp\n    ea98:\tpop    %rbx\n    ea99:\tpop    %rbp\n    ea9a:\tpop    %r12\n    ea9c:\tpop    %r13\n    ea9e:\tpop    %r14\n    eaa0:\tpop    %r15\n    eaa2:\tret\n    eaa3:\tnopl   0x0(%rax,%rax,1)\n    eaa8:\tlea    0x78(%rsp),%rcx\n    eaad:\tlea    0x80(%rsp),%rdx\n    eab5:\tadd    $0x7,%rax\n    eab9:\tmov    0x83f68(%rip),%r12        # 92a28 <libcudart_static_71f028fdd4617209d54f8c1be3ec8f7a667e1384+0x38>\n    eac0:\tmovq   %rdx,%xmm5\n    eac5:\tshr    $0x3,%rax\n    eac9:\tlea    0x90(%rsp),%rdx\n    ead1:\tmovq   %rcx,%xmm3\n    ead6:\tmovq   %rdx,%xmm6\n    eadb:\tpunpcklqdq %xmm5,%xmm3\n    eadf:\tlea    0x98(%rsp),%rdx\n    eae7:\tmovabs $0x100000001,%r13\n    eaf1:\tlea    0x88(%rsp),%rcx\n    eaf9:\tmovq   %rdx,%xmm7\n    eafe:\tmov    $0xffff,%edx\n    eb03:\tmovaps %xmm3,0x20(%rsp)\n    eb08:\tcmp    %rdx,%rax\n    eb0b:\tmovq   %rcx,%xmm4\n    eb10:\tlea    0x4c(%rsp),%rcx\n    eb15:\tcmovbe %rax,%rdx\n    eb19:\tmovq   %rcx,%xmm5\n    eb1e:\tpunpcklqdq %xmm6,%xmm4\n    eb22:\txor    %r15d,%r15d\n    eb25:\tlea    0xa8(%rsp),%rax\n    eb2d:\tpunpcklqdq %xmm7,%xmm5\n    eb31:\tmovaps %xmm4,0x10(%rsp)\n    eb36:\tmov    %rax,0x30(%rsp)\n    eb3b:\tlea    0xa0(%rsp),%rax\n    eb43:\tmov    %rdx,%rbx\n    eb46:\tmov    %rax,0x38(%rsp)\n    eb4b:\tmovaps %xmm5,(%rsp)\n    eb4f:\tjmp    eb65 <GpuSpmv::run(unsigned int)+0x375>\n    eb51:\tnopl   0x0(%rax)\n    eb58:\tadd    $0x1,%r15d\n    eb5c:\tcmp    %ebp,%r15d\n    eb5f:\tjae    ea60 <GpuSpmv::run(unsigned int)+0x270>\n    eb65:\tmov    %ebx,0xdc(%rsp)\n    eb6c:\txor    %r9d,%r9d\n    eb6f:\txor    %r8d,%r8d\n    eb72:\tmov    %r12,%rdx\n    eb75:\tmov    %r13,0xe0(%rsp)\n    eb7d:\tmov    $0x1,%ecx\n    eb82:\tmov    0xdc(%rsp),%rdi\n    eb8a:\tmov    0xe4(%rsp),%esi\n    eb91:\tmov    %r12,0xb0(%rsp)\n    eb99:\tmovl   $0x1,0xb8(%rsp)\n    eba4:\tcall   23200 <__cudaPushCallConfiguration>\n    eba9:\ttest   %eax,%eax\n    ebab:\tjne    eb58 <GpuSpmv::run(unsigned int)+0x368>\n    ebad:\tmov    0x18(%r14),%rax\n    ebb1:\tmov    (%r14),%edx\n    ebb4:\tmovl   $0x1,0xc8(%rsp)\n    ebbf:\tmov    0x10(%r14),%rcx\n    ebc3:\tmovdqa 0x20(%rsp),%xmm6\n    ebc9:\tmovl   $0x1,0xd8(%rsp)\n    ebd4:\tmov    0x28(%r14),%rsi\n    ebd8:\tmov    0x20(%r14),%rdi\n    ebdc:\tmov    %edx,0x4c(%rsp)\n    ebe0:\tmov    %rcx,0x90(%rsp)\n    ebe8:\tmov    0x8(%r14),%r8\n    ebec:\tmov    %rax,0x98(%rsp)\n    ebf4:\tmovdqa 0x10(%rsp),%xmm7\n    ebfa:\tmov    0x30(%rsp),%rcx\n    ebff:\tmov    0x38(%rsp),%rdx\n    ec04:\tmovaps %xmm6,0x100(%rsp)\n    ec0c:\tmov    0x83dfd(%rip),%rax        # 92a10 <libcudart_static_71f028fdd4617209d54f8c1be3ec8f7a667e1384+0x20>\n    ec13:\tmovdqa (%rsp),%xmm6\n    ec18:\tmov    %rdi,0x80(%rsp)\n    ec20:\tlea    0xc0(%rsp),%rdi\n    ec28:\tmov    %rsi,0x88(%rsp)\n    ec30:\tlea    0xd0(%rsp),%rsi\n    ec38:\tmov    %r8,0x78(%rsp)\n    ec3d:\tmov    %rax,0xc0(%rsp)\n    ec45:\tmov    %rax,0xd0(%rsp)\n    ec4d:\tmovaps %xmm7,0x110(%rsp)\n    ec55:\tmovaps %xmm6,0x120(%rsp)\n    ec5d:\tcall   23290 <__cudaPopCallConfiguration>\n    ec62:\ttest   %eax,%eax\n    ec64:\tjne    eb58 <GpuSpmv::run(unsigned int)+0x368>\n    ec6a:\tmov    0xc0(%rsp),%rsi\n    ec72:\tmov    0xc8(%rsp),%edx\n    ec79:\tlea    -0xf20(%rip),%rdi        # dd60 <spmvWarpKernel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>\n    ec80:\tmov    0xd0(%rsp),%rcx\n    ec88:\tmov    0xd8(%rsp),%r8d\n    ec90:\tmov    %rsi,0xf4(%rsp)\n    ec98:\tmov    %edx,0xfc(%rsp)\n    ec9f:\tmov    %rcx,0xe8(%rsp)\n    eca7:\tmov    %r8d,0xf0(%rsp)\n    ecaf:\tpush   0xa8(%rsp)\n    ecb6:\tpush   0xa8(%rsp)\n    ecbd:\tlea    0x110(%rsp),%r9\n    ecc5:\tcall   78980 <cudaLaunchKernel>\n    ecca:\tpop    %rcx\n    eccb:\tpop    %rsi\n    eccc:\tjmp    eb58 <GpuSpmv::run(unsigned int)+0x368>\n    ecd1:\tmov    0x138(%rsp),%rdx\n    ecd9:\tsub    %fs:0x28,%rdx\n    ece2:\tjne    ecf2 <GpuSpmv::run(unsigned int)+0x502>\n    ece4:\tlea    0x7b4d9(%rip),%rsi        # 8a1c4 <libcudart_static_166496603f4caf3ceaeafa69020d94ab90cd53d6+0xe4>\n    eceb:\tmov    %eax,%edi\n    eced:\tcall   db80 <checkCuda(cudaError, char const*) [clone .part.0]>\n    ecf2:\tcall   b600 <__stack_chk_fail@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "device-ptx.txt",
+      "claim": "The scalar and warp PTX entries show CSR loads and fma operations; these PTX ranges do not stand in for the SASS branch evidence.",
+      "complete_dump_sha256": "c95cbd8639c6588648977aa2b4b68a3af738d13f52fd89f473173396a71e596e",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-ptx",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_hybrid_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 66,
+          "last_line": 100,
+          "text": "ld.global.u32 %r11, [%rd10];\nld.global.u32 %r8, [%rd10+4];\nsetp.ge.u32 %p2, %r11, %r8;\nmov.f64 %fd9, 0d0000000000000000;\n@%p2 bra $L__BB0_5;\n\nmul.wide.u32 %rd27, %r11, 4;\nadd.s64 %rd35, %rd8, %rd27;\nmul.wide.u32 %rd28, %r11, 8;\nadd.s64 %rd34, %rd7, %rd28;\nmov.f64 %fd9, 0d0000000000000000;\n\n$L__BB0_4:\nld.global.f64 %fd7, [%rd34];\nld.global.u32 %r9, [%rd35];\nmul.wide.u32 %rd30, %r9, 8;\nadd.s64 %rd29, %rd21, %rd30;\n//\nld.global.nc.f64 %fd6, [%rd29];\n//\nfma.rn.f64 %fd9, %fd7, %fd6, %fd9;\nadd.s64 %rd35, %rd35, 4;\nadd.s64 %rd34, %rd34, 8;\nld.global.u32 %r10, [%rd10+4];\nadd.s32 %r11, %r11, 1;\nsetp.lt.u32 %p3, %r11, %r10;\n@%p3 bra $L__BB0_4;\n\n$L__BB0_5:\nshl.b64 %rd31, %rd33, 3;\nadd.s64 %rd32, %rd6, %rd31;\nst.global.f64 [%rd32], %fd9;\nadd.s64 %rd33, %rd33, %rd4;\nsetp.lt.u64 %p4, %rd33, %rd3;\n@%p4 bra $L__BB0_2;\n"
+        },
+        {
+          "first_line": 156,
+          "last_line": 228,
+          "text": "ld.global.u32 %rd14, [%rd45];\nadd.s64 %rd15, %rd14, %rd6;\nld.global.u32 %rd16, [%rd45+4];\nsetp.ge.u64 %p2, %rd15, %rd16;\nmov.f64 %fd43, 0d0000000000000000;\n@%p2 bra $L__BB1_10;\n\nadd.s64 %rd46, %rd7, %rd16;\nsub.s64 %rd17, %rd46, %rd14;\nshr.u64 %rd47, %rd17, 5;\nadd.s64 %rd48, %rd47, 1;\nand.b64 %rd18, %rd48, 3;\nsetp.eq.s64 %p3, %rd18, 0;\nmov.f64 %fd43, 0d0000000000000000;\nmov.u64 %rd71, %rd15;\n@%p3 bra $L__BB1_7;\n\nshl.b64 %rd50, %rd15, 3;\nadd.s64 %rd19, %rd2, %rd50;\nld.global.f64 %fd14, [%rd19];\nshl.b64 %rd51, %rd15, 2;\nadd.s64 %rd20, %rd1, %rd51;\nld.global.u32 %r6, [%rd20];\nmul.wide.u32 %rd52, %r6, 8;\nadd.s64 %rd49, %rd35, %rd52;\n//\nld.global.nc.f64 %fd13, [%rd49];\n//\nfma.rn.f64 %fd43, %fd14, %fd13, 0d0000000000000000;\nadd.s64 %rd71, %rd15, 32;\nsetp.eq.s64 %p4, %rd18, 1;\n@%p4 bra $L__BB1_7;\n\nld.global.f64 %fd16, [%rd19+256];\nld.global.u32 %r7, [%rd20+128];\nmul.wide.u32 %rd54, %r7, 8;\nadd.s64 %rd53, %rd35, %rd54;\n//\nld.global.nc.f64 %fd15, [%rd53];\n//\nfma.rn.f64 %fd43, %fd16, %fd15, %fd43;\nadd.s64 %rd71, %rd15, 64;\nsetp.eq.s64 %p5, %rd18, 2;\n@%p5 bra $L__BB1_7;\n\nld.global.f64 %fd18, [%rd19+512];\nld.global.u32 %r8, [%rd20+256];\nmul.wide.u32 %rd56, %r8, 8;\nadd.s64 %rd55, %rd35, %rd56;\n//\nld.global.nc.f64 %fd17, [%rd55];\n//\nfma.rn.f64 %fd43, %fd18, %fd17, %fd43;\nadd.s64 %rd71, %rd15, 96;\n\n$L__BB1_7:\nsetp.lt.u64 %p6, %rd17, 96;\n@%p6 bra $L__BB1_10;\n\nshl.b64 %rd57, %rd71, 2;\nadd.s64 %rd73, %rd8, %rd57;\nshl.b64 %rd58, %rd71, 3;\nadd.s64 %rd72, %rd9, %rd58;\n\n$L__BB1_9:\nld.global.f64 %fd23, [%rd72+-512];\nld.global.u32 %r9, [%rd73+-256];\nmul.wide.u32 %rd63, %r9, 8;\nadd.s64 %rd59, %rd35, %rd63;\n//\nld.global.nc.f64 %fd19, [%rd59];\n//\nfma.rn.f64 %fd24, %fd23, %fd19, %fd43;\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "The warp entry performs sparse loads and DFMA, with a backward branch in its traversal at line 701 (0x1540 to 0x01c0); the scalar entry performs DFMA at line 952 and branches backward at line 954 (0x0300 to 0x0230).",
+      "complete_dump_sha256": "194c8e0e7df004220db74c4af2c1a89228a182120ab5000586db9c49be0cabe2",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_hybrid_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 133,
+          "last_line": 157,
+          "text": "        /*0380*/                   LDG.E R18, [R14.64] ;                                /* 0x000000040e127981 */\n                                                                                        /* 0x000ea2000c1e1900 */\n        /*0390*/                   IMAD.MOV.U32 R23, RZ, RZ, 0x8 ;                      /* 0x00000008ff177424 */\n                                                                                        /* 0x000fe200078e00ff */\n        /*03a0*/                   LEA R12, P1, R9, c[0x0][0x160], 0x3 ;                /* 0x00005800090c7a11 */\n                                                                                        /* 0x000fc800078218ff */\n        /*03b0*/                   LEA.HI.X R13, R9, c[0x0][0x164], R16, 0x3, P1 ;      /* 0x00005900090d7a11 */\n                                                                                        /* 0x000fca00008f1c10 */\n        /*03c0*/                   LDG.E.64 R32, [R12.64] ;                             /* 0x000000040c207981 */\n                                                                                        /* 0x000ee2000c1e1b00 */\n        /*03d0*/                   IMAD.WIDE.U32 R18, R18, R23, c[0x0][0x178] ;         /* 0x00005e0012127625 */\n                                                                                        /* 0x004fcc00078e0017 */\n        /*03e0*/                   LDG.E.64.CONSTANT R18, [R18.64] ;                    /* 0x0000000412127981 */\n                                                                                        /* 0x000ee2000c1e9b00 */\n        /*03f0*/                   ISETP.NE.U32.AND P1, PT, R17, 0x1, PT ;              /* 0x000000011100780c */\n                                                                                        /* 0x000fc80003f25070 */\n        /*0400*/                   ISETP.NE.AND.EX P1, PT, RZ, RZ, PT, P1 ;             /* 0x000000ffff00720c */\n                                                                                        /* 0x000fe40003f25310 */\n        /*0410*/                   IADD3 R7, P2, R9, 0x20, RZ ;                         /* 0x0000002009077810 */\n                                                                                        /* 0x000fc80007f5e0ff */\n        /*0420*/                   IADD3.X R10, RZ, R16, RZ, P2, !PT ;                  /* 0x00000010ff0a7210 */\n                                                                                        /* 0x000fe200017fe4ff */\n        /*0430*/                   DFMA R32, R32, R18, RZ ;                             /* 0x000000122020722b */\n                                                                                        /* 0x00804c00000000ff */\n        /*0440*/              @!P1 BRA 0x550 ;                                          /* 0x0000010000009947 */\n"
+        },
+        {
+          "first_line": 700,
+          "last_line": 705,
+          "text": "                                                                                        /* 0x007fe20003c00000 */\n        /*1540*/                   BRA 0x1c0 ;                                          /* 0xffffec7000007947 */\n                                                                                        /* 0x000fea000383ffff */\n        /*1550*/                   EXIT ;                                               /* 0x000000000000794d */\n                                                                                        /* 0x000fea0003800000 */\n        /*1560*/                   MOV R13, R33 ;                                       /* 0x00000021000d7202 */\n"
+        },
+        {
+          "first_line": 940,
+          "last_line": 955,
+          "text": "        /*0290*/                   LDG.E.64.CONSTANT R8, [R8.64] ;                      /* 0x0000000808087981 */\n                                                                                        /* 0x000ee2000c1e9b00 */\n        /*02a0*/                   ISETP.GE.U32.AND P0, PT, R0, R13, PT ;               /* 0x0000000d0000720c */\n                                                                                        /* 0x000fe40003f06070 */\n        /*02b0*/                   IADD3 R12, P2, R12, 0x8, RZ ;                        /* 0x000000080c0c7810 */\n                                                                                        /* 0x000fe40007f5e0ff */\n        /*02c0*/                   IADD3 R10, P1, R10, 0x4, RZ ;                        /* 0x000000040a0a7810 */\n                                                                                        /* 0x000fc60007f3e0ff */\n        /*02d0*/                   IMAD.X R15, RZ, RZ, R15, P2 ;                        /* 0x000000ffff0f7224 */\n                                                                                        /* 0x000fe200010e060f */\n        /*02e0*/                   IADD3.X R11, RZ, R11, RZ, P1, !PT ;                  /* 0x0000000bff0b7210 */\n                                                                                        /* 0x000fe20000ffe4ff */\n        /*02f0*/                   DFMA R4, R6, R8, R4 ;                                /* 0x000000080604722b */\n                                                                                        /* 0x00a0480000000004 */\n        /*0300*/              @!P0 BRA 0x230 ;                                          /* 0xffffff2000008947 */\n                                                                                        /* 0x000fea000383ffff */\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The extra run(1) is outside timing. Ranks with empty local slices launch no row work. Repeated same-input A*x/output overwrite is prescribed behavior.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_hybrid_r3",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "f959f1ddcf172232cfce588eccb8a0f7fab3e8329042fd90a032050705097676"
+  },
+  "binary_sha256": "c71f02d25a9d2dde2465f013dca1555a1f82ec383a76069a804d104ff46e0b16",
+  "binding_sha256": "a55a1185b51478131d90c59c9170b9a804d350d21944969b6792d9f946d9a30b",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "480c28c6a62c5d768e4dba9b1a9e1d97398d3aa02c38b30ccc22343bd61706b4",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T07:00:03Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_cuda_r3",
+      "spmv_gpt-6.1-terra-ultra_hybrid_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all eight summaries. Primary check identified incomplete SASS citations in v1; Luna rechecked all eight, retaining v1 and supplying v2. Rechecked cuda_r3 host assembly 1505–1545 and SASS111–149: untimed warmup, counted timed launches, CSR loads, DFMA and sparse-loop back edge. Rechecked hybrid_r3 source234–249/443–455, host3460–3700 and SASS133–157/700–705/940–955: counted scalar and warp launch paths, synchronization, device loads/arithmetic and traversal back edges. No scientific disagreement; citation defect corrected before acceptance.",
+    "proposal_v1_sha256": "86167af916534fd89448586e48bf89e6b0d574729f0e690280d79282027299ba"
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_gpu",
+  "review_started_at": "2026-11-06T06:55:07Z",
+  "review_finished_at": "2026-11-06T06:58:32Z",
+  "review_input_sha256": "eb60717effeae03bc504dc186a19cceeb10b7643f2897a1ce3fa3125e8124f39",
+  "pack_sha256": "8709c3723b4e206a15f0ac554e912b34f4b8d2edf230342e9c12a6e3c3d48865",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

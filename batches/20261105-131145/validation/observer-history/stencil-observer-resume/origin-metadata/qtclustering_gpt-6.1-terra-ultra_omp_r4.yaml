@@ -1,0 +1,91 @@
+---
+id: qtclustering_gpt-6.1-terra-ultra_omp_r4
+benchmark: qtclustering
+model: gpt-6.1-terra-ultra
+par_type: omp
+run: 4
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: qtclustering-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '1001'
+  - "-t"
+  - '1.3'
+  definition:
+    id: qtclustering-shape-topology-v1
+    benchmark: qtclustering
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object ClusterMembership: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 0.114382304251194
+    argv:
+    - numactl
+    - "--physcpubind=0-127"
+    - "--interleave=0,1"
+    - "/tmp/local-external-validation-20261106-3059133-nknmv9/qtclustering"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1001'
+    - "-t"
+    - '1.3'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-35c2dac30fca
+  reference_sha256: 9b34b3a00c0fabf9b9614e0086aca5f4f79d20098739637df1affc714fed2070
+  logs:
+    validation_out_qtclustering-shape-topology-v1_command.log: 0a2302db6f9a771a246b4468a590453a15e1f0b8bdfc7074d97d35932f1c5034
+    validation_out_qtclustering-shape-topology-v1_stdout.log: c8677e9979b4aa5637efe2c0610e9519c0316f634219b45034a5c13d8e0bab06
+    validation_out_qtclustering-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_qtclustering-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_qtclustering-shape-topology-v1_wall_time.log: f2866d527b5809abf30875c1317d443ea320aab112fc3eca24a4628093b6ba51
+full_array_validation:
+  definition:
+    id: full-array-qtclustering-v1
+    benchmark: qtclustering
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '1001'
+    - "-t"
+    - '1.3'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 5abacc86fb4cb7a4499a4b27e28d47d848ec8e5d108d449338066ef89eb34af3
+  passed: true
+  arrays:
+  - elements: 1001
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 0.0
+    examples: []
+    name: ClusterMembership
+    reference_array_sha256: 3a25165dd1b5cb5adac2e278b1ebcdb3e7eaf185b45f7c95459d9a416740afa8
+    actual_array_sha256: 3a25165dd1b5cb5adac2e278b1ebcdb3e7eaf185b45f7c95459d9a416740afa8
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object ClusterMembership: PASSED (hash match: true)
+comparison_policy:
+completed_at: '2026-11-06T06:54:47+01:00'

@@ -1,0 +1,147 @@
+---
+id: cahn-hilliard_gpt-6.1-terra-ultra_omp_r3
+benchmark: cahn-hilliard
+model: gpt-6.1-terra-ultra
+par_type: omp
+run: 3
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: cahn-hilliard-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-x"
+  - '65'
+  - "-y"
+  - '61'
+  - "-z"
+  - '67'
+  - "-i"
+  - '21'
+  definition:
+    id: cahn-hilliard-shape-topology-v1
+    benchmark: cahn-hilliard
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Concentration: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 0.11427497677505016
+    argv:
+    - numactl
+    - "--physcpubind=0-127"
+    - "--interleave=0,1"
+    - "/tmp/local-external-validation-20261106-3059133-v1nolv/cahn_hilliard"
+    - "-v"
+    - "-r"
+    - "-x"
+    - '65'
+    - "-y"
+    - '61'
+    - "-z"
+    - '67'
+    - "-i"
+    - '21'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-2b7fe05dc8eb
+  reference_sha256: 32b44e891e8370b4f9ae656bd38d36deb8c17ef9c5040aac5157776449f03683
+  logs:
+    validation_out_cahn-hilliard-shape-topology-v1_command.log: 615562bdb393ea10de68f6c7fad368c4ba509f1bb3cbd5103b6f4ebf4de4a1fb
+    validation_out_cahn-hilliard-shape-topology-v1_stdout.log: 8928a6541d8ca915a5282460606f7506baa538a7e5042e3ced5c126e3c26f7ae
+    validation_out_cahn-hilliard-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_cahn-hilliard-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_cahn-hilliard-shape-topology-v1_wall_time.log: 48945c9a0f58e2c2269016dabd8a801a0b0d2b0d96af074ebb4275f2a6e9f65f
+- id: cahn-hilliard-large-fused-v1
+  args: &2
+  - "-v"
+  - "-r"
+  - "-x"
+  - '512'
+  - "-i"
+  - '3'
+  definition:
+    id: cahn-hilliard-large-fused-v1
+    benchmark: cahn-hilliard
+    args: *2
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Concentration: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 8.389222878962755
+    argv:
+    - numactl
+    - "--physcpubind=0-127"
+    - "--interleave=0,1"
+    - "/tmp/local-external-validation-20261106-3059133-s5i51p/cahn_hilliard"
+    - "-v"
+    - "-r"
+    - "-x"
+    - '512'
+    - "-i"
+    - '3'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-359b2781315a
+  reference_sha256: 951bd373cdad2f7b669b12a3d2927ed2bf6af74c4b555b45b505deb816cb09ec
+  logs:
+    validation_out_cahn-hilliard-large-fused-v1_command.log: 26e315f98e77e2978353b94ad3211115186ffe47bcae0cbe449b9c393783dd61
+    validation_out_cahn-hilliard-large-fused-v1_stdout.log: 6813ec61dc4f77f08d71e234616b1d6e5bf6088fb70b25af5703da658b4b201e
+    validation_out_cahn-hilliard-large-fused-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_cahn-hilliard-large-fused-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_cahn-hilliard-large-fused-v1_wall_time.log: 6aa3c60edb22db565d98149c369716fdc3616165adf1d4b07607f60956d5eb5a
+full_array_validation:
+  definition:
+    id: full-array-cahn-hilliard-v1
+    benchmark: cahn-hilliard
+    args:
+    - "-v"
+    - "-r"
+    - "-x"
+    - '65'
+    - "-y"
+    - '61'
+    - "-z"
+    - '67'
+    - "-i"
+    - '21'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 0f96e4536a86fc746db254812f1084d55ae49296d836a4c8bedf8ded689a15b4
+  passed: true
+  arrays:
+  - elements: 265655
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 0.0
+    examples: []
+    name: Concentration
+    reference_array_sha256: 5771d0436955219f3bd641e9451a220a5c9ade799864d5b1fae65e7dfab4cb1d
+    actual_array_sha256: 5771d0436955219f3bd641e9451a220a5c9ade799864d5b1fae65e7dfab4cb1d
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object Concentration: PASSED (hash match: true)
+comparison_policy:
+completed_at: '2026-11-06T06:24:27+01:00'

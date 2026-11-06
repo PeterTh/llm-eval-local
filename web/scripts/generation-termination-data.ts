@@ -1,12 +1,19 @@
 import { createHash } from "node:crypto";
-import type { GenerationTermination } from "../src/data/types";
+import type { GenerationTermination, GenerationUsage } from "../src/data/types";
+import { TREE_USAGE_SOURCE } from "./generation-usage-data";
 
 type Row = Record<string, string | undefined>;
 const fullFields = ["input_tokens", "cached_tokens", "output_tokens", "total_tokens", "reasoning_output_tokens", "cache_write_input_tokens"];
 const partialFields = ["input_tokens", "cached_input_tokens", "cache_write_input_tokens", "output_tokens", "reasoning_output_tokens", "total_tokens"];
 const terminationReasons = ["model_caused_termination", "model_protocol_failure"];
 
-export function generationTerminationPath(row: Row, runId: string): string | null {
+export function generationTerminationPath(row: Row, runId: string, treeUsage?: GenerationUsage): string | null {
+  if (row.token_usage_source === TREE_USAGE_SOURCE) {
+    if (!treeUsage || row.token_usage_complete !== String(treeUsage.usageComplete)) {
+      throw new Error(`Native tree usage requires bound evidence: ${runId}`);
+    }
+    return null; // Interrupted child requests are not whole-generation failures.
+  }
   const flag = row.token_usage_complete ?? "";
   if (!["", "true", "false"].includes(flag)) throw new Error(`Invalid usage completeness: ${runId}`);
   if (flag !== "false") {

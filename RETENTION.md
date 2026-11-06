@@ -30,9 +30,10 @@ published program sources, benchmark sources, pipeline source, and documented sy
   arrays are omitted; their observations and comparisons remain bound to the
   source, executable and exact validation method.
 - The final pipeline source snapshot named by the last amendment.
-- Compact exact reported Codex usage with session/run identity, cumulative counters,
-  original terminal counter, and transcript/session hashes; recovery code is retained
-  separately from the immutable measurement pipeline snapshot.
+- Compact reported Codex usage with session/run identity, counters, original terminal
+  counter, and transcript/session hashes. Delegated runs retain unique-request totals
+  across parent and child sessions, with interrupted-request uncertainty explicitly
+  flagged. Recovery code is retained separately from the immutable measurement pipeline.
 - Compact exact OpenCode request/session accounting, retry-excluded elapsed time,
   metadata hashes and pricing-context checks. Identical effective configuration is
   retained once and hash-linked from each observation; original transcripts and

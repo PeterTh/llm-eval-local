@@ -1,0 +1,85 @@
+---
+id: black-scholes_gpt-6.1-terra-ultra_omp_r1
+benchmark: black-scholes
+model: gpt-6.1-terra-ultra
+par_type: omp
+run: 1
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: black-scholes-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-r"
+  - "-n"
+  - '10003'
+  definition:
+    id: black-scholes-shape-topology-v1
+    benchmark: black-scholes
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object OptionPrices: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 0.06505689769983292
+    argv:
+    - numactl
+    - "--physcpubind=0-127"
+    - "--interleave=0,1"
+    - "/tmp/local-external-validation-20261106-3059133-5uor8q/black_scholes"
+    - "-v"
+    - "-r"
+    - "-n"
+    - '10003'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-bcdada663896
+  reference_sha256: ecfa991f8ec02a8d2c0e35f46ce730abd1a0cc2900fdfe93949e1cd4c009a8b0
+  logs:
+    validation_out_black-scholes-shape-topology-v1_command.log: f37d856f12cef7fb45704b48b7572e91cbfed4d8fe1a82a82de982ce369dedea
+    validation_out_black-scholes-shape-topology-v1_stdout.log: 93f6948842d03ffa0d506e4d503e450d0be245aabe7a6696d36573b2c3218733
+    validation_out_black-scholes-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_black-scholes-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_black-scholes-shape-topology-v1_wall_time.log: 4ac73946af4e3dd19009c6cba6d5f5eb7c65fd41566f186a48bb8e3623fa1a91
+full_array_validation:
+  definition:
+    id: full-array-black-scholes-v1
+    benchmark: black-scholes
+    args:
+    - "-v"
+    - "-r"
+    - "-n"
+    - '10003'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 076aba36b9ea1416c6d11ffb4a0f61bee8a1cac71f44813c197422cd85167d1d
+  passed: true
+  arrays:
+  - elements: 10003
+    absolute_tolerance: 1.0e-05
+    mismatches: 0
+    maximum_absolute_error: 0.0
+    examples: []
+    name: OptionPrices
+    reference_array_sha256: 44d5d4bb542fd10cb195fa468594c9222df824263edce693068c44e0db0b20f4
+    actual_array_sha256: 44d5d4bb542fd10cb195fa468594c9222df824263edce693068c44e0db0b20f4
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object OptionPrices: PASSED (hash match: true)
+comparison_policy:
+completed_at: '2026-11-06T06:17:12+01:00'

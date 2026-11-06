@@ -7,6 +7,15 @@ import { costSummariesToCsv, runsToCsv, timeSummariesToCsv } from "./csv";
 import { parse } from "csv-parse/sync";
 
 describe("runsToCsv", () => {
+  it("exports recorded parent-and-child usage with explicit uncertainty", () => {
+    const run = structuredClone(runsFixture[0]!);
+    run.generationUsage = { source: "codex_rollout_unique_thread_requests", accountingScope: "parent_and_descendants", usageComplete: false,
+      recordedSessions: 4, recordedRequests: 20, interruptedSessions: 1, recordedTotalTokens: 1000,
+      evidenceSha256: "a".repeat(64), evidenceUrl: "https://example.test/usage.jsonl#L1" };
+    const rows = parse(runsToCsv([run]), { columns: true });
+    expect(rows[0]).toMatchObject({ generation_outcome: "completed", generation_failure_reason: "", token_usage_complete: "false",
+      token_accounting_scope: "parent_and_descendants", recorded_total_tokens: "1000", recorded_sessions: "4", interrupted_sessions: "1" });
+  });
   it("exports model termination and partial accounting without changing results", () => {
     const run = structuredClone(runsFixture[0]!);
     run.generationTermination = { outcome: "generation_model_terminated", reason: "model_protocol_failure", usageComplete: false,

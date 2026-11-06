@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from context_token_cost import context_run_cost, load_context_usage
+from codex_tree_cost import verify_recorded_tree_row
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -39,6 +40,20 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "gpt-6.1-terra-ultra": {
+        "label": "GPT-6.1 Terra Ultra", "color": "#579c82", "marker": "*",
+        "pricing_as_of": "2026-10-28", "pricing_model_id": "openai/gpt-6.1-terra",
+        "input_price": 0.5, "cached_input_price": 0.025, "output_price": 2.5,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/flex", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI pricing and live OpenRouter endpoint comparison",
+        "pricing_selection_policy": "componentwise lowest live non-batch rates in both request-context tiers (Flex); rates frozen per model, shared with Terra medium and xhigh",
+        "pricing_catalog_url": "https://openrouter.ai/api/v1/models/openai/gpt-6.1-terra/endpoints",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "secondary_pricing_source_url": "https://developers.openai.com/api/docs/pricing",
+        "recorded_native_tree_usage": True,
+        "cost_method": "Recorded native Codex requests summed across parent and child sessions. Interrupted requests may have unrecorded usage: affected token/cost totals are lower bounds, not complete billing coverage. All 18,126 recorded requests are below 272,000 input tokens; cache writes explicitly zero. API-rate comparison, not subscription billing.",
+    },
     "beam-1.0-oc-medium": {
         "label": "Beam 1.0 Medium (OpenCode)", "color": "#9b64ad", "marker": "^",
         "pricing_as_of": "2026-10-30", "pricing_model_id": "reflection/beam-1.0-501b-a23b",
@@ -458,6 +473,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "gpt-6.1-terra-ultra": (32, 23),
     "beam-1.0-oc-medium": (-7, -10),
     "gpt-6.1-terra-xhigh": (-45, 20),
     "gpt-6.1-terra-medium": (-20, 0),
@@ -572,7 +588,10 @@ def aggregate(frame: pd.DataFrame, context_usage: dict | None = None) -> pd.Data
         score_run_count = len(group)
         mean_score = group["overall_score"].mean()
 
-        if "token_usage_complete" in group:
+        uncertain_usage_run_count = 0
+        if config.get("recorded_native_tree_usage"):
+            uncertain_usage_run_count = sum(verify_recorded_tree_row(row) for _, row in group.iterrows())
+        elif "token_usage_complete" in group:
             partial = group["token_usage_complete"].astype(str).str.lower().eq("false")
             if group.loc[partial, ["input_tokens", "output_tokens", "cached_tokens", "total_tokens"]].notna().any().any():
                 raise ValueError("Incomplete usage must not supply full-task token or cost fields")
@@ -618,6 +637,7 @@ def aggregate(frame: pd.DataFrame, context_usage: dict | None = None) -> pd.Data
                 "model_label": config["label"],
                 "score_run_count": score_run_count,
                 "cost_run_count": cost_run_count,
+                "uncertain_usage_run_count": uncertain_usage_run_count,
                 "mean_overall_score": mean_score,
                 "mean_total_tokens": mean_total_tokens,
                 "mean_input_tokens": mean_input_tokens,
@@ -725,7 +745,7 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
         )
         offset_x, offset_y = LABEL_OFFSETS[row.model]
         axis.annotate(
-            row.model_label,
+            row.model_label + (" *" if row.uncertain_usage_run_count else ""),
             (row.estimated_cost_usd_per_run, row.mean_overall_score),
             xytext=(offset_x, offset_y),
             textcoords="offset points",
@@ -733,7 +753,7 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             va="center",
             fontsize=8.5,
             arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
-            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium", "gpt-6.1-terra-xhigh"} else None,
+            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium", "gpt-6.1-terra-xhigh", "gpt-6.1-terra-ultra"} else None,
             zorder=4,
         )
 
@@ -747,7 +767,11 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
     axis.set_ylabel("Mean Overall Score")
     axis.grid(alpha=0.3, which="major")
     axis.grid(alpha=0.12, which="minor", axis="x")
-    figure.tight_layout()
+    has_lower_bounds = (summary.uncertain_usage_run_count > 0).any()
+    figure.tight_layout(rect=(0, 0.04 if has_lower_bounds else 0, 1, 1))
+    if has_lower_bounds:
+        figure.text(0.5, 0.01, "* Recorded-usage cost lower bound; interrupted child requests may add usage.",
+                    ha="center", fontsize=7)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(

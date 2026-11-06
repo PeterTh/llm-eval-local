@@ -1,6 +1,6 @@
-# Combined release: 2026-11-05
+# Combined release: 2026-11-06
 
-This is a reproducible view over fourteen retained campaigns, not a second raw-data archive.
+This is a reproducible view over fifteen retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
 `batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`;
@@ -13,16 +13,20 @@ Sonnet 5.5 is under `batches/20261014-212207/`; Sol 6.1 Medium in OpenCode is un
 `batches/20261025-170040/`; Terra 6.1 Medium in Codex is under
 `batches/20261028-200951/`; Beam 1.0 Medium in OpenCode is under
 `batches/20261025-170121/`; Terra 6.1 XHigh in Codex is under
-`batches/20261102-030935/`. Catalog-declared observation replacements join their
+`batches/20261102-030935/`; Terra 6.1 Ultra in Codex is under
+`batches/20261105-131145/`. Catalog-declared observation replacements join their
 own validation, benchmark and generation evidence by exact run ID; untouched
 observations retain their original records and source revisions.
 
 The catalog's
 `codex_usage_overlays` joins exact reported counters for all 1,980 GPT-5.6 runs from
 `metadata/codex-usage/20260805-120633.jsonl`, preserving the original terminal
-counter and session provenance. The GPT-6, Sol 6.1 and Terra 6.1 native aggregates use the
-same exact usage evidence directly; all 1,540 rows are verified against their
-recovered counters.
+counter and session provenance. The GPT-6, Sol 6.1 and non-Ultra Terra 6.1 native
+aggregates use the same exact usage evidence directly; all 1,540 rows are verified
+against their recovered counters. The 220 Ultra observations bind unique-request
+usage across parent and child sessions. Their parent tasks all completed; 49
+observations retain interrupted-request uncertainty, so their recorded token
+counts and API-equivalent costs are explicitly labeled as lower bounds.
 OpenCode's 1,100 observations retain native request/session counters, including
 compaction, and deduplicated effective-configuration records. Usage is complete
 for 1,096 observations; four model-terminated sessions retain explicit lower
@@ -44,10 +48,10 @@ This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 8,580 programs, 39 model/effort/harness profiles, 220 programs each.
-- 7,344 effectively validated programs and eligible benchmark attempts; 6,941 successful measurements.
-- 1,263 timing-fixed programs (including two failed revalidations), with source history.
-- 44 benchmark/backend cells, all with reviewed winners; 95 retained reviews total.
+- 8,800 programs, 40 model/effort/harness profiles, 220 programs each.
+- 7,563 effectively validated programs and eligible benchmark attempts; 7,160 successful measurements.
+- 1,285 timing-fixed programs (including two failed revalidations), with source history.
+- 44 benchmark/backend cells, all with reviewed winners; 96 retained reviews total.
 
 The [seven Sonnet 5 replacements](../batches/20260901-162328/replacements/20261025-isolated-sonnet5/README.md)
 include six successful benchmarks and one retained numerical validation failure.
@@ -77,6 +81,15 @@ Neither introduces new cell winners. Their
 bind the preceding releases and unchanged observation evidence. The
 [pricing note](../analysis/notes/2026-10-29-terra61-pricing.md) binds both profiles'
 API-equivalent costs to exact native counters and request-context evidence.
+
+Terra 6.1 Ultra contributes 219 validation passes and successful benchmarks,
+including 22 timing-only corrections. One backend-classification failure remains
+in the dataset. Its new Floyd–Warshall CUDA winner receives a
+[close-group review](../analysis/notes/individual/floydwarshall_gpt-6.1-terra-ultra_cuda_r1.md).
+The [comparison snapshot](../analysis/notes/2026-11-06-terra61-ultra-codex-winner-context.json)
+binds unchanged evidence for all 8,580 prior observations. Ultra uses the same
+frozen Terra pricing, with delegated usage and uncertainty described in the
+[shared pricing note](../analysis/notes/2026-10-29-terra61-pricing.md).
 
 Beam 1.0 Medium in OpenCode contributes 173 effectively validated programs and
 142 successful benchmarks, with 45 timing-only corrections retained. Forty native

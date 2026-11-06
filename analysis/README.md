@@ -32,7 +32,7 @@ Roomsim hybrid winner. Reproduce that release transition with
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
-`release/catalog.json` identifies fourteen campaigns, scoped evidence overlays and generated-source commits.
+`release/catalog.json` identifies fifteen campaigns, scoped evidence overlays and generated-source commits.
 Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
@@ -47,7 +47,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 39 profile names and tier percentages legible at the paper's
+intentional: it keeps all 40 profile names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -79,13 +79,17 @@ Cached input is a subset of input and reasoning is a subset of output; neither i
 added twice. This remains an API-rate comparison, not a ChatGPT subscription bill.
 The backing CSV records counts, frozen prices, pricing date, and source URLs.
 
-The evidence lives in `metadata/codex-usage/<source-batch>.jsonl`. All 1,980
-GPT-5.6, 660 GPT-6 and 880 GPT-6.1 records matched a unique session, completed task,
-transcript hash, and consistent final cumulative counters. The release uses these
-counters for all three families.
-The compact usage records total 3,046,533 bytes; complete session logs are not duplicated.
-Terra 6.1 additionally retains a compact request-level proof that all 6,965 requests
-fall below its long-context pricing threshold.
+The evidence lives in `metadata/codex-usage/<source-batch>.jsonl`. The 1,980
+GPT-5.6, 660 GPT-6 and 880 non-Ultra GPT-6.1 records each bind a unique session,
+completed task, transcript hash and consistent final cumulative counters.
+Terra Ultra's 220 records instead sum 18,126 unique recorded requests across
+865 parent and child sessions. All parent tasks completed; 49 observations have
+interrupted requests whose final usage may be missing. Their recorded counters
+and API-equivalent costs are lower bounds, not complete billing totals.
+The cost table and website retain those flags, including under filtering.
+Complete session logs are not duplicated in this repository.
+Terra 6.1 retains compact request-level evidence that all 25,091 recorded requests
+across Medium, XHigh and Ultra fall below its long-context pricing threshold.
 
 Recover a completed batch from the original locally retained sessions with:
 
@@ -223,13 +227,13 @@ This historical analysis remains scoped to the original 4,620-program campaign a
 its 587 corrections; it consumes `data/`, not the jointly rescored `release/` view.
 The additional 174 corrections were made before benchmarking, so no comparable
 uncorrected performance measurements exist for those runs. The current combined
-dataset carries the timing-fix flag for 1,263 distinct corrected programs, including
+dataset carries the timing-fix flag for 1,285 distinct corrected programs, including
 two failed revalidations. The 81 newer corrections include 12 previously retimed
 historical QT programs. Their 32 scoped historical reruns are retained separately
 under `corrections/20261001-gpt6-qt/`, not folded into this older 587-case analysis.
 The 83 Opus 5.5, 11 native Sol 6.1, 33 Haiku 5.5, 71 Sonnet 5.5, 14 Sol 6.1
 OpenCode, 39 Luna 6 OpenCode, 56 current DeepSeek OpenCode, 36 Haiku 5.5 OpenCode,
-48 Terra 6.1 Codex and 45 Beam 1.0 OpenCode corrections likewise
+70 Terra 6.1 Codex and 45 Beam 1.0 OpenCode corrections likewise
 precede those programs' benchmarks.
 
 The retained historical analysis joins the original static-audit score, corrected scoped-rerun

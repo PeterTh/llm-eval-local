@@ -1,0 +1,168 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i is parsed into iterations and directly bounds the timed CPU SpMV loop on each MPI rank. Rank row-boundary calculations produce disjoint contiguous row partitions spanning numRows; each pass calls spmvCpu over that rank's localRows, and compiled code contains the outer iteration back edge plus CSR traversal/multiply-add work. No omitted/hoisted timed iterations identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          164,
+          217
+        ],
+        [
+          53,
+          67
+        ],
+        [
+          309,
+          323
+        ],
+        [
+          144,
+          147
+        ]
+      ],
+      "claim": "-i sets iterations; rowBoundary computes rank-proportional row partitions. Each timed iteration calls spmvCpu for localRows, whose row and CSR-entry loops write a local output vector.",
+      "sha256": "2137f38dd05963a3c6ea75bdbd8c257ad33b4b43df5918829114729f8b20bfea",
+      "git_blob": "cab803a345bae9be14b9ed2b99479dd9ead9cdac"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "In the timed main path, the compiled iteration counter at 2398 is compared with the iteration bound and branches back to the body. The body walks each local row and each row's CSR range, loads column/value/vector data, multiplies and accumulates, and stores the output. The compiled spmvCpu routine also has back edges for row and nonzero traversal.",
+      "complete_dump_sha256": "dc76054aa12a1caeb629ae572c85a72fe23ed632d5d888851b166f02ce32c0f1",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2353,
+          "last_line": 2401,
+          "text": "    a3ec:\tlea    0xae2d(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a3f3:\tcall   8e90 <MPI_Barrier@plt>\n    a3f8:\tcall   91e0 <MPI_Wtime@plt>\n    a3fd:\tcmpl   $0x0,-0x1c4(%rbp)\n    a404:\tmov    -0xd0(%rbp),%r13\n    a40b:\tvmovsd %xmm0,-0x190(%rbp)\n    a413:\tmov    -0xb0(%rbp),%r12\n    a41a:\tje     a4cd <main+0xd1d>\n    a420:\tcmpl   $0x0,-0x234(%rbp)\n    a427:\tmov    -0x130(%rbp),%r8\n    a42e:\tje     a4cd <main+0xd1d>\n    a434:\tmov    -0x188(%rbp),%rax\n    a43b:\tmov    -0x1c4(%rbp),%esi\n    a441:\txor    %ecx,%ecx\n    a443:\tshl    $0x2,%rax\n    a447:\tnopw   0x0(%rax,%rax,1)\n    a450:\txor    %r9d,%r9d\n    a453:\tmov    %rax,%r11\n    a456:\tcs nopw 0x0(%rax,%rax,1)\n    a460:\tmov    (%r8,%r9,1),%eax\n    a464:\tmov    0x4(%r8,%r9,1),%edx\n    a469:\tcmp    %edx,%eax\n    a46b:\tjae    a6d0 <main+0xf20>\n    a471:\tdec    %edx\n    a473:\tlea    (%r15,%rax,4),%r10\n    a477:\tlea    0x0(%r13,%rax,8),%rdi\n    a47c:\tvxorpd %xmm1,%xmm1,%xmm1\n    a480:\tsub    %eax,%edx\n    a482:\tmov    %r11,-0x188(%rbp)\n    a489:\txor    %eax,%eax\n    a48b:\tnopl   0x0(%rax,%rax,1)\n    a490:\tmov    (%r10,%rax,4),%r11d\n    a494:\tvmovsd (%rbx,%r11,8),%xmm0\n    a49a:\tmov    %rax,%r11\n    a49d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a4a2:\tinc    %rax\n    a4a5:\tvaddsd %xmm0,%xmm1,%xmm1\n    a4a9:\tcmp    %r11,%rdx\n    a4ac:\tjne    a490 <main+0xce0>\n    a4ae:\tmov    -0x188(%rbp),%r11\n    a4b5:\tvmovsd %xmm1,(%r12,%r9,2)\n    a4bb:\tadd    $0x4,%r9\n    a4bf:\tmov    %r11,%rax\n    a4c2:\tcmp    %r11,%r9\n    a4c5:\tjne    a460 <main+0xcb0>\n    a4c7:\tinc    %ecx\n    a4c9:\tcmp    %esi,%ecx\n    a4cb:\tjne    a450 <main+0xca0>\n    a4cd:\tcall   91e0 <MPI_Wtime@plt>\n"
+        },
+        {
+          "first_line": 3043,
+          "last_line": 3092,
+          "text": "000000000000b0c0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    b0c0:\tendbr64\n    b0c4:\ttest   %r8d,%r8d\n    b0c7:\tje     b165 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xa5>\n    b0cd:\tmov    %r8d,%r8d\n    b0d0:\tpush   %r12\n    b0d2:\tmov    %rdi,%r11\n    b0d5:\tpush   %rbp\n    b0d6:\tmov    %r9,%r12\n    b0d9:\tpush   %rbx\n    b0da:\tlea    0x0(,%r8,4),%r9\n    b0e2:\tmov    %rsi,%rbx\n    b0e5:\tmov    %rdx,%rbp\n    b0e8:\tmov    %rcx,%r10\n    b0eb:\txor    %r8d,%r8d\n    b0ee:\txchg   %ax,%ax\n    b0f0:\tmov    0x0(%rbp,%r8,1),%eax\n    b0f5:\tmov    0x4(%rbp,%r8,1),%ecx\n    b0fa:\tcmp    %ecx,%eax\n    b0fc:\tjae    b150 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x90>\n    b0fe:\tdec    %ecx\n    b100:\tlea    (%rbx,%rax,4),%rdi\n    b104:\tlea    (%r11,%rax,8),%rsi\n    b108:\tvxorpd %xmm1,%xmm1,%xmm1\n    b10c:\tsub    %eax,%ecx\n    b10e:\txor    %eax,%eax\n    b110:\tmov    (%rdi,%rax,4),%edx\n    b113:\tvmovsd (%r10,%rdx,8),%xmm0\n    b119:\tmov    %rax,%rdx\n    b11c:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    b121:\tinc    %rax\n    b124:\tvaddsd %xmm0,%xmm1,%xmm1\n    b128:\tcmp    %rdx,%rcx\n    b12b:\tjne    b110 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x50>\n    b12d:\tvmovsd %xmm1,(%r12,%r8,2)\n    b133:\tadd    $0x4,%r8\n    b137:\tcmp    %r8,%r9\n    b13a:\tjne    b0f0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    b13c:\tpop    %rbx\n    b13d:\tpop    %rbp\n    b13e:\tpop    %r12\n    b140:\tret\n    b141:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    b14c:\tnopl   0x0(%rax)\n    b150:\tvxorpd %xmm1,%xmm1,%xmm1\n    b154:\tvmovsd %xmm1,(%r12,%r8,2)\n    b15a:\tadd    $0x4,%r8\n    b15e:\tcmp    %r8,%r9\n    b161:\tjne    b0f0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    b163:\tjmp    b13c <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x7c>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The persistent same-input A*x repetitions and output overwrite match the prescribed sequential benchmark loop at /tmp/terra61-ultra-evaluation-20261106-0k0RpK/benchmarks/spmv/spmv.cpp:224-227.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_mpi_r1",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "6de5386e45257c0b5dcd76e8512a142d9987b94690850fb43f77542ba4164e5b"
+  },
+  "binary_sha256": "3856857201812b7a2be375546f5510b05cc20290bffac320857d68e2b9006c63",
+  "binding_sha256": "42734e5173cb4b2a375851d420f51ad90c646a358e9a6c25f95a14df92fc79c9",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "c2cb18b8ae4ad1ce9117b1df9c29619ea254cdb143c888020141fcb668a212d8",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T06:49:15Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_cuda_r1",
+      "spmv_gpt-6.1-terra-ultra_hybrid_r1",
+      "spmv_gpt-6.1-terra-ultra_mpi_r1",
+      "spmv_gpt-6.1-terra-ultra_omp_r1"
+    ],
+    "work_count_disagreement": false,
+    "method": "Primary source and compiled-control-flow spot checks of all four pilot programs: parsed iteration bounds; MPI/OpenMP partition coverage; timed host iteration back edges; CUDA/hybrid device launches and device CSR loads/DFMA/back edges. Read the four complete proposals. Confirmed same-input A*x repetition is prescribed by the unchanged sequential reference, not a semantic deviation. Reviewer interval is explicitly an estimated start bound and an observed finish, not measured review time.",
+    "source_checks": {
+      "cuda": [
+        [
+          200,
+          230
+        ],
+        [
+          283,
+          313
+        ]
+      ],
+      "hybrid": [
+        [
+          216,
+          228
+        ],
+        [
+          280,
+          310
+        ]
+      ],
+      "mpi": [
+        [
+          309,
+          323
+        ]
+      ],
+      "omp": [
+        [
+          248,
+          262
+        ]
+      ]
+    },
+    "compiled_checks": {
+      "cuda": {
+        "host-assembly.txt": [
+          [
+            1733,
+            1808
+          ]
+        ],
+        "device-sass.txt": [
+          [
+            738,
+            815
+          ]
+        ]
+      },
+      "hybrid": {
+        "host-assembly.txt": [
+          [
+            2150,
+            2188
+          ]
+        ],
+        "device-sass.txt": [
+          [
+            42,
+            104
+          ]
+        ]
+      },
+      "mpi": {
+        "host-assembly.txt": [
+          [
+            2353,
+            2401
+          ]
+        ]
+      },
+      "omp": {
+        "host-assembly.txt": [
+          [
+            949,
+            999
+          ]
+        ]
+      }
+    }
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_pilot",
+  "review_started_at": "2026-11-06T06:35:00Z",
+  "review_finished_at": "2026-11-06T06:42:14Z",
+  "review_input_sha256": "61823a24d2aff5259a8775218dd648553264fc847205a3b402b967bfe42d099a",
+  "pack_sha256": "5092afc7702f9c17e889a73c1bd82c2b11f9859a07eecc3c0ec21871ee26b0bb",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

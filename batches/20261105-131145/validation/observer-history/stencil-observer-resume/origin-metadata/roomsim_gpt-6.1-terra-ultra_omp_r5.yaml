@@ -1,0 +1,103 @@
+---
+id: roomsim_gpt-6.1-terra-ultra_omp_r5
+benchmark: roomsim
+model: gpt-6.1-terra-ultra
+par_type: omp
+run: 5
+manifest_sha256: 8a04f18dcb9a52a63a241a0a17a3dedb0e0b5f8e844fce31b863ef2a9aa95ed7
+stages:
+  basic_para: true
+  validation_build: true
+  validation_run: true
+  internal_validation: true
+  output_comparison: true
+supplemental_validation:
+- id: roomsim-shape-topology-v1
+  args: &1
+  - "-v"
+  - "-o"
+  - "-n"
+  - '320'
+  - "-t"
+  - '101'
+  - "-s"
+  - '7'
+  - "-r"
+  - '0.7'
+  definition:
+    id: roomsim-shape-topology-v1
+    benchmark: roomsim
+    args: *1
+    topology: measurement
+    timeout: 30
+  passed: true
+  comparison: |
+    Validation successful. All objects match reference output.
+     - Object Distances: PASSED (hash match: true)
+  execution:
+    success: true
+    exit_code: 0
+    timed_out: false
+    wall_seconds: 0.11437988467514515
+    argv:
+    - numactl
+    - "--physcpubind=0-127"
+    - "--interleave=0,1"
+    - "/tmp/local-external-validation-20261106-3059133-cfvj4y/roomsim"
+    - "-v"
+    - "-o"
+    - "-n"
+    - '320'
+    - "-t"
+    - '101'
+    - "-s"
+    - '7'
+    - "-r"
+    - '0.7'
+    term_signal:
+    output_truncated: false
+    containment_unit: local-evaluation-3059133-e8b9d99e9222
+  reference_sha256: b8fdbdb32936d7bdff2c21173f93c813c1f57879edbd33258df287c616415235
+  logs:
+    validation_out_roomsim-shape-topology-v1_command.log: 56fb4ae9224243ed7a701052c674324b035765b9dd099a7fb528e94959237211
+    validation_out_roomsim-shape-topology-v1_stdout.log: 931be8cc8fea012420bfc8442ac47a0e5280fd9c21fcd93cd3f9312edfbe6a0c
+    validation_out_roomsim-shape-topology-v1_stderr.log: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    validation_out_roomsim-shape-topology-v1_exitcode.log: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
+    validation_out_roomsim-shape-topology-v1_wall_time.log: b088cdf7b8737e99d391b8c8abbc9f53c279c90c09d345b844ccb8695584e76b
+full_array_validation:
+  definition:
+    id: full-array-roomsim-v1
+    benchmark: roomsim
+    args:
+    - "-v"
+    - "-o"
+    - "-n"
+    - '320'
+    - "-t"
+    - '101'
+    - "-s"
+    - '7'
+    - "-r"
+    - '0.7'
+    topology: validation
+    timeout: 30
+    comparison: complete-arrays-and-existing-summary
+  evidence_directory: full-array
+  receipt_sha256: 127485377de28f420db2ada229d3bb5b83e94cb09607663b93cd6801f09cdc00
+  passed: true
+  arrays:
+  - elements: 320
+    absolute_tolerance: 5.0
+    mismatches: 0
+    maximum_absolute_error: 0.0
+    examples: []
+    name: Distances
+    reference_array_sha256: 502ccda8cd5d76a69af33fb10d79b531ce67b02740213029d701c20cd0e52ca9
+    actual_array_sha256: 502ccda8cd5d76a69af33fb10d79b531ce67b02740213029d701c20cd0e52ca9
+  sparse_comparison:
+  - true
+  - |
+    Validation successful. All objects match reference output.
+     - Object Distances: PASSED (hash match: true)
+comparison_policy:
+completed_at: '2026-11-06T07:02:42+01:00'

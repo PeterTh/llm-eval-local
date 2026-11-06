@@ -4,6 +4,14 @@ import { costDatasetFixture, manifestFixture, runsFixture, scoreCubeFixture, tim
 import { costDatasetSchema, datasetManifestSchema, runShardSchema, scoreCubeSchema, timeDatasetSchema } from "./schema";
 
 describe("runtime dataset validation", () => {
+  it("retains recorded tree accounting separately from generation termination", () => {
+    const run = structuredClone(runsFixture[0]!);
+    run.generationUsage = { source: "codex_rollout_unique_thread_requests", accountingScope: "parent_and_descendants", usageComplete: false,
+      recordedSessions: 4, recordedRequests: 20, interruptedSessions: 1, recordedTotalTokens: 1000,
+      evidenceSha256: "a".repeat(64), evidenceUrl: "https://example.test/usage.jsonl#L1" };
+    expect(runShardSchema.parse([run])[0]).toEqual(run);
+    expect(() => runShardSchema.parse([{ ...run, generationUsage: { ...run.generationUsage, usageComplete: true } }])).toThrow();
+  });
   it("retains external-validation exclusions without requiring a timing correction", () => {
     const run = structuredClone(runsFixture[0]!);
     run.validationStatus = 4;

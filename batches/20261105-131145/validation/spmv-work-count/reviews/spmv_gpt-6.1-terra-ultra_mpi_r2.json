@@ -1,0 +1,85 @@
+{
+  "id": "spmv_gpt-6.1-terra-ultra_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i is parsed into iterations, and the timed region invokes spmvCpu in a loop bounded by that count. The root owns rows [0,rowStarts[1]); other ranks receive [rowStarts[p],rowStarts[p+1]); rowStarts begins at 0, ends at numRows, and adjacent intervals meet, so the rank ranges cover all rows. Compiled timed code retains the iteration back edge, row and CSR-entry back edges, value/vector loads, multiply-add accumulation, and output stores. No omitted or hoisted timed iterations identified.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          192,
+          211
+        ],
+        [
+          273,
+          316
+        ],
+        [
+          318,
+          325
+        ],
+        [
+          102,
+          111
+        ]
+      ],
+      "claim": "CLI parsing assigns -i to iterations. The partition explicitly starts at row 0 and ends at numRows, sends each adjacent row interval to its rank, and normalizes local CSR offsets. The measured loop calls spmvCpu iterations times; that routine traverses each local row's CSR interval, multiplies val by vec indexed by cols, accumulates, and writes each output row.",
+      "sha256": "d8be4ed884e492866b6a183575e7896fd1e8313b793680d6daa03762123d52f5",
+      "git_blob": "406b2b440cc40d8857c87054db67379605425ac0"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The main timed block starts at MPI_Wtime, loops over local rows and CSR entries, loads column/value/vector data, multiplies and accumulates, stores each row result, and increments/compares the outer iteration counter before branching back. The emitted spmvCpu body independently shows CSR loads, multiply/add operations, output stores, and row/nonzero back edges.",
+      "complete_dump_sha256": "f38b747459f557bb4efcdccc640ffe9bbeaf248e1e93ec24e893b678f4941170",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/terra61-ultra-spmv-review-20261106-3157415-5hmg8s/executables/spmv_gpt-6.1-terra-ultra_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2044,
+          "last_line": 2089,
+          "text": "    9df3:\tlea    0xb426(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    9dfa:\tcall   8ea0 <MPI_Barrier@plt>\n    9dff:\tcall   9200 <MPI_Wtime@plt>\n    9e04:\tcmpl   $0x0,-0x1a0(%rbp)\n    9e0b:\tmov    -0x160(%rbp),%rbx\n    9e12:\tvmovsd %xmm0,-0x1c0(%rbp)\n    9e1a:\tmov    -0x140(%rbp),%r13\n    9e21:\tmov    -0x80(%rbp),%r12\n    9e25:\tje     9ec6 <main+0x736>\n    9e2b:\tcmpl   $0x0,-0x1a8(%rbp)\n    9e32:\tmov    -0xe0(%rbp),%r9\n    9e39:\tmov    -0x100(%rbp),%r11\n    9e40:\tje     9ec6 <main+0x736>\n    9e46:\tlea    0x0(,%r14,4),%r10\n    9e4e:\txor    %edx,%edx\n    9e50:\txor    %r14d,%r14d\n    9e53:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9e5e:\txchg   %ax,%ax\n    9e60:\tmov    (%r9,%r14,1),%eax\n    9e64:\tmov    0x4(%r9,%r14,1),%esi\n    9e69:\tcmp    %esi,%eax\n    9e6b:\tjae    a480 <main+0xcf0>\n    9e71:\tdec    %esi\n    9e73:\tlea    (%r11,%rax,4),%r8\n    9e77:\tlea    0x0(%r13,%rax,8),%rdi\n    9e7c:\tvxorpd %xmm1,%xmm1,%xmm1\n    9e80:\tsub    %eax,%esi\n    9e82:\txor    %eax,%eax\n    9e84:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    9e8f:\tnop\n    9e90:\tmov    (%r8,%rax,4),%ecx\n    9e94:\tvmovsd (%rbx,%rcx,8),%xmm0\n    9e99:\tmov    %rax,%rcx\n    9e9c:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    9ea1:\tinc    %rax\n    9ea4:\tvaddsd %xmm0,%xmm1,%xmm1\n    9ea8:\tcmp    %rsi,%rcx\n    9eab:\tjne    9e90 <main+0x700>\n    9ead:\tvmovsd %xmm1,(%r12,%r14,2)\n    9eb3:\tadd    $0x4,%r14\n    9eb7:\tcmp    %r10,%r14\n    9eba:\tjne    9e60 <main+0x6d0>\n    9ebc:\tinc    %edx\n    9ebe:\tcmp    %edx,-0x1a0(%rbp)\n    9ec4:\tjne    9e50 <main+0x6c0>\n    9ec6:\tcall   9200 <MPI_Wtime@plt>\n"
+        },
+        {
+          "first_line": 2947,
+          "last_line": 2985,
+          "text": "\n000000000000ade0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    ade0:\tendbr64\n    ade4:\ttest   %r8d,%r8d\n    ade7:\tje     ae85 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xa5>\n    aded:\tmov    %r8d,%r8d\n    adf0:\tpush   %r12\n    adf2:\tmov    %rdi,%r11\n    adf5:\tpush   %rbp\n    adf6:\tmov    %r9,%r12\n    adf9:\tpush   %rbx\n    adfa:\tlea    0x0(,%r8,4),%r9\n    ae02:\tmov    %rsi,%rbx\n    ae05:\tmov    %rdx,%rbp\n    ae08:\tmov    %rcx,%r10\n    ae0b:\txor    %r8d,%r8d\n    ae0e:\txchg   %ax,%ax\n    ae10:\tmov    0x0(%rbp,%r8,1),%eax\n    ae15:\tmov    0x4(%rbp,%r8,1),%ecx\n    ae1a:\tcmp    %ecx,%eax\n    ae1c:\tjae    ae70 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x90>\n    ae1e:\tdec    %ecx\n    ae20:\tlea    (%rbx,%rax,4),%rdi\n    ae24:\tlea    (%r11,%rax,8),%rsi\n    ae28:\tvxorpd %xmm1,%xmm1,%xmm1\n    ae2c:\tsub    %eax,%ecx\n    ae2e:\txor    %eax,%eax\n    ae30:\tmov    (%rdi,%rax,4),%edx\n    ae33:\tvmovsd (%r10,%rdx,8),%xmm0\n    ae39:\tmov    %rax,%rdx\n    ae3c:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    ae41:\tinc    %rax\n    ae44:\tvaddsd %xmm0,%xmm1,%xmm1\n    ae48:\tcmp    %rdx,%rcx\n    ae4b:\tjne    ae30 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x50>\n    ae4d:\tvmovsd %xmm1,(%r12,%r8,2)\n    ae53:\tadd    $0x4,%r8\n    ae57:\tcmp    %r8,%r9\n    ae5a:\tjne    ae10 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Empty rank partitions perform no row work. Reusing the same vector and overwriting output each iteration matches the prescribed sequential benchmark behavior; it is not an omission.",
+  "source": {
+    "source_path": "20261105-131145/spmv_gpt-6.1-terra-ultra_mpi_r2",
+    "source_commit": "e8a5a56facfc3feedc8de8dc0cca41af590acd66",
+    "staged_source_sha256": "8935ee7ac148eac7ae7f688270ee55c5a77087d3d0fa0d73014a1086af557198"
+  },
+  "binary_sha256": "0aabbd189fd37add0946076c00b0f696ae1ce07468f8561fa3b2e38913a8cab6",
+  "binding_sha256": "d8726ca094999d39b47e1386406a713db8344a2946397c99e6605a643de3f407",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "3258582db83bbc04b06b3fecaf93a1fb06c35e18ebe483707d9cc0d1f252a66a",
+  "primary_quality_check": {
+    "checked_at": "2026-11-06T06:55:30Z",
+    "sampled_ids": [
+      "spmv_gpt-6.1-terra-ultra_mpi_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Source lines 265–282 and 322–331 establish adjacent row partitions terminating at numRows and the complete timed iteration loop. Host assembly 2324–2372 shows real CSR data loads/multiply/add/stores enclosed by row and outer iteration counter back edges. Read all four proposal entries."
+  },
+  "schema_version": 2,
+  "reviewer": "/root/terra_ultra_spmv_mpi",
+  "review_started_at": "2026-11-06T06:49:56Z",
+  "review_finished_at": "2026-11-06T06:52:19Z",
+  "review_input_sha256": "832723300c49afb9e790654cd13a372f88e0a7043b9d3679e0293eeffe891a63",
+  "pack_sha256": "b92c52fc2c45fee4f545ab82b61712dac3163a252b58d3f6f5e2b68e20026916",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -38,6 +38,7 @@ const harnessSchema = z.object({
     url: z.string().url(),
     sha256: z.string().regex(/^[0-9a-f]{64}$/),
   }).optional(),
+  parameterNotes: z.string().min(1).optional(),
 });
 
 const methodologySchema = z.object({
@@ -202,6 +203,14 @@ export const runRecordSchema = z.object({
   overallScore: z.number().int(),
   generationTimeSeconds: z.number().positive().nullable(),
   generationTimeRecovery: generationTimeRecoverySchema.nullable().optional(),
+  generationUsage: z.object({
+    source: z.literal("codex_rollout_unique_thread_requests"),
+    accountingScope: z.literal("parent_and_descendants"), usageComplete: z.boolean(),
+    recordedSessions: z.number().int().positive(), recordedRequests: z.number().int().nonnegative(),
+    interruptedSessions: z.number().int().nonnegative(), recordedTotalTokens: z.number().int().positive(),
+    evidenceSha256: z.string().regex(/^[0-9a-f]{64}$/), evidenceUrl: z.string().url(),
+  }).refine((x) => x.interruptedSessions < x.recordedSessions && x.usageComplete === (x.interruptedSessions === 0),
+    "Inconsistent native tree completeness").nullable().optional(),
   generationTermination: z.object({
     outcome: z.literal("generation_model_terminated"),
     reason: z.enum(["model_caused_termination", "model_protocol_failure"]),
@@ -329,6 +338,8 @@ export const costRunRecordSchema = z.object({
   outputTokens: z.number().int().nonnegative().nullable(),
   totalTokens: z.number().int().nonnegative().nullable(),
   estimatedCostUsd: z.number().nonnegative().nullable(),
+  usageComplete: z.boolean().optional(),
+  accountingScope: z.literal("parent_and_descendants").optional(),
 });
 
 export const costDatasetSchema = z.object({
