@@ -1,0 +1,47 @@
+{
+  "program_id": "cahn-hilliard_claude-fable-5.1-cc-medium_hybrid_r1",
+  "final_verdict": "accept",
+  "prior_rejection_upheld": false,
+  "confidence": "high",
+  "issue_categories": [
+    "none"
+  ],
+  "timing_contract_satisfied": true,
+  "timing_only_scope_satisfied": true,
+  "environment_evidence_assessment": "The explicit long buffer matches MPI_LONG; the supplied target-platform probe also confirms that the chrono millisecond count has type long. Compile-success evidence does not establish runtime completion, which follows here from the source dependency ordering.",
+  "rationale": "The prior rejection misinterprets CUDA event waits: waiting on an event that has never been recorded is a no-op, and a future recording does not retroactively affect that wait. Consequently, the first iteration has no claimed circular dependency. Subsequent waits reference the preceding stepDone recording. Every rank times the entire simulation loop through completed device work, and MPI_Allreduce reports the maximum complete local duration. The correction changes timing and derived reporting only.",
+  "evidence": [
+    {
+      "path": "cahn-hilliard/cahn_hilliard.cpp",
+      "lines": "404-406",
+      "finding": "stepDone is newly created and initially unrecorded; this makes its first stream wait a no-op, not a wait for a future recording."
+    },
+    {
+      "path": "cahn-hilliard/cahn_hilliard.cpp",
+      "lines": "424-447",
+      "finding": "Initialization and warm-up are synchronized before the timer. The local start precedes the complete simulation loop."
+    },
+    {
+      "path": "cahn-hilliard/cahn_hilliard.cpp",
+      "lines": "456-487",
+      "finding": "The first stepDone wait cannot cause the alleged deadlock. sendReady synchronization completes staging before MPI accesses the buffers, and MPI_Waitall completes each halo exchange."
+    },
+    {
+      "path": "cahn-hilliard/cahn_hilliard.cpp",
+      "lines": "489-524",
+      "finding": "haloReady follows communication-stream halo copies, and compStream waits on it before boundary computation. stepDone follows the completed-step updates; subsequent iterations wait on that prior recording."
+    },
+    {
+      "path": "cahn-hilliard/cahn_hilliard.cpp",
+      "lines": "531-535",
+      "finding": "compStream synchronization completes the simulation and its communication-stream dependencies before the stop. All ranks then participate in a compatible MPI_LONG/MPI_MAX Allreduce on MPI_COMM_WORLD."
+    },
+    {
+      "path": "cahn-hilliard/cahn_hilliard.cpp",
+      "lines": "537-543",
+      "finding": "Rank 0 prints the reduced millisecond duration under Computation time and derives performance from the same value."
+    }
+  ],
+  "minimal_correction": "",
+  "notes": "Static review only. The supplied proposal replaces the final timing barrier with maximum-duration aggregation and preserves computation. Millisecond rounding is permitted by the contract."
+}

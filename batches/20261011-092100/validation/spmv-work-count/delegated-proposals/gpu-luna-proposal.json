@@ -1,0 +1,125 @@
+{
+  "reviewer": "/root/fable51_spmv_gpu",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-07T22:07:09Z",
+  "review_finished_at": "2026-11-07T22:20:59Z",
+  "timing_provenance": "Enclosing bounds only, not precise start or duration: the parent reports task launch no earlier than 2026-11-07T22:07:09Z; finish bound is the observed clock time 2026-11-07T22:20:59Z.",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "reviews": [
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i sets iterations and the timed native loop calls spmvGpu once per iteration (distinct from the pre-timing warm-up). Both emitted CUDA kernels traverse each row's CSR interval, load values, columns and vector entries, perform DFMA accumulation, loop over additional nonzeros, and store row output.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[107, 129], [135, 175]], "claim": "The scalar and warp-vector kernels read each active row's CSR start/end, visit its nonzero indices, multiply matrix values by indexed vector entries, and write the accumulated row result."},
+        {"file": "spmv/spmv.cpp", "ranges": [[274, 286], [354, 375]], "claim": "-i is parsed into iterations; a warm-up precedes timing, and the timed loop calls spmvGpu iterations times before device synchronization."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1382, 1404]], "claim": "Native main starts timing, calls spmvGpu in a counter-controlled loop with a backward conditional branch, then synchronizes before ending the interval."},
+        {"file": "device-sass.txt", "ranges": [[47, 58], [79, 91], [175, 183], [299, 299], [346, 357], [384, 394], [402, 404], [984, 984]], "claim": "For both emitted kernels, the cited instructions include row bounds and CSR values/columns/vector loads, DFMA with a backward nonzero-loop branch, and the output store."}
+      ],
+      "notes": "The computed A*x output is intentionally overwritten on each repetition, as in the unchanged reference; this is not omitted work."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i drives the timed repeated spmvGpu calls. Its selected CSR-vector kernel assigns rows across warps and covers every row and its half-open CSR interval; native SASS contains the compiled 32/16/8/4/2-lane variants with data loads, fused multiply-add accumulation, backedges, and output stores.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[125, 158], [168, 196]], "claim": "The templated CUDA kernel strides over the complete row domain, reads each row's CSR bounds and visits nonzeros with the selected threads-per-row stride; the dispatcher selects a compiled variant."},
+        {"file": "spmv/spmv.cpp", "ranges": [[248, 261], [335, 352]], "claim": "-i is parsed into iterations, and after the warm-up the timed loop calls spmvGpu once per iteration before error checking and synchronization."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1417, 1443]], "claim": "Native main brackets repeated spmvGpu calls with a counter and backward branch inside the measured interval, then checks and performs cudaDeviceSynchronize before taking the end time."},
+        {"file": "device-sass.txt", "ranges": [[47, 54], [65, 77], [159, 167], [291, 291], [468, 475], [486, 498], [580, 588], [706, 706], [873, 880], [891, 903], [985, 993], [1105, 1105], [1246, 1253], [1264, 1276], [1358, 1366], [1472, 1472], [1595, 1602], [1613, 1625], [1707, 1715], [1815, 1815]], "claim": "Each emitted 32/16/8/4/2 variant has cited row bounds, CSR values/columns and vector loads, accumulated DFMA with backward branch, and output store."}
+      ],
+      "notes": "Repeated identical A*x writes intentionally overwrite the same output, matching the reference semantics."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i reaches the timed spmvGpu loop and its selected templated CSR kernel. The full row domain is represented by the launch grid; each row's CSR range is traversed with a per-lane stride and reduced to an output store. The compiled 32-through-1 variants show real load/DFMA/backedge/store work.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[139, 181], [184, 221]], "claim": "The selected templated kernel obtains row CSR boundaries, processes all nonzeros using the template stride and writes the row result; the launcher uses the corresponding row grid and variant."},
+        {"file": "spmv/spmv.cpp", "ranges": [[271, 283], [363, 382]], "claim": "-i populates iterations; after a separate warm-up, the timed loop repeats spmvGpu and synchronizes the stream after the loop."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1440, 1468]], "claim": "Native main's timed loop repeatedly calls spmvGpu, increments and compares the iteration counter, branches back, then checks and synchronizes the stream before taking the end time."},
+        {"file": "device-sass.txt", "ranges": [[47, 54], [63, 73], [185, 193], [305, 305], [374, 381], [394, 406], [488, 496], [602, 602], [667, 674], [687, 699], [781, 789], [889, 889], [944, 951], [964, 976], [1058, 1066], [1160, 1160], [1219, 1226], [1239, 1251], [1333, 1341], [1429, 1429], [1492, 1499], [1524, 1534], [1542, 1544], [2124, 2124]], "claim": "Each emitted 32/16/8/4/2/1 variant has cited row bounds, CSR values/columns and vector loads, DFMA in the repeated nonzero path with backward branch, and output store."}
+      ],
+      "notes": "Per-iteration A*x output replacement is intentional and matches the reference."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed -i count controls a timed loop with one spmvGpu call per iteration, after a separate warm-up. The launched kernel covers rows and each row's CSR interval, loading values/indices/vector entries, accumulating products and storing outputs; every emitted TPR variant has corresponding real device instructions and backedges.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[141, 172], [175, 207]], "claim": "The templated device kernel traverses the row's [start,end) CSR range using lane stride, accumulates matrix-value times indexed-vector products and stores the reduced output; dispatcher selects a real variant."},
+        {"file": "spmv/spmv.cpp", "ranges": [[278, 291], [363, 380]], "claim": "-i is parsed into iterations; the timed loop invokes spmvGpu for that count and synchronizes after all launches."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[935, 958]], "claim": "Native main's measured control repeats spmvGpu calls under an iteration counter/backedge and performs device synchronization after the loop."},
+        {"file": "device-sass.txt", "ranges": [[47, 54], [63, 75], [157, 165], [279, 279], [340, 347], [356, 368], [450, 458], [566, 566], [617, 624], [633, 645], [727, 735], [839, 839], [896, 903], [910, 922], [1004, 1012], [1106, 1106], [1173, 1180], [1187, 1199], [1281, 1289], [1377, 1377], [1430, 1437], [1462, 1472], [1480, 1482], [2062, 2062]], "claim": "Each emitted TPR variant has cited row bounds, CSR values/columns and vector loads, DFMA with backward branch in the repeated nonzero path, and output store."}
+      ],
+      "notes": "Repeated A*x writes replace the output by design, consistent with the reference."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank receives a contiguous row slice with its matching nnz interval; rows and nonzeros are covered after rebasing local row pointers. The timed loop launches local SpMV iterations times. Device SASS for all TPR variants contains CSR loads, DFMA loops and output stores.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[164, 198], [201, 235]], "claim": "The GPU kernel traverses each row's CSR interval and writes a row output; launch selection dispatches the chosen TPR variant."},
+        {"file": "spmv/spmv.cpp", "ranges": [[340, 354], [421, 479], [438, 474], [519, 536]], "claim": "-i sets iterations; monotonic rowStart boundaries span row zero through numRows, rank slices use matching row and nnz boundaries, row delimiters are rebased and corresponding CSR arrays scattered, and the timed local loop launches once per iteration."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[2375, 2410]], "claim": "Native main repeatedly calls the local launch helper under an increment/compare/backedge and then synchronizes the stream."},
+        {"file": "device-sass.txt", "ranges": [[43, 50], [75, 85], [93, 95], [675, 675], [738, 745], [758, 770], [852, 860], [948, 948], [999, 1006], [1019, 1031], [1113, 1121], [1215, 1215], [1276, 1283], [1296, 1308], [1390, 1398], [1498, 1498], [1553, 1560], [1573, 1585], [1667, 1675], [1781, 1781], [1846, 1853], [1866, 1878], [1960, 1968], [2080, 2080]], "claim": "Each emitted TPR 1/2/4/8/16/32 variant has cited row bounds, CSR values/columns and vector loads, DFMA with backward branch in the repeated nonzero path, and output store."}
+      ],
+      "notes": "The output is intentionally recomputed as A*x and overwritten each iteration."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks own adjacent row intervals covering [0,numRows), with matching CSR nnz offsets/counts and rebased local pointers; each rank's timed loop invokes its GPU SpMV for all -i repetitions. The emitted TPR family contains actual CSR loads, DFMA accumulation, loop branches and output stores.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[154, 188], [189, 209]], "claim": "The CUDA kernel processes each row's complete CSR interval and stores its result; launcher dispatches among the compiled variants."},
+        {"file": "spmv/spmv.cpp", "ranges": [[298, 313], [395, 440], [479, 493]], "claim": "-i sets iterations; rank row starts are ordered from zero to numRows, each rank's nnz count/displacement is derived from those row boundaries, row pointers are rebased, and the timed per-rank loop calls spmvGpu once per iteration."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[1540, 1556], [1576, 1578]], "claim": "Native main's timed control invokes the GPU dispatch under the iteration counter/backedge, then checks and synchronizes the stream before timing ends."},
+        {"file": "device-sass.txt", "ranges": [[41, 48], [55, 65], [177, 185], [297, 297], [350, 357], [370, 382], [464, 472], [578, 578], [627, 634], [647, 659], [741, 749], [851, 851], [904, 911], [924, 936], [1018, 1026], [1120, 1120], [1181, 1188], [1201, 1213], [1295, 1303], [1391, 1391], [1444, 1451], [1476, 1486], [1494, 1496], [2076, 2076]], "claim": "Each emitted TPR specialization has cited row bounds, CSR values/columns and vector loads, DFMA with backward branch in the repeated nonzero path, and output store."}
+      ],
+      "notes": "Repeated output overwrites are the intended A*x reference semantics."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks divide the global row domain into contiguous cuts and distribute each cut's corresponding CSR arrays and rebased delimiters. The timed loop calls the selected launcher iterations times. The compiled kernel specializations execute row/nonzero CSR work with multiply-accumulate, loop branches and output stores.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[207, 231], [235, 254]], "claim": "The selected kernel walks each local row's CSR bounds using the configured lane stride, accumulates values times indexed vector entries and stores the result; launcher selection uses a real template kernel."},
+        {"file": "spmv/spmv.cpp", "ranges": [[324, 337], [395, 477], [509, 530]], "claim": "-i sets iterations; rowStarts partition from zero to numRows, ranks receive matching nnz ranges and local rebased row delimiters, and the timed loop dispatches the selected launcher for every repetition."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[2132, 2154], [2178, 2182]], "claim": "Native main starts the timed interval, calls the selected launcher under a counter-controlled backward branch, then synchronizes the stream and closes the timed interval."},
+        {"file": "device-sass.txt", "ranges": [[45, 52], [61, 73], [155, 163], [277, 277], [338, 345], [354, 366], [448, 456], [564, 564], [615, 622], [631, 643], [725, 733], [837, 837], [894, 901], [908, 920], [1002, 1010], [1104, 1104], [1171, 1178], [1185, 1197], [1279, 1287], [1375, 1375]], "claim": "Each emitted 32/16/8/4/2 variant has cited row bounds, CSR values/columns and vector loads, DFMA with a backward branch in the repeated nonzero path, and output store."}
+      ],
+      "notes": "Each repetition intentionally overwrites the local output with A*x, consistent with the unchanged reference."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The contiguous rank partition covers all rows and matching nnz intervals; each rank is then split into adjacent GPU row/nnz slices with rebased local row pointers and uploaded slice data. Every GPU worker's timed loop launches its slice once for each -i iteration. Device SASS confirms the templated kernels do real CSR loads, DFMA loops and output stores.",
+      "source_evidence": [
+        {"file": "spmv/spmv.cpp", "ranges": [[170, 200], [203, 224], [274, 301]], "claim": "The templated GPU kernel visits nonzeros for each assigned row and stores the accumulated output; launch dispatch maps each selected TPR to a compiled kernel."},
+        {"file": "spmv/spmv.cpp", "ranges": [[428, 442], [525, 591], [557, 590], [610, 621]], "claim": "-i sets iterations; adjacent rank row cuts and nnz offsets cover the global CSR matrix, each rank slice is split into adjacent GPU row/nnz cuts with rebased row pointers and corresponding CSR uploads, and each GPU executes the timed launch loop for all iterations."}
+      ],
+      "compiled_evidence": [
+        {"file": "host-assembly.txt", "ranges": [[3630, 3888]], "claim": "The native OpenMP worker selects the GPU's TPR launch path, executes the repeated kernel-launch loop with its counter/backedge, and synchronizes its stream after completion."},
+        {"file": "device-sass.txt", "ranges": [[59, 66], [77, 89], [173, 181], [307, 307], [376, 383], [394, 406], [490, 498], [610, 610], [669, 676], [687, 699], [783, 791], [897, 897], [964, 971], [980, 992], [1076, 1084], [1182, 1182], [1241, 1248], [1257, 1269], [1353, 1361], [1453, 1453], [1508, 1515], [1542, 1552], [1560, 1562], [2150, 2150]], "claim": "Each emitted TPR variant has cited row bounds, CSR values/columns and vector loads, DFMA with a backward branch in the repeated nonzero path, and output store."}
+      ],
+      "notes": "The same A*x output is intentionally overwritten on each repetition, not omitted."
+    }
+  ]
+}

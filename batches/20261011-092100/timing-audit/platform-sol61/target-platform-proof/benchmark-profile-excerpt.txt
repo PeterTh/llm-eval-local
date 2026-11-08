@@ -1,0 +1,22 @@
+    end
+
+    def benchmark_command(par_type, executable, args)
+      case par_type
+      when "omp"
+        [common_omp(128, "spread").merge("CUDA_VISIBLE_DEVICES" => ""),
+         ["numactl", "--physcpubind=0-127", "--interleave=0,1", executable, *args]]
+      when "cuda"
+        [{ "CUDA_VISIBLE_DEVICES" => "0", "OMP_NUM_THREADS" => "1" },
+         ["numactl", "--physcpubind=0-63", "--membind=0", executable, *args]]
+      when "mpi"
+        [{ "CUDA_VISIBLE_DEVICES" => "", "OMP_NUM_THREADS" => "1" },
+         ["mpirun", "--np", "128", "--map-by", "ppr:64:socket:PE=1", "--bind-to", "core", "--rank-by", "slot", executable, *args]]
+      when "hybrid"
+        [common_omp(32, "close").merge("CUDA_VISIBLE_DEVICES" => "0,1,2,3"),
+         ["mpirun", "--np", "4", "--map-by", "ppr:2:socket:PE=32", "--bind-to", "core", "--rank-by", "slot",
+          RbConfig.ruby, @wrapper_path, executable, *args]]
+      end
+    end
+  end
+
+  module BuildSupport

@@ -1,0 +1,40 @@
+{
+  "program_id": "roomsim_claude-fable-5.1-cc-medium_hybrid_r2",
+  "verdict": "accept",
+  "issue_categories": [
+    "none"
+  ],
+  "confidence": "high",
+  "timing_contract_satisfied": true,
+  "timing_only_scope_satisfied": true,
+  "device_completion": "valid",
+  "timed_region": "Precomputation lines 1900-1911; simulation lines 1918-1927; distance computation lines 1934-1943. Each phase starts after a barrier, encloses its complete work, synchronizes CUDA work, and includes the existing ending barrier.",
+  "rank_aggregation": "Each local long duration is reduced with MPI_MAX across MPI_COMM_WORLD at lines 1911, 1927, and 1943. The target LP64 evidence establishes MPI_LONG matches long.",
+  "collective_safety": "All ranks execute matching MPI_Barrier and MPI_Allreduce calls on MPI_COMM_WORLD with count 1, MPI_LONG, and MPI_MAX. Existing phase collectives are also matched.",
+  "canonical_output": "Total computation time at line 1954 uses totalTime, the sum of the three reduced phase maxima at line 1951, reported in milliseconds. The derived per-triangle metric at line 1969 uses the same corrected total.",
+  "scope_assessment": "The RNG-modulus construction remains present but is moved into the timed precomputation at lines 1903-1905; no algorithmic result, inputs, iteration counts, validation, or non-timing behavior is changed.",
+  "evidence": [
+    {
+      "path": "roomsim/roomsim.cpp",
+      "lines": "1900-1911",
+      "finding": "Precomputation includes RNG-modulus construction, time-delay computation, form-factor computation, CUDA completion, the ending barrier, and MPI_MAX aggregation."
+    },
+    {
+      "path": "roomsim/roomsim.cpp",
+      "lines": "1918-1927",
+      "finding": "Simulation duration encloses runSimulation, whose CUDA work is completed before the ending barrier, and is aggregated with MPI_MAX."
+    },
+    {
+      "path": "roomsim/roomsim.cpp",
+      "lines": "1934-1943",
+      "finding": "Distance duration encloses computeDistances, including CUDA synchronization and MPI gathering, and is aggregated with MPI_MAX."
+    },
+    {
+      "path": "roomsim/roomsim.cpp",
+      "lines": "1950-1969",
+      "finding": "Canonical total and directly derived timing metric consume the corrected phase durations."
+    }
+  ],
+  "minimal_correction": "",
+  "notes": "Accepted for the supplied Linux x86_64 LP64 target: the dossier states long is 8 bytes and the duration buffers use MPI_LONG. No simultaneous start is required because complete local durations are reduced with MPI_MAX."
+}

@@ -22,12 +22,12 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 8,800 current validation outcomes and scoped revalidations, including exact execution output;
+- all 9,020 current validation outcomes and scoped revalidations, including exact execution output;
 - original benchmark outcomes, measured values and wall times, including results now excluded by external validation;
-- the current eligible view: 7,563 validated programs and 7,160 successful measurements;
+- the current eligible view: 7,783 validated programs and 7,380 successful measurements;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
 - static MPI/hybrid timing audits, all-backend QT boundary audits,
-  1,285 timing-fixed implementations, and scoped rerun comparisons;
+  1,354 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
 - compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 1,100 GPT-6.1 runs;
 - native OpenCode usage, shared effective configuration and request-context evidence for 1,100 runs
@@ -55,11 +55,11 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 8,800 scored
-programs across 40 model/effort/harness profiles, using the same scoring procedure applied jointly to fifteen
+The current combined release is under [`release/`](release/README.md): 9,020 scored
+programs across 41 model/effort/harness profiles, using the same scoring procedure applied jointly to sixteen
 campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Terra 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6, DeepSeek V4.1 Flash, Haiku 5.5 and Beam 1.0 in OpenCode, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
-analyses; superseded reviews are retained too (96 notes in total).
+analyses; superseded reviews are retained too (99 notes in total).
 
 Codex cost estimates use recorded token counts from retained native sessions.
 Terra Ultra includes parent and child requests; observations with interrupted
@@ -95,6 +95,7 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | [Beam 1.0 Medium in OpenCode](batches/20261025-170121/README.md) | 220 | 173 | 142 |
 | [Terra 6.1 XHigh in Codex](batches/20261102-030935/README.md) | 220 | 220 | 220 |
 | [Terra 6.1 Ultra in Codex](batches/20261105-131145/README.md) | 220 | 219 | 219 |
+| [Fable 5.1 Medium](batches/20261011-092100/README.md) | 220 | 220 | 220 |
 
 Counts include the [supplemental correctness checks](analysis/notes/2026-11-04-validation-strengthening.md),
 [complete-array validation](analysis/notes/2026-11-04-full-array-validation.md)

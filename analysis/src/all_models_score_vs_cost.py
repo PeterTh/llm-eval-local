@@ -40,6 +40,16 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "claude-fable-5.1-cc-medium": {
+        "label": "Fable 5.1 Medium", "color": "#903820", "marker": "P",
+        "pricing_as_of": "2026-11-07", "pricing_model_id": "anthropic/claude-fable-5.1",
+        "input_price": 10.0, "cached_input_price": 0.25, "output_price": 50.0,
+        "pricing_provider": "Anthropic", "pricing_provider_tag": "anthropic", "pricing_quantization": "unknown",
+        "pricing_selection_policy": "componentwise lowest live non-batch rates, tied across four providers; no context tiers",
+        "pricing_endpoint_url": "https://openrouter.ai/api/v1/models/anthropic/claude-fable-5.1/endpoints",
+        "pricing_source_url": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+        "cost_method": "Native cumulative token counts for accepted generation attempts; cache creation at ordinary input rates. Normalized API-price comparison, not subscription billing. Failed provider attempts have no retained token counters.",
+    },
     "gpt-6.1-terra-ultra": {
         "label": "GPT-6.1 Terra Ultra", "color": "#579c82", "marker": "*",
         "pricing_as_of": "2026-10-28", "pricing_model_id": "openai/gpt-6.1-terra",
@@ -473,6 +483,7 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "claude-fable-5.1-cc-medium": (-7, -19),
     "gpt-6.1-terra-ultra": (32, 23),
     "beam-1.0-oc-medium": (-7, -10),
     "gpt-6.1-terra-xhigh": (-45, 20),
@@ -753,7 +764,7 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             va="center",
             fontsize=8.5,
             arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
-            if row.model in {"claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium", "gpt-6.1-terra-xhigh", "gpt-6.1-terra-ultra"} else None,
+            if row.model in {"claude-fable-5.1-cc-medium", "claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium", "gpt-6.1-terra-xhigh", "gpt-6.1-terra-ultra"} else None,
             zorder=4,
         )
 

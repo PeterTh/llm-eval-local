@@ -1,0 +1,132 @@
+{
+  "reviewer": "/root/fable51_spmv_pilot",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-07T21:58:03Z",
+  "review_finished_at": "2026-11-07T22:01:54Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "reviews": [
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i is parsed into iterations and the timed host loop invokes spmvGpu once per iteration after a separate warm-up. Both CUDA kernel variants traverse each assigned CSR row's rowDelimiters interval, load CSR values/columns and gathered vector values, accumulate products, and write one output per row.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[278, 280], [354, 365]],
+          "claim": "The -i value populates iterations; the warm-up is before timing, and the timed loop calls spmvGpu iterations times before synchronization."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[133, 149], [152, 182], [200, 214]],
+          "claim": "The scalar and vector kernels use per-row CSR boundaries and traverse nonzeros, multiply matrix values by the indexed dense-vector element, and store the row result; the launcher selects a kernel and dispatches it."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [[1401, 1425]],
+          "claim": "The timed native host control has an iteration counter and back edge around repeated spmvGpu calls, then synchronizes before taking the end time."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [[19, 59], [99, 105], [123, 167], [221, 237], [271, 281], [312, 346], [366, 388], [968, 968]],
+          "claim": "sm_86 SASS contains both scalar and vector kernels. The vector path loads row delimiters and CSR column/value/vector data, performs DFMA, has a conditional loop back edge, reduces, and stores output; the scalar path likewise has CSR loads, DFMA/back-edge, and output store."
+        }
+      ],
+      "notes": "The output is intentionally overwritten with A*x on each repetition, matching the unchanged sequential reference; this is not a repetition omission."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i controls a timed repeated launch loop on each GPU slice. Contiguous row cuts span the global row interval across ranks and GPUs; each slice receives its corresponding CSR intervals and vector, and the kernel walks those intervals with per-row accumulation.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[348, 350], [438, 453], [462, 483], [506, 516]],
+          "claim": "The -i argument sets iterations; rank and GPU boundaries form adjacent row slices with nnz ranges, each slice uploads its corresponding CSR arrays and vector, and each GPU's timed loop calls launchSpmv for every iteration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[151, 188], [261, 277]],
+          "claim": "The templated device kernel gets each row's CSR start/end and accumulates its entries; partitionRows fixes the global endpoints, creates ordered contiguous interior cuts, and returns parts+1 boundaries."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [[3376, 3438], [3462, 3469]],
+          "claim": "The timed OpenMP worker has a counter/back edge around repeated kernel dispatches for its assigned slice and synchronizes the slice stream after the loop."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [[19, 53], [89, 145], [425, 425], [885, 885]],
+          "claim": "The emitted sm_86 T=32 kernel computes row/lane indices and row bounds, loads CSR data and dense-vector values, performs multiple DFMA operations per unrolled block, branches back for more CSR entries, and stores the row result."
+        }
+      ],
+      "notes": "The emitted SASS was inspected, not just the host launch names. The one-vector output is rewritten per iteration, as in the reference."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Every rank parses the same -i count, receives a contiguous row/CSR slice from the global partition, and executes the timed SpMV loop that many times. Native host assembly retains the repetition loop and row/nonzero loops with CSR loads, multiply-adds, and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[181, 183], [232, 265], [268, 303], [321, 338]],
+          "claim": "The parsed iteration count is used by the timed loop on each rank; rank row ranges start at row zero and end at numRows with row counts and matching nnz displacement/counts, then local row delimiters are rebased and local SpMV is repeated before gathering."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[99, 109]],
+          "claim": "The local CPU SpMV traverses all rows in its supplied dimension and each row's half-open CSR interval, accumulating val[j]*vec[cols[j]] and writing out[i]."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [[2185, 2233]],
+          "claim": "The timed native control brackets an outer iteration loop with barriers/time reads; within it, compiled row and nonzero loops load column indices, vector and matrix values, multiply/add, store each row output, and branch across rows and iterations."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [[2920, 2969]],
+          "claim": "The compiled spmvCpu body has back edges for the CSR nonzero loop and the row loop, with indexed loads and accumulation followed by row output storage."
+        }
+      ],
+      "notes": "The repeated operation intentionally overwrites the same output with A*x each time, matching the sequential reference."
+    },
+    {
+      "id": "spmv_claude-fable-5.1-cc-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i controls a timed loop that calls the OpenMP CSR SpMV once per iteration. Each call processes the full row domain, and each row's complete half-open nonzero interval is accumulated and written; compiled host control retains the iteration loop and the worker retains row/nonzero back edges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[281, 283], [344, 351]],
+          "claim": "The command-line -i value sets iterations and the timed loop calls spmvCpu once per iteration."
+        },
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [[200, 218]],
+          "claim": "spmvCpu uses rowDelimiters[dim] for workload sizing, parallelizes the complete [0,dim) row domain, traverses every row's [rowStart,rowEnd) nonzero interval, and writes each output row."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [[703, 735]],
+          "claim": "Inside the timed interval, the native host control repeatedly invokes the OpenMP SpMV worker and compares its loop counter against the parsed iteration count before the end-time read."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [[1095, 1172]],
+          "claim": "The compiled OpenMP worker partitions rows among threads, loads row delimiters and CSR/vector data, accumulates products, stores each row, and retains nonzero and row loop back edges."
+        }
+      ],
+      "notes": "The output is recomputed as A*x on each repetition and overwritten, matching the unchanged sequential reference."
+    }
+  ]
+}

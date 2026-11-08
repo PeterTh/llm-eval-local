@@ -1,0 +1,98 @@
+{
+  "id": "spmv_claude-fable-5.1-cc-medium_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i is parsed into the timed repetition count. partitionRows makes nondecreasing contiguous row cuts from zero, ending at numRows; each rank receives the corresponding delimiter-delimited nonzero slice and rebases it locally. Native code retains repetition, row, and nonzero backedges plus CSR/vector loads, multiply-accumulate, and output stores. The repeated A*x overwrite is intentional and unchanged from the reference.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          252,
+          260
+        ],
+        [
+          215,
+          234
+        ],
+        [
+          327,
+          369
+        ],
+        [
+          381,
+          394
+        ]
+      ],
+      "claim": "The -i value sets iterations. partitionRows initializes the first cut at zero, creates ordered cuts, and sets the last cut to numRows; each rank gets the corresponding CSR slice, rebases delimiter offsets, and repeats local SpMV during timing.",
+      "sha256": "c190db573821ea0f3729c8653b6f22e9c04e3405e93471ab299ab28e23c7786c",
+      "git_blob": "d7c6c03cdec2398ff1b5e29822c12b60acbf7419"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          100,
+          112
+        ]
+      ],
+      "claim": "spmvCpu processes all local rows and each row's full half-open nonzero interval, gathers vec[cols[j]], multiplies by val[j], accumulates, and writes out[i].",
+      "sha256": "c190db573821ea0f3729c8653b6f22e9c04e3405e93471ab299ab28e23c7786c",
+      "git_blob": "d7c6c03cdec2398ff1b5e29822c12b60acbf7419"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "After the timed clock start, native code retains the outer iteration backedge at a1ad-a1b1, row backedge at a1a4-a1ab, and nonzero backedge at a199-a19c. The body loads CSR columns, dense-vector and matrix values, multiplies/adds, and stores each row at a19e.",
+      "complete_dump_sha256": "0853a034923ab2fe777402f800e367600b5c5f5d8bdef5219fd511d08eff1779",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2187,
+          "last_line": 2233,
+          "text": "    a0f8:\tcall   8b90 <std::chrono::_V2::system_clock::now()@plt>\n    a0fd:\tmov    -0x1bc(%rbp),%r9d\n    a104:\tmov    %rax,-0x190(%rbp)\n    a10b:\ttest   %r9d,%r9d\n    a10e:\tje     a1b3 <main+0xaa3>\n    a114:\tmov    -0x1f4(%rbp),%r8d\n    a11b:\tmov    -0x70(%rbp),%r9\n    a11f:\ttest   %r8d,%r8d\n    a122:\tje     a1b3 <main+0xaa3>\n    a128:\tmov    -0x1b0(%rbp),%rax\n    a12f:\tmov    -0x1bc(%rbp),%esi\n    a135:\txor    %ecx,%ecx\n    a137:\tlea    0x0(,%rax,4),%r8\n    a13f:\tnop\n    a140:\txor    %r10d,%r10d\n    a143:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a14e:\txchg   %ax,%ax\n    a150:\tmov    0x4(%r12,%r10,1),%edx\n    a155:\tmov    (%r12,%r10,1),%eax\n    a159:\tcmp    %edx,%eax\n    a15b:\tjae    a3c0 <main+0xcb0>\n    a161:\tdec    %edx\n    a163:\tlea    (%r14,%rax,4),%r11\n    a167:\tlea    0x0(%r13,%rax,8),%rdi\n    a16c:\tvxorpd %xmm1,%xmm1,%xmm1\n    a170:\tsub    %eax,%edx\n    a172:\txor    %eax,%eax\n    a174:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a17f:\tnop\n    a180:\tmov    (%r11,%rax,4),%r15d\n    a184:\tvmovsd (%rbx,%r15,8),%xmm0\n    a18a:\tmov    %rax,%r15\n    a18d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a192:\tinc    %rax\n    a195:\tvaddsd %xmm0,%xmm1,%xmm1\n    a199:\tcmp    %rdx,%r15\n    a19c:\tjne    a180 <main+0xa70>\n    a19e:\tvmovsd %xmm1,(%r9,%r10,2)\n    a1a4:\tadd    $0x4,%r10\n    a1a8:\tcmp    %r8,%r10\n    a1ab:\tjne    a150 <main+0xa40>\n    a1ad:\tinc    %ecx\n    a1af:\tcmp    %ecx,%esi\n    a1b1:\tjne    a140 <main+0xa30>\n    a1b3:\tlea    0xb086(%rip),%rdi        # 15240 <ompi_mpi_comm_world@@Base>\n    a1ba:\tcall   8eb0 <MPI_Barrier@plt>\n    a1bf:\tcall   8b90 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Each iteration intentionally overwrites output with the same A*x, matching the unchanged reference; no repetition was omitted.",
+  "source": {
+    "source_path": "20261011-092100/spmv_claude-fable-5.1-cc-medium_mpi_r5",
+    "source_commit": "e3a476e84284ddea4052c6e55e92439f10f38b1a",
+    "staged_source_sha256": "7dc4c252f2a11cbde3b4304257b8c1cecac8c982454c2b7a31565e128a1f5cda"
+  },
+  "binary_sha256": "1e560f995e40621f734a1d2277e10ef87d3f3c127eb8256e445463df06c8e4de",
+  "binding_sha256": "bef88b006bcb5f3ad43ea86d96463b016ac66b109c96f3e0e985c2531d2b2c54",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "20a01f6beef7cca6b370a8d0d2ab34323f132e53a2baa7f6569437ddccb37500",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-07T22:13:19Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5.1-cc-medium_mpi_r2",
+      "spmv_claude-fable-5.1-cc-medium_mpi_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all four proposals and checked source/binary binding of every citation. Directly checked r2 and r3 CSR partitions, complete local row/nonzero traversals, timed repetition loops, and emitted native loads/multiply/add/stores plus all three loop backedges. r2 uses root send/receive of adjacent slices; r3 uses Scatterv and rebased delimiters. No missing repetitions or CSR work identified.",
+    "timestamp_provenance": "Conservative enclosing interval, not exact review duration: 22:07:09Z is the parent-observed launch lower bound and 22:09:49Z was clock-observed by the reviewer near completion. The original 22:05:00Z start was guessed and is rejected; its original proposal is retained. Scientific findings are unchanged.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/fable51_spmv_mpi",
+  "review_started_at": "2026-11-07T22:07:09Z",
+  "review_finished_at": "2026-11-07T22:09:49Z",
+  "review_input_sha256": "5d802f5913380c55f6d8acfbc31737d70588b2c7567222e587dc16df991c0373",
+  "pack_sha256": "5901137566381c3787d6d3876d67c143bb16b9b11809370047fa8ab3243d350e",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

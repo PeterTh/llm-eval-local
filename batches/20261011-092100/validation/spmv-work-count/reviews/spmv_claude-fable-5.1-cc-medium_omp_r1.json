@@ -1,0 +1,120 @@
+{
+  "id": "spmv_claude-fable-5.1-cc-medium_omp_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i controls a timed loop that calls the OpenMP CSR SpMV once per iteration. Each call processes the full row domain, and each row's complete half-open nonzero interval is accumulated and written; compiled host control retains the iteration loop and the worker retains row/nonzero back edges.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          281,
+          283
+        ],
+        [
+          344,
+          351
+        ]
+      ],
+      "claim": "The command-line -i value sets iterations and the timed loop calls spmvCpu once per iteration.",
+      "sha256": "3c14444fe09e1ec98fbadc43913a5638c2969192c9305ad5e7178347d9c1256e",
+      "git_blob": "d7c80a7587d05b70a5ae48079e8a67d9257541ae"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          200,
+          218
+        ]
+      ],
+      "claim": "spmvCpu uses rowDelimiters[dim] for workload sizing, parallelizes the complete [0,dim) row domain, traverses every row's [rowStart,rowEnd) nonzero interval, and writes each output row.",
+      "sha256": "3c14444fe09e1ec98fbadc43913a5638c2969192c9305ad5e7178347d9c1256e",
+      "git_blob": "d7c80a7587d05b70a5ae48079e8a67d9257541ae"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Inside the timed interval, the native host control repeatedly invokes the OpenMP SpMV worker and compares its loop counter against the parsed iteration count before the end-time read.",
+      "complete_dump_sha256": "6f4d94ecaa6fdda2a6fc7a016a298234b58cbfc820445dfa153d315ac1a61958",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_omp_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 703,
+          "last_line": 735,
+          "text": "    1bb1:\tcall   11b0 <std::chrono::_V2::system_clock::now()@plt>\n    1bb6:\tmov    %rax,-0x150(%rbp)\n    1bbd:\tmov    -0x134(%rbp),%eax\n    1bc3:\ttest   %eax,%eax\n    1bc5:\tje     1c3d <main+0x86d>\n    1bc7:\tmov    -0x158(%rbp),%rax\n    1bce:\tmov    -0x160(%rbp),%rcx\n    1bd5:\txor    %r14d,%r14d\n    1bd8:\tlea    (%rax,%rcx,4),%r13\n    1bdc:\tnopl   0x0(%rax)\n    1be0:\tmov    0x0(%r13),%r12d\n    1be4:\tcall   12c0 <omp_get_max_threads@plt>\n    1be9:\tmov    %r15,-0x50(%rbp)\n    1bed:\tmov    %ebx,-0x48(%rbp)\n    1bf0:\tlea    0x689(%rip),%rdi        # 2280 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>\n    1bf7:\tvmovdqa -0x130(%rbp),%ymm1\n    1bff:\tmov    -0x140(%rbp),%rsi\n    1c06:\tmov    %r12d,%edx\n    1c09:\tshr    $0xd,%edx\n    1c0c:\tcmp    %eax,%edx\n    1c0e:\tcmova  %eax,%edx\n    1c11:\tcmp    $0x1fff,%r12d\n    1c18:\tmov    $0x1,%eax\n    1c1d:\tcmovbe %eax,%edx\n    1c20:\txor    %ecx,%ecx\n    1c22:\tvmovdqa %ymm1,-0x70(%rbp)\n    1c27:\tvzeroupper\n    1c2a:\tcall   1290 <GOMP_parallel@plt>\n    1c2f:\tinc    %r14d\n    1c32:\tmov    -0x134(%rbp),%eax\n    1c38:\tcmp    %eax,%r14d\n    1c3b:\tjne    1be0 <main+0x810>\n    1c3d:\tcall   11b0 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "host-assembly.txt",
+      "claim": "The compiled OpenMP worker partitions rows among threads, loads row delimiters and CSR/vector data, accumulates products, stores each row, and retains nonzero and row loop back edges.",
+      "complete_dump_sha256": "6f4d94ecaa6fdda2a6fc7a016a298234b58cbfc820445dfa153d315ac1a61958",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_omp_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1095,
+          "last_line": 1172,
+          "text": "0000000000002280 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>:\n    2280:\tendbr64\n    2284:\tpush   %r13\n    2286:\tpush   %r12\n    2288:\tpush   %rbp\n    2289:\tpush   %rbx\n    228a:\tsub    $0x8,%rsp\n    228e:\tmov    0x28(%rdi),%ebx\n    2291:\ttest   %ebx,%ebx\n    2293:\tje     234d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    2299:\tmov    %rdi,%r13\n    229c:\tcall   12e0 <omp_get_num_threads@plt>\n    22a1:\tmov    %eax,%ebp\n    22a3:\tcall   12b0 <omp_get_thread_num@plt>\n    22a8:\txor    %edx,%edx\n    22aa:\tmov    %eax,%ecx\n    22ac:\tmov    %ebx,%eax\n    22ae:\tdiv    %ebp\n    22b0:\tcmp    %edx,%ecx\n    22b2:\tjb     2375 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xf5>\n    22b8:\timul   %eax,%ecx\n    22bb:\tadd    %ecx,%edx\n    22bd:\tlea    (%rax,%rdx,1),%ecx\n    22c0:\tcmp    %ecx,%edx\n    22c2:\tjae    234d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    22c8:\tmov    0x10(%r13),%rcx\n    22cc:\tdec    %eax\n    22ce:\tmov    0x18(%r13),%rdi\n    22d2:\txor    %r8d,%r8d\n    22d5:\tlea    0x4(,%rax,4),%rbx\n    22dd:\tmov    %edx,%eax\n    22df:\tinc    %edx\n    22e1:\tmov    0x8(%r13),%r12\n    22e5:\tmov    0x0(%r13),%rbp\n    22e9:\tlea    (%rcx,%rdx,4),%r10\n    22ed:\tmov    0x20(%r13),%rdx\n    22f1:\tlea    (%rcx,%rax,4),%r11\n    22f5:\tlea    (%rdx,%rax,8),%r9\n    22f9:\tnopl   0x0(%rax)\n    2300:\tmov    (%r11,%r8,1),%eax\n    2304:\tmov    (%r10,%r8,1),%edx\n    2308:\tcmp    %edx,%eax\n    230a:\tjae    2360 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    230c:\tdec    %edx\n    230e:\tlea    0x0(%rbp,%rax,8),%rsi\n    2313:\tlea    (%r12,%rax,4),%rcx\n    2317:\tvxorpd %xmm1,%xmm1,%xmm1\n    231b:\tsub    %eax,%edx\n    231d:\txor    %eax,%eax\n    231f:\tnop\n    2320:\tmov    (%rcx,%rax,4),%r13d\n    2324:\tvmovsd (%rdi,%r13,8),%xmm0\n    232a:\tmov    %rax,%r13\n    232d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    2332:\tinc    %rax\n    2335:\tvaddsd %xmm0,%xmm1,%xmm1\n    2339:\tcmp    %rdx,%r13\n    233c:\tjne    2320 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xa0>\n    233e:\tvmovsd %xmm1,(%r9,%r8,2)\n    2344:\tadd    $0x4,%r8\n    2348:\tcmp    %r8,%rbx\n    234b:\tjne    2300 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    234d:\tadd    $0x8,%rsp\n    2351:\tpop    %rbx\n    2352:\tpop    %rbp\n    2353:\tpop    %r12\n    2355:\tpop    %r13\n    2357:\tret\n    2358:\tnopl   0x0(%rax,%rax,1)\n    2360:\tvxorpd %xmm1,%xmm1,%xmm1\n    2364:\tvmovsd %xmm1,(%r9,%r8,2)\n    236a:\tadd    $0x4,%r8\n    236e:\tcmp    %r8,%rbx\n    2371:\tjne    2300 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    2373:\tjmp    234d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    2375:\tinc    %eax\n    2377:\txor    %edx,%edx\n    2379:\tjmp    22b8 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x38>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The output is recomputed as A*x on each repetition and overwritten, matching the unchanged sequential reference.",
+  "source": {
+    "source_path": "20261011-092100/spmv_claude-fable-5.1-cc-medium_omp_r1",
+    "source_commit": "e3a476e84284ddea4052c6e55e92439f10f38b1a",
+    "staged_source_sha256": "ff05280c38953c046f38243f20109d1b94a1da8a22f22f9b919d9922001f6ce3"
+  },
+  "binary_sha256": "1b14b78763ea579176ece4f4c7651c58d6e3f27fe71e0af264906ad5f47c72f9",
+  "binding_sha256": "cab3253b1536be01d1ecba5776c6029e047d43fa993b5c717465e05262d517cf",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "a1d5c0a9148c42318d70be4a2d0515bb49ffd8770f4ad739196e895cc6a7310b",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-07T22:07:09Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5.1-cc-medium_cuda_r1",
+      "spmv_claude-fable-5.1-cc-medium_hybrid_r1",
+      "spmv_claude-fable-5.1-cc-medium_mpi_r1",
+      "spmv_claude-fable-5.1-cc-medium_omp_r1"
+    ],
+    "work_count_disagreement": false,
+    "method": "Primary directly inspected all four pilot programs: parsed iteration counts, timed host repetition loops, complete CSR row/nonzero traversals and output stores. Inspected emitted CPU/OpenMP repetition and row/nonzero backedges; CUDA and hybrid host dispatch backedges, device CSR loads, DFMA loops/backedges and stores. Checked contiguous MPI/rank/GPU row partitions and rebased CSR slices. Repeated overwrites of A*x match the unchanged reference. No execution or recompilation.",
+    "checked_examples": {
+      "omp": "Source 200-218, 278-284, 339-355; host 703-735 and 1095-1172 include actual repetition and row/nonzero loops.",
+      "mpi": "Source 99-109, 178-185, 232-303, 317-340; inlined native host 2185-2233 retains all three nested loops.",
+      "cuda": "Source 133-182, 200-214, 276-281, 348-368; host 1401-1425; vector device loop backedge 167/store 279 and scalar backedge 388/store 968 with CSR loads and DFMA.",
+      "hybrid": "Source 151-188, 261-277, 348-350, 438-483, 506-518; host 3376-3438, 3462-3469; device row bounds/CSR loads/DFMA at 19-145, backedge 425 and store 885."
+    },
+    "full_review_authorized": true,
+    "maximum_parallel_luna_reviewers": 3,
+    "remaining_scope": "Sixteen programs: cuda/hybrid/mpi/omp repetitions 2 through 5.",
+    "escalation_policy": "Only uncertain or potential-failure cases to Sol-6.1; no blanket stronger-model review.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/fable51_spmv_pilot",
+  "review_started_at": "2026-11-07T21:58:03Z",
+  "review_finished_at": "2026-11-07T22:01:54Z",
+  "review_input_sha256": "5550b869121bafda30a17151bafbb1cec2d34c2f5db34655eac2c523b7c1cacf",
+  "pack_sha256": "cb3f1dc2e8d7e9b3335d4e4d868f2fff9fd1c274de2be5d9121397174bf81ae9",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

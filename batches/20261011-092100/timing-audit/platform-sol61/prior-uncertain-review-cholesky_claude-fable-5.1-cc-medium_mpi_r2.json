@@ -1,0 +1,70 @@
+{
+  "program_id": "cholesky_claude-fable-5.1-cc-medium_mpi_r2",
+  "verdict": "ambiguous",
+  "issue_categories": [
+    "rank_local_timing",
+    "missing_rank_aggregation"
+  ],
+  "confidence": "medium",
+  "timed_region": "Each rank times choleskyDecomposition, including shared-window setup, factorization, upper-triangle zeroing, and the final world barrier. Matrix generation, result collection, and validation are outside timing.",
+  "start_synchronization": "A world barrier precedes each local start. Inside the timed function, another barrier follows shared-window initialization, but it is scoped to N.comm. Its membership is essential to deciding whether all useful work is gated by rank 0's start.",
+  "stop_synchronization": "The world barrier precedes every stop timestamp and follows completion of the synchronous CPU factorization and upper-triangle zeroing.",
+  "rank_aggregation": "Complete local elapsed intervals exist, but no timing reduction occurs. A global-makespan equivalence depends on the unresolved startup dependencies.",
+  "reported_value": "Rank 0 prints its own elapsed interval, converted from seconds to whole milliseconds, under Computation time.",
+  "semantic_equivalence_basis": "Ranks own disjoint row blocks; redundant diagonal-panel factorization does not provide independent complete results. If N.comm contains every rank, its post-start barrier proves a valid global start boundary. With multiple groups, initial panel owners prepare and publish their blocks independently, and numerical work begins after those blocks arrive. The dossier does not establish group membership or a root-gated dependency covering that startup work, so neither validity nor a concrete escaping-work schedule on the recorded topology is established.",
+  "evidence": [
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "224-244",
+      "finding": "Each row block is assigned to one rank, and local storage bounds derive from that ownership."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "432-455",
+      "finding": "N.comm groups ranks by socket or shared memory; the source does not ensure that it includes all world ranks."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "659-687",
+      "finding": "Shared-window initialization and the N.comm barrier occur after the local timer starts. If this communicator spans all ranks, this supplies the required global start dependency."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "689-703",
+      "finding": "scatter_block packs panel data, performing algorithmic data preparation rather than merely dispatch bookkeeping."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "734-752",
+      "finding": "Panel owners independently pack and publish their owned blocks; no explicit world-rank-0 dependency precedes this preparation."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "795-805",
+      "finding": "Every rank starts initial panel broadcasts and waits for all initial panel blocks before proceeding."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "834-873",
+      "finding": "After initial panel availability, ranks proceed through partial-sum preparation and numerical diagonal factorization."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "877-918",
+      "finding": "Owners store their diagonal rows and update their local trailing rows; upper-triangle zeroing completes before the function returns."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "1014-1032",
+      "finding": "All ranks measure local intervals around the function and final world barrier, but only rank 0's duration is printed, without aggregation."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "1040-1061",
+      "finding": "Optional gathering and validation occur after timing; validation does not select a different factorization or timer."
+    }
+  ],
+  "timing_only_fix_possible": true,
+  "minimal_fix": "Reduce end - start across MPI_COMM_WORLD using MPI_DOUBLE and MPI_MAX, then convert and print the reduced duration on rank 0.",
+  "notes": "The supplied platform information specifies 128 benchmark ranks but does not identify their socket/shared-memory communicator membership. That missing topology fact matters because the timed function contains a post-start node-local barrier. No execution is needed to identify this uncertainty. Millisecond truncation is ordinary formatting, and no timing MPI-datatype issue is present."
+}

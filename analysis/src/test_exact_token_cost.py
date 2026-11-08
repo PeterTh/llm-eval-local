@@ -105,6 +105,20 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertEqual(110, row.mean_total_tokens)
         self.assertEqual(0.2, row.cached_input_price_usd_per_million)
 
+    def test_fable51_prices_accepted_attempt_tokens_with_no_context_tiers(self):
+        totals = self.frame.assign(model="claude-fable-5.1-cc-medium",
+            input_tokens=435_335_075, cached_tokens=418_134_763,
+            output_tokens=11_361_929, total_tokens=446_697_004)
+        row = combined.aggregate(totals).iloc[0]
+        self.assertAlmostEqual(844.63326075, row.estimated_cost_usd_per_run, places=8)
+        self.assertAlmostEqual(3.8392420943181818, row.estimated_cost_usd_per_run / 220, places=12)
+        self.assertEqual("2026-11-07", row.pricing_as_of)
+        self.assertEqual(0.25, row.cached_input_price_usd_per_million)
+        self.assertTrue(pd.isna(row.request_input_threshold_tokens))
+        self.assertEqual(446_697_004, row.mean_total_tokens)
+        self.assertIn("accepted generation attempts", row.cost_method)
+        self.assertEqual(1.0, combined.MODELS["claude-fable-5-cc-medium"]["cached_input_price"])
+
     def test_opencode_sol61_uses_same_model_rates_with_distinct_harness_label(self):
         native = combined.aggregate(self.frame.assign(model="gpt-6.1-sol-medium")).iloc[0]
         alternate = combined.aggregate(self.frame.assign(model="gpt-6.1-sol-oc-medium")).iloc[0]

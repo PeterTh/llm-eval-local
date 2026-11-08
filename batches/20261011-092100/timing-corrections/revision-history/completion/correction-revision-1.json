@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "completed_at": "2026-11-07T23:50:13.265881Z",
+  "passed": true,
+  "program_id": "roomsim_claude-fable-5.1-cc-medium_hybrid_r2",
+  "prior_roots": {
+    "proposals": "/home/petert/llm_timing_fixes/20261107-fable51-medium-proposals",
+    "review": "/home/petert/llm_timing_fixes/20261107-fable51-medium-review",
+    "adjudication": "/home/petert/llm_timing_fixes/20261107-fable51-medium-review-sol61"
+  },
+  "evidence_roots": {
+    "proposals": "/home/petert/llm_timing_fixes/20261107-fable51-medium-proposals-revision1",
+    "review": "/home/petert/llm_timing_fixes/20261107-fable51-medium-review-revision1",
+    "adjudication": "/home/petert/llm_timing_fixes/20261107-fable51-medium-review-revision1-sol61"
+  },
+  "prior_proposal_sha256": "c0b916af3474f9aa885ceee7459ef4dbd77b4781311a5c48bb734120e3c9212a",
+  "prior_proposal": {
+    "program_id": "roomsim_claude-fable-5.1-cc-medium_hybrid_r2",
+    "status": "proposed",
+    "summary": "Include RNG-modulus construction in timed precomputation and aggregate each phase duration across ranks.",
+    "expected_timing_semantics": "Total computation time reports the sum of the three sequential phase maxima in whole milliseconds. Each maximum covers complete per-rank phase work, including GPU completion and the existing ending barrier. Precomputation also includes runtime RNG-modulus construction.",
+    "edits": [
+      {
+        "path": "roomsim/roomsim.cpp",
+        "old_text": "        #pragma omp section\n        {\n            state.rngMod.init(mt19937AnnihilatorPolynomial());\n        }\n",
+        "new_text": "",
+        "rationale": "Move algorithmic RNG preprocessing out of untimed initialization."
+      },
+      {
+        "path": "roomsim/roomsim.cpp",
+        "old_text": "    double startPre = wallSeconds();\n\n    computeTimeDelays(state);",
+        "new_text": "    double startPre = wallSeconds();\n\n    state.rngMod.init(mt19937AnnihilatorPolynomial());\n    computeTimeDelays(state);",
+        "rationale": "Measure the same RNG-modulus construction before its use by form-factor computation."
+      },
+      {
+        "path": "roomsim/roomsim.cpp",
+        "old_text": "    long preDuration = static_cast<long>((endPre - startPre) * 1000.0);",
+        "new_text": "    long preDuration = static_cast<long>((endPre - startPre) * 1000.0);\n    MPI_Allreduce(MPI_IN_PLACE, &preDuration, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);",
+        "rationale": "Use the maximum complete precomputation duration across cooperating ranks."
+      },
+      {
+        "path": "roomsim/roomsim.cpp",
+        "old_text": "    long simDuration = static_cast<long>((endSim - startSim) * 1000.0);",
+        "new_text": "    long simDuration = static_cast<long>((endSim - startSim) * 1000.0);\n    MPI_Allreduce(MPI_IN_PLACE, &simDuration, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);",
+        "rationale": "Use the maximum complete simulation duration across cooperating ranks."
+      },
+      {
+        "path": "roomsim/roomsim.cpp",
+        "old_text": "    long distDuration = static_cast<long>((endDist - startDist) * 1000.0);",
+        "new_text": "    long distDuration = static_cast<long>((endDist - startDist) * 1000.0);\n    MPI_Allreduce(MPI_IN_PLACE, &distDuration, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);",
+        "rationale": "Use the maximum complete distance-computation duration across cooperating ranks."
+      }
+    ],
+    "non_timing_changes": [
+
+    ],
+    "notes": "Static proposal only; no tools or execution used. Original timer/duration lines 1905–1913, 1922–1928, and 1937–1943 gain MPI_MAX reductions; the existing sum and canonical output at lines 1951–1954 then consume the corrected durations. MPI_LONG exactly matches the explicitly declared long buffers, consistent with the supplied Linux x86_64 LP64 platform evidence. Existing CUDA synchronization completes GPU work before each stop."
+  },
+  "prior_independent_review_sha256": "668dc628b93190dd027fc399e7ca1cf18d1eb8be5204e9bfbe6d2512426fa258",
+  "prior_independent_review": {
+    "program_id": "roomsim_claude-fable-5.1-cc-medium_hybrid_r2",
+    "verdict": "accept",
+    "issue_categories": [
+      "none"
+    ],
+    "confidence": "high",
+    "timing_contract_satisfied": true,
+    "timing_only_scope_satisfied": true,
+    "device_completion": "valid",
+    "timed_region": "Precomputation lines 1900-1911; simulation lines 1918-1927; distance computation lines 1934-1943. Each phase starts after a barrier, encloses its complete work, synchronizes CUDA work, and includes the existing ending barrier.",
+    "rank_aggregation": "Each local long duration is reduced with MPI_MAX across MPI_COMM_WORLD at lines 1911, 1927, and 1943. The target LP64 evidence establishes MPI_LONG matches long.",
+    "collective_safety": "All ranks execute matching MPI_Barrier and MPI_Allreduce calls on MPI_COMM_WORLD with count 1, MPI_LONG, and MPI_MAX. Existing phase collectives are also matched.",
+    "canonical_output": "Total computation time at line 1954 uses totalTime, the sum of the three reduced phase maxima at line 1951, reported in milliseconds. The derived per-triangle metric at line 1969 uses the same corrected total.",
+    "scope_assessment": "The RNG-modulus construction remains present but is moved into the timed precomputation at lines 1903-1905; no algorithmic result, inputs, iteration counts, validation, or non-timing behavior is changed.",
+    "evidence": [
+      {
+        "path": "roomsim/roomsim.cpp",
+        "lines": "1900-1911",
+        "finding": "Precomputation includes RNG-modulus construction, time-delay computation, form-factor computation, CUDA completion, the ending barrier, and MPI_MAX aggregation."
+      },
+      {
+        "path": "roomsim/roomsim.cpp",
+        "lines": "1918-1927",
+        "finding": "Simulation duration encloses runSimulation, whose CUDA work is completed before the ending barrier, and is aggregated with MPI_MAX."
+      },
+      {
+        "path": "roomsim/roomsim.cpp",
+        "lines": "1934-1943",
+        "finding": "Distance duration encloses computeDistances, including CUDA synchronization and MPI gathering, and is aggregated with MPI_MAX."
+      },
+      {
+        "path": "roomsim/roomsim.cpp",
+        "lines": "1950-1969",
+        "finding": "Canonical total and directly derived timing metric consume the corrected phase durations."
+      }
+    ],
+    "minimal_correction": "",
+    "notes": "Accepted for the supplied Linux x86_64 LP64 target: the dossier states long is 8 bytes and the duration buffers use MPI_LONG. No simultaneous start is required because complete local durations are reduced with MPI_MAX."
+  },
+  "revision_trigger": "operator timing-only scope review; prior Luna acceptance is retained unchanged",
+  "operator_scope_review_sha256": "c02514b1eae7b020bf158d10d82e0bd495a6319ffb2432bfdc42c8b7f8644b63",
+  "operator_scope_review": {
+    "checked_at": "2026-11-07T23:38:17.609170Z",
+    "status": "one_proposal_requires_scope_revision",
+    "all_patch_lines_read": 1381,
+    "patch_sha256": "2bb5d5b8893abf334f74c3b55ffab29bc9056b5871640fc49d3e03cfc122fc0b",
+    "program_id": "roomsim_claude-fable-5.1-cc-medium_hybrid_r2",
+    "prior_proposal_sha256": "c0b916af3474f9aa885ceee7459ef4dbd77b4781311a5c48bb734120e3c9212a",
+    "original_source_sha256": "8edb44b81aad18d6f2711c01b785e4189695280cb46776f6f187ecbec800d0a7",
+    "finding": "The original initializeSimulation executes RNG polynomial preparation in one of two OpenMP sections, concurrently with mesh/octree initialization (original lines 1296-1316). The proposal removes that section and executes the same work serially in main after initialization. This unnecessarily changes the existing work placement/overlap, contrary to the timing-only requirement to preserve decomposition.",
+    "required_revision": "Keep the RNG preparation call in its original OpenMP section and preserve both sections. Measure the algorithmic RNG preparation in place using a non-MPI monotonic/chrono timer safe for the executing OpenMP worker; carry only its duration to the canonical total/precomputation accounting and perform the required rank aggregation outside the parallel region. Do not broaden the timer to mesh/octree/input initialization, move computational work, or change algorithmic values, placement, loops, validation or non-timing output.",
+    "other_nontrivial_changes_checked": [
+      "N-body hybrid r5 adds an OpenMP barrier after the master start timestamp, gating work on timing only; the existing master block otherwise performs only MPI barrier and timestamp assignment.",
+      "QT hybrid r4 moves the start timestamp before the existing world barrier to establish a global makespan. QT hybrid r2 brings its existing setupGpu algorithmic preprocessing inside timing without changing that computation.",
+      "Cahn-Hilliard hybrid r1, QT hybrid r3/r5 and Stencil MPI r3 replace ending timing barriers with reductions of completed local durations; independent review must confirm their existing work/device-completion boundaries.",
+      "Roomsim hybrid r5 times the existing RNG construction in place; its self-test is const and consumes no reusable algorithmic state. Other Roomsim edits aggregate complete local intervals or phase durations.",
+      "The other edits are timing variables, matching MPI duration reductions, reporting and directly derived performance values."
+    ],
+    "policy": "This concerns the proposed correction, not a newly discovered failure of the original program. Preserve the proposal and all reviews; revise only this correction after the current pass finishes. No source correction commit, native revalidation or performance measurement is authorized by this receipt.",
+    "program_executions": 0
+  },
+  "feedback": [
+    {
+      "program_id": "roomsim_claude-fable-5.1-cc-medium_hybrid_r2",
+      "prior_proposal_sha256": "c0b916af3474f9aa885ceee7459ef4dbd77b4781311a5c48bb734120e3c9212a",
+      "feedback": "The operator's complete-diff scope review found this unnecessary work-placement change despite the prior Luna acceptance. The original initializeSimulation executes RNG polynomial preparation in one of two OpenMP sections, concurrently with mesh/octree initialization (original lines 1296-1316). The proposal removes that section and executes the same work serially in main after initialization. This unnecessarily changes the existing work placement/overlap, contrary to the timing-only requirement to preserve decomposition.\nRequired minimal correction: Keep the RNG preparation call in its original OpenMP section and preserve both sections. Measure the algorithmic RNG preparation in place using a non-MPI monotonic/chrono timer safe for the executing OpenMP worker; carry only its duration to the canonical total/precomputation accounting and perform the required rank aggregation outside the parallel region. Do not broaden the timer to mesh/octree/input initialization, move computational work, or change algorithmic values, placement, loops, validation or non-timing output.\nKeep the algorithm, arithmetic, workload, result output and validation unchanged. Return a complete timing-only replacement proposal against the original source."
+    }
+  ],
+  "feedback_sha256": "b046f06e7a6fbe5acb79b88c6dd4f5e76928a87501d7a460b434aea296c0292c",
+  "revised_proposal_sha256": "e4a84d9f9577dfe87359b450c77754e0e38cb0bfd36c3824822624c492ed5dc2",
+  "accepted_review_sha256": "c4e251967a9b02f4dbb670470d419e59afc4bfc1a7c7088f9de5fd44aa42ddb7",
+  "prior_evidence_files": 852,
+  "prior_evidence_unchanged": true,
+  "prior_evidence_tree_sha256": "7ca2711682729e1a676852685a37e63d705a40dcdc1c511d6f09b3399dc1bb80",
+  "unchanged_proposals": 68,
+  "reused_independent_reviews": 68,
+  "new_independent_reviews": 1,
+  "new_adjudications": 1,
+  "accepted_corrections": 69,
+  "preserved_nonaccept_review_ids": [
+    "cahn-hilliard_claude-fable-5.1-cc-medium_hybrid_r1"
+  ],
+  "reuse_receipt_sha256": "74e58d2cf7843f09e4e954a7567023c82101cc743d04569152c99b6e923c6e5a",
+  "driver_sha256": "b0acda6ecb225f954324186c1713cd831731d60751488ef34a65629b03403e1a",
+  "reuse_helper_sha256": "147d52a868ab71d24344f36a3cac715a1d47daf0b90a38edd6e64e201faf8add",
+  "policy": "Only the operator-flagged Roomsim timing proposal is revised and freshly reviewed. The other 68 proposals and literal-prompt-bound reviews are reused unchanged, including the Cahn-Hilliard Luna rejection. Only nonaccepting/uncertain reviews receive Sol adjudication; Cahn-Hilliard receives a fresh decision because the global compiled-patch evidence in that prompt has changed. Every earlier attempt and decision remains intact; no program execution or scientific observation was repeated."
+}

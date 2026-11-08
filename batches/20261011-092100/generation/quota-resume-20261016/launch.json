@@ -1,0 +1,93 @@
+{
+  "resumed_at": "2026-10-16T12:55:16Z",
+  "campaign_id": "20261011-092100",
+  "policy_commit": "4e077b9e3aee0e1a2c7798b7270b326a82606239",
+  "amendment_sha256": "8e559f69e6741290863e5f21d32161ab6a5a1c86a48967e55a95e02ce71a3cc4",
+  "preserved_completed_observations": 42,
+  "remaining_at_resume": 178,
+  "next_id": "stencil3d_claude-fable-5.1-cc-medium_hybrid_r1",
+  "stopped_guard_retained_as": "STOP.before-resume",
+  "account_idle_before_launch": true,
+  "completed_output_files_unchanged": true,
+  "command": [
+    "systemd-run",
+    "--user",
+    "--unit=llm-fable51-generation-20261011-092100.service",
+    "--description=Resume Fable 5.1 medium with a 5% weekly reserve",
+    "--property=Type=exec",
+    "--property=WorkingDirectory=/tmp/fable51-generation.pnkpc4/experiment",
+    "--property=StandardOutput=append:/home/petert/llm_para_campaigns/20261011-092100-fable51-medium/generation.log",
+    "--property=StandardError=append:/home/petert/llm_para_campaigns/20261011-092100-fable51-medium/generation.log",
+    "--property=KillMode=control-group",
+    "/usr/bin/ruby",
+    "/tmp/fable51-generation.pnkpc4/controller-weekly95.rb",
+    "/home/petert/llm_para_campaigns/20261011-092100-fable51-medium"
+  ],
+  "monitor_command": [
+    "systemd-run",
+    "--user",
+    "--unit=llm-fable51-monitor-20261011-092100.service",
+    "--description=Four-hour Fable generation status",
+    "--on-active=4h",
+    "--on-unit-active=4h",
+    "--timer-property=AccuracySec=1min",
+    "--property=StandardOutput=append:/home/petert/llm_para_campaigns/20261011-092100-fable51-medium/monitor.log",
+    "--property=StandardError=append:/home/petert/llm_para_campaigns/20261011-092100-fable51-medium/monitor.log",
+    "/usr/bin/ruby",
+    "/tmp/fable51-generation.pnkpc4/monitor.rb"
+  ],
+  "monitor_started": true,
+  "units": {
+    "llm-fable51-generation-20261011-092100.service": {
+      "ExecStart": "{ path=/usr/bin/ruby ; argv[]=/usr/bin/ruby /tmp/fable51-generation.pnkpc4/controller-weekly95.rb /home/petert/llm_para_campaigns/20261011-092100-fable51-medium ; ignore_errors=no ; start_time=[Fri 2026-10-16 14:55:16 CEST] ; stop_time=[n/a] ; pid=1337901 ; code=(null) ; status=0/0 }",
+      "WorkingDirectory": "/tmp/fable51-generation.pnkpc4/experiment",
+      "StandardOutput": "append",
+      "StandardError": "append",
+      "KillMode": "control-group",
+      "ActiveState": "active",
+      "SubState": "running",
+      "InvocationID": "c0db1a9bd32549679b6c401f05138784"
+    },
+    "llm-fable51-monitor-20261011-092100.service": {
+      "ExecStart": "{ path=/usr/bin/ruby ; argv[]=/usr/bin/ruby /tmp/fable51-generation.pnkpc4/monitor.rb ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }",
+      "WorkingDirectory": "!/home/petert",
+      "StandardOutput": "append",
+      "StandardError": "append",
+      "KillMode": "control-group",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "InvocationID": ""
+    },
+    "llm-fable51-monitor-20261011-092100.timer": {
+      "TimersMonotonic": "{ OnActiveUSec=4h ; next_elapse=4month 2w 1d 14h 5min 28.529502s }",
+      "ActiveState": "active",
+      "SubState": "waiting",
+      "InvocationID": "39b2f7811533417782b3683e71cdc11c"
+    }
+  },
+  "monitoring": "Four-hour retained status plus active assistant inspection; the systemd timer does not wake chat.",
+  "tests": {
+    "full_suite_before_commit": {
+      "runs": 249,
+      "assertions": 1480,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "full_suite_in_restricted_sandbox": {
+      "runs": 249,
+      "assertions": 1454,
+      "failures": 0,
+      "errors": 0,
+      "skips": 3,
+      "skip_reason": "User-systemd cgroup containment unavailable inside the restricted sandbox"
+    },
+    "frozen_runtime_quota_tests": {
+      "runs": 9,
+      "assertions": 35,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    }
+  }
+}

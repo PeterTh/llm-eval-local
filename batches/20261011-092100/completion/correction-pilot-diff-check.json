@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-11-07T23:24:03.620322Z",
+  "passed": true,
+  "ids": [
+    "qtclustering_claude-fable-5.1-cc-medium_mpi_r5",
+    "cahn-hilliard_claude-fable-5.1-cc-medium_hybrid_r5",
+    "nbody_claude-fable-5.1-cc-medium_hybrid_r4",
+    "cholesky_claude-fable-5.1-cc-medium_mpi_r3",
+    "spmv_claude-fable-5.1-cc-medium_hybrid_r1",
+    "unstructured_claude-fable-5.1-cc-medium_mpi_r4",
+    "stencil3d_claude-fable-5.1-cc-medium_mpi_r2",
+    "black-scholes_claude-fable-5.1-cc-medium_hybrid_r5",
+    "matmul_claude-fable-5.1-cc-medium_mpi_r1",
+    "roomsim_claude-fable-5.1-cc-medium_hybrid_r5",
+    "cahn-hilliard_claude-fable-5.1-cc-medium_mpi_r4",
+    "stencil3d_claude-fable-5.1-cc-medium_hybrid_r3",
+    "nbody_claude-fable-5.1-cc-medium_mpi_r4",
+    "matmul_claude-fable-5.1-cc-medium_hybrid_r5",
+    "unstructured_claude-fable-5.1-cc-medium_mpi_r1",
+    "spmv_claude-fable-5.1-cc-medium_hybrid_r3"
+  ],
+  "patch_sha256": "3133b3712d42355c8c07071a22a4bbb48ce5ee12362efc71c196e468e3f0c277",
+  "patch_lines_read": 321,
+  "inspection": "Primary operator read the complete materialized 16-program patch. All edits are to elapsed-time variables, timing-value MPI_MAX collectives, canonical timing output or directly derived throughput. Roomsim hybrid r5 also measures the existing MTJump::init algorithmic RNG preprocessing and includes it in the complete local sum before MPI_MAX. The original preprocessing, self-test, initialization, kernels, result communication and validation remain in place. No benchmark parameters or algorithmic outputs changed.",
+  "details": [
+    "Timing reductions use explicit long/MPI_LONG counters on the recorded LP64 target, explicit long long/MPI_LONG_LONG_INT for Black-Scholes microseconds, or double/MPI_DOUBLE for Cahn-Hilliard MPI seconds.",
+    "Stencil MPI r2 uses the existing Cartesian communicator and its rank-zero reporter consistently. Other collectives retain the source communicator.",
+    "The Roomsim canonical total is the maximum complete per-rank sum of the four measured work phases. Diagnostic stage printouts remain unchanged; input initialization and the existing RNG self-test are not moved into algorithmic timing.",
+    "No additional start barriers, work-count changes, algorithm rewrites, CLI changes, build edits or non-timing output changes appear in the patch."
+  ],
+  "checks": {
+    "all_patch_hunks_inspected": true,
+    "independent_acceptances": 16,
+    "targeted_adjudications": 0,
+    "compile_successes": 16,
+    "unresolved": 0,
+    "generated_programs_executed_in_review": 0
+  },
+  "scope": "Pilot quality gate only; final native scientific revalidation remains required."
+}

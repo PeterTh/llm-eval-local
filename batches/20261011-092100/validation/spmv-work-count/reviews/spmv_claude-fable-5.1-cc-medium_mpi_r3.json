@@ -1,0 +1,98 @@
+{
+  "id": "spmv_claude-fable-5.1-cc-medium_mpi_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i sets the timed repeat count. Root forms ordered contiguous row blocks whose CSR delimiter intervals supply matching values/columns and rebased local row pointers; the last block ends at numRows. Each rank processes every row and nonzero in its slice and stores its local output. Repeated A*x overwrites are intentional and unchanged from the reference.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          175,
+          184
+        ],
+        [
+          250,
+          273
+        ],
+        [
+          290,
+          310
+        ],
+        [
+          323,
+          336
+        ]
+      ],
+      "claim": "The -i argument populates iterations; the ordered partition advances one shared row boundary, assigns contiguous row/nonzero counts and displacements, scatters matching CSR arrays, rebases delimiters, and repeats local SpMV inside the timed interval.",
+      "sha256": "34805e3955fca8f74d381c707f2fac5e6e7dde222fc3b60f89f526836b846e6b",
+      "git_blob": "18f2dbd00fbe85d5b2772116913fd24bdfe847cc"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          100,
+          111
+        ]
+      ],
+      "claim": "The local kernel traverses each row's complete delimiter interval, loads the indexed vector and matrix value, accumulates products, and stores one output per row.",
+      "sha256": "34805e3955fca8f74d381c707f2fac5e6e7dde222fc3b60f89f526836b846e6b",
+      "git_blob": "18f2dbd00fbe85d5b2772116913fd24bdfe847cc"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Between MPI_Wtime calls, inlined native code has a nonzero loop backedge at a07c, row loop backedge at a08a, and timed repetition backedge at a090. It loads delimiters/columns/vector/matrix data, multiplies and accumulates, then stores the row output at a07e.",
+      "complete_dump_sha256": "330c2422094af0a05dc8e522220da17b55064415b5f1263d030846d591123532",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_mpi_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2121,
+          "last_line": 2164,
+          "text": "    9fdf:\tcall   91d0 <MPI_Wtime@plt>\n    9fe4:\tmov    -0x238(%rbp),%r8d\n    9feb:\tvmovsd %xmm0,-0x280(%rbp)\n    9ff3:\ttest   %r8d,%r8d\n    9ff6:\tje     a092 <main+0x902>\n    9ffc:\tmov    -0x248(%rbp),%edi\n    a002:\tmov    -0x90(%rbp),%r8\n    a009:\ttest   %edi,%edi\n    a00b:\tje     a092 <main+0x902>\n    a011:\tmov    -0x238(%rbp),%esi\n    a017:\txor    %ecx,%ecx\n    a019:\tnopl   0x0(%rax)\n    a020:\txor    %r9d,%r9d\n    a023:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a02e:\txchg   %ax,%ax\n    a030:\tmov    0x4(%r12,%r9,4),%edx\n    a035:\tmov    (%r12,%r9,4),%eax\n    a039:\tcmp    %edx,%eax\n    a03b:\tjae    a5d0 <main+0xe40>\n    a041:\tdec    %edx\n    a043:\tlea    (%r15,%rax,4),%r10\n    a047:\tlea    (%r14,%rax,8),%rdi\n    a04b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a04f:\tsub    %eax,%edx\n    a051:\txor    %eax,%eax\n    a053:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a05e:\txchg   %ax,%ax\n    a060:\tmov    (%r10,%rax,4),%r11d\n    a064:\tvmovsd (%rbx,%r11,8),%xmm0\n    a06a:\tmov    %rax,%r11\n    a06d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a072:\tinc    %rax\n    a075:\tvaddsd %xmm0,%xmm1,%xmm1\n    a079:\tcmp    %r11,%rdx\n    a07c:\tjne    a060 <main+0x8d0>\n    a07e:\tvmovsd %xmm1,(%r8,%r9,8)\n    a084:\tinc    %r9\n    a087:\tcmp    %r13,%r9\n    a08a:\tjne    a030 <main+0x8a0>\n    a08c:\tinc    %ecx\n    a08e:\tcmp    %esi,%ecx\n    a090:\tjne    a020 <main+0x890>\n    a092:\tcall   91d0 <MPI_Wtime@plt>\n    a097:\tvsubsd -0x280(%rbp),%xmm0,%xmm0\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The operation intentionally recomputes and overwrites the same A*x output each iteration, matching the unchanged reference.",
+  "source": {
+    "source_path": "20261011-092100/spmv_claude-fable-5.1-cc-medium_mpi_r3",
+    "source_commit": "e3a476e84284ddea4052c6e55e92439f10f38b1a",
+    "staged_source_sha256": "8432b5fa9201d13390bc616a971783c4744f9df66ac3dc2f002a3f633b32047e"
+  },
+  "binary_sha256": "093467dcd714513a8eec9864e7e6b52388d9f2456c5f7db0d09de0c57a99cfd5",
+  "binding_sha256": "7bdce0a22d7c2dfe77b3a987dd5a93d59937255a9b87687a3f995d84fd1e4f61",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "20a01f6beef7cca6b370a8d0d2ab34323f132e53a2baa7f6569437ddccb37500",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-07T22:13:19Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5.1-cc-medium_mpi_r2",
+      "spmv_claude-fable-5.1-cc-medium_mpi_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all four proposals and checked source/binary binding of every citation. Directly checked r2 and r3 CSR partitions, complete local row/nonzero traversals, timed repetition loops, and emitted native loads/multiply/add/stores plus all three loop backedges. r2 uses root send/receive of adjacent slices; r3 uses Scatterv and rebased delimiters. No missing repetitions or CSR work identified.",
+    "timestamp_provenance": "Conservative enclosing interval, not exact review duration: 22:07:09Z is the parent-observed launch lower bound and 22:09:49Z was clock-observed by the reviewer near completion. The original 22:05:00Z start was guessed and is rejected; its original proposal is retained. Scientific findings are unchanged.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/fable51_spmv_mpi",
+  "review_started_at": "2026-11-07T22:07:09Z",
+  "review_finished_at": "2026-11-07T22:09:49Z",
+  "review_input_sha256": "5d802f5913380c55f6d8acfbc31737d70588b2c7567222e587dc16df991c0373",
+  "pack_sha256": "301cca525f011f043af1dbf96024437b9062cf8cfe339adcdc111d2617b4e0e3",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

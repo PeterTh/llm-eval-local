@@ -1,0 +1,42 @@
+{
+  "program_id": "roomsim_claude-fable-5.1-cc-medium_hybrid_r2",
+  "status": "proposed",
+  "summary": "Include RNG-modulus construction in timed precomputation and aggregate each phase duration across ranks.",
+  "expected_timing_semantics": "Total computation time reports the sum of the three sequential phase maxima in whole milliseconds. Each maximum covers complete per-rank phase work, including GPU completion and the existing ending barrier. Precomputation also includes runtime RNG-modulus construction.",
+  "edits": [
+    {
+      "path": "roomsim/roomsim.cpp",
+      "old_text": "        #pragma omp section\n        {\n            state.rngMod.init(mt19937AnnihilatorPolynomial());\n        }\n",
+      "new_text": "",
+      "rationale": "Move algorithmic RNG preprocessing out of untimed initialization."
+    },
+    {
+      "path": "roomsim/roomsim.cpp",
+      "old_text": "    double startPre = wallSeconds();\n\n    computeTimeDelays(state);",
+      "new_text": "    double startPre = wallSeconds();\n\n    state.rngMod.init(mt19937AnnihilatorPolynomial());\n    computeTimeDelays(state);",
+      "rationale": "Measure the same RNG-modulus construction before its use by form-factor computation."
+    },
+    {
+      "path": "roomsim/roomsim.cpp",
+      "old_text": "    long preDuration = static_cast<long>((endPre - startPre) * 1000.0);",
+      "new_text": "    long preDuration = static_cast<long>((endPre - startPre) * 1000.0);\n    MPI_Allreduce(MPI_IN_PLACE, &preDuration, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);",
+      "rationale": "Use the maximum complete precomputation duration across cooperating ranks."
+    },
+    {
+      "path": "roomsim/roomsim.cpp",
+      "old_text": "    long simDuration = static_cast<long>((endSim - startSim) * 1000.0);",
+      "new_text": "    long simDuration = static_cast<long>((endSim - startSim) * 1000.0);\n    MPI_Allreduce(MPI_IN_PLACE, &simDuration, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);",
+      "rationale": "Use the maximum complete simulation duration across cooperating ranks."
+    },
+    {
+      "path": "roomsim/roomsim.cpp",
+      "old_text": "    long distDuration = static_cast<long>((endDist - startDist) * 1000.0);",
+      "new_text": "    long distDuration = static_cast<long>((endDist - startDist) * 1000.0);\n    MPI_Allreduce(MPI_IN_PLACE, &distDuration, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);",
+      "rationale": "Use the maximum complete distance-computation duration across cooperating ranks."
+    }
+  ],
+  "non_timing_changes": [
+
+  ],
+  "notes": "Static proposal only; no tools or execution used. Original timer/duration lines 1905–1913, 1922–1928, and 1937–1943 gain MPI_MAX reductions; the existing sum and canonical output at lines 1951–1954 then consume the corrected durations. MPI_LONG exactly matches the explicitly declared long buffers, consistent with the supplied Linux x86_64 LP64 platform evidence. Existing CUDA synchronization completes GPU work before each stop."
+}

@@ -68,7 +68,7 @@ test("Sonnet flat pricing and the shared Claude harness are visible", async ({ p
   await page.goto(basePath + "#/methodology");
   await expect(page.getByRole("heading", { name: /^Claude Code/ })).toHaveCount(1);
   const harness = page.locator(".harness-record").filter({ has: page.getByRole("heading", { name: "Claude Code", exact: true }) });
-  await expect(harness.locator(".harness-models > span")).toHaveCount(6);
+  await expect(harness.locator(".harness-models > span")).toHaveCount(7);
   await expect(harness.getByText("Sonnet 5.5 Medium", { exact: true })).toHaveAttribute("title", /invoked model claude-sonnet-5-5; reasoning effort medium/);
   await page.screenshot({ path: testInfo.outputPath("sonnet55-methodology.png"), fullPage: true });
 });

@@ -23,6 +23,7 @@ DEFAULT_FIGURE = REPOSITORY_ROOT / "analysis" / "figures" / "8_success_rate_tier
 DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "8_success_rate_tiers.csv"
 
 MODEL_LABELS = {
+    "claude-fable-5.1-cc-medium": "Fable 5.1 Medium",
     "beam-1.0-oc-medium": "Beam 1.0 Medium (OpenCode)",
     "gpt-6.1-terra-ultra": "GPT-6.1 Terra Ultra",
     "gpt-6.1-terra-xhigh": "GPT-6.1 Terra XHigh",

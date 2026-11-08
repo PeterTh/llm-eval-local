@@ -1,0 +1,128 @@
+{
+  "id": "spmv_claude-fable-5.1-cc-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Every rank parses the same -i count, receives a contiguous row/CSR slice from the global partition, and executes the timed SpMV loop that many times. Native host assembly retains the repetition loop and row/nonzero loops with CSR loads, multiply-adds, and output stores.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          181,
+          183
+        ],
+        [
+          232,
+          265
+        ],
+        [
+          268,
+          303
+        ],
+        [
+          321,
+          338
+        ]
+      ],
+      "claim": "The parsed iteration count is used by the timed loop on each rank; rank row ranges start at row zero and end at numRows with row counts and matching nnz displacement/counts, then local row delimiters are rebased and local SpMV is repeated before gathering.",
+      "sha256": "dcccf83f4af2dd016df831fcc18ff9d2e68a4c3da774348a3bce5107037ba003",
+      "git_blob": "1a8e64921c8974689fc773fb6d87845dea6adedd"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          109
+        ]
+      ],
+      "claim": "The local CPU SpMV traverses all rows in its supplied dimension and each row's half-open CSR interval, accumulating val[j]*vec[cols[j]] and writing out[i].",
+      "sha256": "dcccf83f4af2dd016df831fcc18ff9d2e68a4c3da774348a3bce5107037ba003",
+      "git_blob": "1a8e64921c8974689fc773fb6d87845dea6adedd"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The timed native control brackets an outer iteration loop with barriers/time reads; within it, compiled row and nonzero loops load column indices, vector and matrix values, multiply/add, store each row output, and branch across rows and iterations.",
+      "complete_dump_sha256": "1daef8b1dd162391ff5ab64bde0f889604374fd47e93b5fbbfd24a000d47c556",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2185,
+          "last_line": 2233,
+          "text": "    a116:\tlea    0x62e0(%rip),%rdi        # 103fd <_IO_stdin_used+0x3fd>\n    a11d:\tcall   9390 <puts@plt>\n    a122:\tlea    0xb0f7(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a129:\tcall   8e90 <MPI_Barrier@plt>\n    a12e:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n    a133:\tmov    -0x250(%rbp),%esi\n    a139:\tmov    %rax,-0x240(%rbp)\n    a140:\ttest   %esi,%esi\n    a142:\tje     a1e2 <main+0xa52>\n    a148:\tmov    -0x238(%rbp),%ecx\n    a14e:\tmov    -0x90(%rbp),%r8\n    a155:\ttest   %ecx,%ecx\n    a157:\tje     a1e2 <main+0xa52>\n    a15d:\tmov    -0x250(%rbp),%esi\n    a163:\txor    %ecx,%ecx\n    a165:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a170:\txor    %r9d,%r9d\n    a173:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a17e:\txchg   %ax,%ax\n    a180:\tmov    (%r12,%r9,4),%eax\n    a184:\tmov    0x4(%r12,%r9,4),%edx\n    a189:\tcmp    %edx,%eax\n    a18b:\tjae    a7a0 <main+0x1010>\n    a191:\tdec    %edx\n    a193:\tlea    (%r15,%rax,4),%r10\n    a197:\tlea    (%r14,%rax,8),%rdi\n    a19b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a19f:\tsub    %eax,%edx\n    a1a1:\txor    %eax,%eax\n    a1a3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a1ae:\txchg   %ax,%ax\n    a1b0:\tmov    (%r10,%rax,4),%r11d\n    a1b4:\tvmovsd (%rbx,%r11,8),%xmm0\n    a1ba:\tmov    %rax,%r11\n    a1bd:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a1c2:\tinc    %rax\n    a1c5:\tvaddsd %xmm0,%xmm1,%xmm1\n    a1c9:\tcmp    %rdx,%r11\n    a1cc:\tjne    a1b0 <main+0xa20>\n    a1ce:\tvmovsd %xmm1,(%r8,%r9,8)\n    a1d4:\tinc    %r9\n    a1d7:\tcmp    %r9,%r13\n    a1da:\tjne    a180 <main+0x9f0>\n    a1dc:\tinc    %ecx\n    a1de:\tcmp    %esi,%ecx\n    a1e0:\tjne    a170 <main+0x9e0>\n    a1e2:\tlea    0xb037(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a1e9:\tcall   8e90 <MPI_Barrier@plt>\n    a1ee:\tcall   8b70 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "host-assembly.txt",
+      "claim": "The compiled spmvCpu body has back edges for the CSR nonzero loop and the row loop, with indexed loads and accumulation followed by row output storage.",
+      "complete_dump_sha256": "1daef8b1dd162391ff5ab64bde0f889604374fd47e93b5fbbfd24a000d47c556",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2920,
+          "last_line": 2969,
+          "text": "000000000000ae50 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)>:\n    ae50:\tendbr64\n    ae54:\ttest   %r8d,%r8d\n    ae57:\tje     aef5 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0xa5>\n    ae5d:\tmov    %r8d,%r8d\n    ae60:\tpush   %r12\n    ae62:\tmov    %rdi,%r11\n    ae65:\tpush   %rbp\n    ae66:\tmov    %r9,%r12\n    ae69:\tpush   %rbx\n    ae6a:\tlea    0x0(,%r8,4),%r9\n    ae72:\tmov    %rsi,%rbx\n    ae75:\tmov    %rdx,%rbp\n    ae78:\tmov    %rcx,%r10\n    ae7b:\txor    %r8d,%r8d\n    ae7e:\txchg   %ax,%ax\n    ae80:\tmov    0x0(%rbp,%r8,1),%eax\n    ae85:\tmov    0x4(%rbp,%r8,1),%ecx\n    ae8a:\tcmp    %ecx,%eax\n    ae8c:\tjae    aee0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x90>\n    ae8e:\tdec    %ecx\n    ae90:\tlea    (%rbx,%rax,4),%rdi\n    ae94:\tlea    (%r11,%rax,8),%rsi\n    ae98:\tvxorpd %xmm1,%xmm1,%xmm1\n    ae9c:\tsub    %eax,%ecx\n    ae9e:\txor    %eax,%eax\n    aea0:\tmov    (%rdi,%rax,4),%edx\n    aea3:\tvmovsd (%r10,%rdx,8),%xmm0\n    aea9:\tmov    %rax,%rdx\n    aeac:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    aeb1:\tinc    %rax\n    aeb4:\tvaddsd %xmm0,%xmm1,%xmm1\n    aeb8:\tcmp    %rdx,%rcx\n    aebb:\tjne    aea0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x50>\n    aebd:\tvmovsd %xmm1,(%r12,%r8,2)\n    aec3:\tadd    $0x4,%r8\n    aec7:\tcmp    %r8,%r9\n    aeca:\tjne    ae80 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    aecc:\tpop    %rbx\n    aecd:\tpop    %rbp\n    aece:\tpop    %r12\n    aed0:\tret\n    aed1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    aedc:\tnopl   0x0(%rax)\n    aee0:\tvxorpd %xmm1,%xmm1,%xmm1\n    aee4:\tvmovsd %xmm1,(%r12,%r8,2)\n    aeea:\tadd    $0x4,%r8\n    aeee:\tcmp    %r8,%r9\n    aef1:\tjne    ae80 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x30>\n    aef3:\tjmp    aecc <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*)+0x7c>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The repeated operation intentionally overwrites the same output with A*x each time, matching the sequential reference.",
+  "source": {
+    "source_path": "20261011-092100/spmv_claude-fable-5.1-cc-medium_mpi_r1",
+    "source_commit": "e3a476e84284ddea4052c6e55e92439f10f38b1a",
+    "staged_source_sha256": "d5d4610fae86a7a82899de1be5fe8e2e814ed296a8cf9678bba2b0346ea297c5"
+  },
+  "binary_sha256": "a300beac8c0c7f5dee517b0377a083e052326717c86a58db09eefdbe5b7145b8",
+  "binding_sha256": "8baa5973efca5da86ffe046bc3342a09d13cb036c00c800d49d9ad04944277df",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "a1d5c0a9148c42318d70be4a2d0515bb49ffd8770f4ad739196e895cc6a7310b",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-07T22:07:09Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5.1-cc-medium_cuda_r1",
+      "spmv_claude-fable-5.1-cc-medium_hybrid_r1",
+      "spmv_claude-fable-5.1-cc-medium_mpi_r1",
+      "spmv_claude-fable-5.1-cc-medium_omp_r1"
+    ],
+    "work_count_disagreement": false,
+    "method": "Primary directly inspected all four pilot programs: parsed iteration counts, timed host repetition loops, complete CSR row/nonzero traversals and output stores. Inspected emitted CPU/OpenMP repetition and row/nonzero backedges; CUDA and hybrid host dispatch backedges, device CSR loads, DFMA loops/backedges and stores. Checked contiguous MPI/rank/GPU row partitions and rebased CSR slices. Repeated overwrites of A*x match the unchanged reference. No execution or recompilation.",
+    "checked_examples": {
+      "omp": "Source 200-218, 278-284, 339-355; host 703-735 and 1095-1172 include actual repetition and row/nonzero loops.",
+      "mpi": "Source 99-109, 178-185, 232-303, 317-340; inlined native host 2185-2233 retains all three nested loops.",
+      "cuda": "Source 133-182, 200-214, 276-281, 348-368; host 1401-1425; vector device loop backedge 167/store 279 and scalar backedge 388/store 968 with CSR loads and DFMA.",
+      "hybrid": "Source 151-188, 261-277, 348-350, 438-483, 506-518; host 3376-3438, 3462-3469; device row bounds/CSR loads/DFMA at 19-145, backedge 425 and store 885."
+    },
+    "full_review_authorized": true,
+    "maximum_parallel_luna_reviewers": 3,
+    "remaining_scope": "Sixteen programs: cuda/hybrid/mpi/omp repetitions 2 through 5.",
+    "escalation_policy": "Only uncertain or potential-failure cases to Sol-6.1; no blanket stronger-model review.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/fable51_spmv_pilot",
+  "review_started_at": "2026-11-07T21:58:03Z",
+  "review_finished_at": "2026-11-07T22:01:54Z",
+  "review_input_sha256": "5550b869121bafda30a17151bafbb1cec2d34c2f5db34655eac2c523b7c1cacf",
+  "pack_sha256": "2546f9d83d15e452e75beb9db6e4d857afe66ab44c0ddbf85031daf297fe13bf",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

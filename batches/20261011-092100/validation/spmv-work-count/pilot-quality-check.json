@@ -1,0 +1,25 @@
+{
+  "reviewed_at": "2026-11-07T22:07:09Z",
+  "sampled_ids": [
+    "spmv_claude-fable-5.1-cc-medium_cuda_r1",
+    "spmv_claude-fable-5.1-cc-medium_hybrid_r1",
+    "spmv_claude-fable-5.1-cc-medium_mpi_r1",
+    "spmv_claude-fable-5.1-cc-medium_omp_r1"
+  ],
+  "work_count_disagreement": false,
+  "method": "Primary directly inspected all four pilot programs: parsed iteration counts, timed host repetition loops, complete CSR row/nonzero traversals and output stores. Inspected emitted CPU/OpenMP repetition and row/nonzero backedges; CUDA and hybrid host dispatch backedges, device CSR loads, DFMA loops/backedges and stores. Checked contiguous MPI/rank/GPU row partitions and rebased CSR slices. Repeated overwrites of A*x match the unchanged reference. No execution or recompilation.",
+  "checked_examples": {
+    "omp": "Source 200-218, 278-284, 339-355; host 703-735 and 1095-1172 include actual repetition and row/nonzero loops.",
+    "mpi": "Source 99-109, 178-185, 232-303, 317-340; inlined native host 2185-2233 retains all three nested loops.",
+    "cuda": "Source 133-182, 200-214, 276-281, 348-368; host 1401-1425; vector device loop backedge 167/store 279 and scalar backedge 388/store 968 with CSR loads and DFMA.",
+    "hybrid": "Source 151-188, 261-277, 348-350, 438-483, 506-518; host 3376-3438, 3462-3469; device row bounds/CSR loads/DFMA at 19-145, backedge 425 and store 885."
+  },
+  "full_review_authorized": true,
+  "maximum_parallel_luna_reviewers": 3,
+  "remaining_scope": "Sixteen programs: cuda/hybrid/mpi/omp repetitions 2 through 5.",
+  "escalation_policy": "Only uncertain or potential-failure cases to Sol-6.1; no blanket stronger-model review.",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,69 @@
+{
+  "program_id": "cholesky_claude-fable-5.1-cc-medium_mpi_r5",
+  "verdict": "valid",
+  "issue_categories": [
+    "none"
+  ],
+  "confidence": "medium",
+  "timed_region": "Each rank times the complete choleskyDecomposition call, including exchange construction, all factorization work, upper-triangle zeroing, exchange destruction, and the final world barrier.",
+  "start_synchronization": "The initial world barrier alone is insufficient. Crucially, Exchange construction performs MPI_Comm_split_type on MPI_COMM_WORLD before initial diagonal packing. On the pinned Open MPI 4.1.6 implementation, this communicator construction exchanges participant information globally, establishing rank 0's participation after its timer starts before useful factorization work proceeds.",
+  "stop_synchronization": "All synchronous CPU work finishes before returning from choleskyDecomposition. Nonblocking panel exchanges are completed by MPI_Wait, and the final world barrier precedes rank 0's stop timestamp.",
+  "rank_aggregation": "No duration reduction is present. Rank 0's interval is a global makespan because the constructor establishes the start dependency and the final barrier establishes completed work on every rank.",
+  "reported_value": "Rank 0 prints its enclosing interval multiplied by 1000 and converted to long, using the canonical label Computation time and unit ms.",
+  "semantic_equivalence_basis": "This is distributed computation, not independent complete-result replication. At n=3072 and P=128, each rank owns 24 matrix rows. Initial diagonal packing occurs after Exchange construction; diagonal factorization then requires the complete shared or all-gathered diagonal block. Rank 0's interval encloses all subsequent cooperative computation.",
+  "evidence": [
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "39-40",
+      "finding": "Distribution chunks contain four rows."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "62-97",
+      "finding": "Reflected cyclic ownership partitions matrix rows among ranks; replicated input-generation data does not establish complete-result ownership."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "369-408",
+      "finding": "Exchange constructs its communicator collectively before diagonal publishing; the shared path additionally allocates the diagonal window on rank 0."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "610-626",
+      "finding": "Exchange construction precedes the first useful diagonal packing, diagonal retrieval, factorization, and triangular solves on every rank."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "425-453",
+      "finding": "The initial diagonal is assembled from owned rows; shared-memory synchronization or blocking Allgatherv precedes its factorization."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "487-507",
+      "finding": "Panel completion uses shared-memory synchronization or MPI_Wait before returning usable panel pointers."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "630-675",
+      "finding": "All remaining factorization updates and upper-triangle zeroing execute within the timed function."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "843-859",
+      "finding": "Rank-local timestamps surround the complete function and final world barrier; rank 0 prints its enclosing elapsed milliseconds."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "833-839",
+      "finding": "Input generation and the optional validation copy precede timing."
+    },
+    {
+      "path": "cholesky/cholesky.cpp",
+      "lines": "866-881",
+      "finding": "Result collection and validation follow timing; benchmark mode uses the same decomposition path."
+    }
+  ],
+  "timing_only_fix_possible": false,
+  "minimal_fix": "",
+  "notes": "The constructor-based start argument relies on the supplied Open MPI 4.1.6 target, rather than treating arbitrary collective calls as barriers. Timed setup is conservative overhead. Whole-millisecond conversion is ordinary display precision; the supplied chrono datatype probe is not relevant to this MPI_Wtime timer."
+}

@@ -1,0 +1,94 @@
+{
+  "id": "spmv_claude-fable-5.1-cc-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i populates iterations and the timed native loop repeats the local SpMV for that count. Rank row boundaries are contiguous from row 0 through numRows; each rank receives the corresponding nonzero interval, rebases local row delimiters, traverses all local rows and each row's CSR interval, and writes each output row. The repeated A*x intentionally overwrites the result, matching the unchanged reference.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          201,
+          209
+        ],
+        [
+          268,
+          310
+        ],
+        [
+          322,
+          335
+        ]
+      ],
+      "claim": "The parsed -i value controls the timed outer iteration loop. rowStart begins at 0, ends at numRows, and adjacent rank slices use matching delimiter-derived nonzero bounds; local delimiters are rebased and the full local result is gathered after timing.",
+      "sha256": "dd9c63754d311949b971a2c9413d38704ee4d89b2b685f8ff545b5a4fab5744f",
+      "git_blob": "1293aac5d3e608a1e624f10e551fed2dfdc8baa1"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          101,
+          111
+        ]
+      ],
+      "claim": "For every local row, spmvCpu walks the half-open delimiter interval, gathers vec[cols[j]], multiplies by val[j], accumulates, and stores out[i].",
+      "sha256": "dd9c63754d311949b971a2c9413d38704ee4d89b2b685f8ff545b5a4fab5744f",
+      "git_blob": "1293aac5d3e608a1e624f10e551fed2dfdc8baa1"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "After the timed clock read, native code retains the outer counter/backedge at a1da-a1e1. Its inlined row loop at a170-a1d2 loads row bounds, the nonzero loop at a1a0-a1bc loads columns/vector/matrix values, multiplies and accumulates, stores each row at a1c5, and branches for further rows and iterations.",
+      "complete_dump_sha256": "567fcb2aca22b6228bf3f4cfa6ed61d174a9e21961370a5c5076241ebd19051e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2174,
+          "last_line": 2231,
+          "text": "    a0f3:\tcall   93b0 <puts@plt>\n    a0f8:\tlea    0xb121(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a0ff:\tcall   8ea0 <MPI_Barrier@plt>\n    a104:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n    a109:\tmov    -0x1e8(%rbp),%r9d\n    a110:\tmov    %rax,%r13\n    a113:\ttest   %r9d,%r9d\n    a116:\tje     a1ea <main+0xaaa>\n    a11c:\tmov    -0x25c(%rbp),%r8d\n    a123:\tmov    -0xb0(%rbp),%r10\n    a12a:\tmov    -0xd0(%rbp),%rax\n    a131:\tmov    -0xf0(%rbp),%r11\n    a138:\ttest   %r8d,%r8d\n    a13b:\tje     a1ea <main+0xaaa>\n    a141:\tmov    -0x2a0(%rbp),%r9\n    a148:\txor    %edx,%edx\n    a14a:\tmov    %rax,%rsi\n    a14d:\tmov    %r13,%rdi\n    a150:\tshl    $0x2,%r9\n    a154:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a15f:\tnop\n    a160:\txor    %r13d,%r13d\n    a163:\tmov    %rsi,%rcx\n    a166:\tcs nopw 0x0(%rax,%rax,1)\n    a170:\tmov    0x4(%r14,%r13,1),%esi\n    a175:\tmov    (%r14,%r13,1),%eax\n    a179:\tcmp    %esi,%eax\n    a17b:\tjae    a480 <main+0xd40>\n    a181:\tdec    %esi\n    a183:\tlea    (%r11,%rax,8),%r15\n    a187:\tlea    (%rcx,%rax,4),%r8\n    a18b:\tvxorpd %xmm1,%xmm1,%xmm1\n    a18f:\tsub    %eax,%esi\n    a191:\tmov    %rcx,-0x1f8(%rbp)\n    a198:\txor    %eax,%eax\n    a19a:\tnopw   0x0(%rax,%rax,1)\n    a1a0:\tmov    (%r8,%rax,4),%ecx\n    a1a4:\tvmovsd (%rbx,%rcx,8),%xmm0\n    a1a9:\tmov    %rax,%rcx\n    a1ac:\tvmulsd (%r15,%rax,8),%xmm0,%xmm0\n    a1b2:\tinc    %rax\n    a1b5:\tvaddsd %xmm0,%xmm1,%xmm1\n    a1b9:\tcmp    %rsi,%rcx\n    a1bc:\tjne    a1a0 <main+0xa60>\n    a1be:\tmov    -0x1f8(%rbp),%rcx\n    a1c5:\tvmovsd %xmm1,(%r10,%r13,2)\n    a1cb:\tadd    $0x4,%r13\n    a1cf:\tcmp    %r9,%r13\n    a1d2:\tjne    a170 <main+0xa30>\n    a1d4:\tmov    -0x1e8(%rbp),%eax\n    a1da:\tinc    %edx\n    a1dc:\tmov    %rcx,%rsi\n    a1df:\tcmp    %eax,%edx\n    a1e1:\tjne    a160 <main+0xa20>\n    a1e7:\tmov    %rdi,%r13\n    a1ea:\tlea    0xb02f(%rip),%rdi        # 15220 <ompi_mpi_comm_world@@Base>\n    a1f1:\tcall   8ea0 <MPI_Barrier@plt>\n    a1f6:\tcall   8b80 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The output is intentionally overwritten with A*x each repetition, as in the unchanged reference; this is not omitted work.",
+  "source": {
+    "source_path": "20261011-092100/spmv_claude-fable-5.1-cc-medium_mpi_r2",
+    "source_commit": "e3a476e84284ddea4052c6e55e92439f10f38b1a",
+    "staged_source_sha256": "e304e89f23a24af0c5f08f418c5191c5ee62dce8ff4e2612244d60da70236195"
+  },
+  "binary_sha256": "b56c413b8df6bbabb8b05c243a329d8c39ff3b339261c80859a4781698006d13",
+  "binding_sha256": "5b76d0385cbd39ed9543c8c0a339643fc0cc9896012380c984809a90184a05aa",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "20a01f6beef7cca6b370a8d0d2ab34323f132e53a2baa7f6569437ddccb37500",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-07T22:13:19Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5.1-cc-medium_mpi_r2",
+      "spmv_claude-fable-5.1-cc-medium_mpi_r3"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all four proposals and checked source/binary binding of every citation. Directly checked r2 and r3 CSR partitions, complete local row/nonzero traversals, timed repetition loops, and emitted native loads/multiply/add/stores plus all three loop backedges. r2 uses root send/receive of adjacent slices; r3 uses Scatterv and rebased delimiters. No missing repetitions or CSR work identified.",
+    "timestamp_provenance": "Conservative enclosing interval, not exact review duration: 22:07:09Z is the parent-observed launch lower bound and 22:09:49Z was clock-observed by the reviewer near completion. The original 22:05:00Z start was guessed and is rejected; its original proposal is retained. Scientific findings are unchanged.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/fable51_spmv_mpi",
+  "review_started_at": "2026-11-07T22:07:09Z",
+  "review_finished_at": "2026-11-07T22:09:49Z",
+  "review_input_sha256": "5d802f5913380c55f6d8acfbc31737d70588b2c7567222e587dc16df991c0373",
+  "pack_sha256": "268dc8a9143449492c51b913f38c4323620b77372f86bb22619e02716e519dd2",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

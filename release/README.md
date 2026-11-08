@@ -1,6 +1,6 @@
-# Combined release: 2026-11-06
+# Combined release: 2026-11-08
 
-This is a reproducible view over fifteen retained campaigns, not a second raw-data archive.
+This is a reproducible view over sixteen retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
 `batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`;
@@ -14,7 +14,8 @@ Sonnet 5.5 is under `batches/20261014-212207/`; Sol 6.1 Medium in OpenCode is un
 `batches/20261028-200951/`; Beam 1.0 Medium in OpenCode is under
 `batches/20261025-170121/`; Terra 6.1 XHigh in Codex is under
 `batches/20261102-030935/`; Terra 6.1 Ultra in Codex is under
-`batches/20261105-131145/`. Catalog-declared observation replacements join their
+`batches/20261105-131145/`; Fable 5.1 Medium in Claude Code is under
+`batches/20261011-092100/`. Catalog-declared observation replacements join their
 own validation, benchmark and generation evidence by exact run ID; untouched
 observations retain their original records and source revisions.
 
@@ -48,10 +49,10 @@ This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 8,800 programs, 40 model/effort/harness profiles, 220 programs each.
-- 7,563 effectively validated programs and eligible benchmark attempts; 7,160 successful measurements.
-- 1,285 timing-fixed programs (including two failed revalidations), with source history.
-- 44 benchmark/backend cells, all with reviewed winners; 96 retained reviews total.
+- 9,020 programs, 41 model/effort/harness profiles, 220 programs each.
+- 7,783 effectively validated programs and eligible benchmark attempts; 7,380 successful measurements.
+- 1,354 timing-fixed programs (including two failed revalidations), with source history.
+- 44 benchmark/backend cells, all with reviewed winners; 99 retained reviews total.
 
 The [seven Sonnet 5 replacements](../batches/20260901-162328/replacements/20261025-isolated-sonnet5/README.md)
 include six successful benchmarks and one retained numerical validation failure.
@@ -102,6 +103,14 @@ verifies that 8,133 prior observations are unchanged except for joint scoring;
 the other seven receive the approved external-validation exclusion.
 The [pricing note](../analysis/notes/2026-10-30-beam10-opencode-pricing.md)
 retains complete native accounting for 219 programs and one partial record.
+
+Fable 5.1 Medium contributes 220 validation passes and successful benchmarks,
+including 69 timing-only corrections. Its three new winners have individual
+reviews, with limited explanatory diagnostics for the Cholesky and QT outliers.
+The [comparison snapshot](../analysis/notes/2026-11-08-fable51-medium-winner-context.json)
+binds unchanged observations for all 8,800 prior programs, and the
+[pricing note](../analysis/notes/2026-11-08-fable51-pricing.md) describes native
+accepted-attempt accounting and frozen rates.
 
 The [supplemental correctness checks](../analysis/notes/2026-11-04-validation-strengthening.md),
 [complete-array comparisons](../analysis/notes/2026-11-04-full-array-validation.md)

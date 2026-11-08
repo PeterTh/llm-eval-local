@@ -1,0 +1,22 @@
+Node makeNode(int P, int rank) {
+    Node N;
+    MPI_Comm_split_type((static_cast<MPI_Comm> (static_cast<void *> (&(ompi_mpi_comm_world)))), MPI_COMM_TYPE_SHARED, rank, (static_cast<MPI_Info> (static_cast<void *> (&(ompi_mpi_info_null)))), &N.comm);
+    MPI_Comm_size(N.comm, &N.size);
+    MPI_Comm_rank(N.comm, &N.rank);
+    int leader = rank;
+    MPI_Bcast(&leader, 1, (static_cast<MPI_Datatype> (static_cast<void *> (&(ompi_mpi_int)))), 0, N.comm);
+    std::vector<int> leaders(P);
+    MPI_Allgather(&leader, 1, (static_cast<MPI_Datatype> (static_cast<void *> (&(ompi_mpi_int)))), leaders.data(), 1, (static_cast<MPI_Datatype> (static_cast<void *> (&(ompi_mpi_int)))), (static_cast<MPI_Comm> (static_cast<void *> (&(ompi_mpi_comm_world)))));
+    N.leader_of = leaders;
+    std::sort(N.leader_of.begin(), N.leader_of.end());
+    N.leader_of.erase(std::unique(N.leader_of.begin(), N.leader_of.end()), N.leader_of.end());
+    N.nnodes = (int)N.leader_of.size();
+    N.node_of.resize(P);
+    N.members_of.assign(N.nnodes, {});
+    for (int r = 0; r < P; ++r) {
+        N.node_of[r] = (int)(std::lower_bound(N.leader_of.begin(), N.leader_of.end(), leaders[r]) - N.leader_of.begin());
+        N.members_of[N.node_of[r]].push_back(r);
+    }
+    N.my_node = N.node_of[rank];
+    return N;
+}

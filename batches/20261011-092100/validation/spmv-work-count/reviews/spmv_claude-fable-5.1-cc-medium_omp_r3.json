@@ -1,0 +1,109 @@
+{
+  "id": "spmv_claude-fable-5.1-cc-medium_omp_r3",
+  "finding": "no_work_count_omission_identified",
+  "summary": "-i sets the timed outer iteration count. The OpenMP static row loop covers [0,dim), and each row traverses its full half-open CSR interval, gathers vec[cols[j]], accumulates products, and writes out[i]. Native host control retains the repeated worker dispatch and the compiled worker retains its row/nonzero loop backedges.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          173,
+          180
+        ],
+        [
+          231,
+          238
+        ]
+      ],
+      "claim": "Parsing -i assigns iterations; after the timer starts, the outer loop invokes spmvCpu until iter reaches iterations.",
+      "sha256": "00ff390635f248b5f7da56f17de882d1fc1a6d701c9defea8b44735630834dea",
+      "git_blob": "aec7cfe0843e570593bf68bfee37e58d651f9017"
+    },
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          98,
+          115
+        ]
+      ],
+      "claim": "The OpenMP static worksharing loop spans all rows [0,dim); for each row, the inner loop visits every j in its CSR delimiter interval, loads col/value/vector, accumulates, and stores the row output.",
+      "sha256": "00ff390635f248b5f7da56f17de882d1fc1a6d701c9defea8b44735630834dea",
+      "git_blob": "aec7cfe0843e570593bf68bfee37e58d651f9017"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The timed native control initializes an iteration counter, calls the outlined OpenMP SpMV worker, increments and compares the counter, and branches back to the worker call until the requested repetitions finish.",
+      "complete_dump_sha256": "244df217d3d1470127b61fdf5067ca2aae32af02877e9656722a4ed4b5192bd8",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_omp_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 587,
+          "last_line": 620,
+          "text": "    199e:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n    19a3:\tvmovq  -0x140(%rbp),%xmm3\n    19ab:\txor    %r15d,%r15d\n    19ae:\tlea    0x5fb(%rip),%rbx        # 1fb0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>\n    19b5:\tmov    %rax,-0x170(%rbp)\n    19bc:\tmov    -0x90(%rbp),%rax\n    19c3:\tvpinsrq $0x1,-0x148(%rbp),%xmm3,%xmm1\n    19cd:\tvmovq  %rax,%xmm7\n    19d2:\tvpinsrq $0x1,-0x150(%rbp),%xmm7,%xmm0\n    19dc:\tmov    %rax,-0x168(%rbp)\n    19e3:\tmov    -0x134(%rbp),%eax\n    19e9:\tvinserti128 $0x1,%xmm1,%ymm0,%ymm0\n    19ef:\ttest   %eax,%eax\n    19f1:\tje     1ce5 <main+0x995>\n    19f7:\tmov    %rbx,%rax\n    19fa:\tvmovdqa %ymm0,-0x130(%rbp)\n    1a02:\tmov    %r15d,%ebx\n    1a05:\tmov    %rax,%r15\n    1a08:\tnopl   0x0(%rax,%rax,1)\n    1a10:\tvmovdqa -0x130(%rbp),%ymm1\n    1a18:\txor    %ecx,%ecx\n    1a1a:\txor    %edx,%edx\n    1a1c:\tmov    %r13,-0x50(%rbp)\n    1a20:\tmov    %r12d,-0x48(%rbp)\n    1a24:\tmov    %r14,%rsi\n    1a27:\tmov    %r15,%rdi\n    1a2a:\tvmovdqa %ymm1,-0x70(%rbp)\n    1a2f:\tvzeroupper\n    1a32:\tcall   1210 <GOMP_parallel@plt>\n    1a37:\tinc    %ebx\n    1a39:\tmov    -0x134(%rbp),%eax\n    1a3f:\tcmp    %eax,%ebx\n    1a41:\tjne    1a10 <main+0x6c0>\n    1a43:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n"
+        }
+      ]
+    },
+    {
+      "file": "host-assembly.txt",
+      "claim": "The compiled worker calculates a per-thread row interval, loads row boundaries and CSR/vector data, performs multiplication and accumulation in a nonzero loop with a back edge, stores each row, and branches across the row interval.",
+      "complete_dump_sha256": "244df217d3d1470127b61fdf5067ca2aae32af02877e9656722a4ed4b5192bd8",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/fable51-spmv-review-20261107-4143246-6l4866/executables/spmv_claude-fable-5.1-cc-medium_omp_r3/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 926,
+          "last_line": 1003,
+          "text": "0000000000001fb0 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]>:\n    1fb0:\tendbr64\n    1fb4:\tpush   %r13\n    1fb6:\tpush   %r12\n    1fb8:\tpush   %rbp\n    1fb9:\tpush   %rbx\n    1fba:\tsub    $0x8,%rsp\n    1fbe:\tmov    0x28(%rdi),%ebx\n    1fc1:\ttest   %ebx,%ebx\n    1fc3:\tje     207d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    1fc9:\tmov    %rdi,%r13\n    1fcc:\tcall   1260 <omp_get_num_threads@plt>\n    1fd1:\tmov    %eax,%ebp\n    1fd3:\tcall   1230 <omp_get_thread_num@plt>\n    1fd8:\txor    %edx,%edx\n    1fda:\tmov    %eax,%ecx\n    1fdc:\tmov    %ebx,%eax\n    1fde:\tdiv    %ebp\n    1fe0:\tcmp    %edx,%ecx\n    1fe2:\tjb     20a5 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xf5>\n    1fe8:\timul   %eax,%ecx\n    1feb:\tadd    %ecx,%edx\n    1fed:\tlea    (%rax,%rdx,1),%ecx\n    1ff0:\tcmp    %ecx,%edx\n    1ff2:\tjae    207d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    1ff8:\tmov    0x10(%r13),%rcx\n    1ffc:\tdec    %eax\n    1ffe:\tmov    0x20(%r13),%r12\n    2002:\txor    %r8d,%r8d\n    2005:\tlea    0x4(,%rax,4),%rbx\n    200d:\tmov    %edx,%eax\n    200f:\tinc    %edx\n    2011:\tmov    0x18(%r13),%rbp\n    2015:\tmov    0x8(%r13),%rdi\n    2019:\tlea    (%rcx,%rdx,4),%r10\n    201d:\tmov    0x0(%r13),%rdx\n    2021:\tlea    (%rcx,%rax,4),%r11\n    2025:\tlea    (%rdx,%rax,8),%r9\n    2029:\tnopl   0x0(%rax)\n    2030:\tmov    (%r11,%r8,1),%eax\n    2034:\tmov    (%r10,%r8,1),%edx\n    2038:\tcmp    %edx,%eax\n    203a:\tjae    2090 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xe0>\n    203c:\tdec    %edx\n    203e:\tlea    0x0(%rbp,%rax,4),%rsi\n    2043:\tlea    (%r12,%rax,8),%rcx\n    2047:\tvxorpd %xmm1,%xmm1,%xmm1\n    204b:\tsub    %eax,%edx\n    204d:\txor    %eax,%eax\n    204f:\tnop\n    2050:\tmov    (%rsi,%rax,4),%r13d\n    2054:\tvmovsd (%rdi,%r13,8),%xmm0\n    205a:\tmov    %rax,%r13\n    205d:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    2062:\tinc    %rax\n    2065:\tvaddsd %xmm0,%xmm1,%xmm1\n    2069:\tcmp    %rdx,%r13\n    206c:\tjne    2050 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xa0>\n    206e:\tvmovsd %xmm1,(%r9,%r8,2)\n    2074:\tadd    $0x4,%r8\n    2078:\tcmp    %r8,%rbx\n    207b:\tjne    2030 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    207d:\tadd    $0x8,%rsp\n    2081:\tpop    %rbx\n    2082:\tpop    %rbp\n    2083:\tpop    %r12\n    2085:\tpop    %r13\n    2087:\tret\n    2088:\tnopl   0x0(%rax,%rax,1)\n    2090:\tvxorpd %xmm1,%xmm1,%xmm1\n    2094:\tvmovsd %xmm1,(%r9,%r8,2)\n    209a:\tadd    $0x4,%r8\n    209e:\tcmp    %r8,%rbx\n    20a1:\tjne    2030 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x80>\n    20a3:\tjmp    207d <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0xcd>\n    20a5:\tinc    %eax\n    20a7:\txor    %edx,%edx\n    20a9:\tjmp    1fe8 <spmvCpu(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, double*) [clone ._omp_fn.0]+0x38>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Each repetition intentionally overwrites the output with the same A*x operation as the reference; no repetition is omitted.",
+  "source": {
+    "source_path": "20261011-092100/spmv_claude-fable-5.1-cc-medium_omp_r3",
+    "source_commit": "e3a476e84284ddea4052c6e55e92439f10f38b1a",
+    "staged_source_sha256": "b36ffa16b74a049d9f4d7596ca5e8bb1e1bfd820c9ec9f9532969d227488f461"
+  },
+  "binary_sha256": "7391726772019e74c65eb02b6c9158f3136dabc0f22a59da483a2af3299be8df",
+  "binding_sha256": "043da10476f644f6e73ab3f53d01ffbc3cc8383c1186c980d2c6b33abdecb7ff",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "10b8a26e95f28fb8a1cda0cd05fa27df58d0091d607da8a095bf6917fcbbb8ad",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-07T22:12:59Z",
+    "sampled_ids": [
+      "spmv_claude-fable-5.1-cc-medium_omp_r4",
+      "spmv_claude-fable-5.1-cc-medium_omp_r5"
+    ],
+    "work_count_disagreement": false,
+    "method": "Read all four proposals and checked source/binary binding of every citation. Directly checked r4 persistent OpenMP team, per-iteration orphaned worksharing with barrier, complete rows/nonzeros, emitted outer loop and worker backedges. Checked r5 adjacent nonzero-balanced lower_bound row partitions, full CSR traversal, host repetition backedge and compiled row/nonzero loops/stores. No missing work identified.",
+    "timestamp_provenance": "Conservative enclosing interval, not an exact duration: 22:07:09Z is the known launch lower bound and 22:11:13Z is an actual clock observation bounding completion. The earlier 22:08:42Z and 22:09:05Z values were actual clock observations, but neither marked the review-start or completion event.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/fable51_spmv_omp",
+  "review_started_at": "2026-11-07T22:07:09Z",
+  "review_finished_at": "2026-11-07T22:11:13Z",
+  "review_input_sha256": "3d22347aa9a94b53bea534bd88f994252d97eaf7ee8bafe5c523582ce4280e7c",
+  "pack_sha256": "c4a74aea7e01dd43a2a28deed148f4379e5200777fff468fe33d9d4322ed97e2",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}
