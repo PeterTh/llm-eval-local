@@ -11,6 +11,15 @@ function selectedValues(params: URLSearchParams, key: string, allowed: Set<strin
   return [...new Set(params.getAll(key).filter((value) => allowed.has(value)))];
 }
 
+export function useSharedFilterSearch(): string {
+  const [params] = useSearchParams();
+  const shared = new URLSearchParams();
+  for (const key of ["model", "model-set", "benchmark", "backend"]) {
+    params.getAll(key).forEach((value) => shared.append(key, value));
+  }
+  return copyHighlights(params, shared).toString();
+}
+
 export function useFilterState(manifest: DatasetManifest, { defaultScale = "log" }: { defaultScale?: FilterState["scale"] } = {}) {
   const [params, setParams] = useSearchParams();
   const defaultModelSet = useMemo(() => getDefaultModelSet(manifest), [manifest]);

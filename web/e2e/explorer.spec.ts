@@ -1048,6 +1048,51 @@ test("Pages-safe routes and information pages remain functional", async ({ page 
   expect(problems).toEqual([]);
 });
 
+test("About and the methodology introduction open the presentation slides section", async ({ page, request }) => {
+  await goto(page, "/methodology?model-set=all&highlight-model=gpt-4.1");
+  const slidesUrl = "#/cite?model-set=all&highlight-model=gpt-4.1#presentations";
+  const introLink = page.locator(".page-intro .lede").getByRole("link", { name: "presentation slides" });
+  await expect(introLink).toHaveAttribute("href", slidesUrl);
+  await introLink.click();
+  const slides = page.getByRole("region", { name: "Presentation slides" });
+  await expect(slides).toBeFocused();
+  await expect(slides.getByRole("heading")).toBeInViewport();
+  await expect(slides).toHaveCSS("outline-style", "solid");
+  await page.keyboard.press("Tab");
+  await expect(slides.getByRole("link", { name: "Euro-Par 2026 PDF" })).toBeFocused();
+  await expect(slides).toHaveCSS("outline-style", "solid");
+
+  await page.goBack();
+  const about = page.locator(".about-menu");
+  await about.locator("summary").click();
+  const aboutLink = about.getByRole("link", { name: "presentation slides" });
+  await expect(aboutLink).toHaveAttribute("href", slidesUrl);
+  await aboutLink.press("Enter");
+  await expect(about).not.toHaveAttribute("open", "");
+  await expect(slides).toBeFocused();
+  await expect(slides).toHaveCSS("outline-style", "solid");
+
+  await page.reload();
+  await expect(slides).toBeFocused();
+  await expect(slides.getByRole("heading")).toBeInViewport();
+  await expect(slides).toHaveCSS("outline-style", "solid");
+  for (const [venue, filename] of [
+    ["Euro-Par 2026", "europar2026_thoman_llm_para.pdf"],
+    ["UIBK Computer Science Lunchtime Seminar", "uibk_seminar_llm_para_pt_2026-11-19.pdf"],
+  ] as const) {
+    const url = `${basePath}presentations/${filename}`;
+    await expect(slides.getByRole("link", { name: `${venue} PDF` })).toHaveAttribute("href", url);
+    const response = await request.get(url);
+    await expect(response).toBeOK();
+    expect(response.headers()["content-type"]).toBe("application/pdf");
+    expect((await response.body()).toString("ascii", 0, 5)).toBe("%PDF-");
+  }
+  await page.getByRole("link", { name: "Cite", exact: true }).click();
+  await expect(slides).toHaveCSS("outline-style", "none");
+  await page.goBack();
+  await expect(slides).toHaveCSS("outline-style", "solid");
+});
+
 test("dark selects and chart tooltips retain readable compact styling", async ({ page }, testInfo) => {
   const problems = watchPage(page);
   await page.emulateMedia({ colorScheme: "dark" });

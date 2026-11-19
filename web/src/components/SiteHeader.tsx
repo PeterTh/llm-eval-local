@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 
 import { useDataset } from "../data/context";
+import { useSharedFilterSearch } from "../state/filters";
 import { shortHash } from "../utils/format";
 import { CopyLinkButton } from "./CopyLinkButton";
-import { copyHighlights } from "../state/highlights";
 
 const navigation = [
   { to: "/tiers", label: "Tiered Success", enabled: true, className: "nav-tiers" },
@@ -18,15 +18,13 @@ const navigation = [
 
 export function SiteHeader() {
   const { manifest } = useDataset();
-  const location = useLocation();
+  const persistentSearch = useSharedFilterSearch();
   const aboutMenu = useRef<HTMLDetailsElement>(null);
   const snapshotUrl = `${manifest.artifactRepository}/tree/${manifest.artifactCommit}`;
-  const persistentParams = new URLSearchParams();
-  const currentParams = new URLSearchParams(location.search);
-  for (const key of ["model", "model-set", "benchmark", "backend"]) {
-    currentParams.getAll(key).forEach((value) => persistentParams.append(key, value));
+
+  function closeAboutMenu() {
+    if (aboutMenu.current) aboutMenu.current.open = false;
   }
-  const persistentSearch = copyHighlights(currentParams, persistentParams).toString();
 
   useEffect(() => {
     function closeOnOutsidePointer(event: PointerEvent) {
@@ -74,8 +72,11 @@ export function SiteHeader() {
                 carried out by the <a href="https://dps.uibk.ac.at/" target="_blank" rel="noreferrer">Distributed
                 and Parallel Systems Research Group</a> at the <a href="https://www.uibk.ac.at/" target="_blank" rel="noreferrer">University of Innsbruck</a>.
               </p>
-              <p><Link to={{ pathname: "/methodology", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Methodology</Link> summarizes the experimental design, validation pipeline, performance measurements, scoring, cost estimation, and generation time.</p>
-              <p><Link to={{ pathname: "/cite", search: persistentSearch }} onClick={() => { if (aboutMenu.current) aboutMenu.current.open = false; }}>Citation information</Link> lists the authors and copyable BibTeX.</p>
+              <p><Link to={{ pathname: "/methodology", search: persistentSearch }} onClick={closeAboutMenu}>Methodology</Link> summarizes the experimental design, validation pipeline, performance measurements, scoring, cost estimation, and generation time.</p>
+              <p>
+                <Link to={{ pathname: "/cite", search: persistentSearch }} onClick={closeAboutMenu}>Citation information</Link> lists the authors and copyable BibTeX.
+                {" "}Various <Link to={{ pathname: "/cite", search: persistentSearch, hash: "#presentations" }} onClick={closeAboutMenu}>presentation slides</Link> are available for a quick overview.
+              </p>
               <dl className="provenance-list compact">
                 <div><dt>Artifact</dt><dd><a href={snapshotUrl} target="_blank" rel="noreferrer">{shortHash(manifest.artifactCommit)}</a></dd></div>
                 <div><dt>Scoring digest</dt><dd><code>{shortHash(manifest.scoringDigest)}</code></dd></div>

@@ -1,6 +1,9 @@
+import { Link } from "react-router-dom";
+
 import { PageIntro } from "../components/PageIntro";
 import { useDataset } from "../data/context";
 import type { ModelMetadata } from "../data/types";
+import { useSharedFilterSearch } from "../state/filters";
 
 function formatEntityList(labels: string[]): string {
   if (labels.length === 0) return "none";
@@ -30,6 +33,7 @@ function modelInvocationTitle(model: ModelMetadata, harnessLabel: string): strin
 
 export function MethodologyView() {
   const { manifest } = useDataset();
+  const persistentSearch = useSharedFilterSearch();
   const artifactRoot = `${manifest.artifactRepository}/tree/${manifest.artifactCommit}`;
   const artifactBlob = `${manifest.artifactRepository}/blob/${manifest.artifactCommit}`;
   const backendLabels = formatEntityList(manifest.backends.map((backend) => backend.label));
@@ -48,7 +52,11 @@ export function MethodologyView() {
       <PageIntro
         eyebrow="Study design"
         title="Background & Methodology"
-        description={<>The goal of this study is to quantify the performance and efficiency of LLMs in generating parallel C++ programs from sequential sources. This page provides a summary of the program generation, validation, performance measurement, scoring, cost estimation, and generation-time measurements represented by this dataset snapshot. For more background information, refer to the paper.</>}
+        description={<>
+          The goal of this study is to quantify the performance and efficiency of LLMs in generating parallel C++ programs from sequential sources.
+          This page provides a summary of the program generation, validation, performance measurement, scoring, cost estimation, and generation-time measurements represented by this dataset snapshot.
+          For more background information, refer to the paper and the <Link to={{ pathname: "/cite", search: persistentSearch, hash: "#presentations" }}>presentation slides</Link>.
+        </>}
         aside={(
           <div className="metric-strip" aria-label="Dataset design summary">
             <div><strong>{manifest.counts.runs.toLocaleString()}</strong><span>runs</span></div>

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import { useDataset } from "../data/context";
 
@@ -24,6 +25,16 @@ export const ORIGINAL_PAPER_BIBTEX = `@inbook{Thoman_2026,
 export function CiteView() {
   const { manifest } = useDataset();
   const [copied, setCopied] = useState(false);
+  const location = useLocation();
+  const presentations = useRef<HTMLElement>(null);
+  const presentationsTargeted = location.hash === "#presentations";
+
+  useEffect(() => {
+    if (presentationsTargeted && presentations.current) {
+      presentations.current.focus({ preventScroll: true });
+      presentations.current.scrollIntoView({ behavior: "instant", block: "start" });
+    }
+  }, [presentationsTargeted, location.key]);
 
   useEffect(() => {
     if (!copied) return;
@@ -90,6 +101,33 @@ export function CiteView() {
               to citing the paper.
             </p>
           </aside>
+        </section>
+
+        <section
+          id="presentations"
+          ref={presentations}
+          tabIndex={-1}
+          className="cite-card cite-presentations"
+          data-targeted={presentationsTargeted}
+          aria-labelledby="cite-presentations-heading"
+        >
+          <h2 id="cite-presentations-heading">Presentation slides</h2>
+          <ul>
+            <li>
+              <a href={`${import.meta.env.BASE_URL}presentations/europar2026_thoman_llm_para.pdf`} target="_blank" rel="noreferrer">
+                Euro-Par 2026 <small>PDF <span aria-hidden="true">↗</span></small>
+              </a>
+              <p className="presentation-description">This covers the original experiment and publication.</p>
+              <small><time dateTime="2026-08-27">27 August 2026</time> · 32 slides</small>
+            </li>
+            <li>
+              <a href={`${import.meta.env.BASE_URL}presentations/uibk_seminar_llm_para_pt_2026-11-19.pdf`} target="_blank" rel="noreferrer">
+                UIBK Computer Science Lunchtime Seminar <small>PDF <span aria-hidden="true">↗</span></small>
+              </a>
+              <p className="presentation-description">This briefly covers the original experiment, but focuses on its extension and lessons learned.</p>
+              <small><time dateTime="2026-11-19">19 November 2026</time> · 35 slides</small>
+            </li>
+          </ul>
         </section>
 
         <section className="cite-card cite-bibtex" aria-labelledby="cite-bibtex-heading">
