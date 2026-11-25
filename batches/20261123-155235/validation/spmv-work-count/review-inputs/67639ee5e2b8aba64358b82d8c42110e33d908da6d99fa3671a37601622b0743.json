@@ -1,0 +1,462 @@
+{
+  "reviewer": "/root/gpt62_spmv_mpi",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-25T15:23:32Z",
+  "review_finished_at": "2026-11-25T15:24:53Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "metadata_note": "Evidence-range validation revision of the five Sol CUDA cases. Oversized line ranges were mechanically split into contiguous spans of at most 500 lines. r5 adds the distinct packed-kernel timed dispatch/backedge proof. Original proposal preserved at spmv-luna-sol-cuda-proposal.json. No program execution or compilation.",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.2-sol-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The benchmark selects a subwarp/warp specialization from average entries per row, with a separate unrolled full-warp path for very long rows, then invokes the chosen launcher once per timed iteration. Native host assembly retains the counter/backedge around the indirect launcher call. The emitted SASS specializations for both uint16 and uint32 indices retain CSR delimiter/value/vector reads, multiply-accumulation, entry-loop branches, and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              120,
+              161
+            ],
+            [
+              215,
+              221
+            ],
+            [
+              241,
+              279
+            ],
+            [
+              400,
+              450
+            ]
+          ],
+          "claim": "Kernel maps rows and lanes, reads CSR delimiters and every lane-strided entry, accumulates products, reduces lanes, and writes the row result. Dispatch covers 1/2/4/8/16/32 lanes and unrolled 32-lane long rows; the timed iteration loop calls the selected launch each time, and -i is parsed."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4343,
+              4367
+            ],
+            [
+              4918,
+              4937
+            ],
+            [
+              3290,
+              3789
+            ],
+            [
+              3790,
+              4199
+            ],
+            [
+              4202,
+              4701
+            ],
+            [
+              4702,
+              4777
+            ],
+            [
+              4778,
+              5000
+            ],
+            [
+              5001,
+              5160
+            ]
+          ],
+          "claim": "Both uint16 and uint32 benchmark paths record the timed start, call the selected launcher in a counter-controlled loop, increment/compare the iteration count and branch back, then record the stop. Emitted launcher specializations cover the dispatch choices."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              518
+            ],
+            [
+              519,
+              1018
+            ],
+            [
+              1019,
+              1518
+            ],
+            [
+              1519,
+              2018
+            ],
+            [
+              2019,
+              2469
+            ],
+            [
+              2470,
+              2969
+            ],
+            [
+              2970,
+              3469
+            ],
+            [
+              3470,
+              3969
+            ],
+            [
+              3970,
+              4469
+            ],
+            [
+              4470,
+              4968
+            ]
+          ],
+          "claim": "All emitted uint32 and uint16 lane/unroll specializations contain CSR-related loads, double multiply-accumulation (including unrolled or lane-strided paths), conditional entry-loop backedges, and global output stores; no dispatch-relevant specialization is represented only by an empty stub."
+        }
+      ],
+      "notes": "Input/output overwrite is expected for repeated y=A*x. No CUDA execution or timing reduction assessment was performed."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Average row length selects one of six lane-group launchers. The native launcher wrappers retain the requested iteration counter/backedge around each CUDA kernel launch. Every emitted lane specialization performs CSR-indexed value/vector work, double multiply-accumulation, loop control, and a row output store.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              146,
+              173
+            ],
+            [
+              175,
+              184
+            ],
+            [
+              204,
+              223
+            ],
+            [
+              300,
+              335
+            ]
+          ],
+          "claim": "The device kernel loads row offsets and traverses lane-strided entries, accumulates and writes lane zero's row result; launchSpmv loops over iterations and dispatch chooses among 1/2/4/8/16/32 lanes from average row length."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2395,
+              2894
+            ],
+            [
+              2895,
+              3234
+            ],
+            [
+              3235,
+              3618
+            ],
+            [
+              1915,
+              2064
+            ]
+          ],
+          "claim": "Compiled launchSpmv specializations include a counter-driven launch loop with cudaLaunchKernel and a backedge; the runSpmv timed path records events and dispatches the selected launcher between them."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              518
+            ],
+            [
+              519,
+              1018
+            ],
+            [
+              1019,
+              1518
+            ],
+            [
+              1519,
+              1760
+            ]
+          ],
+          "claim": "The six emitted lane-group kernel variants contain row-boundary and value/vector global loads, DFMA work on nonzero entries, conditional traversal backedges and global result stores, including the one-lane case."
+        }
+      ],
+      "notes": "The warm-up call is outside timed event interval; repeated output overwrite is intended. No runtime was executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Dispatch selects either the warp-per-row CSR path or sorted/padded sliced-row path. Both native timed callers retain the iteration counter/backedge around their actual kernel stub. Both emitted device kernels show their respective row/nonzero traversal, loads, arithmetic and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              171,
+              203
+            ],
+            [
+              211,
+              243
+            ],
+            [
+              245,
+              260
+            ],
+            [
+              263,
+              331
+            ],
+            [
+              334,
+              347
+            ],
+            [
+              350,
+              368
+            ]
+          ],
+          "claim": "The sliced and warp kernels each process CSR entries and write the original row's output; timeSpmv repeats launches for iterations. Source selects warp for small matrices and sliced otherwise, with work-size and row mappings established by preparation code."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2741,
+              2778
+            ],
+            [
+              2832,
+              2842
+            ],
+            [
+              3414,
+              3458
+            ],
+            [
+              3463,
+              3468
+            ],
+            [
+              3532,
+              3542
+            ]
+          ],
+          "claim": "Compiled runWarp and runSliced timed paths record start, increment/compare iteration counters, call the corresponding device stub each iteration, branch back, and record stop; the zero-iteration branch exits without launches."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              455
+            ],
+            [
+              456,
+              955
+            ],
+            [
+              956,
+              1455
+            ],
+            [
+              1456,
+              1500
+            ]
+          ],
+          "claim": "The emitted warp and sliced kernels both load row metadata and CSR value/vector operands, perform double multiply and accumulation, retain traversal/tile branches, and store row outputs; these are the two dispatch alternatives."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. Static dispatch and native/device code inspected; no runtime execution."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Average entries per row and row count select 1/4/8/16/32 lanes. The emitted timed path keeps a native iteration counter around calls to the selected kernel launcher. Each compiled lane variant retains CSR loads, double multiply-accumulation, traversal backedges, and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              119,
+              145
+            ],
+            [
+              196,
+              218
+            ],
+            [
+              220,
+              243
+            ]
+          ],
+          "claim": "Kernel maps lane groups to rows, traverses every lane-strided CSR entry, reduces and stores the row result. Dispatch covers 1/4/8/16/32 lanes; the timed loop invokes the selected launch once for every requested iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2020,
+              2056
+            ],
+            [
+              1880,
+              2056
+            ],
+            [
+              2505,
+              2777
+            ]
+          ],
+          "claim": "Native spmvCuda records the timed start, calls the selected launcher inside an increment/compare/backedge iteration loop, and records stop; emitted launcher wrappers reach cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              518
+            ],
+            [
+              519,
+              1018
+            ],
+            [
+              1019,
+              1518
+            ],
+            [
+              1519,
+              2018
+            ],
+            [
+              2019,
+              2518
+            ],
+            [
+              2519,
+              3018
+            ],
+            [
+              3019,
+              3227
+            ]
+          ],
+          "claim": "All five emitted lane variants contain row/delimiter and matrix/vector loads, DFMA arithmetic, conditional nonzero traversal branches, and global output stores; specialization differences do not remove the CSR work."
+        }
+      ],
+      "notes": "Warm-up is separate from timed iterations and output overwrite is intended. No CUDA runtime was executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed caller launches either the packed-row kernel (including its separate long-row blocks) or regular CSR kernel inside the requested iteration loop; native assembly preserves the counter/backedge on both alternatives. Both emitted kernels retain the relevant row/nonzero work, arithmetic, backedges, and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              188,
+              196
+            ],
+            [
+              198,
+              238
+            ],
+            [
+              242,
+              294
+            ],
+            [
+              309,
+              368
+            ],
+            [
+              424,
+              498
+            ]
+          ],
+          "claim": "CSR fallback traverses each row's delimiter interval; packed rows map back to original rows and long rows are handled in tiled blocks, with value/vector multiplication, accumulation and output stores. The timed iteration loop repeats the chosen launch; -i sets that count."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3543,
+              3586
+            ],
+            [
+              3656,
+              3688
+            ],
+            [
+              3665,
+              3679
+            ]
+          ],
+          "claim": "The actual timed spmvGpu path records its start event and reaches the CSR alternative in its counter loop (3545-3579) or packed alternative's device stub call (3667); the packed path increments/compares the same iteration counter and branches back to packed dispatch, while the CSR path has its own counter/backedge. Both are within the timed event interval."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              487
+            ],
+            [
+              488,
+              716
+            ]
+          ],
+          "claim": "Packed kernel's regular and long-row paths contain indexed loads, DMUL/DADD work, long-row/tile and traversal branches, and stores; the CSR fallback separately contains indexed CSR loads, multiply-accumulation, nonzero-loop backedge, and output store."
+        }
+      ],
+      "notes": "Packed path's long rows are not omitted: they occupy extra blocks and are processed in tiles. Output overwrite is expected; no runtime execution."
+    }
+  ],
+  "citation_format_normalization": {
+    "original_proposal_sha256": "728d41e57fc97ad072bde4b662821e275e36b65916d591a1481aee251de3c145",
+    "split_ranges": 0,
+    "method": "Split ranges longer than500 lines into consecutive chunks of at most500, preserving exactly the same cited lines, order, scientific findings and prose. Raw proposals retained."
+  },
+  "proposal_sha256": "728d41e57fc97ad072bde4b662821e275e36b65916d591a1481aee251de3c145",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-sol-medium_cuda_r3",
+      "spmv_gpt-6.2-sol-medium_cuda_r5"
+    ],
+    "checked_examples": "CUDA r3 source171-260,350-368, host2741-2778,3414-3468 and device129-169,391-427,901-939,1410-1450 retain both warp and sliced dispatch work and timed repetition. CUDA r5 source198-294 covers ordinary and long packed rows; host3545-3586 retains CSR repetition. Returned missing packed-host citations to Luna for precise native counter/stub/backedge evidence, then inspected the revision.",
+    "reviewed_at": "2026-11-25T15:25:57Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  }
+}

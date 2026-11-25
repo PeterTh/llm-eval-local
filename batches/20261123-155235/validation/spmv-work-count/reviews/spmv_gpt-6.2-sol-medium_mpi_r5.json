@@ -1,0 +1,91 @@
+{
+  "id": "spmv_gpt-6.2-sol-medium_mpi_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed loop invokes local CSR SpMV on every requested iteration. The local row-offset array bounds each row and spans its values/columns; emitted timed host code inlines indexed accesses, arithmetic, stores and all traversal/repetition backedges.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          128,
+          160
+        ],
+        [
+          262,
+          268
+        ],
+        [
+          320,
+          341
+        ],
+        [
+          398,
+          410
+        ],
+        [
+          432,
+          439
+        ]
+      ],
+      "claim": "Rank-local row offsets are constructed with their columns/values; spmvCpu visits each row's entire offset interval and stores its result. Parsed -i controls repeated timed calls; MPI_Gatherv uses row ownership counts.",
+      "sha256": "a42fe5d9f48e206c2db37b30daa3d004c40b314b668d1d584f96823e19537ee5",
+      "git_blob": "785ca1dd98134688221615c92a09195397b5e19c"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The actual timed runBenchmark path records MPI_Wtime and inlines the CSR row/nonzero traversal inside an outer iteration counter; indexed loads, multiply/add and row stores occur in the body, with nested nonzero/row backedges and outer counter increment/compare/backedge before ending MPI_Wtime.",
+      "complete_dump_sha256": "338b1b51967fe54faa3c2dbe2d06ef0d86bad269e7f5744d594a1d4bb9ee5f21",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-sol-medium_mpi_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2944,
+          "last_line": 2985,
+          "text": "    5806:\tlea    0x4a13(%rip),%rdi        # a220 <ompi_mpi_comm_world@@Base>\n    580d:\tcall   22f0 <MPI_Barrier@plt>\n    5812:\tcall   23c0 <MPI_Wtime@plt>\n    5817:\tvmovq  %xmm0,%r13\n    581c:\ttest   %r12d,%r12d\n    581f:\tje     58c1 <runBenchmark(int, char**, int, int)+0x5c1>\n    5825:\tmov    -0x29c(%rbp),%r9d\n    582c:\tmov    -0x178(%rbp),%r8\n    5833:\tmov    -0x190(%rbp),%rsi\n    583a:\tmov    -0x160(%rbp),%rcx\n    5841:\ttest   %r9d,%r9d\n    5844:\tje     58c1 <runBenchmark(int, char**, int, int)+0x5c1>\n    5846:\tmov    -0x258(%rbp),%r9\n    584d:\txor    %eax,%eax\n    584f:\tshl    $0x3,%r9\n    5853:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    585e:\txchg   %ax,%ax\n    5860:\txor    %r10d,%r10d\n    5863:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    586e:\txchg   %ax,%ax\n    5870:\tmov    (%r8,%r10,1),%rdx\n    5874:\tmov    0x8(%r8,%r10,1),%rdi\n    5879:\tvxorpd %xmm1,%xmm1,%xmm1\n    587d:\tcmp    %rdi,%rdx\n    5880:\tjae    58ab <runBenchmark(int, char**, int, int)+0x5ab>\n    5882:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    588d:\tnopl   (%rax)\n    5890:\tmov    (%rsi,%rdx,4),%r11d\n    5894:\tvmovsd (%rbx,%r11,8),%xmm0\n    589a:\tvmulsd (%rcx,%rdx,8),%xmm0,%xmm0\n    589f:\tinc    %rdx\n    58a2:\tvaddsd %xmm0,%xmm1,%xmm1\n    58a6:\tcmp    %rdx,%rdi\n    58a9:\tjne    5890 <runBenchmark(int, char**, int, int)+0x590>\n    58ab:\tvmovsd %xmm1,(%r14,%r10,1)\n    58b1:\tadd    $0x8,%r10\n    58b5:\tcmp    %r9,%r10\n    58b8:\tjne    5870 <runBenchmark(int, char**, int, int)+0x570>\n    58ba:\tinc    %eax\n    58bc:\tcmp    %r12d,%eax\n    58bf:\tjne    5860 <runBenchmark(int, char**, int, int)+0x560>\n    58c1:\tcall   23c0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Repeated output overwrite is intended. Partition coverage reviewed statically; MPI runtime was not executed.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-sol-medium_mpi_r5",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "8e157ab01fa9c66ac16b304af109e43f9c0fd2194c32023d4098848f3485c768"
+  },
+  "binary_sha256": "e6d1c5f67f3a7cfe17be995d04cbd8aa520b50c257f26762afeefba69b96d50d",
+  "binding_sha256": "975734435c86e875280788d3dfed504d58b057d135644f6c0c897d361a17403b",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "2281f81015b110303f09fdd89c057f60915bbbc2323e809fd1e4c3758ee93f42",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_mpi_r2",
+      "spmv_gpt-6.2-sol-medium_mpi_r1"
+    ],
+    "checked_examples": "Astra r2 source95-104,250-285,292-322 and host2591-2634 retain contiguous owned CSR work and nested nonzero/row/iteration loops. Sol r1 source223-251,370-402,418-437, host2807-2933,4002-4044 retain paired rows plus tail and the timed caller repetition around the actual native function.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/gpt62_spmv_mpi",
+  "review_started_at": "2026-11-25T15:14:25Z",
+  "review_finished_at": "2026-11-25T15:17:31Z",
+  "review_input_sha256": "a3af69424a7cf9e448e80c00977ac87d460bac3c91336ba38c109f54f9e3e753",
+  "pack_sha256": "1d8f7af555694e03c87a6b69ba8cf0278b6b4c040ef98c5ee310da0a0fdeb969",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

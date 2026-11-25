@@ -1,0 +1,27 @@
+{
+  "reviewed_at": "2026-11-25T15:06:18Z",
+  "passed": true,
+  "sampled_ids": [
+    "spmv_gpt-6.2-astra-medium_cuda_r1",
+    "spmv_gpt-6.2-astra-medium_hybrid_r1",
+    "spmv_gpt-6.2-astra-medium_mpi_r1",
+    "spmv_gpt-6.2-astra-medium_omp_r1"
+  ],
+  "work_count_disagreement": false,
+  "method": "Primary inspected all four pilot sources and emitted work: iteration parsing, owned row intervals, complete CSR/packed-row traversals, stores, and compiled iteration/row/nonzero backedges. Returned the initial GPU citations for precise arithmetic and complete dispatch coverage; accepted the revised evidence after inspection. No execution or compilation.",
+  "checked_examples": {
+    "omp": "Source99-109 and226-242; host852-918 retains row partitioning, CSR multiplication/addition/stores and all three nested backedges.",
+    "mpi": "Source235-301 covers contiguous row/item partition/scatter/rebasing and repeated local SpMV; host2173-2225 retains timed iteration, row and nonzero loops with actual indexed arithmetic and stores.",
+    "cuda": "Source143-195 and314-331; native host counter and cudaLaunchKernel paths for Width4(1316-1398), Width8(1550-1633), Width1(1657-1739); SASS has DMUL/DADD, nonzero backedges507/1648/2263 and stores519/1660/2271.",
+    "hybrid": "Source147-266 constructs/transverses packed row slices and handles the tail; source362-388 covers rank-local ownership and repeated launches; host6009-6034 retains counter/stub loop; SASS23-61 initial bounds/slice/length loads,397-417 batch arithmetic/backedge,895-935 tail arithmetic/backedge/store."
+  },
+  "metadata_note": "The first proposal's inferred start timestamp is unreliable and preserved as such. v2/v3 record clock-observed revision intervals only. No agent interval is used as a cost or throughput estimate.",
+  "full_review_authorized": true,
+  "maximum_parallel_luna_reviewers": 3,
+  "remaining_scope": "The other36 successfully validated SpMV implementations in the two-model batch.",
+  "escalation_policy": "Only uncertain/potential-failure findings to Sol-6.1; no blanket stronger-model review.",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

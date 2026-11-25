@@ -1,0 +1,45 @@
+{
+  "program_id": "qtclustering_gpt-6.2-sol-medium_hybrid_r3",
+  "verdict": "invalid",
+  "issue_categories": [
+    "missing_rank_aggregation",
+    "rank_local_timing"
+  ],
+  "confidence": "high",
+  "timed_region": "The timer surrounds the complete local qtClustering call (803-805). Algorithmic preprocessing—x-ordering, candidate windows, cutoff computation, and device initialization/uploads—is inside that call (558-620). On-demand squared-distance evaluation and candidate growth occur inside the call (195-247), with CUDA completion enforced by stream synchronization (509-524). Input generation, MPI input broadcast, and device discovery occur before the timer and are permissible exclusions. However, only rank 0's local interval is reported.",
+  "start_synchronization": "There is no synchronization immediately before the local timers. MPI_Bcast precedes them, but its return does not prove that every rank has returned before rank 0 starts timing; this is not repaired by any global aggregation.",
+  "stop_synchronization": "CUDA work is locally completed before collection/readback returns, and clustering phases use MPI collectives. Nevertheless, rank 0 stops its own timer and no operation combines all complete rank durations; the final owner-rank path can also return without a final collective.",
+  "rank_aggregation": "Missing. Non-root ranks return without reporting their elapsed durations, while rank 0 prints only its own local duration. The algorithm is distributed across rank-assigned workers and uses MPI_Allreduce for clustering decisions, so ranks are not independent complete replicas.",
+  "reported_value": "The canonical line prints `Clustering time: %ld ms` from `duration_cast<milliseconds>(cluster_end - cluster_start).count()` on rank 0 (803-811). The supplied target ABI establishes that this count has type `long`, so the format and millisecond unit are valid; the value is nevertheless only rank 0's local elapsed time, not a global maximum.",
+  "semantic_equivalence_basis": "The timed call contains the replacement algorithmic computation: sorted/window-bounded candidate searches, GPU candidate growth, squared-distance evaluation, MPI decision collectives, and result readback. Local GPU completion is synchronized. The defect is solely that the complete local durations are neither aggregated nor otherwise proven equivalent to the global makespan.",
+  "evidence": [
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "558-615",
+      "finding": "Constructs the sorted input layout, cutoff, complete-seed decision, and input-dependent candidate windows inside qtClustering, hence inside the timer."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "195-247",
+      "finding": "The timed GPU algorithm grows candidate clusters and computes squared distances on demand."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "491-524",
+      "finding": "Submits asynchronous CUDA work and uses cudaStreamSynchronize before collecting results and after member readback, establishing local device completion."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "623-675",
+      "finding": "Ranks process assigned worker partitions, combine local best choices with MPI_Allreduce, and exchange selected members; this is distributed work rather than independent complete replicas."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "803-811",
+      "finding": "Each rank starts/stops a local timer, but non-root ranks return and rank 0 prints only its own duration without MPI_MAX or an equivalent global makespan operation."
+    }
+  ],
+  "timing_only_fix_possible": true,
+  "minimal_fix": "Have every rank compute its local millisecond duration after qtClustering, perform `MPI_Reduce(&local_ms, &global_ms, 1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD)`, and print `global_ms` on rank 0; move the non-root return after this reduction. This preserves the computation and outputs while reporting the maximum complete local duration.",
+  "notes": "This verdict applies to the supplied 4-rank hybrid benchmark configuration and its full argument `-n 5000` with the default threshold. The source demonstrates local partitioned work and MPI coordination, so the independent-replica exception does not apply. The target LP64/Open MPI context supports the stated long-duration representation. Millisecond truncation is not independently classified as a defect."
+}

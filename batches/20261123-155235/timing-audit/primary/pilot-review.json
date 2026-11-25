@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25T15:03:43.092512Z",
+  "passed": true,
+  "scope": "Operational/usability gate for the primary pilot; independent scientific review remains mandatory",
+  "model": "gpt-5.6-luna",
+  "effort": "high",
+  "workers": 4,
+  "results": 16,
+  "retained_attempts": 17,
+  "empty_attempts": 0,
+  "reviewer_attempts": 17,
+  "verdict_counts": {
+    "valid": 13,
+    "invalid": 3
+  },
+  "confidence_counts": {
+    "high": 16
+  },
+  "schema_source_hash_and_event_verification": "passed",
+  "agent_tool_calls": 0,
+  "event_item_types": {
+    "error": 17,
+    "agent_message": 17
+  },
+  "primary_source_quality_check": {
+    "reviewed_at": "2026-11-25T15:03:42Z",
+    "passed": true,
+    "scope": "Operational/source-citation usability for expanding source-only reviews; not final scientific acceptance or authorization for corrections/benchmarking.",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "samples": [
+      {
+        "id": "matmul_gpt-6.2-astra-medium_mpi_r5",
+        "source": "matmul/matmul.cpp",
+        "inspected_lines": [
+          [
+            177,
+            206
+          ]
+        ],
+        "finding": "Contiguous row/column ownership, complete synchronous local product between MPI_Wtime calls, MPI_DOUBLE/MPI_MAX reduction and matching root output are accurately cited."
+      },
+      {
+        "id": "nbody_gpt-6.2-sol-medium_hybrid_r1",
+        "source": "nbody/nbody.cpp",
+        "inspected_lines": [
+          [
+            390,
+            433
+          ],
+          [
+            435,
+            488
+          ]
+        ],
+        "finding": "Partitioned target bodies, every simulation step and intermediate exchange, final stream synchronization, then MPI_MAX and the canonical millisecond output agree with the review."
+      },
+      {
+        "id": "qtclustering_gpt-6.2-sol-medium_mpi_r4",
+        "source": "qtclustering/qtclustering.cpp",
+        "inspected_lines": [
+          [
+            102,
+            187
+          ],
+          [
+            365,
+            389
+          ]
+        ],
+        "finding": "Sorting and seed-candidate construction are inside qtClustering, which is enclosed by the timer. Complete local elapsed durations feed MPI_MAX. The separate reference-boundary audit remains authoritative for QT."
+      },
+      {
+        "id": "roomsim_gpt-6.2-sol-medium_mpi_r3",
+        "source": "roomsim/roomsim.cpp",
+        "inspected_lines": [
+          [
+            640,
+            670
+          ],
+          [
+            820,
+            841
+          ],
+          [
+            1089,
+            1113
+          ]
+        ],
+        "finding": "Distributed row ownership and collective simulation are present, but the canonical total sums only rank-zero phase durations. This supports the concrete missing-aggregation finding; independent review will resolve the final categories/fix."
+      },
+      {
+        "id": "black-scholes_gpt-6.2-astra-medium_hybrid_r4",
+        "source": "black-scholes/black_scholes.cpp",
+        "inspected_lines": [
+          [
+            46,
+            109
+          ],
+          [
+            216,
+            255
+          ]
+        ],
+        "finding": "Pricing probabilities/discounts are computed before timing, while device completion and MPI_MAX are correct. The proposed incomplete-region classification needs consistency review against the sibling and documented historical preprocessing treatment."
+      },
+      {
+        "id": "black-scholes_gpt-6.2-astra-medium_hybrid_r5",
+        "source": "black-scholes/black_scholes.cpp",
+        "inspected_lines": [
+          [
+            50,
+            105
+          ],
+          [
+            225,
+            281
+          ],
+          [
+            313,
+            316
+          ]
+        ],
+        "finding": "Partition coverage, device completion, MPI_MAX and output citations are supported. However, pre-timer pricing-table construction at239-240 was omitted from the reasoning; retain the primary result and require targeted boundary adjudication before scientific acceptance."
+      }
+    ],
+    "evidence_sha256": {
+      "/tmp/gpt62-medium-evaluation-20261125-ozfKL7/generated/20261123-155235/matmul_gpt-6.2-astra-medium_mpi_r5/matmul/matmul.cpp": "71bde88b9de3c44feac60850fbaf17c84d746e11e7bff675dbae78fd3f35f262",
+      "/home/petert/llm_timing_audit/20261125-gpt62-astra-sol-medium/results/matmul_gpt-6.2-astra-medium_mpi_r5.json": "2f3ce23067b42a01c945c9bd0970d3925907f961ecc18d8098c0ab61beb78e17",
+      "/tmp/gpt62-medium-evaluation-20261125-ozfKL7/generated/20261123-155235/nbody_gpt-6.2-sol-medium_hybrid_r1/nbody/nbody.cpp": "aef88f9d78fc5858d4f0e0fdd63ed359844d070663e5b59edc5eef6828b7f7bc",
+      "/home/petert/llm_timing_audit/20261125-gpt62-astra-sol-medium/results/nbody_gpt-6.2-sol-medium_hybrid_r1.json": "a7b58cd0c8b6157944b3b5ccb8da5f5cb4f1908eb85ba028f86699a2b331a8d1",
+      "/tmp/gpt62-medium-evaluation-20261125-ozfKL7/generated/20261123-155235/qtclustering_gpt-6.2-sol-medium_mpi_r4/qtclustering/qtclustering.cpp": "bb34094735f898f0e96e64bedb9cc3078700745970ae5b6bc8947e30ccddbf2d",
+      "/home/petert/llm_timing_audit/20261125-gpt62-astra-sol-medium/results/qtclustering_gpt-6.2-sol-medium_mpi_r4.json": "bde12c7d1d19bae6ef22897d4fe3edfd1249fd0c126976895ab19f6ac0153b52",
+      "/tmp/gpt62-medium-evaluation-20261125-ozfKL7/generated/20261123-155235/roomsim_gpt-6.2-sol-medium_mpi_r3/roomsim/roomsim.cpp": "887299cc4c7844de137eac3ee4a8c03020427d9f5bb291e98e41617020d2012e",
+      "/home/petert/llm_timing_audit/20261125-gpt62-astra-sol-medium/results/roomsim_gpt-6.2-sol-medium_mpi_r3.json": "103dcff89073a35f2c85b40d477367f3876ca7db8404083ca19499d4ccefbdf3",
+      "/tmp/gpt62-medium-evaluation-20261125-ozfKL7/generated/20261123-155235/black-scholes_gpt-6.2-astra-medium_hybrid_r4/black-scholes/black_scholes.cpp": "4a2e24d166b9c22aeb754eeab2445ab00d243657b4ad1c78f0e19e8010a2209b",
+      "/home/petert/llm_timing_audit/20261125-gpt62-astra-sol-medium/results/black-scholes_gpt-6.2-astra-medium_hybrid_r4.json": "2193241d5677638b4f3e6df76792ec3cf933cc9f4bd3e966b0c1d8a5becc8b12",
+      "/tmp/gpt62-medium-evaluation-20261125-ozfKL7/generated/20261123-155235/black-scholes_gpt-6.2-astra-medium_hybrid_r5/black-scholes/black_scholes.cpp": "fbdf9a0c9b4dd3d4801426701747d87bcc6193bc42ae85cc880e2ca0b68cac67",
+      "/home/petert/llm_timing_audit/20261125-gpt62-astra-sol-medium/results/black-scholes_gpt-6.2-astra-medium_hybrid_r5.json": "5fce3d864fb4da100f5de2c97a9c4cd2ad0142dde76d930a09fd776970c53238",
+      "/home/petert/llm-eval-local/analysis/notes/2026-11-03-winner-validity-audit.md": "7aadc2bb6080b6f41caa568560f3892ad29463d0038d6b61a992c2ded1dda141",
+      "/home/petert/llm-eval-local/analysis/notes/individual/black-scholes_gpt-6-sol-medium_hybrid_r5.md": "ba184c84e1d494fcbd433973bd042e69da9229e731456238fc635a51accc627d"
+    },
+    "open_findings": {
+      "ids": [
+        "black-scholes_gpt-6.2-astra-medium_hybrid_r4",
+        "black-scholes_gpt-6.2-astra-medium_hybrid_r5"
+      ],
+      "issue": "Inconsistent pilot classification of untimed fixed-size Black-Scholes preprocessing; historical accepted results explicitly retain a similar boundary.",
+      "targeted_adjudication": "/home/petert/llm_timing_audit/20261125-gpt62-astra-sol-medium-black-scholes-boundary-sol61-v2",
+      "release_policy": "No correction or benchmark eligibility decision until the boundary finding and historical-policy consistency are resolved. Do not silently change the treatment for this batch."
+    },
+    "decision": "The checked Luna-first workflow is usable for source-only expansion with independent review and explicit escalation of the detected boundary disagreement. No prior verdict is replaced by this quality gate.",
+    "program_executions": 0,
+    "compilation": 0,
+    "program_changes": 0,
+    "benchmark_runs": 0
+  },
+  "gate_checks": [
+    "Each response is bound to the original source, schema and requested reviewer identity, with nonempty in-range source citations.",
+    "No tool executions occurred in any retained attempt.",
+    "Verdicts remain provisional until the required independent review and uncertainty-only adjudication.",
+    "The separate QT boundary audit supersedes overlapping decisions at the same original revision before any correction."
+  ],
+  "decision": "Expand only after the QT pilot also passes. Independently review invalid, ambiguous, non-high-confidence and valid-without-explicit-MPI_MAX cases; use blind Sol-6.1/xhigh for disagreements and uncertainty.",
+  "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+  "inventory_sha256": "bb80b6be9a3e516bfc3dc38cbd9c1d47094cda8e4c207ba7ec475e8bdc16ba2a",
+  "trial_ids_sha256": "52b50205f05c40d3a3fa2d3932bd274f3090ad3bdb1fca4e22e5dfdf2013b48c",
+  "primary_manifest_sha256": "8a4b0db9790ed4801a9d082aa892af743e9b2d9615b5afc892f1c79ad281d868"
+}

@@ -47,6 +47,23 @@ class ExactTokenCostTest(unittest.TestCase):
         self.assertEqual("$0.005", combined._format_cost(0.005, 1))
         self.assertEqual("$0.01", combined._format_cost(0.01, 2))
 
+    def test_gpt62_standard_prices_match_independent_request_totals(self):
+        cases = {
+            "astra": (98_107_943, 91_304_320, 1_290_041, 142.552352, (8, 0.4, 40)),
+            "sol": (279_810_956, 264_222_976, 3_803_774, 95.6359976, (2, 0.1, 10)),
+        }
+        for variant, (inputs, cached, outputs, cost, rates) in cases.items():
+            with self.subTest(variant=variant):
+                model = f"gpt-6.2-{variant}-medium"
+                totals = self.frame.assign(model=model, input_tokens=inputs, cached_tokens=cached,
+                                          output_tokens=outputs, total_tokens=inputs + outputs)
+                row = combined.aggregate(totals).iloc[0]
+                self.assertAlmostEqual(cost, row.estimated_cost_usd_per_run, places=8)
+                self.assertEqual("2026-11-25", row.pricing_as_of)
+                self.assertEqual("openai/standard", row.pricing_provider_tag)
+                config = combined.MODELS[model]
+                self.assertEqual(rates, (config["input_price"], config["cached_input_price"], config["output_price"]))
+
     def test_every_priced_profile_has_an_explicit_figure_label_position(self):
         self.assertEqual(set(combined.MODELS), set(combined.LABEL_OFFSETS))
 

@@ -1,0 +1,468 @@
+{
+  "reviewer": "/root/gpt62_spmv_mpi",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-25T15:14:25Z",
+  "review_finished_at": "2026-11-25T15:17:31Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "metadata_note": "Static evidence revision to add emitted host timed repetition-loop proof alongside actual arithmetic evidence for all nine MPI IDs. The original proposal remains at spmv-luna-mpi-proposal.json. No compilation, linking, execution, benchmark, or source modification.",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed iteration count encloses a call to local SpMV. Rank row counts and entry offsets define contiguous row/nonzero slices, and local CSR offsets are rebased. Emitted host code inlines the timed iteration, row, and nonzero loops with indexed loads, multiply/add, and row stores; the outer counter/backedge is visible around that work.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              95,
+              104
+            ],
+            [
+              182,
+              194
+            ],
+            [
+              250,
+              285
+            ],
+            [
+              297,
+              300
+            ],
+            [
+              315,
+              316
+            ]
+          ],
+          "claim": "spmvCpu walks every local row and its CSR delimiter interval, accumulates val[j]*vec[cols[j]], and stores each output; -i is parsed, rank row/entry boundaries drive scatter, and the timed loop invokes spmvCpu once per iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2591,
+              2634
+            ]
+          ],
+          "claim": "The actual timed run path records MPI_Wtime, then its outer counter loop encloses local row and nonzero traversal; each nonzero performs indexed column/vector/value loads and multiply/add, each row stores output, and the assembly increments/compares the iteration counter and branches back before the ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. The contiguous rank partition is assessed from source. Timing reduction is outside this work-count finding."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested iteration loop calls local CSR SpMV each time. Source partitions rows and nonzeros using rank starts and entry starts, then rebases local row offsets. Emitted host code inlines the timed row/nonzero work and retains the outer counter/backedge around it.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              96,
+              105
+            ],
+            [
+              186,
+              198
+            ],
+            [
+              261,
+              288
+            ],
+            [
+              297,
+              300
+            ],
+            [
+              314,
+              315
+            ]
+          ],
+          "claim": "The kernel body traverses each row delimiter range and stores its accumulated result; parsed iterations govern repeated timed calls. Rank row counts/entry starts and scattered delimiter/value/column slices establish local ownership."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2744,
+              2792
+            ]
+          ],
+          "claim": "The actual timed run path records MPI_Wtime, then its outer iteration counter encloses local row/nonzero traversal; indexed input loads, multiply/add and row stores occur within it, and the iteration increment/compare/backedge precedes the ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. Distribution coverage is assessed statically; no MPI runtime was executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The iteration loop repeats the local CSR calculation. Rank row and entry bounds define the distributed slices; emitted host code retains indexed nonzero work and row stores inside the timed outer iteration backedge.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              102,
+              111
+            ],
+            [
+              187,
+              199
+            ],
+            [
+              252,
+              282
+            ],
+            [
+              288,
+              291
+            ],
+            [
+              312,
+              313
+            ]
+          ],
+          "claim": "spmvCpu traverses every local row's delimiter interval and stores the sum; -i controls timed repeated calls. Row/entry bounds and scattered or moved local CSR arrays encode rank partition ownership."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2966,
+              3011
+            ]
+          ],
+          "claim": "The actual timed run path records MPI_Wtime, then an outer iteration counter encloses indexed row-boundary, column, value, and vector loads; multiply/add and row stores; nested row/nonzero backedges; and its own counter increment/compare/backedge before the ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. Static partition review only; MPI runtime not executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed iteration calls local SpMV. The row-offset representation spans the local nonzero array and output rows; emitted main inlines the row/nonzero work and its iteration counter/backedge.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              89,
+              98
+            ],
+            [
+              156,
+              168
+            ],
+            [
+              234,
+              244
+            ],
+            [
+              261,
+              268
+            ],
+            [
+              293,
+              294
+            ]
+          ],
+          "claim": "The CSR function traverses delimiter intervals and stores one result per row; -i is parsed and each timed iteration calls it. Rank-local values/columns/offsets are used, then local outputs are gathered according to rank sizes/starts."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2100,
+              2147
+            ]
+          ],
+          "claim": "The actual timed main path records MPI_Wtime, then its outer counter encloses local row and nonzero traversal; indexed input loads, multiply/add, and row stores are visible inside, with the iteration counter increment/compare/backedge before the ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. Rank coverage is based on source partition/scatter/gather logic; runtime MPI behavior was not exercised."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed iteration loop repeats the local kernel. Its paired-row optimization still computes both rows across their CSR intervals and handles a remaining row; the emitted caller counter/backedge surrounds each call, and the called assembly contains the row/nonzero arithmetic and stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              223,
+              251
+            ],
+            [
+              320,
+              325
+            ],
+            [
+              374,
+              386
+            ],
+            [
+              396,
+              397
+            ],
+            [
+              428,
+              429
+            ]
+          ],
+          "claim": "spmvCpu handles pairs of rows and its odd-row tail via row delimiters; iteration count is parsed and the timed loop repeats the kernel. RowRange-based local matrix construction and MPI_Gatherv cover rank outputs."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4002,
+              4044
+            ],
+            [
+              2807,
+              2933
+            ]
+          ],
+          "claim": "In the timed runBenchmark path, MPI_Wtime brackets a counter-controlled loop whose body calls emitted spmvCpu and whose counter increments, compares with the requested iteration count, and branches back. The called function's emitted body processes paired rows and a tail using CSR reads, multiply/add accumulations, loop branches, and output stores."
+        }
+      ],
+      "notes": "The two-row specialization is not an omission: it advances across two CSR rows and has a tail path. MPI runtime coverage was not executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop invokes SpMV for each requested iteration, while each invocation visits local rows and their full delimiter intervals. Native host assembly inlines this arithmetic and retains row/nonzero and outer iteration backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              59,
+              81
+            ],
+            [
+              105,
+              150
+            ],
+            [
+              160,
+              169
+            ],
+            [
+              234,
+              247
+            ],
+            [
+              298,
+              310
+            ],
+            [
+              338,
+              341
+            ]
+          ],
+          "claim": "Local row delimiters terminate at the local column count; matrix pieces are transmitted/received by chunks. The kernel traverses every local row and nonzero, -i is parsed, timed calls repeat, and output rows are gathered."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2345,
+              2385
+            ]
+          ],
+          "claim": "The actual timed runBenchmark path records MPI_Wtime and inlines the CSR work inside an outer iteration loop: indexed offset/column/value/vector loads, multiply/add and output stores are followed by nested row/nonzero branches and an iteration increment/compare/backedge before ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. Distributed matrix coverage is evaluated from chunk-transfer and local-boundary source; no MPI execution occurred."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each iteration repeats the local CSR kernel. Rank-local row offsets and columns are distributed; emitted timed host code inlines indexed work, arithmetic, stores, and row/nonzero/iteration backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              69,
+              111
+            ],
+            [
+              127,
+              135
+            ],
+            [
+              160,
+              165
+            ],
+            [
+              195,
+              206
+            ],
+            [
+              250,
+              265
+            ],
+            [
+              294,
+              303
+            ],
+            [
+              331,
+              332
+            ]
+          ],
+          "claim": "Distribution constructs rowOffsets for local rows and transfers row offsets/columns; spmvCpu traverses every row's CSR range and stores its sum. Parsed iterations control the repeated timed calls; gathered output covers the row partition."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2081,
+              2121
+            ]
+          ],
+          "claim": "The actual timed runBenchmark path records MPI_Wtime and inlines the CSR work inside an outer iteration counter: indexed row-boundary/column/value/vector loads, multiply/add and row stores appear in the loop body, with nested nonzero/row branches and an iteration increment/compare/backedge before ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. MPI partition and collective coverage are assessed statically only."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop repeats the local CSR kernel for the parsed iteration count. Source describes local row delimiters and chunked matrix transfers; emitted host code retains indexed loads, arithmetic, stores, and row/nonzero/iteration backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              36,
+              62
+            ],
+            [
+              78,
+              126
+            ],
+            [
+              132,
+              155
+            ],
+            [
+              198,
+              210
+            ],
+            [
+              265,
+              277
+            ],
+            [
+              299,
+              304
+            ]
+          ],
+          "claim": "Local matrix storage has one delimiter per row boundary and transfers all row delimiters, columns, and values in chunks. Kernel traverses each row's full nonzero interval and stores output; timed iterations repeat it and gathered output follows rank row counts."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3671,
+              3710
+            ]
+          ],
+          "claim": "The actual timed runBenchmark path records MPI_Wtime and inlines CSR row/nonzero work inside the outer iteration counter; indexed input loads, multiply/add and stores occur in the body, with nested loop backedges and the outer increment/compare/backedge before ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. MPI transfer coverage remains a source-level conclusion; runtime not exercised."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop invokes local CSR SpMV on every requested iteration. The local row-offset array bounds each row and spans its values/columns; emitted timed host code inlines indexed accesses, arithmetic, stores and all traversal/repetition backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              128,
+              160
+            ],
+            [
+              262,
+              268
+            ],
+            [
+              320,
+              341
+            ],
+            [
+              398,
+              410
+            ],
+            [
+              432,
+              439
+            ]
+          ],
+          "claim": "Rank-local row offsets are constructed with their columns/values; spmvCpu visits each row's entire offset interval and stores its result. Parsed -i controls repeated timed calls; MPI_Gatherv uses row ownership counts."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2944,
+              2985
+            ]
+          ],
+          "claim": "The actual timed runBenchmark path records MPI_Wtime and inlines the CSR row/nonzero traversal inside an outer iteration counter; indexed loads, multiply/add and row stores occur in the body, with nested nonzero/row backedges and outer counter increment/compare/backedge before ending MPI_Wtime."
+        }
+      ],
+      "notes": "Repeated output overwrite is intended. Partition coverage reviewed statically; MPI runtime was not executed."
+    }
+  ],
+  "citation_format_normalization": {
+    "original_proposal_sha256": "2281f81015b110303f09fdd89c057f60915bbbc2323e809fd1e4c3758ee93f42",
+    "split_ranges": 0,
+    "method": "Split ranges longer than500 lines into consecutive chunks of at most500, preserving exactly the same cited lines, order, scientific findings and prose. Raw proposals retained."
+  },
+  "proposal_sha256": "2281f81015b110303f09fdd89c057f60915bbbc2323e809fd1e4c3758ee93f42",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_mpi_r2",
+      "spmv_gpt-6.2-sol-medium_mpi_r1"
+    ],
+    "checked_examples": "Astra r2 source95-104,250-285,292-322 and host2591-2634 retain contiguous owned CSR work and nested nonzero/row/iteration loops. Sol r1 source223-251,370-402,418-437, host2807-2933,4002-4044 retain paired rows plus tail and the timed caller repetition around the actual native function.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  }
+}

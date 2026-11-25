@@ -1,0 +1,96 @@
+{
+  "id": "spmv_gpt-6.2-sol-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed iteration loop repeats the local kernel. Its paired-row optimization still computes both rows across their CSR intervals and handles a remaining row; the emitted caller counter/backedge surrounds each call, and the called assembly contains the row/nonzero arithmetic and stores.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          223,
+          251
+        ],
+        [
+          320,
+          325
+        ],
+        [
+          374,
+          386
+        ],
+        [
+          396,
+          397
+        ],
+        [
+          428,
+          429
+        ]
+      ],
+      "claim": "spmvCpu handles pairs of rows and its odd-row tail via row delimiters; iteration count is parsed and the timed loop repeats the kernel. RowRange-based local matrix construction and MPI_Gatherv cover rank outputs.",
+      "sha256": "0c46d849d6fab60889b2a2f46797548030aaee32b0c33fc00062b3d012b19806",
+      "git_blob": "99c4029e5ee7b34aeee082a2c30c53dda383f8ba"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "In the timed runBenchmark path, MPI_Wtime brackets a counter-controlled loop whose body calls emitted spmvCpu and whose counter increments, compares with the requested iteration count, and branches back. The called function's emitted body processes paired rows and a tail using CSR reads, multiply/add accumulations, loop branches, and output stores.",
+      "complete_dump_sha256": "f72ec7e1faf995671e1e468883cd40ae362ebdf7d1058aa33e840b5ea8e5eb66",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-sol-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 4002,
+          "last_line": 4044,
+          "text": "    6267:\tcall   1200 <MPI_Barrier@plt>\n    626c:\tcall   1290 <MPI_Wtime@plt>\n    6271:\tmov    -0x538(%rbp),%r8d\n    6278:\tvmovsd %xmm0,-0x560(%rbp)\n    6280:\ttest   %r8d,%r8d\n    6283:\tje     6352 <runBenchmark(int, char**, int, int)+0x1442>\n    6289:\tmov    -0x4d0(%rbp),%ecx\n    628f:\ttest   %ecx,%ecx\n    6291:\tje     6352 <runBenchmark(int, char**, int, int)+0x1442>\n    6297:\tmov    -0x550(%rbp),%rax\n    629e:\tmov    %r15,%rsi\n    62a1:\tmov    -0x528(%rbp),%rdx\n    62a8:\txor    %r12d,%r12d\n    62ab:\tmov    -0x4f8(%rbp),%r15\n    62b2:\tshr    $0x20,%rax\n    62b6:\tmov    %rax,-0x4d8(%rbp)\n    62bd:\tjmp    62db <runBenchmark(int, char**, int, int)+0x13cb>\n    62bf:\tmov    -0x4d8(%rbp),%r8d\n    62c6:\tmov    -0x4b0(%rbp),%rsi\n    62cd:\tmov    -0x490(%rbp),%rdx\n    62d4:\tmov    -0x470(%rbp),%r15\n    62db:\tmov    %r15,%r9\n    62de:\tmov    %rbx,%rcx\n    62e1:\tmov    %r14,%rdi\n    62e4:\tcall   4a80 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)>\n    62e9:\tmov    -0x4d0(%rbp),%eax\n    62ef:\tinc    %r12d\n    62f2:\tcmp    %eax,%r12d\n    62f5:\tjne    62bf <runBenchmark(int, char**, int, int)+0x13af>\n    62f7:\tmov    -0x470(%rbp),%rax\n    62fe:\tmov    -0x4b0(%rbp),%r15\n    6305:\tmov    %rax,-0x4f8(%rbp)\n    630c:\tmov    -0x480(%rbp),%rax\n    6313:\tmov    %rax,-0x540(%rbp)\n    631a:\tmov    -0x490(%rbp),%rax\n    6321:\tmov    %rax,-0x528(%rbp)\n    6328:\tmov    -0x460(%rbp),%rax\n    632f:\tmov    %rax,-0x510(%rbp)\n    6336:\tmov    -0x440(%rbp),%rax\n    633d:\tmov    %rax,-0x518(%rbp)\n    6344:\tmov    -0x450(%rbp),%rax\n    634b:\tmov    %rax,-0x4d8(%rbp)\n    6352:\tcall   1290 <MPI_Wtime@plt>\n"
+        },
+        {
+          "first_line": 2807,
+          "last_line": 2933,
+          "text": "0000000000004a80 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)>:\n    4a80:\tendbr64\n    4a84:\tpush   %r15\n    4a86:\tpush   %r14\n    4a88:\tpush   %r13\n    4a8a:\tmov    %rsi,%r10\n    4a8d:\tpush   %r12\n    4a8f:\tpush   %rbp\n    4a90:\tpush   %rbx\n    4a91:\tmov    %rdx,%r12\n    4a94:\tmov    %rcx,%rsi\n    4a97:\tmov    %r8d,-0x4(%rsp)\n    4a9c:\tmov    %r9,-0x10(%rsp)\n    4aa1:\tcmp    $0x1,%r8d\n    4aa5:\tjbe    4c53 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x1d3>\n    4aab:\tmov    $0x1,%r13d\n    4ab1:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    4abc:\tnopl   0x0(%rax)\n    4ac0:\tlea    0x1(%r13),%r14d\n    4ac4:\tmov    (%r12,%r13,8),%r9\n    4ac8:\tmov    -0x8(%r12,%r13,8),%rax\n    4acd:\tshl    $0x3,%r14\n    4ad1:\tlea    (%r12,%r14,1),%r15\n    4ad5:\tmov    (%r15),%r11\n    4ad8:\tmov    %r9,%rdx\n    4adb:\tsub    %rax,%rdx\n    4ade:\tmov    %r11,%rcx\n    4ae1:\tsub    %r9,%rcx\n    4ae4:\tcmp    %rdx,%rcx\n    4ae7:\tcmova  %rdx,%rcx\n    4aeb:\tlea    (%rcx,%rax,1),%rdx\n    4aef:\tcmp    %rdx,%rax\n    4af2:\tjae    4c40 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x1c0>\n    4af8:\tmov    %rax,%r8\n    4afb:\tlea    0x0(,%r9,8),%rbx\n    4b03:\tvxorpd %xmm0,%xmm0,%xmm0\n    4b07:\tneg    %r8\n    4b0a:\tvmovsd %xmm0,%xmm0,%xmm1\n    4b0e:\tlea    (%rbx,%r8,8),%rbp\n    4b12:\tlea    0x0(,%r9,4),%rbx\n    4b1a:\tlea    (%rbx,%r8,4),%rbx\n    4b1e:\tadd    %rdi,%rbp\n    4b21:\tadd    %r10,%rbx\n    4b24:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    4b2f:\tnop\n    4b30:\tmov    (%r10,%rax,4),%r8d\n    4b34:\tvmovsd (%rsi,%r8,8),%xmm2\n    4b3a:\tmov    (%rbx,%rax,4),%r8d\n    4b3e:\tvmulsd (%rdi,%rax,8),%xmm2,%xmm2\n    4b43:\tvaddsd %xmm2,%xmm1,%xmm1\n    4b47:\tvmovsd (%rsi,%r8,8),%xmm2\n    4b4d:\tvmulsd 0x0(%rbp,%rax,8),%xmm2,%xmm2\n    4b53:\tinc    %rax\n    4b56:\tvaddsd %xmm2,%xmm0,%xmm0\n    4b5a:\tcmp    %rax,%rdx\n    4b5d:\tjne    4b30 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0xb0>\n    4b5f:\tadd    %r9,%rcx\n    4b62:\tcmp    %r9,%rdx\n    4b65:\tjae    4b8a <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x10a>\n    4b67:\tnopw   0x0(%rax,%rax,1)\n    4b70:\tmov    (%r10,%rdx,4),%eax\n    4b74:\tvmovsd (%rsi,%rax,8),%xmm2\n    4b79:\tvmulsd (%rdi,%rdx,8),%xmm2,%xmm2\n    4b7e:\tinc    %rdx\n    4b81:\tvaddsd %xmm2,%xmm1,%xmm1\n    4b85:\tcmp    %rdx,%r9\n    4b88:\tjne    4b70 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0xf0>\n    4b8a:\tmov    -0x10(%rsp),%rax\n    4b8f:\tvmovsd %xmm1,-0x8(%rax,%r13,8)\n    4b96:\tcmp    %r11,%rcx\n    4b99:\tjae    4bba <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x13a>\n    4b9b:\tnopl   0x0(%rax,%rax,1)\n    4ba0:\tmov    (%r10,%rcx,4),%eax\n    4ba4:\tvmovsd (%rsi,%rax,8),%xmm1\n    4ba9:\tvmulsd (%rdi,%rcx,8),%xmm1,%xmm1\n    4bae:\tinc    %rcx\n    4bb1:\tvaddsd %xmm1,%xmm0,%xmm0\n    4bb5:\tcmp    %rcx,%r11\n    4bb8:\tjne    4ba0 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x120>\n    4bba:\tmov    -0x10(%rsp),%rax\n    4bbf:\tvmovsd %xmm0,(%rax,%r13,8)\n    4bc5:\tmov    -0x4(%rsp),%eax\n    4bc9:\tadd    $0x2,%r13\n    4bcd:\tcmp    %eax,%r13d\n    4bd0:\tjb     4ac0 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x40>\n    4bd6:\tsub    $0x2,%eax\n    4bd9:\tand    $0xfffffffe,%eax\n    4bdc:\tlea    0x2(%rax),%edx\n    4bdf:\tadd    $0x3,%eax\n    4be2:\tmov    -0x4(%rsp),%ebx\n    4be6:\tcmp    %ebx,%edx\n    4be8:\tjae    4c2e <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x1ae>\n    4bea:\tmov    (%r12,%rax,8),%r8\n    4bee:\tmov    -0x10(%rsp),%rdx\n    4bf3:\tvxorpd %xmm1,%xmm1,%xmm1\n    4bf7:\tmov    (%r15),%rax\n    4bfa:\tadd    %r14,%rdx\n    4bfd:\tcmp    %r8,%rax\n    4c00:\tjae    4c2a <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x1aa>\n    4c02:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    4c0d:\tnopl   (%rax)\n    4c10:\tmov    (%r10,%rax,4),%ecx\n    4c14:\tvmovsd (%rsi,%rcx,8),%xmm0\n    4c19:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    4c1e:\tinc    %rax\n    4c21:\tvaddsd %xmm0,%xmm1,%xmm1\n    4c25:\tcmp    %rax,%r8\n    4c28:\tjne    4c10 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x190>\n    4c2a:\tvmovsd %xmm1,(%rdx)\n    4c2e:\tpop    %rbx\n    4c2f:\tpop    %rbp\n    4c30:\tpop    %r12\n    4c32:\tpop    %r13\n    4c34:\tpop    %r14\n    4c36:\tpop    %r15\n    4c38:\tret\n    4c39:\tnopl   0x0(%rax)\n    4c40:\tvxorpd %xmm0,%xmm0,%xmm0\n    4c44:\tmov    %r9,%rcx\n    4c47:\tmov    %rax,%rdx\n    4c4a:\tvmovsd %xmm0,%xmm0,%xmm1\n    4c4e:\tjmp    4b62 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0xe2>\n    4c53:\tmov    %rdx,%r15\n    4c56:\txor    %r14d,%r14d\n    4c59:\txor    %edx,%edx\n    4c5b:\tmov    $0x1,%eax\n    4c60:\tjmp    4be2 <spmvCpu(double const*, unsigned int const*, unsigned long const*, double const*, unsigned int, double*)+0x162>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "The two-row specialization is not an omission: it advances across two CSR rows and has a tail path. MPI runtime coverage was not executed.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-sol-medium_mpi_r1",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "f9fc783669e0b56aad54607c1ea6c3b7cc881afebb8b7c87caf71b7d2350eb21"
+  },
+  "binary_sha256": "f4e0febb6ed5e4efda8f8a3449e7816d55a49da9c4d2ea59f9dc67a9228f7fb7",
+  "binding_sha256": "5e6767c76109d0a3be2b1f9f2ce22a2bd973d10ef2ca2aa235ffa88cb063ac05",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "2281f81015b110303f09fdd89c057f60915bbbc2323e809fd1e4c3758ee93f42",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_mpi_r2",
+      "spmv_gpt-6.2-sol-medium_mpi_r1"
+    ],
+    "checked_examples": "Astra r2 source95-104,250-285,292-322 and host2591-2634 retain contiguous owned CSR work and nested nonzero/row/iteration loops. Sol r1 source223-251,370-402,418-437, host2807-2933,4002-4044 retain paired rows plus tail and the timed caller repetition around the actual native function.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/gpt62_spmv_mpi",
+  "review_started_at": "2026-11-25T15:14:25Z",
+  "review_finished_at": "2026-11-25T15:17:31Z",
+  "review_input_sha256": "a3af69424a7cf9e448e80c00977ac87d460bac3c91336ba38c109f54f9e3e753",
+  "pack_sha256": "71e8e7c503cff012d54ea977c3c733beea125279c2df3469318a46d90683f9bd",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

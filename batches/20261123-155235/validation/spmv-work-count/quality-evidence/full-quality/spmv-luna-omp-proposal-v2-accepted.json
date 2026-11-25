@@ -1,0 +1,440 @@
+{
+  "reviewer": "gpt62_spmv_omp",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-25T15:11:52Z",
+  "review_finished_at": "2026-11-25T15:13:37Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.2-astra-medium_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Parsed -i controls repeated timed CSR SpMV for each thread's owned half-open row interval. The emitted worker retains indexed loads, multiply/add, stores, row/nonzero loops, and iteration loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              79
+            ],
+            [
+              98,
+              107
+            ],
+            [
+              166,
+              172
+            ],
+            [
+              225,
+              240
+            ],
+            [
+              248,
+              253
+            ]
+          ],
+          "claim": "CSR delimiters cover all nItems; the row kernel walks each row's nonzero interval and stores output; -i is parsed and main repeatedly invokes the kernel over adjacent floor-partitioned row ranges."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              849,
+              865
+            ],
+            [
+              891,
+              914
+            ]
+          ],
+          "claim": "The OpenMP worker derives both floor-scaled row bounds from thread id/count, then checks iterations and performs indexed CSR/vector loads, multiply/add, row stores, and row/nonzero/iteration backedges."
+        }
+      ],
+      "notes": "Source and pre-existing host assembly only; no runtime coverage was executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each worker's contiguous row interval repeats the CSR kernel for the requested iterations. Emitted worker code retains indexed arithmetic, output stores, and nested computation and iteration backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              50,
+              78
+            ],
+            [
+              97,
+              106
+            ],
+            [
+              165,
+              171
+            ],
+            [
+              225,
+              245
+            ]
+          ],
+          "claim": "CSR delimiters end at nItems; the kernel traverses nonzeros and stores each row; -i is parsed; main partitions rows with adjacent floor-scaled worker bounds and calls the kernel inside the iteration loop."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              934,
+              957
+            ]
+          ],
+          "claim": "The emitted OpenMP worker loads indexed columns, values, and vector elements, multiplies/accumulates, stores rows, and branches through nonzero, row, and iteration loops."
+        }
+      ],
+      "notes": "Runtime scheduling was not executed; source-level intervals cover the row domain."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed OpenMP path repeats CSR computation for each requested iteration over contiguous worker-owned rows. Compiled code contains indexed arithmetic, stores, and nested loop backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              51,
+              79
+            ],
+            [
+              98,
+              107
+            ],
+            [
+              166,
+              172
+            ],
+            [
+              226,
+              247
+            ]
+          ],
+          "claim": "The CSR sentinel spans nItems; the row routine reads the row's sparse interval and stores output; -i is parsed; OpenMP workers use adjacent floor-scaled row bounds and iterate the computation."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              942,
+              965
+            ]
+          ],
+          "claim": "The emitted worker performs indexed loads and multiply/add, stores row results, and retains the nonzero, row, and outer iteration branches."
+        }
+      ],
+      "notes": "Read-only static inspection; no runtime coverage was executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Main's timed OpenMP region repeats the parsed iteration count over the complete row domain. Existing worker assembly retains actual indexed CSR arithmetic and output stores inside nested loops.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              50,
+              78
+            ],
+            [
+              97,
+              106
+            ],
+            [
+              165,
+              171
+            ],
+            [
+              225,
+              244
+            ]
+          ],
+          "claim": "CSR offsets terminate at nItems; the kernel traverses each row's entries and writes output; -i is parsed; workers own contiguous floor-partitioned ranges and call the kernel per iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              936,
+              959
+            ]
+          ],
+          "claim": "The emitted worker's nonzero and row loops contain indexed loads, multiply/add, and stores, followed by a separate iteration-count comparison/backedge."
+        }
+      ],
+      "notes": "Inspected dispatched worker, not only standalone kernel; no program was compiled or run."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Main dispatches spmvParallel with parsed iterations. The worker's adjacent work-offset row boundaries feed a repeated CSR kernel call, and the compiled worker retains indexed arithmetic, stores, and nested backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              54,
+              82
+            ],
+            [
+              101,
+              110
+            ],
+            [
+              140,
+              153
+            ],
+            [
+              215,
+              237
+            ],
+            [
+              268,
+              277
+            ]
+          ],
+          "claim": "CSR delimiters cover nonzeros; worker boundary targets partition rows; its iteration loop invokes spmvRows; main parses -i and invokes spmvParallel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1023,
+              1047
+            ]
+          ],
+          "claim": "Emitted OpenMP clone performs indexed column/vector/value loads and multiply/add, stores output, loops over row/nonzero work, and retains the outer iteration backedge."
+        }
+      ],
+      "notes": "Runtime scheduling not executed; row partition and CSR extent assessed from source."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_omp_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed worker uses increasing CSR-plus-row work offsets to partition rows and runs spmvRows for every requested iteration. The emitted worker retains indexed loads, arithmetic, row stores, and iteration/row/nonzero backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              81
+            ],
+            [
+              100,
+              109
+            ],
+            [
+              112,
+              155
+            ],
+            [
+              212,
+              234
+            ],
+            [
+              265,
+              273
+            ]
+          ],
+          "claim": "CSR delimiters terminate at n; rowAtWorkOffset maps adjacent thread work targets to row ranges; spmvParallel loops over iterations and main parses -i and dispatches it."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1033,
+              1056
+            ]
+          ],
+          "claim": "The emitted OpenMP worker loads indexed column/value/vector data, multiplies and accumulates, stores each row result, and branches back through sparse, row, and iteration loops."
+        }
+      ],
+      "notes": "No runtime tests performed; adjacent source work boundaries cover the row/nonzero prefix domain."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_omp_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The dispatched OpenMP clone repeats each worker's row interval for the requested iterations. Its emitted loop includes indexed input loads, multiply/add, output stores, and row/nonzero/iteration backedges.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              52,
+              80
+            ],
+            [
+              99,
+              109
+            ],
+            [
+              129,
+              163
+            ],
+            [
+              221,
+              239
+            ],
+            [
+              274,
+              281
+            ]
+          ],
+          "claim": "The CSR sentinel covers nItems; the parallel worker computes adjacent work-based row boundaries and repeats the kernel; main parses -i and calls spmvOpenMP."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1056,
+              1072
+            ]
+          ],
+          "claim": "The emitted OpenMP worker loads the indexed column, vector value, and matrix value; multiplies and accumulates; stores each row output; branches over nonzeros and rows; then tests and branches on the iteration counter."
+        }
+      ],
+      "notes": "This evidence covers the dispatched OpenMP clone's computation, not only a standalone routine; flush behavior/timing is outside this work-count finding."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_omp_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed OpenMP path partitions rows by adjacent work-based boundaries and calls the CSR kernel in an iteration loop. Emitted worker assembly retains indexed loads, multiply/add, stores, and nested branches.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              81
+            ],
+            [
+              100,
+              109
+            ],
+            [
+              112,
+              162
+            ],
+            [
+              219,
+              239
+            ],
+            [
+              272,
+              280
+            ]
+          ],
+          "claim": "The matrix CSR extent ends at nItems; partitionRow yields adjacent row bounds; spmvParallel loops over requested iterations; main parses -i and dispatches it."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              998,
+              1022
+            ]
+          ],
+          "claim": "The emitted OpenMP clone performs indexed loads and floating-point multiply/add, writes the row output, and retains nonzero, row, and iteration backedges."
+        }
+      ],
+      "notes": "Only static source and existing assembly were inspected."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_omp_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The active OpenMP function maps adjacent work boundaries to contiguous rows and repeats the CSR kernel for parsed -i iterations. Emitted code retains indexed arithmetic, row stores, and row/nonzero/iteration branches.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              53,
+              81
+            ],
+            [
+              100,
+              110
+            ],
+            [
+              113,
+              153
+            ],
+            [
+              210,
+              232
+            ],
+            [
+              263,
+              271
+            ]
+          ],
+          "claim": "CSR delimiters cover nItems; the kernel traverses each row interval and stores output; findRowBoundary defines worker ownership; the iteration loop repeats the kernel; main parses -i and dispatches spmvParallel."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              957,
+              971
+            ]
+          ],
+          "claim": "The emitted worker loads indexed columns, values, and vector data, multiplies/accumulates, stores output, and retains sparse-entry, row, and iteration backedges."
+        }
+      ],
+      "notes": "Inspected dispatched clone and source partition logic; no generated program was executed or compiled."
+    }
+  ],
+  "citation_format_normalization": {
+    "original_proposal_sha256": "05cee4079670aa4b6a338779118e9b5542610fe9cd4cde8968d65a57100c64e7",
+    "split_ranges": 0,
+    "method": "Split ranges longer than500 lines into consecutive chunks of at most500, preserving exactly the same cited lines, order, scientific findings and prose. Raw proposals retained."
+  },
+  "proposal_sha256": "05cee4079670aa4b6a338779118e9b5542610fe9cd4cde8968d65a57100c64e7",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_omp_r2",
+      "spmv_gpt-6.2-sol-medium_omp_r3",
+      "spmv_gpt-6.2-sol-medium_omp_r5"
+    ],
+    "checked_examples": "Astra r2 source225-253 and native worker840-914 derive both adjacent row bounds and retain CSR arithmetic/stores plus three nested loops. Sol r3 source129-163/host1034-1078 and Sol r5 source113-153/host932-975 retain actual indexed multiplication/addition, row stores and outer iteration backedges; revised citations now include arithmetic rather than only loop tails.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  }
+}

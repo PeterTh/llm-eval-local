@@ -1,3 +1,4 @@
+import { allModelCount, defaultModelCount, defaultRunCount, totalRunCount, allCostRunCount, defaultCostRunCount, defaultPerformanceSuccessCount, defaultPerformanceFailureCount, performanceBaselineMs, performanceLeaderLabel } from "./release-counts";
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { parse as parseCsv } from "csv-parse/sync";
@@ -62,8 +63,8 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   const selectionSummary = page.getByLabel("Current selection summary");
   const modelMenu = page.locator(".filter-menu").first();
   await expect(modelMenu.locator("summary strong")).toHaveText("Default");
-  await expect(selectionSummary.getByText("34", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText(/7[,.]480/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(String(defaultModelCount), { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(defaultRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText(await expectedMeanScore(), { exact: true })).toBeVisible();
 
   await page.keyboard.press("Tab");
@@ -88,8 +89,8 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await expect(page).toHaveURL(/model-set=all/);
   await expect(modelMenu.locator("summary strong")).toHaveText("All models");
-  await expect(selectionSummary.getByText("41", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText(/9[,.]020/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(String(allModelCount), { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(totalRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText(await expectedMeanScore("all"), { exact: true })).toBeVisible();
   await expect(page.locator(".chart svg.marks")).toBeVisible();
   await expect(page.locator(".mark-rect path").first()).toBeVisible();
@@ -128,12 +129,12 @@ test("tier overview filters, exports, and drills into its source runs", async ({
   }
 
   await modelMenu.getByRole("button", { name: "Select all" }).click();
-  await expect(modelMenu.locator("summary strong")).toHaveText("41 models");
-  expect(await page.evaluate(() => new URLSearchParams(location.hash.split("?")[1] ?? "").getAll("model"))).toHaveLength(41);
+  await expect(modelMenu.locator("summary strong")).toHaveText(`${allModelCount} models`);
+  expect(await page.evaluate(() => new URLSearchParams(location.hash.split("?")[1] ?? "").getAll("model"))).toHaveLength(allModelCount);
   await modelMenu.getByRole("button", { name: "Default" }).click();
   await expect(page).toHaveURL(/#\/tiers$/);
   await expect(modelMenu.locator("summary strong")).toHaveText("Default");
-  await expect(selectionSummary.getByText(/7[,.]480/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(defaultRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await expect(modelMenu.locator("summary strong")).toHaveText("All models");
 
@@ -205,11 +206,11 @@ test("model scores filters distributions and opens individual runs", async ({ pa
   const scoresLink = page.getByRole("link", { name: "Model Scores" });
   await expect(scoresLink).toHaveClass(/active/);
   await expect(page.getByRole("heading", { name: "Model Scores" })).toBeVisible();
-  await expect(page.getByLabel("Current score selection summary").getByText(/7[,.]480/, { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Current score selection summary").getByText(defaultRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
   await expect(page.locator(".score-analysis .chart svg.marks")).toBeVisible();
   await expect(page.locator(".score-analysis .mark-rect path").first()).toBeVisible();
   const scoreRowBands = page.locator(".score-analysis .score_row_bands_marks path");
-  await expect(scoreRowBands).toHaveCount(17);
+  await expect(scoreRowBands).toHaveCount(Math.ceil(defaultModelCount / 2));
 
   const modelMenu = page.locator(".filter-menu").first();
   await modelMenu.locator("summary").click();
@@ -282,9 +283,9 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await expect(page.getByRole("heading", { name: "Floyd–Warshall · OpenMP" })).toBeVisible();
 
   const selectionSummary = page.getByLabel("Current performance selection summary");
-  await expect(selectionSummary.getByText("34", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("154", { exact: true })).toBeVisible();
-  await expect(selectionSummary.getByText("16", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(String(defaultModelCount), { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(String(defaultPerformanceSuccessCount), { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(String(defaultPerformanceFailureCount), { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Benchmark" })).toHaveValue("floydwarshall");
   await expect(page.getByRole("combobox", { name: "Target" })).toHaveValue("omp");
   await expect(page.getByRole("combobox", { name: "Order" })).toHaveValue("fastest");
@@ -295,8 +296,8 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   const chart = page.locator(".performance-analysis .chart");
   await expect(chart.locator("svg.marks")).toBeVisible();
   const runPoints = chart.locator('svg [role="button"][aria-label^="Run "]');
-  await expect(runPoints).toHaveCount(154);
-  await expect(page.locator(".performance-analysis + .accessible-data tbody tr").first().locator("th")).toHaveText("Opus 5.5 Medium");
+  await expect(runPoints).toHaveCount(defaultPerformanceSuccessCount);
+  await expect(page.locator(".performance-analysis + .accessible-data tbody tr").first().locator("th")).toHaveText(performanceLeaderLabel);
 
   const pointRows = await runPoints.evaluateAll((marks) => {
     const rows = new Map<string, { centers: number[]; shapePaths: Set<string> }>();
@@ -341,9 +342,9 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   expect(pointSizes.diamond).toBeGreaterThan(pointSizes.square!);
 
   const rowBands = chart.locator(".performance_row_bands_marks path");
-  await expect(rowBands).toHaveCount(17);
+  await expect(rowBands).toHaveCount(Math.ceil(defaultModelCount / 2));
   const medianRules = chart.locator(".performance_model_medians_marks path");
-  await expect(medianRules).toHaveCount(34);
+  await expect(medianRules).toHaveCount(defaultModelCount);
   const medianBounds = await medianRules.first().boundingBox();
   expect(medianBounds).not.toBeNull();
   expect(medianBounds!.height).toBeGreaterThan(pointSpread + 4);
@@ -372,14 +373,14 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await page.getByRole("checkbox", { name: "Show measurement ranges" }).click();
   await expect(page.getByRole("checkbox", { name: "Show measurement ranges" })).toBeChecked();
   await expect(page).toHaveURL(/ranges=shown/);
-  await expect(rangeRules).toHaveCount(154);
+  await expect(rangeRules).toHaveCount(defaultPerformanceSuccessCount);
   await page.getByRole("combobox", { name: "Values" }).selectOption("relative");
   await page.getByRole("combobox", { name: "Scale" }).selectOption("linear");
   await page.getByRole("combobox", { name: "Order" }).selectOption("slowest");
   await expect(page).toHaveURL(/mode=relative/);
   await expect(page).toHaveURL(/scale=linear/);
   await expect(page).toHaveURL(/order=slowest/);
-  await expect(page.getByText(/Relative values use the full-cell fastest median of 1[,.]024 ms/)).toBeVisible();
+  await expect(page.getByText(`Relative values use the full-cell fastest median of ${performanceBaselineMs.toLocaleString("en-US")} ms`, { exact: false })).toBeVisible();
 
   const modelMenu = page.locator(".filter-menu").first();
   await modelMenu.locator("summary").click();
@@ -389,7 +390,7 @@ test("performance compares successful timings with a fixed full-cell baseline", 
   await expect(selectionSummary.getByText("1", { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText("2", { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText("3", { exact: true })).toBeVisible();
-  await expect(page.getByText(/full-cell fastest median of 1[,.]024 ms/)).toBeVisible();
+  await expect(page.getByText(`full-cell fastest median of ${performanceBaselineMs.toLocaleString("en-US")} ms`, { exact: false })).toBeVisible();
 
   const filteredPoint = chart.locator('svg [role="button"][aria-label^="Run "]').first();
   await filteredPoint.focus();
@@ -437,17 +438,17 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   await expect(costLink).toHaveClass(/active/);
   await expect(page.getByRole("heading", { name: "Cost Efficiency" })).toBeAttached();
   const summary = page.getByLabel("Current cost efficiency selection summary");
-  await expect(summary.getByText("34", { exact: true })).toBeVisible();
-  await expect(summary.getByText(/7[,.]480/, { exact: true })).toBeVisible();
-  await expect(summary.getByText(/7[,.]473/, { exact: true })).toBeVisible();
+  await expect(summary.getByText(String(defaultModelCount), { exact: true })).toBeVisible();
+  await expect(summary.getByText(defaultRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
+  await expect(summary.getByText(defaultCostRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
 
   const chart = page.locator(".cost-analysis .chart");
   await expect(chart.locator("svg.marks")).toBeVisible();
   const points = chart.locator(".cost_points path");
-  await expect(points).toHaveCount(34);
+  await expect(points).toHaveCount(defaultModelCount);
   const labels = chart.locator(".cost_labels text");
-  await expect(labels).toHaveCount(34);
+  await expect(labels).toHaveCount(defaultModelCount);
   await expect(labels.filter({ hasText: "GPT-5.6 Luna Medium" })).toHaveCount(1);
   await expect(labels.filter({ hasText: /GPT-5\.6 Luna (Low|XHigh)/ })).toHaveCount(0);
 
@@ -456,7 +457,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
     const bounds = element.getBoundingClientRect();
     return style.opacity !== "0" && style.visibility !== "hidden" && bounds.width > 0 && bounds.height > 0;
   }).length);
-  expect(visibleLabelCount).toBe(34);
+  expect(visibleLabelCount).toBe(defaultModelCount);
 
   await points.first().hover({ force: true });
   const tooltip = page.locator("#vg-tooltip-element");
@@ -504,7 +505,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   await backendMenu.getByRole("checkbox", { name: "OpenMP" }).click();
   await expect(page).toHaveURL(/benchmark=black-scholes/);
   await expect(page).toHaveURL(/backend=omp/);
-  await expect(summary.getByText("170", { exact: true })).toHaveCount(2);
+  await expect(summary.getByText(String(defaultModelCount * 5), { exact: true })).toHaveCount(2);
   await page.getByRole("button", { name: /Reset/ }).click();
   await expect(page).toHaveURL(/#\/cost$/);
   await expect(page.getByRole("combobox", { name: "Cost scale" })).toHaveValue("log");
@@ -513,11 +514,11 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
   await modelMenu.locator("summary").click();
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await expect(page).toHaveURL(/model-set=all/);
-  await expect(summary.getByText("41", { exact: true })).toBeVisible();
-  await expect(summary.getByText(/9[,.]020/, { exact: true })).toBeVisible();
-  await expect(summary.getByText(/9[,.]013/, { exact: true })).toBeVisible();
-  await expect(points).toHaveCount(41);
-  await expect(labels).toHaveCount(41);
+  await expect(summary.getByText(String(allModelCount), { exact: true })).toBeVisible();
+  await expect(summary.getByText(totalRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
+  await expect(summary.getByText(allCostRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
+  await expect(points).toHaveCount(allModelCount);
+  await expect(labels).toHaveCount(allModelCount);
   await expect(labels.filter({ hasText: /Qwen 3\.6 .*Pi-T/ })).toHaveCount(1);
 
   const allLabelLayout = await labels.evaluateAll((elements) => {
@@ -544,7 +545,7 @@ test("score and cost recomputes model aggregates from frozen pricing", async ({ 
     }
     return { visibleCount: visible.length, materialOverlaps };
   });
-  expect(allLabelLayout).toEqual({ visibleCount: 41, materialOverlaps: [] });
+  expect(allLabelLayout).toEqual({ visibleCount: allModelCount, materialOverlaps: [] });
 
   const exportPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -650,7 +651,7 @@ test("run detail keeps all models and highlights its model in the performance ce
   expect(performanceParams.benchmark).toBeTruthy();
   expect(performanceParams.backend).toBeTruthy();
   const selectionSummary = page.getByLabel("Current performance selection summary");
-  await expect(selectionSummary.getByText("41", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(String(allModelCount), { exact: true })).toBeVisible();
 
   const chart = page.locator(".performance-analysis .chart");
   const focusedRow = chart.locator(".performance_focused_row_marks path");
@@ -669,7 +670,7 @@ test("run detail keeps all models and highlights its model in the performance ce
   await modelMenu.locator("summary").click();
   await modelMenu.getByRole("button", { name: "Default" }).click();
   await expect(page).not.toHaveURL(/focus=/);
-  await expect(selectionSummary.getByText("34", { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(String(defaultModelCount), { exact: true })).toBeVisible();
   await expect(focusedRow).toHaveCount(0);
   expect(problems).toEqual([]);
 });
@@ -798,7 +799,7 @@ test("complexity recomputes benchmark and target distributions and opens their r
   await expect(complexityLink).toHaveClass(/active/);
   await expect(page.getByRole("heading", { name: "Benchmark / Target complexity" })).toBeVisible();
   const selectionSummary = page.getByLabel("Current complexity selection summary");
-  await expect(selectionSummary.getByText(/7[,.]480/, { exact: true })).toBeVisible();
+  await expect(selectionSummary.getByText(defaultRunCount.toLocaleString("en-US"), { exact: true })).toBeVisible();
   await expect(selectionSummary.getByText(await expectedMeanScore(), { exact: true })).toBeVisible();
   await expect(page.getByLabel("Export chart")).toHaveCount(2);
 

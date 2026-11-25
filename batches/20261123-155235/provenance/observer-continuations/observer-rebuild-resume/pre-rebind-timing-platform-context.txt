@@ -1,0 +1,82 @@
+The target is the recorded local evaluation platform, not an arbitrary portable
+C++ implementation: Linux x86_64 LP64, GCC/libstdc++ 13.2.0, CUDA 12.6.77,
+Open MPI 4.1.6, and NVIDIA RTX 3090 (sm_86). The 2026-11-25 evaluation manifest
+records the same compiler versions and resource profiles as the previous campaign;
+the toolchain fields and resource descriptions were compared exactly before launch.
+The validation manifest is pinned to generated-source commit
+7a0a8b8e28af48d4ee2525c13ced317726536b25 and pipeline commit
+585774790137b750c1b15fafec5af81cef6e1463. The pipeline source digest is
+38abff145af0cb04b9a740737aa2e829b6632d1d2d2f43559db01d9dc35fd691.
+The toolchain, resource profiles, benchmark implementation and benchmark settings
+match the established local campaigns. Native validation includes the approved integer
+Floyd output check, stencil interior check, shape/topology cases, and full-array
+comparisons, using unchanged generated and sequential programs. These are the
+same strengthening checks applied to the existing release. The initial launch
+gate verified exact pipeline/toolchain/resource-profile agreement with the completed
+Fable observer-v3 evaluation. The successor adds one binary-scoped read-only
+observer adapter for streamed hybrid option output, with a checked native pilot,
+528 passing regression tests and explicit reuse of 26 completed validations.
+Scientific comparisons, inputs, tolerances and resource profiles are unchanged.
+Result Hash differences outside the scientific comparator are informational.
+
+For distributed work, timing must cover the maximum complete per-rank elapsed
+work or a source-proven semantic equivalent. A genuinely independent replica
+that computes a complete equivalent result may report its complete local time;
+it does not need an artificial MPI_MAX reduction. Distinguish this from a rank
+that computes only a partition. Keep the strict timing-output contract separate:
+multiple primary timing lines may fail benchmarking, but that alone is not a
+reason to classify otherwise complete local timing as invalid or rewrite it.
+
+Base validation uses 4 ranks for both MPI and hybrid; supplemental shape checks also exercise the measurement topology. Full benchmarking uses 128 ranks
+for MPI and 4 ranks for hybrid. Each hybrid rank has one topology-local GPU;
+validation assigns 8 host cores per rank and benchmarking assigns 32.
+
+The next benchmark phase must inherit the historical configuration without any
+problem-size, iteration, timeout, or resource-profile changes. Its source is
+/home/petert/llm_para_local_evaluation/20260819-003427/benchmark_config.yaml,
+SHA-256 20153151de0d733792317198c0ee7ebd52fbde6f605771029b205ed976be7970.
+These are the applicable full-benchmark arguments (not validation arguments):
+
+benchmark       MPI arguments                  hybrid arguments
+black-scholes   -n 10000000                    -n 100000000
+cahn-hilliard   -x 256 -i 2000                 -x 512 -i 100
+cholesky        -n 3072                        -n 4096
+floydwarshall   -n 8192                        -n 10240
+matmul          -n 6144                        -n 8192
+nbody           -n 40000 -s 100                -n 50000 -s 30
+qtclustering    -n 4000                        -n 5000
+roomsim         -n 5120 -t 500                 -n 5120 -t 2000
+spmv            -n 10000 -s 40 -i 50000        -n 18000 -s 40 -i 50000
+stencil3d       -x 256 -i 5000                 -x 384 -i 2800
+unstructured    -n 2000 -i 5000                -n 7000 -i 4000
+
+If a global-makespan proof depends on problem size, partitioning, rank count, or
+this target ABI, retain that condition explicitly. Do not extrapolate validity to
+other configurations. No execution-time results or performance scores are supplied.
+
+A compile-only probe on 2026-09-28 established that the exact expression
+std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+has C++ type long, with sizeof(long) == 8, for this unchanged target toolchain.
+The main investigator compiled the probe; static-review workers did not compile
+or execute code. No binary was linked or executed. This is a target-type fact,
+not a claim about other ABIs or a blanket equivalence of different MPI datatypes.
+The original retained proof is in
+/home/petert/llm_timing_audit/20260928-claude5-adjudication/platform-context.txt.
+
+Probe source (SHA-256 d05f7d124d72c2b9481f14ad4f4f543d81f478204463f37efb4cef691d4c948a):
+
+#include <chrono>
+#include <type_traits>
+
+using clock_type = std::chrono::high_resolution_clock;
+using elapsed_type = decltype(std::chrono::duration_cast<std::chrono::milliseconds>(
+    clock_type::time_point{} - clock_type::time_point{}).count());
+static_assert(std::is_same<elapsed_type, long>::value,
+              "The generated MPI_LONG duration buffer must have C++ type long");
+static_assert(sizeof(long) == 8, "The evaluated ABI is LP64");
+
+Original command (exit 0; empty stdout and stderr):
+/usr/local/cuda/bin/nvcc -std=c++17 -arch=sm_86 -O3 --use_fast_math -Xcompiler=-O3,-march=native,-Wall,-Wextra,-fopenmp -c /tmp/claude5-validation-20260928-JNX71l/timing_abi_probe.cu -o /tmp/claude5-validation-20260928-JNX71l/timing_abi_probe.o
+
+When relevant, cite the generated source's timer/reduction lines and identify this
+supplied platform evidence in notes. It supplies no prior program verdict.

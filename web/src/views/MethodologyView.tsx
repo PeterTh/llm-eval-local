@@ -216,6 +216,8 @@ export function MethodologyView() {
               or a proven equivalent. A process that independently computes an entire result may report its
               complete local duration; redundant copies need not finish first. Timing covers the sequential
               reference's computation boundary, including completed thread and device work.
+              Fixed-size template setup may remain outside that interval; input-size-dependent numerical
+              preprocessing must be included.
             </p>
           </section>
 
@@ -300,6 +302,8 @@ export function MethodologyView() {
               Flex endpoints are eligible, and a missing cache-read rate falls back to the ordinary input rate. Retired
               models use the last known live rate as a fallback.
               {" "}The GPT-6 and GPT-6.1 profiles use the lowest published non-batch OpenAI tier, Flex, with official model documentation as their source.
+              {" "}GPT-6.2 uses Standard pricing, excluding the delayed background tier. Its retained request-level
+              counts are all below the long-context threshold.
             </p>
           </section>
         </div>

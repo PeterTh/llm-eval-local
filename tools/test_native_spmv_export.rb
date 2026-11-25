@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'minitest/autorun'
+require 'tmpdir'
 require_relative 'export_native_spmv'
 
 class NativeSpmvExportTest < Minitest::Test
@@ -18,5 +19,26 @@ class NativeSpmvExportTest < Minitest::Test
     assert_raises(RuntimeError) { NativeSpmvExport.verify_completion!(@report, @report.merge('new_reviews' => 19)) }
     assert_raises(RuntimeError) { NativeSpmvExport.verify_completion!(@report, @report.merge('review_sha256' => {})) }
     assert_raises(RuntimeError) { NativeSpmvExport.verify_completion!(@report.merge('new_failures' => ['unresolved']), @report) }
+  end
+
+  def test_explicit_quality_evidence_is_json_only_and_cannot_replace_native_records
+    Dir.mktmpdir('native-spmv-export-test-') do |directory|
+      path = File.join(directory, 'quality.json')
+      File.write(path, JSON.generate('passed' => true))
+      sources = { 'completion.json' => 'native-completion' }
+      name = 'quality-evidence/pilot/quality-gate.json'
+      NativeSpmvExport.add_supplemental_sources!(sources, name => path)
+      assert_equal path, sources.fetch(name)
+      assert_equal 'native-completion', sources.fetch('completion.json')
+      assert_raises(RuntimeError) { NativeSpmvExport.add_supplemental_sources!(sources, name => path) }
+      %w[completion.json ../quality.json quality-evidence/../quality.json quality-evidence/code.rb].each do |unsafe|
+        assert_raises(RuntimeError) { NativeSpmvExport.add_supplemental_sources!({}, unsafe => path) }
+      end
+      link = File.join(directory, 'link.json')
+      File.symlink(path, link)
+      assert_raises(RuntimeError) { NativeSpmvExport.add_supplemental_sources!({}, name => link) }
+      File.write(path, 'not JSON')
+      assert_raises(JSON::ParserError) { NativeSpmvExport.add_supplemental_sources!({}, name => path) }
+    end
   end
 end

@@ -1,0 +1,129 @@
+{
+  "id": "spmv_gpt-6.2-astra-medium_omp_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Timed OpenMP workers partition all rows and repeat their owned rows for the requested iteration count. The compiled worker retains nested CSR/row loops, accumulation, stores, and the iteration backedge.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          99,
+          109
+        ],
+        [
+          158,
+          174
+        ],
+        [
+          226,
+          242
+        ]
+      ],
+      "claim": "-i is parsed; workers own adjacent intervals covering numRows and invoke spmvRows in an iteration loop; the worker traverses each row's CSR interval and stores output.",
+      "sha256": "c7a5c4ad3db41812f56b2fc0d6786aed6fbf48e4ade8faa3ec46b7d2fa1e1894",
+      "git_blob": "cea138fa207c00b1d9142bf8df164bc702ac3f45"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Compiled main calls GOMP_parallel and then ends timing; each worker derives row ownership from thread id/count, loads CSR-indexed inputs, accumulates and stores products, and compares its iteration counter before the backedge.",
+      "complete_dump_sha256": "9a4b7bd4aef4e322ee05aa8bf0cec35170d9232f8a584742ed38d7e151e0f352",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_omp_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 565,
+          "last_line": 579,
+          "text": "    196a:\tlea    0x49f(%rip),%rdi        # 1e10 <main._omp_fn.0>\n    1971:\tcmp    %rax,(%r14)\n    1974:\tvmovdqa -0x170(%rbp),%ymm6\n    197c:\tmov    %rax,-0x70(%rbp)\n    1980:\tvmovdqa -0x140(%rbp),%xmm7\n    1988:\tcmovae %rsi,%r14\n    198c:\txor    %ecx,%ecx\n    198e:\tmov    (%r14),%rdx\n    1991:\tmov    -0x14c(%rbp),%r14d\n    1998:\tvmovdqa %ymm6,-0x70(%rbp)\n    199d:\tvmovdqa %xmm7,-0x50(%rbp)\n    19a2:\tmov    %r14d,-0x40(%rbp)\n    19a6:\tvzeroupper\n    19a9:\tcall   1210 <GOMP_parallel@plt>\n    19ae:\tcall   1170 <std::chrono::_V2::system_clock::now()@plt>\n"
+        },
+        {
+          "first_line": 852,
+          "last_line": 889,
+          "text": "    1e25:\tmov    0x30(%rdi),%r12d\n    1e29:\tcall   1230 <omp_get_thread_num@plt>\n    1e2e:\tmov    %eax,%ebx\n    1e30:\tcall   1260 <omp_get_num_threads@plt>\n    1e35:\tmov    0x0(%r13),%rdx\n    1e39:\tmovslq %ebx,%rcx\n    1e3c:\tmovslq %eax,%rsi\n    1e3f:\tmov    (%rdx),%edi\n    1e41:\txor    %edx,%edx\n    1e43:\timul   %rdi,%rcx\n    1e47:\tmov    %rcx,%rax\n    1e4a:\tdiv    %rsi\n    1e4d:\txor    %edx,%edx\n    1e4f:\tmov    %rax,%r8\n    1e52:\tlea    (%rdi,%rcx,1),%rax\n    1e56:\tdiv    %rsi\n    1e59:\ttest   %r12d,%r12d\n    1e5c:\tje     1f14 <main._omp_fn.0+0x104>\n    1e62:\tmov    0x28(%r13),%rdx\n    1e66:\tmov    0x10(%r13),%rsi\n    1e6a:\tmov    (%rdx),%rcx\n    1e6d:\tmov    0x20(%r13),%rdx\n    1e71:\tmov    (%rsi),%rbp\n    1e74:\tmov    0x8(%r13),%rsi\n    1e78:\tmov    (%rdx),%rdi\n    1e7b:\tmov    0x18(%r13),%rdx\n    1e7f:\tmov    (%rsi),%r13\n    1e82:\tmov    (%rdx),%rdx\n    1e85:\tcmp    %eax,%r8d\n    1e88:\tjae    1f14 <main._omp_fn.0+0x104>\n    1e8e:\tsub    %r8d,%eax\n    1e91:\tlea    0x1(%r8),%esi\n    1e95:\tlea    0x0(,%rax,4),%r9\n    1e9d:\tmov    %r8d,%eax\n    1ea0:\tlea    (%rdx,%rsi,4),%r11\n    1ea4:\tlea    (%rcx,%rax,8),%r10\n    1ea8:\tlea    (%rdx,%rax,4),%rbx\n    1eac:\txor    %ecx,%ecx\n"
+        },
+        {
+          "first_line": 904,
+          "last_line": 918,
+          "text": "    1ee0:\tmov    (%r8,%rax,4),%r15d\n    1ee4:\tvmovsd (%rdi,%r15,8),%xmm0\n    1eea:\tmov    %rax,%r15\n    1eed:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    1ef2:\tinc    %rax\n    1ef5:\tvaddsd %xmm0,%xmm1,%xmm1\n    1ef9:\tcmp    %r15,%rdx\n    1efc:\tjne    1ee0 <main._omp_fn.0+0xd0>\n    1efe:\tvmovsd %xmm1,(%r10,%r14,2)\n    1f04:\tadd    $0x4,%r14\n    1f08:\tcmp    %r14,%r9\n    1f0b:\tjne    1ec0 <main._omp_fn.0+0xb0>\n    1f0d:\tinc    %ecx\n    1f0f:\tcmp    %ecx,%r12d\n    1f12:\tjne    1eb0 <main._omp_fn.0+0xa0>\n"
+        }
+      ]
+    },
+    {
+      "file": "host-assembly.txt",
+      "claim": "Compiled spmvRows has delimiter and indexed data loads, multiply/add, output stores, and CSR/row loop backedges.",
+      "complete_dump_sha256": "9a4b7bd4aef4e322ee05aa8bf0cec35170d9232f8a584742ed38d7e151e0f352",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_omp_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1050,
+          "last_line": 1095,
+          "text": "00000000000020e0 <spmvRows(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)>:\n    20e0:\tendbr64\n    20e4:\tcmp    %r9d,%r8d\n    20e7:\tjae    21a5 <spmvRows(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)+0xc5>\n    20ed:\tmov    %rdx,%rax\n    20f0:\tmov    %rdi,%r10\n    20f3:\tmov    %r8d,%edx\n    20f6:\tmov    %rcx,%rdi\n    20f9:\tlea    0x1(%r8),%ecx\n    20fd:\tpush   %r13\n    20ff:\tpush   %r12\n    2101:\tpush   %rbp\n    2102:\tlea    (%rax,%rdx,4),%rbp\n    2106:\tpush   %rbx\n    2107:\tlea    (%rax,%rcx,4),%rbx\n    210b:\tmov    0x28(%rsp),%rax\n    2110:\tdec    %r9d\n    2113:\tmov    %rsi,%r11\n    2116:\tsub    %r8d,%r9d\n    2119:\txor    %r8d,%r8d\n    211c:\tlea    0x4(,%r9,4),%r12\n    2124:\tlea    (%rax,%rdx,8),%r9\n    2128:\tnopl   0x0(%rax,%rax,1)\n    2130:\tmov    0x0(%rbp,%r8,1),%eax\n    2135:\tmov    (%rbx,%r8,1),%edx\n    2139:\tcmp    %edx,%eax\n    213b:\tjae    2190 <spmvRows(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)+0xb0>\n    213d:\tdec    %edx\n    213f:\tlea    (%r11,%rax,4),%rsi\n    2143:\tlea    (%r10,%rax,8),%rcx\n    2147:\tvxorpd %xmm1,%xmm1,%xmm1\n    214b:\tsub    %eax,%edx\n    214d:\txor    %eax,%eax\n    214f:\tnop\n    2150:\tmov    (%rsi,%rax,4),%r13d\n    2154:\tvmovsd (%rdi,%r13,8),%xmm0\n    215a:\tmov    %rax,%r13\n    215d:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    2162:\tinc    %rax\n    2165:\tvaddsd %xmm0,%xmm1,%xmm1\n    2169:\tcmp    %r13,%rdx\n    216c:\tjne    2150 <spmvRows(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)+0x70>\n    216e:\tvmovsd %xmm1,(%r9,%r8,2)\n    2174:\tadd    $0x4,%r8\n    2178:\tcmp    %r8,%r12\n    217b:\tjne    2130 <spmvRows(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)+0x50>\n"
+        },
+        {
+          "first_line": 1103,
+          "last_line": 1109,
+          "text": "    2190:\tvxorpd %xmm1,%xmm1,%xmm1\n    2194:\tvmovsd %xmm1,(%r9,%r8,2)\n    219a:\tadd    $0x4,%r8\n    219e:\tcmp    %r8,%r12\n    21a1:\tjne    2130 <spmvRows(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)+0x50>\n    21a3:\tjmp    217d <spmvRows(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*)+0x9d>\n    21a5:\tret\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Source and existing host disassembly only; OpenMP runtime scheduling was not executed. Adjacent interval formulas cover the full row domain.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-astra-medium_omp_r1",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "d4db0384699bcad09db44ac193fdf212db4826d93b14459ed90388cdcfafcf3f"
+  },
+  "binary_sha256": "e96b151645f329b89f107f99ac9107b1f39dd818acc7918a616af23294b85992",
+  "binding_sha256": "69dfe5d3a8c7578a8fb03f6590f67c667683605afede7aebe48f073d75ee1fda",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "919cbb36d7a84371d5b7cdee1d82a4fb82cfd97112c9906db844e0a001d4418a",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-25T15:06:18Z",
+    "passed": true,
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_cuda_r1",
+      "spmv_gpt-6.2-astra-medium_hybrid_r1",
+      "spmv_gpt-6.2-astra-medium_mpi_r1",
+      "spmv_gpt-6.2-astra-medium_omp_r1"
+    ],
+    "work_count_disagreement": false,
+    "method": "Primary inspected all four pilot sources and emitted work: iteration parsing, owned row intervals, complete CSR/packed-row traversals, stores, and compiled iteration/row/nonzero backedges. Returned the initial GPU citations for precise arithmetic and complete dispatch coverage; accepted the revised evidence after inspection. No execution or compilation.",
+    "checked_examples": {
+      "omp": "Source99-109 and226-242; host852-918 retains row partitioning, CSR multiplication/addition/stores and all three nested backedges.",
+      "mpi": "Source235-301 covers contiguous row/item partition/scatter/rebasing and repeated local SpMV; host2173-2225 retains timed iteration, row and nonzero loops with actual indexed arithmetic and stores.",
+      "cuda": "Source143-195 and314-331; native host counter and cudaLaunchKernel paths for Width4(1316-1398), Width8(1550-1633), Width1(1657-1739); SASS has DMUL/DADD, nonzero backedges507/1648/2263 and stores519/1660/2271.",
+      "hybrid": "Source147-266 constructs/transverses packed row slices and handles the tail; source362-388 covers rank-local ownership and repeated launches; host6009-6034 retains counter/stub loop; SASS23-61 initial bounds/slice/length loads,397-417 batch arithmetic/backedge,895-935 tail arithmetic/backedge/store."
+    },
+    "metadata_note": "The first proposal's inferred start timestamp is unreliable and preserved as such. v2/v3 record clock-observed revision intervals only. No agent interval is used as a cost or throughput estimate.",
+    "full_review_authorized": true,
+    "maximum_parallel_luna_reviewers": 3,
+    "remaining_scope": "The other36 successfully validated SpMV implementations in the two-model batch.",
+    "escalation_policy": "Only uncertain/potential-failure findings to Sol-6.1; no blanket stronger-model review.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/gpt62_spmv_pilot",
+  "review_started_at": "2026-11-25T15:02:50Z",
+  "review_finished_at": "2026-11-25T15:03:44Z",
+  "review_input_sha256": "335e31b2487a8cf88048f1258784b4e709f4a3d565d6107288df22cd111d136f",
+  "pack_sha256": "8c369914f16044f57b33324373cb72021b1177b930dbe6f563409cefd924c8db",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

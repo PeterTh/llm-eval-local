@@ -32,7 +32,7 @@ Roomsim hybrid winner. Reproduce that release transition with
 
 The current score/cost and tier outputs consume `release/scored_results.csv`.
 `release/scoring_metadata.yaml` pins that file and all campaign inputs by SHA-256;
-`release/catalog.json` identifies sixteen campaigns, scoped evidence overlays and generated-source commits.
+`release/catalog.json` identifies seventeen campaigns, scoped evidence overlays and generated-source commits.
 Historical outputs are preserved by Git history and the `local-eval-2026-08-25` tag.
 
 ## Tiered LLM comparison
@@ -47,7 +47,7 @@ tiers:
 - Good-Top: scores 8-10
 
 Models are sorted by mean overall score from weakest to best. The horizontal layout is
-intentional: it keeps all 41 profile names and tier percentages legible at the paper's
+intentional: it keeps all 43 profile names and tier percentages legible at the paper's
 full text width. The script requires a balanced number of observations per model and
 writes both the vector figure and the exact aggregate table behind it.
 
@@ -87,6 +87,8 @@ Terra Ultra's 220 records instead sum 18,126 unique recorded requests across
 interrupted requests whose final usage may be missing. Their recorded counters
 and API-equivalent costs are lower bounds, not complete billing totals.
 The cost table and website retain those flags, including under filtering.
+The 440 Astra/Sol 6.2 records use exact final counters; 11,220 compact request
+records establish that every request is below the long-context threshold.
 Complete session logs are not duplicated in this repository.
 Terra 6.1 retains compact request-level evidence that all 25,091 recorded requests
 across Medium, XHigh and Ultra fall below its long-context pricing threshold.
@@ -155,9 +157,10 @@ for Sol 6.1, 2026-10-14 for Haiku 5.5, 2026-10-15 for Sonnet 5.5 and 2026-10-18
 for Sol 6.1 in OpenCode, 2026-10-19 for Luna 6 in OpenCode, 2026-10-24
 for DeepSeek V4.1 Flash in OpenCode, and 2026-10-28 for Haiku 5.5 in OpenCode
 and Terra 6.1 in Codex, 2026-10-30 for Beam 1.0 in OpenCode, and 2026-11-07
-for Fable 5.1 in Claude Code.
+for Fable 5.1 in Claude Code, and 2026-11-25 for Astra/Sol 6.2 in Codex.
 The GPT-6 and GPT-6.1 profiles use officially
-published non-batch OpenAI Flex prices. Rates are frozen per model.
+published non-batch OpenAI Flex prices. GPT-6.2 uses Standard prices, excluding
+the delayed background tier. Rates are frozen per model.
 See [Claude pricing](notes/2026-09-29-claude5-pricing.md) and
 [GPT-6 pricing and limitations](notes/2026-10-02-gpt6-pricing.md),
 [Opus 5.5 pricing](notes/2026-10-06-opus55-pricing.md) and
@@ -170,12 +173,13 @@ and [Luna 6](notes/2026-10-19-luna6-opencode-pricing.md), plus
 and [Haiku 5.5 OpenCode pricing](notes/2026-10-28-haiku55-opencode-pricing.md),
 and [Terra 6.1 pricing](notes/2026-10-29-terra61-pricing.md), plus
 [Beam 1.0 OpenCode pricing and partial accounting](notes/2026-10-30-beam10-opencode-pricing.md),
-and [Fable 5.1 native accounting and pricing](notes/2026-11-08-fable51-pricing.md).
+and [Fable 5.1 native accounting and pricing](notes/2026-11-08-fable51-pricing.md),
+plus [Astra/Sol 6.2 exact accounting and Standard pricing](notes/2026-11-25-gpt62-pricing.md).
 Haiku 5.5 uses retained per-run token totals grouped by each request's context tier;
 OpenCode provides per-request output directly, while Claude Code mixed-tier
 output splits are derived from native output and list-price totals.
 Cache creation uses ordinary input rates for all Claude profiles. Other profiles
-do not model long-context surcharges. Terra 6.1 in Codex and the Sol and Luna OpenCode campaigns
+do not model long-context surcharges. Terra 6.1 and Astra/Sol 6.2 in Codex and the Sol and Luna OpenCode campaigns
 verify that all native requests are below their long-context thresholds;
 DeepSeek's and Beam's selected endpoints have flat context pricing. Three model-terminated
 DeepSeek sessions and one Beam session have only partial usage counters and are excluded from
@@ -259,7 +263,17 @@ canonical format unless the publication toolchain requires another.
 ## Individual implementation reviews
 
 Published run reviews live in `notes/individual/` and are embedded by the website.
-All 44 current cell winners have reviews; 95 notes are retained, including superseded winners.
+All 44 current cell winners have reviews; 108 notes are retained, including superseded winners.
+
+Astra and Sol 6.2 Medium introduce nine new cell winners. Their
+[comparison snapshot](notes/2026-11-25-gpt62-medium-winner-context.json) pins the
+measured vectors and peer sources, and verifies that all 9,020 earlier observations
+are unchanged apart from 612 jointly recomputed scores. Two
+[paired diagnostics](notes/2026-11-25-gpt62-outlier-probes.json) isolate coefficient
+caching in MPI Black–Scholes and pruning in OpenMP Floyd–Warshall; these are separate
+from the benchmark samples. Check the reviews and evidence with
+`ruby analysis/src/check_gpt62_reviews.rb`.
+
 Beam 1.0 Medium in OpenCode introduces no new cell winners. Its
 [comparison snapshot](notes/2026-10-30-beam10-opencode-winner-context.json) verifies
 that 8,133 prior observations are unchanged except for joint scoring; the seven

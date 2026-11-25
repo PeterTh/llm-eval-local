@@ -1,0 +1,425 @@
+{
+  "reviewer": "gpt62_spmv_omp",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-25T15:13:37Z",
+  "review_finished_at": "2026-11-25T15:18:04Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.2-sol-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop invokes the selected CUDA launcher once per -i iteration on each rank's contiguous row slice. Source constructs local CSR delimiters spanning that rank's assigned nonzeros; the device kernel loops its rows and entries, reduces products, and stores outputs. Host disassembly retains the repeated launch loop, and emitted sm_86 SASS for all five Width specializations (1/4/8/16/32) contains sparse loads, DFMA, loop branches, and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              170,
+              180
+            ],
+            [
+              202,
+              284
+            ],
+            [
+              287,
+              339
+            ],
+            [
+              443,
+              472
+            ],
+            [
+              497,
+              521
+            ]
+          ],
+          "claim": "rowBoundary partitions ranks; generateMatrix assigns local CSR intervals and nonzero storage; spmvCuda loops over local rows and CSR entries and stores row outputs; selectLauncher chooses a Width from mean row length; runBenchmark parses -i, computes firstRow/rows, and launches once per iteration within the timed block."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3732,
+              3754
+            ],
+            [
+              4898,
+              4947
+            ]
+          ],
+          "claim": "The compiled selector maps mean row length to launchSpmv<1/4/8/16/32>; the timed run performs one indirect launch per iteration and branches back until the counter reaches its iteration limit."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              503
+            ],
+            [
+              504,
+              972
+            ],
+            [
+              973,
+              1393
+            ],
+            [
+              1394,
+              1798
+            ],
+            [
+              1799,
+              2298
+            ],
+            [
+              2299,
+              2459
+            ]
+          ],
+          "claim": "These are the emitted sm_86 spmvCuda Width=32,16,8,4,1 specializations; each contains CSR/input LDG operations, DFMA arithmetic, sparse-loop backedges, and output STG instructions. Together they cover every source-dispatched width."
+        }
+      ],
+      "notes": "No program was compiled or executed in this review. Runtime MPI partition behavior remains source-assessed; rank slices are adjacent floor boundaries over [0,numRows)."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The active DeviceMatrix path either repeatedly launches the width-selected sparse kernel or, for ordered output, uses its ordered kernel path. The timed execute loop submits floor(iterations/batchIterations) graph batches plus the remainder launches. Compiled host control retains capture, graph replay, and remainder loops; emitted SASS contains indexed sparse arithmetic, backedges, and stores across all selectable Width variants and both ordered modes.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              177,
+              244
+            ],
+            [
+              381,
+              419
+            ],
+            [
+              421,
+              524
+            ],
+            [
+              646,
+              696
+            ]
+          ],
+          "claim": "makeMatrix constructs local CSR data from rank-local rows and global nonzero prefix; spmvKernel and orderedSpmvKernel traverse sparse entries and store row results; DeviceMatrix selects width/ordered paths, captures batchIterations calls, and execute replays batches plus residual multiplies; main partitions rows by rank, parses -i, prepares, and executes the timed workload."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              6901,
+              6938
+            ],
+            [
+              6942,
+              6958
+            ],
+            [
+              7016,
+              7072
+            ],
+            [
+              8462,
+              8478
+            ]
+          ],
+          "claim": "Compiled run constructs and prepares DeviceMatrix; the graph capture loop repeatedly calls multiply and checks its batch counter; the timed path calls cudaGraphLaunch in a counted loop, then calls multiply for a counted remainder and synchronizes; multiply dispatches among specialized kernel paths."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              327
+            ],
+            [
+              328,
+              636
+            ],
+            [
+              637,
+              945
+            ],
+            [
+              946,
+              1238
+            ],
+            [
+              1239,
+              1738
+            ],
+            [
+              1739,
+              1851
+            ],
+            [
+              1852,
+              2351
+            ],
+            [
+              2352,
+              2528
+            ],
+            [
+              2529,
+              3028
+            ],
+            [
+              3029,
+              3429
+            ]
+          ],
+          "claim": "The emitted sm_86 SASS includes Width=32/16/8/4/1 unordered kernels, Width=1 ordered kernel, and orderedSpmvKernel. The relevant bodies contain global CSR/value/column/vector loads, DFMA or DMUL/DADD arithmetic, sparse/reduction control-flow branches, and output stores."
+        }
+      ],
+      "notes": "printResults selects the ordered path, while normal benchmark mode selects one of the five width variants. Repeated output overwrite is expected. Source and already-existing disassembly only; no runtime or JIT execution was performed."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank owns an adjacent floor-partitioned row range and the active timed path calls its launcher once per parsed iteration. The host clone dispatches the selected lane-width specialization and retains an iteration counter/backedge. All five emitted sm_86 variants show CSR/input loads, DFMA work, loop control, and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              160,
+              250
+            ],
+            [
+              350,
+              420
+            ],
+            [
+              490,
+              543
+            ],
+            [
+              566,
+              585
+            ]
+          ],
+          "claim": "Rank-local matrix initialization generates offset-delimited nonzeros for the local rows; spmvGpu traverses each row's offsets with lane-strided entries, accumulates products and writes output; spmvLauncher selects lanes 1/4/8/32/128 from mean length; run parses -i, defines firstRow/rows, and repeats launch in the timed iteration loop."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4022,
+              4050
+            ],
+            [
+              4066,
+              4092
+            ]
+          ],
+          "claim": "Compiled run dispatches among launchSpmv<1/4/8/32/128> based on average row length, calls the selected launch for setup, then inside the timed section calls it per iteration and branches back until the requested count is reached."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              518
+            ],
+            [
+              519,
+              631
+            ],
+            [
+              632,
+              924
+            ],
+            [
+              925,
+              1233
+            ],
+            [
+              1234,
+              1542
+            ],
+            [
+              1543,
+              1867
+            ]
+          ],
+          "claim": "These emitted sm_86 spmvGpu lanes=1/4/8/32/128 variants contain sparse input loads, DFMA arithmetic, entry-loop branches and output stores, including the block-per-row wide-lane path."
+        }
+      ],
+      "notes": "Static inspection only. The row partition covers the source row domain; MPI and GPU runtime behavior was not executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The rank-local rows are packed into warp jobs and submitted through a captured batch of up to 64 kernel launches. The timed host loop replays graph batches and launches residual iterations; emitted device code covers both independent-row and cooperative-lane job branches, with sparse loads, multiply/add accumulation, loop backedges, and output stores.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              167,
+              310
+            ],
+            [
+              310,
+              437
+            ],
+            [
+              440,
+              509
+            ],
+            [
+              647,
+              712
+            ],
+            [
+              714,
+              749
+            ]
+          ],
+          "claim": "The matrix builder establishes local CSR extents; packMatrix constructs row/job work; spmvGpu processes either stride jobs or cooperative jobs, traverses sparse entries and stores row output; main partitions rows by rank, derives jobs, captures batch calls, and times graph replays plus remainder launches for -i iterations."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              6090,
+              6170
+            ],
+            [
+              5773,
+              5843
+            ]
+          ],
+          "claim": "The compiled host captures repeated spmvGpu stubs into a graph with a counter/backedge, instantiates/uploads the graph, and in the timed region launches the graph in a counted loop plus stub launches for remainder iterations before stream synchronization."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              518
+            ],
+            [
+              519,
+              1018
+            ],
+            [
+              1019,
+              1047
+            ]
+          ],
+          "claim": "The emitted sm_86 spmvGpu body contains job selection, sparse global loads, double multiply/add operations, loop branches for the job's sparse work, and output stores for both job modes."
+        }
+      ],
+      "notes": "No graph was instantiated or launched by this review. Source and existing host/device disassembly were inspected; runtime MPI coverage remains untested."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Main partitions rows by rank and selects either the lane-per-row or tiled kernel from local row count and mean-density criteria. The compiled timed host path retains iteration backedges and calls the corresponding device stub; both emitted sm_86 kernels perform sparse indexed loads, multiplication/accumulation, loop branches, and output stores for real entries.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              212,
+              358
+            ],
+            [
+              363,
+              413
+            ],
+            [
+              481,
+              543
+            ],
+            [
+              545,
+              562
+            ]
+          ],
+          "claim": "makeMatrix builds rank-local row lengths/slices and entries; spmvRows and spmvTiled traverse those sparse lengths and store row outputs; main computes adjacent rank row bounds, chooses tiled versus regular dispatch, and repeats launch inside the timed loop for the parsed iteration count."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              4633,
+              4685
+            ],
+            [
+              5211,
+              5229
+            ],
+            [
+              5380,
+              5385
+            ]
+          ],
+          "claim": "The timed host path contains a counted loop with device-stub call and iteration backedge, with a separate tiled branch also looping and calling the spmvTiled stub; the regular branch calls the spmvRows stub."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              518
+            ],
+            [
+              519,
+              551
+            ],
+            [
+              552,
+              780
+            ]
+          ],
+          "claim": "The emitted sm_86 spmvTiled and spmvRows kernels contain global slice/length/column/value/vector loads, DMUL plus accumulation, entry-loop control flow, and output STG stores; padding is guarded by each row's true length in source."
+        }
+      ],
+      "notes": "No program runs or compilation were performed. Rank partition and CSR-like packed slice coverage are source-level assessments; timing correctness is reviewed separately."
+    }
+  ],
+  "citation_format_normalization": {
+    "original_proposal_sha256": "21e3f97bb8961290d76c6fb887d0453a1802cc9f1a555d1682168125b194f281",
+    "split_ranges": 7,
+    "method": "Split ranges longer than500 lines into consecutive chunks of at most500, preserving exactly the same cited lines, order, scientific findings and prose. Raw proposals retained."
+  },
+  "proposal_sha256": "21e3f97bb8961290d76c6fb887d0453a1802cc9f1a555d1682168125b194f281",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-sol-medium_hybrid_r2",
+      "spmv_gpt-6.2-sol-medium_hybrid_r4"
+    ],
+    "checked_examples": "r2 source460-525,662-696 and host6901-6958,7016-7072 retain captured batchIterations kernels, floor(iterations/batchIterations) replays and remainder launches. r4 source682-749 and host6090-6170,5773-5843 retain the analogous up-to-64 batch/remainder identity. Device excerpts show sparse loads and real FP64 arithmetic for width/ordered and independent/cooperative paths; no model executed a graph.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  }
+}

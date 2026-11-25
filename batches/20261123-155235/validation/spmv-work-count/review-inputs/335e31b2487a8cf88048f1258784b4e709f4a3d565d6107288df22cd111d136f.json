@@ -1,0 +1,379 @@
+{
+  "reviewer": "/root/gpt62_spmv_pilot",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-25T15:02:50Z",
+  "review_finished_at": "2026-11-25T15:03:44Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "metadata_note": "Timestamp provenance: v1's review_started_at was inferred and is unreliable; do not treat it as an observed clock time. The v2 and v3 timestamps describe their respective revision work only, not the duration of the initial review. v3 clock readings: started 2026-11-25 15:02:50 UTC and finished 2026-11-25 15:03:44 UTC.",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.2-astra-medium_cuda_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Parsed -i controls the timed launch count. Source dispatches Width=1,4,or 8 by mean row length; all corresponding SASS variants show CSR input loads, double multiply/accumulation, loop backedges, and output stores. Native host assembly retains an iteration counter/backedge around the actual launch for each specialization, including Width=8 used for large rows.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              143,
+              175
+            ],
+            [
+              178,
+              195
+            ],
+            [
+              245,
+              260
+            ],
+            [
+              314,
+              331
+            ]
+          ],
+          "claim": "The kernel traverses each row's CSR interval and writes its output; runIterations launches each requested iteration; -i sets iterations; dispatch selects Width=1,4,or 8 for all matrix rows according to mean length."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1316,
+              1331
+            ],
+            [
+              1327,
+              1331
+            ],
+            [
+              1383,
+              1398
+            ]
+          ],
+          "claim": "Width=4 timed control contains an iteration counter/backedge and reaches cudaLaunchKernel before returning to that counter check."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1550,
+              1565
+            ],
+            [
+              1561,
+              1565
+            ],
+            [
+              1618,
+              1633
+            ]
+          ],
+          "claim": "Width=8 path records the timed start, increments and compares the counter with the iteration limit, calls cudaLaunchKernel, then branches back to the counter check; this is the large-mean-length dispatch path."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1657,
+              1672
+            ],
+            [
+              1668,
+              1672
+            ],
+            [
+              1728,
+              1739
+            ]
+          ],
+          "claim": "Width=1 path likewise records timed start, increments/checks iteration counter, launches through cudaLaunchKernel and returns to the counter check."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              19
+            ],
+            [
+              155,
+              177
+            ],
+            [
+              229,
+              281
+            ],
+            [
+              507,
+              519
+            ],
+            [
+              1256,
+              1256
+            ],
+            [
+              1402,
+              1418
+            ],
+            [
+              1446,
+              1449
+            ],
+            [
+              1474,
+              1498
+            ],
+            [
+              1644,
+              1662
+            ],
+            [
+              2045,
+              2045
+            ],
+            [
+              2259,
+              2273
+            ]
+          ],
+          "claim": "Each dispatched emitted variant (Width=8/4/1) includes CSR-related global loads and double multiplication/accumulation, conditional loop backedges (Width 8 line 507, Width 4 line 1648, Width 1 line 2263), and output stores (519,1660,2271). Variants 1 and 4 are included because source dispatches them for smaller mean lengths."
+        }
+      ],
+      "notes": "Only source and already-existing disassembly inspected; no compile or runtime verification. Repeated output overwrite is intended for y=A*x."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_hybrid_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank owns a contiguous row interval and launches its local packed-CSR workload once per iteration. The disassembly directly shows initial slice/length loads, batch entry gathers, multiply/accumulation, loop backedges, tail handling, and the output store. Host assembly retains the repeated launch loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              240,
+              277
+            ],
+            [
+              304,
+              320
+            ],
+            [
+              353,
+              371
+            ],
+            [
+              377,
+              386
+            ],
+            [
+              395,
+              412
+            ]
+          ],
+          "claim": "Kernel maps threads to rows and traverses their packed slices and lengths; -i is parsed; rank partition boundaries determine local rows and matrix arrays; timed launches repeat once per iteration and gathered starts/counts follow partition boundaries."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              6009,
+              6026
+            ],
+            [
+              6027,
+              6034
+            ]
+          ],
+          "claim": "Native run code calls the device stub inside a counter loop, compares the counter with the limit, then checks launch status and synchronizes before ending timing."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              23,
+              31
+            ],
+            [
+              41,
+              47
+            ],
+            [
+              55,
+              61
+            ]
+          ],
+          "claim": "Initial kernel code derives row/thread identity, exits out-of-range rows, and loads the row's encoded slice and length from global memory before work begins."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              397,
+              417
+            ]
+          ],
+          "claim": "Batch body performs multiple double multiplications and accumulations, then conditionally branches back to continue packed-CSR batches."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              895,
+              905
+            ],
+            [
+              919,
+              923
+            ],
+            [
+              929,
+              935
+            ]
+          ],
+          "claim": "Tail path loads packed row/column/value/vector inputs, performs DMUL/DADD, branches to repeat the entry body while work remains, then emits the per-row global output store."
+        }
+      ],
+      "notes": "Packed CSR traversal and arithmetic are directly visible, not inferred from dispatch alone. MPI/device runtime coverage was not executed; rank interval and gather coverage are source-level only."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each rank repeats its local CSR SpMV for the requested iteration count. Native code inlines the timed iteration, row, and nonzero loops with indexed loads, accumulation, and row stores; source shows rank-local row/item slices and offset rebasing.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              96,
+              109
+            ],
+            [
+              181,
+              205
+            ],
+            [
+              230,
+              288
+            ],
+            [
+              291,
+              305
+            ]
+          ],
+          "claim": "-i is parsed; rank-local CSR offsets are rebased after scatter; the timed loop invokes spmvCpu once per iteration, and each row routine traverses its nonzero interval, accumulates products, and stores output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2173,
+              2189
+            ],
+            [
+              2192,
+              2225
+            ]
+          ],
+          "claim": "Timed main records start time, then runs an iteration counter around inlined row/nonzero loops with column/vector/value loads, multiply/add, output stores, and row/iteration backedges before the end-time call."
+        }
+      ],
+      "notes": "MPI distribution was not run; partition/scatter coverage assessed from source only. Repeated output overwrite is consistent with doing matrix work on each iteration."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_omp_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Timed OpenMP workers partition all rows and repeat their owned rows for the requested iteration count. The compiled worker retains nested CSR/row loops, accumulation, stores, and the iteration backedge.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              99,
+              109
+            ],
+            [
+              158,
+              174
+            ],
+            [
+              226,
+              242
+            ]
+          ],
+          "claim": "-i is parsed; workers own adjacent intervals covering numRows and invoke spmvRows in an iteration loop; the worker traverses each row's CSR interval and stores output."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              565,
+              579
+            ],
+            [
+              852,
+              889
+            ],
+            [
+              904,
+              918
+            ]
+          ],
+          "claim": "Compiled main calls GOMP_parallel and then ends timing; each worker derives row ownership from thread id/count, loads CSR-indexed inputs, accumulates and stores products, and compares its iteration counter before the backedge."
+        },
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1050,
+              1095
+            ],
+            [
+              1103,
+              1109
+            ]
+          ],
+          "claim": "Compiled spmvRows has delimiter and indexed data loads, multiply/add, output stores, and CSR/row loop backedges."
+        }
+      ],
+      "notes": "Source and existing host disassembly only; OpenMP runtime scheduling was not executed. Adjacent interval formulas cover the full row domain."
+    }
+  ],
+  "proposal_sha256": "919cbb36d7a84371d5b7cdee1d82a4fb82cfd97112c9906db844e0a001d4418a",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-25T15:06:18Z",
+    "passed": true,
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_cuda_r1",
+      "spmv_gpt-6.2-astra-medium_hybrid_r1",
+      "spmv_gpt-6.2-astra-medium_mpi_r1",
+      "spmv_gpt-6.2-astra-medium_omp_r1"
+    ],
+    "work_count_disagreement": false,
+    "method": "Primary inspected all four pilot sources and emitted work: iteration parsing, owned row intervals, complete CSR/packed-row traversals, stores, and compiled iteration/row/nonzero backedges. Returned the initial GPU citations for precise arithmetic and complete dispatch coverage; accepted the revised evidence after inspection. No execution or compilation.",
+    "checked_examples": {
+      "omp": "Source99-109 and226-242; host852-918 retains row partitioning, CSR multiplication/addition/stores and all three nested backedges.",
+      "mpi": "Source235-301 covers contiguous row/item partition/scatter/rebasing and repeated local SpMV; host2173-2225 retains timed iteration, row and nonzero loops with actual indexed arithmetic and stores.",
+      "cuda": "Source143-195 and314-331; native host counter and cudaLaunchKernel paths for Width4(1316-1398), Width8(1550-1633), Width1(1657-1739); SASS has DMUL/DADD, nonzero backedges507/1648/2263 and stores519/1660/2271.",
+      "hybrid": "Source147-266 constructs/transverses packed row slices and handles the tail; source362-388 covers rank-local ownership and repeated launches; host6009-6034 retains counter/stub loop; SASS23-61 initial bounds/slice/length loads,397-417 batch arithmetic/backedge,895-935 tail arithmetic/backedge/store."
+    },
+    "metadata_note": "The first proposal's inferred start timestamp is unreliable and preserved as such. v2/v3 record clock-observed revision intervals only. No agent interval is used as a cost or throughput estimate.",
+    "full_review_authorized": true,
+    "maximum_parallel_luna_reviewers": 3,
+    "remaining_scope": "The other36 successfully validated SpMV implementations in the two-model batch.",
+    "escalation_policy": "Only uncertain/potential-failure findings to Sol-6.1; no blanket stronger-model review.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  }
+}

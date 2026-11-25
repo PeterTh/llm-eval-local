@@ -40,6 +40,32 @@ PRICING_SELECTION_POLICY = (
 # is no longer present in the live catalog; its last OpenRouter rate is combined
 # with a current public source for the cached-input rate.
 MODELS = {
+    "gpt-6.2-astra-medium": {
+        "label": "GPT-6.2 Astra Medium", "color": "#275c67", "marker": "s",
+        "pricing_as_of": "2026-11-25", "pricing_model_id": "openai/gpt-6.2-astra",
+        "input_price": 8.0, "cached_input_price": 0.4, "output_price": 40.0,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/standard", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model and pricing documentation",
+        "pricing_selection_policy": "Standard pricing; excludes Batch and the delayed background tier; rates frozen per model",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.2-astra",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.2-astra",
+        "secondary_pricing_source_url": "https://developers.openai.com/api/docs/pricing",
+        "cost_method": "Exact native Codex counters; cache is included in input and reasoning in output. All 3,822 requests below 272,000 input tokens; cache writes zero. API-rate comparison, not subscription billing.",
+    },
+    "gpt-6.2-sol-medium": {
+        "label": "GPT-6.2 Sol Medium", "color": "#86a94e", "marker": "s",
+        "pricing_as_of": "2026-11-25", "pricing_model_id": "openai/gpt-6.2-sol",
+        "input_price": 2.0, "cached_input_price": 0.1, "output_price": 10.0,
+        "pricing_provider": "OpenAI", "pricing_provider_tag": "openai/standard", "pricing_quantization": "unknown",
+        "pricing_source_kind": "official OpenAI model and pricing documentation",
+        "pricing_selection_policy": "Standard pricing; excludes Batch and the delayed background tier; rates frozen per model",
+        "pricing_catalog_url": "https://developers.openai.com/api/docs/pricing",
+        "pricing_endpoint_url": "https://developers.openai.com/api/docs/models/gpt-6.2-sol",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.2-sol",
+        "secondary_pricing_source_url": "https://developers.openai.com/api/docs/pricing",
+        "cost_method": "Exact native Codex counters; cache is included in input and reasoning in output. All 7,398 requests below 272,000 input tokens; cache writes zero. API-rate comparison, not subscription billing.",
+    },
     "claude-fable-5.1-cc-medium": {
         "label": "Fable 5.1 Medium", "color": "#903820", "marker": "P",
         "pricing_as_of": "2026-11-07", "pricing_model_id": "anthropic/claude-fable-5.1",
@@ -483,12 +509,14 @@ EXCLUDED_MODELS = {
 # Offsets are in display points. These deliberately mirror the paper's manual
 # annotation style and keep the dense central cluster readable.
 LABEL_OFFSETS = {
+    "gpt-6.2-astra-medium": (8, 25),
+    "gpt-6.2-sol-medium": (0, 36),
     "claude-fable-5.1-cc-medium": (-7, -19),
     "gpt-6.1-terra-ultra": (32, 23),
     "beam-1.0-oc-medium": (-7, -10),
     "gpt-6.1-terra-xhigh": (-45, 20),
     "gpt-6.1-terra-medium": (-20, 0),
-    "claude-haiku-5.5-oc-medium": (-85, -22),
+    "claude-haiku-5.5-oc-medium": (-85, -33),
     "deepseek-v4.1-flash-oc-high": (-8, 23),
     "gpt-6-luna-oc-medium": (8, 12),
     "gpt-6.1-sol-oc-medium": (-20, 29),
@@ -740,7 +768,7 @@ def _format_cost(value: float, _position: float) -> str:
 
 def draw_figure(summary: pd.DataFrame, path: Path) -> None:
     configure_plot_style()
-    figure, axis = plt.subplots(figsize=(6.5, 4.0))
+    figure, axis = plt.subplots(figsize=(8.0, 5.0))
 
     for row in summary.itertuples(index=False):
         config = MODELS[row.model]
@@ -764,13 +792,13 @@ def draw_figure(summary: pd.DataFrame, path: Path) -> None:
             va="center",
             fontsize=8.5,
             arrowprops={"arrowstyle": "-", "color": config["color"], "linewidth": 0.5, "shrinkB": 7}
-            if row.model in {"claude-fable-5.1-cc-medium", "claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium", "gpt-6.1-terra-xhigh", "gpt-6.1-terra-ultra"} else None,
+            if row.model in {"gpt-6.2-astra-medium", "gpt-6.2-sol-medium", "claude-fable-5.1-cc-medium", "claude-sonnet-5.5-cc-medium", "gpt-6.1-sol-oc-medium", "deepseek-v4.1-flash-oc-high", "claude-haiku-5.5-oc-medium", "gpt-6.1-terra-xhigh", "gpt-6.1-terra-ultra"} else None,
             zorder=4,
         )
 
     axis.set_xscale("log")
     axis.set_xlim(min(0.012, summary.estimated_cost_usd_per_run.min() * 0.75), max(1.55, summary.estimated_cost_usd_per_run.max() * 1.8))
-    axis.set_ylim(3.1, max(8.6, summary.mean_overall_score.max() + 0.5))
+    axis.set_ylim(3.1, max(9.1, summary.mean_overall_score.max() + 0.5))
     axis.xaxis.set_major_locator(FixedLocator([0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]))
     axis.xaxis.set_major_formatter(FuncFormatter(_format_cost))
     axis.set_yticks(np.arange(3.5, 8.6, 0.5))

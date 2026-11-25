@@ -1,0 +1,545 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-11-25T21:43:21Z",
+  "purpose": "Limited outlier explanation. Diagnostic times are not benchmark samples and do not affect scores.",
+  "workspace": "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa",
+  "pipeline_commit": "83e4f9f5bf4c1cfd6603269dcb580411744cf1dd",
+  "driver_sha256": "d037cc1ee46cda9ab1bbdfba56a88ae14fdf81d2e39e416afeee1f00f1148135",
+  "context_sha256": "e01223bf60e9d5fedd9534b79c1a3dfcb5c9a8343fb09558cb75f5a17bfdb99c",
+  "experiments": [
+    {
+      "id": "black-scholes_gpt-6.2-sol-medium_mpi_r5",
+      "source_pin": {
+        "commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+        "path": "20261123-155235/black-scholes_gpt-6.2-sol-medium_mpi_r5",
+        "files": {
+          "black-scholes/CMakeLists.txt": "b0a6af8f4b11b4067f056634f8fdb5ca2044d12a28e79128ccd99031936d2b49",
+          "black-scholes/black_scholes.cpp": "3230e53df1199ebf9f4194931c9c832a9b5b412fbc50db8923bc6b980b20ac5d",
+          "common/hash.hpp": "da47685f2f22487193f986eeba67fe414f80d50536a63e03cae0a6935d76a4e9",
+          "common/results_output.hpp": "39dce5caf66268985c8ea44e5c60b619f1cca6e663a0fec4ff9c1dea9cc43e5e"
+        }
+      },
+      "patch": "*** Begin Patch\n*** Update File: black-scholes/black_scholes.cpp\n@@\n-using PricingTable = std::array<PricingParameters, testOptions.size()>;\n+using PricingTable = std::array<PricingParameters, testOptions.size()>;\n+const bool probeDisableCache = std::getenv(\"GPT62_PROBE_DISABLE_CACHE\") != nullptr;\n@@\n-    if (normal.ratio != ratio) {\n+    if (probeDisableCache || normal.ratio != ratio) {\n*** End Patch\n",
+      "modified_source_sha256": "ee4e5bb40497e309de4c7c7755f151bc6a7c660f26c58e88a08510297f3df159",
+      "intervention": "Recompute CDF coefficients for every option; retain fixed template setup, indexing, arithmetic, output handling and MPI timing.",
+      "runs": [
+        {
+          "sample": "warmup",
+          "variant": "normal",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1"
+          },
+          "time_ms": 1.845,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 1.845 ms\nOptions per second: 5421523448\n",
+          "stderr": ""
+        },
+        {
+          "sample": "warmup",
+          "variant": "disabled",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1",
+            "GPT62_PROBE_DISABLE_CACHE": "1"
+          },
+          "time_ms": 8.542,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 8.542 ms\nOptions per second: 1170670261\n",
+          "stderr": ""
+        },
+        {
+          "sample": 1,
+          "variant": "disabled",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1",
+            "GPT62_PROBE_DISABLE_CACHE": "1"
+          },
+          "time_ms": 9.784,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 9.784 ms\nOptions per second: 1022123035\n",
+          "stderr": ""
+        },
+        {
+          "sample": 1,
+          "variant": "normal",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1"
+          },
+          "time_ms": 1.645,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 1.645 ms\nOptions per second: 6078949752\n",
+          "stderr": ""
+        },
+        {
+          "sample": 2,
+          "variant": "normal",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1"
+          },
+          "time_ms": 1.707,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 1.707 ms\nOptions per second: 5857335229\n",
+          "stderr": ""
+        },
+        {
+          "sample": 2,
+          "variant": "disabled",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1",
+            "GPT62_PROBE_DISABLE_CACHE": "1"
+          },
+          "time_ms": 8.787,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 8.787 ms\nOptions per second: 1138000417\n",
+          "stderr": ""
+        },
+        {
+          "sample": 3,
+          "variant": "disabled",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1",
+            "GPT62_PROBE_DISABLE_CACHE": "1"
+          },
+          "time_ms": 8.306,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 8.306 ms\nOptions per second: 1203933588\n",
+          "stderr": ""
+        },
+        {
+          "sample": 3,
+          "variant": "normal",
+          "argv": [
+            "mpirun",
+            "--np",
+            "128",
+            "--map-by",
+            "ppr:64:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "10000000"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1"
+          },
+          "time_ms": 2.071,
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 10000000\nValidation: disabled\nPricing options...\nComputation time: 2.071 ms\nOptions per second: 4828214541\n",
+          "stderr": ""
+        }
+      ],
+      "checks": [
+        {
+          "variant": "normal",
+          "argv": [
+            "mpirun",
+            "--np",
+            "4",
+            "--map-by",
+            "ppr:2:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "1031",
+            "-r",
+            "-v"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1"
+          },
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 1031\nValidation: enabled\nPricing options...\nComputation time: 0.046 ms\nOptions per second: 22234203\n=== RESULTS ===\nName: OptionPrices\nElements: 1031\nSum: 3.69948261424659504e+04\nMin: 2.07828649441422590e-02\nMax: 1.55509982115157612e+02\nSample[0]: 6.42531332374790143e+00\nSample[257]: 8.75119536134478615e+00\nSample[515]: 8.29111180618066470e+01\nSample[773]: 1.19721383491395514e+02\nSample[1030]: 3.21988048430369322e-01\nHash: 4a9c2d14ce39ed22\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n",
+          "stderr": ""
+        },
+        {
+          "variant": "disabled",
+          "argv": [
+            "mpirun",
+            "--np",
+            "4",
+            "--map-by",
+            "ppr:2:socket:PE=1",
+            "--bind-to",
+            "core",
+            "--rank-by",
+            "slot",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/black-scholes_gpt-6.2-sol-medium_mpi_r5/build/black_scholes",
+            "-n",
+            "1031",
+            "-r",
+            "-v"
+          ],
+          "environment": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "OMP_NUM_THREADS": "1",
+            "GPT62_PROBE_DISABLE_CACHE": "1"
+          },
+          "stdout": "Black-Scholes Option Pricing Benchmark\nNumber of options: 1031\nValidation: enabled\nPricing options...\nComputation time: 0.061 ms\nOptions per second: 17035972\n=== RESULTS ===\nName: OptionPrices\nElements: 1031\nSum: 3.69948261424659504e+04\nMin: 2.07828649441422590e-02\nMax: 1.55509982115157612e+02\nSample[0]: 6.42531332374790143e+00\nSample[257]: 8.75119536134478615e+00\nSample[515]: 8.29111180618066470e+01\nSample[773]: 1.19721383491395514e+02\nSample[1030]: 3.21988048430369322e-01\nHash: 4a9c2d14ce39ed22\n=== END RESULTS ===\nValidating results...\nChecking computed option prices:\n  Option 0: computed=6.4253, expected=5.0975, rel_error=2.6048e-01\n  Option 1: computed=0.0208, expected=0.0205, rel_error=1.3798e-02\n  Option 2: computed=1.9269, expected=1.8734, rel_error=2.8541e-02\n  Option 3: computed=10.3673, expected=9.9413, rel_error=4.2855e-02\n  Option 4: computed=10.4879, expected=9.9210, rel_error=5.7142e-02\n  Option 5: computed=2.0072, expected=1.8734, rel_error=7.1397e-02\n  Option 6: computed=0.0443, expected=0.0408, rel_error=8.5157e-02\n  Option 7: computed=7.0678, expected=5.0975, rel_error=3.8653e-01\n  Option 8: computed=0.0228, expected=0.0205, rel_error=1.1375e-01\n  Option 9: computed=2.1142, expected=1.8734, rel_error=1.2854e-01\nValidation: PASSED\n",
+          "stderr": ""
+        }
+      ],
+      "executable_sha256": "9cf0404d23ff6368f4749c720dc743cbf803ec533bc31d123afb9258866a0aa7",
+      "identical_check_results": true,
+      "median_ms": {
+        "normal": 1.707,
+        "disabled": 8.787
+      }
+    },
+    {
+      "id": "floydwarshall_gpt-6.2-sol-medium_omp_r3",
+      "source_pin": {
+        "commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+        "path": "20261123-155235/floydwarshall_gpt-6.2-sol-medium_omp_r3",
+        "files": {
+          "common/hash.hpp": "da47685f2f22487193f986eeba67fe414f80d50536a63e03cae0a6935d76a4e9",
+          "common/results_output.hpp": "39dce5caf66268985c8ea44e5c60b619f1cca6e663a0fec4ff9c1dea9cc43e5e",
+          "floydwarshall/CMakeLists.txt": "8ce8a7ef3d8b14c8582c59ee836ccd60ffb45ba2c7964bcdeaf44ecae9762e18",
+          "floydwarshall/floydwarshall.cpp": "0ea35b606f4dd410f8670ba54022e9563fcfb6e6027e66f550205106fb01f2ff"
+        }
+      },
+      "patch": "*** Begin Patch\n*** Update File: floydwarshall/floydwarshall.cpp\n@@\n-    constexpr size_t tileSize = 64;  // One candidate bit per pivot.\n+    const bool probeDisablePruning = std::getenv(\"GPT62_PROBE_DISABLE_PRUNING\") != nullptr;\n+    constexpr size_t tileSize = 64;  // One candidate bit per pivot.\n@@\n-                            const bool possible = toPivots[pivot] + lowerBounds[pivot] < upperBound;\n+                            const bool possible = probeDisablePruning || toPivots[pivot] + lowerBounds[pivot] < upperBound;\n*** End Patch\n",
+      "modified_source_sha256": "74dffd3d511e01c794990afc88f16a7054c86aa48d82a9ae9693722b84996928",
+      "intervention": "Keep every pivot candidate; retain blocking, saved pivot inputs, paired SIMD updates, path ties and timing.",
+      "runs": [
+        {
+          "sample": "warmup",
+          "variant": "normal",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": ""
+          },
+          "time_ms": 619.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 619 ms\nPerformance: 1065.285 GOPS\n",
+          "stderr": ""
+        },
+        {
+          "sample": "warmup",
+          "variant": "disabled",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": "",
+            "GPT62_PROBE_DISABLE_PRUNING": "1"
+          },
+          "time_ms": 1357.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 1357 ms\nPerformance: 485.933 GOPS\n",
+          "stderr": ""
+        },
+        {
+          "sample": 1,
+          "variant": "disabled",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": "",
+            "GPT62_PROBE_DISABLE_PRUNING": "1"
+          },
+          "time_ms": 1338.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 1338 ms\nPerformance: 492.834 GOPS\n",
+          "stderr": ""
+        },
+        {
+          "sample": 1,
+          "variant": "normal",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": ""
+          },
+          "time_ms": 620.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 620 ms\nPerformance: 1063.567 GOPS\n",
+          "stderr": ""
+        },
+        {
+          "sample": 2,
+          "variant": "normal",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": ""
+          },
+          "time_ms": 618.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 618 ms\nPerformance: 1067.009 GOPS\n",
+          "stderr": ""
+        },
+        {
+          "sample": 2,
+          "variant": "disabled",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": "",
+            "GPT62_PROBE_DISABLE_PRUNING": "1"
+          },
+          "time_ms": 1343.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 1343 ms\nPerformance: 490.999 GOPS\n",
+          "stderr": ""
+        },
+        {
+          "sample": 3,
+          "variant": "disabled",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": "",
+            "GPT62_PROBE_DISABLE_PRUNING": "1"
+          },
+          "time_ms": 1668.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 1668 ms\nPerformance: 395.331 GOPS\n",
+          "stderr": ""
+        },
+        {
+          "sample": 3,
+          "variant": "normal",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-127",
+            "--interleave=0,1",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "8704"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "128",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "spread",
+            "CUDA_VISIBLE_DEVICES": ""
+          },
+          "time_ms": 623.0,
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 8704\nValidation: disabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 623 ms\nPerformance: 1058.446 GOPS\n",
+          "stderr": ""
+        }
+      ],
+      "checks": [
+        {
+          "variant": "normal",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-7",
+            "--membind=0",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "257",
+            "-r",
+            "-v"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "8",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "close",
+            "CUDA_VISIBLE_DEVICES": ""
+          },
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 257\nValidation: enabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 4 ms\nPerformance: 4.244 GOPS\n=== RESULTS ===\nName: DistanceMatrix\nElements: 66049\nMin: 0\nMax: 19\nSample[0]: 0\nSample[16512]: 0\nSample[33024]: 0\nSample[49536]: 0\nSample[66048]: 0\nHash: 80ff67f2dd2d32d4\n=== END RESULTS ===\nValidating result...\nValidation: PASSED\n",
+          "stderr": ""
+        },
+        {
+          "variant": "disabled",
+          "argv": [
+            "numactl",
+            "--physcpubind=0-7",
+            "--membind=0",
+            "/tmp/gpt62-outlier-probe-20261125-1503767-hmvzpa/floydwarshall_gpt-6.2-sol-medium_omp_r3/build/floydwarshall",
+            "-n",
+            "257",
+            "-r",
+            "-v"
+          ],
+          "environment": {
+            "OMP_NUM_THREADS": "8",
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_PLACES": "cores",
+            "OMP_PROC_BIND": "close",
+            "CUDA_VISIBLE_DEVICES": "",
+            "GPT62_PROBE_DISABLE_PRUNING": "1"
+          },
+          "stdout": "Floyd-Warshall All-Pairs Shortest Path Benchmark\nNumber of nodes: 257\nValidation: enabled\nInitializing graph...\nComputing shortest paths...\nComputation time: 4 ms\nPerformance: 4.244 GOPS\n=== RESULTS ===\nName: DistanceMatrix\nElements: 66049\nMin: 0\nMax: 19\nSample[0]: 0\nSample[16512]: 0\nSample[33024]: 0\nSample[49536]: 0\nSample[66048]: 0\nHash: 80ff67f2dd2d32d4\n=== END RESULTS ===\nValidating result...\nValidation: PASSED\n",
+          "stderr": ""
+        }
+      ],
+      "executable_sha256": "11b5135f4ec174bab26a64654ba41f1f1fc77e0b8d8ef9088c2ca2f9a0f25879",
+      "identical_check_results": true,
+      "median_ms": {
+        "normal": 620.0,
+        "disabled": 1343.0
+      }
+    }
+  ],
+  "completed_at": "2026-11-25T21:45:24Z",
+  "successful": true
+}

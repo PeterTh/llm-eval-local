@@ -1,0 +1,179 @@
+{
+  "id": "spmv_gpt-6.2-astra-medium_hybrid_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each rank owns a contiguous row interval and launches its local packed-CSR workload once per iteration. The disassembly directly shows initial slice/length loads, batch entry gathers, multiply/accumulation, loop backedges, tail handling, and the output store. Host assembly retains the repeated launch loop.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          240,
+          277
+        ],
+        [
+          304,
+          320
+        ],
+        [
+          353,
+          371
+        ],
+        [
+          377,
+          386
+        ],
+        [
+          395,
+          412
+        ]
+      ],
+      "claim": "Kernel maps threads to rows and traverses their packed slices and lengths; -i is parsed; rank partition boundaries determine local rows and matrix arrays; timed launches repeat once per iteration and gathered starts/counts follow partition boundaries.",
+      "sha256": "be79c9009717d00c9ddd63473bec32b1fcc3a377ed3e61d2a2dce29ddfb4f89f",
+      "git_blob": "ccba160aa33f2ade8866eb5d16e5202186031d38"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Native run code calls the device stub inside a counter loop, compares the counter with the limit, then checks launch status and synchronizes before ending timing.",
+      "complete_dump_sha256": "6d2f5c4c9373ced0ff3ccb5b9d9707db31432460812a25ce089e505ee58be669",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_hybrid_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 6009,
+          "last_line": 6026,
+          "text": "   121a5:\tcall   27650 <__cudaPushCallConfiguration>\n   121aa:\ttest   %eax,%eax\n   121ac:\tjne    12158 <run(int, char**, int, int)+0x688>\n   121ae:\tsub    $0x8,%rsp\n   121b2:\tpush   -0x208(%rbp)\n   121b8:\tmov    -0x220(%rbp),%rcx\n   121bf:\tmov    -0x210(%rbp),%r9\n   121c6:\tmov    -0x218(%rbp),%r8\n   121cd:\tmov    -0x228(%rbp),%rdx\n   121d4:\tmov    -0x230(%rbp),%rsi\n   121db:\tmov    -0x250(%rbp),%edi\n   121e1:\tcall   f5c0 <__device_stub__Z10spmvKerneljPKmPKjS2_PKdS4_Pd(unsigned int, unsigned long const*, unsigned int const*, unsigned int const*, double const*, double const*, double*)>\n   121e6:\tmov    -0x248(%rbp),%eax\n   121ec:\tadd    $0x1,%ebx\n   121ef:\tpop    %r10\n   121f1:\tpop    %r11\n   121f3:\tcmp    %eax,%ebx\n   121f5:\tjne    12169 <run(int, char**, int, int)+0x699>\n"
+        },
+        {
+          "first_line": 6027,
+          "last_line": 6034,
+          "text": "   121fb:\tcall   55a20 <cudaGetLastError>\n   12200:\ttest   %eax,%eax\n   12202:\tjne    1297a <run(int, char**, int, int)+0xeaa>\n   12208:\tcall   52cc0 <cudaDeviceSynchronize>\n   1220d:\ttest   %eax,%eax\n   1220f:\tjne    12990 <run(int, char**, int, int)+0xec0>\n   12215:\tcall   b6b0 <MPI_Wtime@plt>\n   1221a:\tsubsd  -0x290(%rbp),%xmm0\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "Initial kernel code derives row/thread identity, exits out-of-range rows, and loads the row's encoded slice and length from global memory before work begins.",
+      "complete_dump_sha256": "5c04c59cd48baf1a6d100a23d202f79b7e55bcc833db396d2c3dfe886c0c7edd",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_hybrid_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 23,
+          "last_line": 31,
+          "text": "        /*0010*/                   S2R R0, SR_CTAID.X ;                                        /* 0x0000000000007919 */\n                                                                                               /* 0x000e280000002500 */\n        /*0020*/                   S2R R3, SR_TID.X ;                                          /* 0x0000000000037919 */\n                                                                                               /* 0x000e240000002100 */\n        /*0030*/                   IMAD R0, R0, c[0x0][0x0], R3 ;                              /* 0x0000000000007a24 */\n                                                                                               /* 0x001fca00078e0203 */\n        /*0040*/                   ISETP.GE.U32.AND P0, PT, R0, c[0x0][0x160], PT ;            /* 0x0000580000007a0c */\n                                                                                               /* 0x000fda0003f06070 */\n        /*0050*/               @P0 EXIT ;                                                      /* 0x000000000000094d */\n"
+        },
+        {
+          "first_line": 41,
+          "last_line": 47,
+          "text": "        /*00a0*/                   IMAD.WIDE.U32 R10, R0, R11, c[0x0][0x170] ;                 /* 0x00005c00000a7625 */\n                                                                                               /* 0x000fc800078e000b */\n        /*00b0*/                   IMAD.WIDE.U32 R8, R9, R2, c[0x0][0x168] ;                   /* 0x00005a0009087625 */\n                                                                                               /* 0x000fe200078e0002 */\n        /*00c0*/                   LDG.E.CONSTANT R4, [R10.64] ;                               /* 0x000000040a047981 */\n                                                                                               /* 0x000eaa000c1e9900 */\n        /*00d0*/                   LDG.E.64.CONSTANT R8, [R8.64] ;                             /* 0x0000000408087981 */\n"
+        },
+        {
+          "first_line": 55,
+          "last_line": 61,
+          "text": "        /*0110*/                   ISETP.GE.U32.AND P0, PT, R4, 0x8, PT ;                      /* 0x000000080400780c */\n                                                                                               /* 0x004fc40003f06070 */\n        /*0120*/                   IADD3 R3, P1, R3, R8, RZ ;                                  /* 0x0000000803037210 */\n                                                                                               /* 0x008fca0007f3e0ff */\n        /*0130*/                   IMAD.X R6, RZ, RZ, R9, P1 ;                                 /* 0x000000ffff067224 */\n                                                                                               /* 0x000fcc00008e0609 */\n        /*0140*/              @!P0 BRA 0xc70 ;                                                 /* 0x00000b2000008947 */\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "Batch body performs multiple double multiplications and accumulations, then conditionally branches back to continue packed-CSR batches.",
+      "complete_dump_sha256": "5c04c59cd48baf1a6d100a23d202f79b7e55bcc833db396d2c3dfe886c0c7edd",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_hybrid_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 397,
+          "last_line": 417,
+          "text": "        /*0bc0*/                   DMUL R14, R14, R16 ;                                        /* 0x000000100e0e7228 */\n                                                                                               /* 0x020e0c0000000000 */\n        /*0bd0*/                   DADD R12, R14, R12 ;                                        /* 0x000000000e0c7229 */\n                                                                                               /* 0x001fc8000000000c */\n        /*0be0*/                   DMUL R18, R20, R18 ;                                        /* 0x0000001214127228 */\n                                                                                               /* 0x000e0c0000000000 */\n        /*0bf0*/                   DADD R12, R18, R12 ;                                        /* 0x00000000120c7229 */\n                                                                                               /* 0x001fc8000000000c */\n        /*0c00*/                   DMUL R22, R28, R22 ;                                        /* 0x000000161c167228 */\n                                                                                               /* 0x004e0c0000000000 */\n        /*0c10*/                   DADD R12, R22, R12 ;                                        /* 0x00000000160c7229 */\n                                                                                               /* 0x001fc8000000000c */\n        /*0c20*/                   DMUL R26, R24, R26 ;                                        /* 0x0000001a181a7228 */\n                                                                                               /* 0x010e080000000000 */\n        /*0c30*/                   DMUL R34, R32, R34 ;                                        /* 0x0000002220227228 */\n                                                                                               /* 0x000fc80000000000 */\n        /*0c40*/                   DADD R12, R26, R12 ;                                        /* 0x000000001a0c7229 */\n                                                                                               /* 0x001e0c000000000c */\n        /*0c50*/                   DADD R22, R34, R12 ;                                        /* 0x0000000022167229 */\n                                                                                               /* 0x001062000000000c */\n        /*0c60*/               @P0 BRA 0x5e0 ;                                                 /* 0xfffff97000000947 */\n"
+        }
+      ]
+    },
+    {
+      "file": "device-sass.txt",
+      "claim": "Tail path loads packed row/column/value/vector inputs, performs DMUL/DADD, branches to repeat the entry body while work remains, then emits the per-row global output store.",
+      "complete_dump_sha256": "5c04c59cd48baf1a6d100a23d202f79b7e55bcc833db396d2c3dfe886c0c7edd",
+      "inspection_command": [
+        "cuobjdump",
+        "--dump-sass",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_hybrid_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 895,
+          "last_line": 905,
+          "text": "        /*1b50*/                   LDG.E.CONSTANT R7, [R10.64] ;                               /* 0x000000040a077981 */\n                                                                                               /* 0x0010a4000c1e9900 */\n        /*1b60*/                   IMAD.MOV.U32 R10, RZ, RZ, R4 ;                              /* 0x000000ffff0a7224 */\n                                                                                               /* 0x001fe200078e0004 */\n        /*1b70*/                   MOV R11, R3 ;                                               /* 0x00000003000b7202 */\n                                                                                               /* 0x000fca0000000f00 */\n        /*1b80*/                   LDG.E.64.CONSTANT R8, [R10.64] ;                            /* 0x000000040a087981 */\n                                                                                               /* 0x000ee2000c1e9b00 */\n        /*1b90*/                   IMAD.WIDE.U32 R6, R7, R2, c[0x0][0x188] ;                   /* 0x0000620007067625 */\n                                                                                               /* 0x004fcc00078e0002 */\n        /*1ba0*/                   LDG.E.64.CONSTANT R6, [R6.64] ;                             /* 0x0000000406067981 */\n"
+        },
+        {
+          "first_line": 919,
+          "last_line": 923,
+          "text": "        /*1c10*/                   DMUL R8, R6, R8 ;                                           /* 0x0000000806087228 */\n                                                                                               /* 0x008e0c0000000000 */\n        /*1c20*/                   DADD R22, R8, R22 ;                                         /* 0x0000000008167229 */\n                                                                                               /* 0x0030620000000016 */\n        /*1c30*/               @P0 BRA 0x1b30 ;                                                /* 0xfffffef000000947 */\n"
+        },
+        {
+          "first_line": 929,
+          "last_line": 935,
+          "text": "        /*1c60*/                   LEA R2, P0, R0, c[0x0][0x190], 0x3 ;                        /* 0x0000640000027a11 */\n                                                                                               /* 0x000fc800078018ff */\n        /*1c70*/                   LEA.HI.X R3, R0, c[0x0][0x194], RZ, 0x3, P0 ;               /* 0x0000650000037a11 */\n                                                                                               /* 0x000fca00000f1cff */\n        /*1c80*/                   STG.E.64 [R2.64], R22 ;                                     /* 0x0000001602007986 */\n                                                                                               /* 0x002fe2000c101b04 */\n        /*1c90*/                   EXIT ;                                                      /* 0x000000000000794d */\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Packed CSR traversal and arithmetic are directly visible, not inferred from dispatch alone. MPI/device runtime coverage was not executed; rank interval and gather coverage are source-level only.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-astra-medium_hybrid_r1",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "e73a20201538ecb310a108ccf5cdd6e8aa629d0535f803691270e5fac479a2ce"
+  },
+  "binary_sha256": "156c3c02b4146ea667230c2456881d710e8cfa63be97413c2beefa5af0539eb9",
+  "binding_sha256": "c63fe7e171970c24670b9ee30bf4a7919fe7dc85470fca3a0e1544656de06272",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "919cbb36d7a84371d5b7cdee1d82a4fb82cfd97112c9906db844e0a001d4418a",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-25T15:06:18Z",
+    "passed": true,
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_cuda_r1",
+      "spmv_gpt-6.2-astra-medium_hybrid_r1",
+      "spmv_gpt-6.2-astra-medium_mpi_r1",
+      "spmv_gpt-6.2-astra-medium_omp_r1"
+    ],
+    "work_count_disagreement": false,
+    "method": "Primary inspected all four pilot sources and emitted work: iteration parsing, owned row intervals, complete CSR/packed-row traversals, stores, and compiled iteration/row/nonzero backedges. Returned the initial GPU citations for precise arithmetic and complete dispatch coverage; accepted the revised evidence after inspection. No execution or compilation.",
+    "checked_examples": {
+      "omp": "Source99-109 and226-242; host852-918 retains row partitioning, CSR multiplication/addition/stores and all three nested backedges.",
+      "mpi": "Source235-301 covers contiguous row/item partition/scatter/rebasing and repeated local SpMV; host2173-2225 retains timed iteration, row and nonzero loops with actual indexed arithmetic and stores.",
+      "cuda": "Source143-195 and314-331; native host counter and cudaLaunchKernel paths for Width4(1316-1398), Width8(1550-1633), Width1(1657-1739); SASS has DMUL/DADD, nonzero backedges507/1648/2263 and stores519/1660/2271.",
+      "hybrid": "Source147-266 constructs/transverses packed row slices and handles the tail; source362-388 covers rank-local ownership and repeated launches; host6009-6034 retains counter/stub loop; SASS23-61 initial bounds/slice/length loads,397-417 batch arithmetic/backedge,895-935 tail arithmetic/backedge/store."
+    },
+    "metadata_note": "The first proposal's inferred start timestamp is unreliable and preserved as such. v2/v3 record clock-observed revision intervals only. No agent interval is used as a cost or throughput estimate.",
+    "full_review_authorized": true,
+    "maximum_parallel_luna_reviewers": 3,
+    "remaining_scope": "The other36 successfully validated SpMV implementations in the two-model batch.",
+    "escalation_policy": "Only uncertain/potential-failure findings to Sol-6.1; no blanket stronger-model review.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/gpt62_spmv_pilot",
+  "review_started_at": "2026-11-25T15:02:50Z",
+  "review_finished_at": "2026-11-25T15:03:44Z",
+  "review_input_sha256": "335e31b2487a8cf88048f1258784b4e709f4a3d565d6107288df22cd111d136f",
+  "pack_sha256": "debd3c50a4cf223db4cd162d5c3b18c370ff7c04ac872451521df32eeae77564",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

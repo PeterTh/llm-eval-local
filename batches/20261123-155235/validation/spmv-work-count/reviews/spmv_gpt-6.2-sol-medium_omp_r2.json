@@ -1,0 +1,92 @@
+{
+  "id": "spmv_gpt-6.2-sol-medium_omp_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The timed worker uses increasing CSR-plus-row work offsets to partition rows and runs spmvRows for every requested iteration. The emitted worker retains indexed loads, arithmetic, row stores, and iteration/row/nonzero backedges.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          53,
+          81
+        ],
+        [
+          100,
+          109
+        ],
+        [
+          112,
+          155
+        ],
+        [
+          212,
+          234
+        ],
+        [
+          265,
+          273
+        ]
+      ],
+      "claim": "CSR delimiters terminate at n; rowAtWorkOffset maps adjacent thread work targets to row ranges; spmvParallel loops over iterations and main parses -i and dispatches it.",
+      "sha256": "897a996e2e50991d3e95817b5ebe6015f7a7481e571f6eb36c9bce04a1112038",
+      "git_blob": "8b7f7b901bca088497f1f37e6588b1b5baeec7df"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The emitted OpenMP worker loads indexed column/value/vector data, multiplies and accumulates, stores each row result, and branches back through sparse, row, and iteration loops.",
+      "complete_dump_sha256": "3ad18165814c8c181b193be228c175fc4633b5f803f13a5a6e88858bae2b7b4e",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-sol-medium_omp_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 1033,
+          "last_line": 1056,
+          "text": "    2164:\tmov    (%r10,%r14,1),%edx\n    2168:\tcmp    %edx,%eax\n    216a:\tjae    21d0 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x180>\n    216c:\tdec    %edx\n    216e:\tlea    0x0(%r13,%rax,4),%r8\n    2173:\tlea    0x0(%rbp,%rax,8),%rsi\n    2178:\tvxorpd %xmm1,%xmm1,%xmm1\n    217c:\tsub    %eax,%edx\n    217e:\txor    %eax,%eax\n    2180:\tmov    (%r8,%rax,4),%r15d\n    2184:\tvmovsd (%rdi,%r15,8),%xmm0\n    218a:\tmov    %rax,%r15\n    218d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    2192:\tinc    %rax\n    2195:\tvaddsd %xmm0,%xmm1,%xmm1\n    2199:\tcmp    %rdx,%r15\n    219c:\tjne    2180 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x130>\n    219e:\tvmovsd %xmm1,(%r9,%r14,2)\n    21a4:\tadd    $0x4,%r14\n    21a8:\tcmp    %r14,%rbx\n    21ab:\tjne    2160 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x110>\n    21ad:\tinc    %ecx\n    21af:\tcmp    %ecx,%r12d\n    21b2:\tjne    2150 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0x100>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "No runtime tests performed; adjacent source work boundaries cover the row/nonzero prefix domain.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-sol-medium_omp_r2",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "8f8c0d18d1cfc8bcd8c574ce58c4b21e9e0a6fcb7359c0dee6b3f487a8e829f8"
+  },
+  "binary_sha256": "53878ac252439802d65472094e985d657dd33389cb0e30ee79be3f634f36bb41",
+  "binding_sha256": "8604f36395a669a1e65d4308bcfa0e7bbc9edc0b5f0d347fa01f5e2eee385283",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "05cee4079670aa4b6a338779118e9b5542610fe9cd4cde8968d65a57100c64e7",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_omp_r2",
+      "spmv_gpt-6.2-sol-medium_omp_r3",
+      "spmv_gpt-6.2-sol-medium_omp_r5"
+    ],
+    "checked_examples": "Astra r2 source225-253 and native worker840-914 derive both adjacent row bounds and retain CSR arithmetic/stores plus three nested loops. Sol r3 source129-163/host1034-1078 and Sol r5 source113-153/host932-975 retain actual indexed multiplication/addition, row stores and outer iteration backedges; revised citations now include arithmetic rather than only loop tails.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "gpt62_spmv_omp",
+  "review_started_at": "2026-11-25T15:11:52Z",
+  "review_finished_at": "2026-11-25T15:13:37Z",
+  "review_input_sha256": "99b72d2a859dbd7407b2a06d61cafcb68a95d497b7c0d5f43d497c368929974c",
+  "pack_sha256": "74dbf251d6e0dc36f0840b8494f3fafb98bd7da54b9744cab593d1d8b6a26a80",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

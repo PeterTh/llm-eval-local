@@ -1,0 +1,104 @@
+{
+  "id": "spmv_gpt-6.2-astra-medium_mpi_r1",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Each rank repeats its local CSR SpMV for the requested iteration count. Native code inlines the timed iteration, row, and nonzero loops with indexed loads, accumulation, and row stores; source shows rank-local row/item slices and offset rebasing.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          96,
+          109
+        ],
+        [
+          181,
+          205
+        ],
+        [
+          230,
+          288
+        ],
+        [
+          291,
+          305
+        ]
+      ],
+      "claim": "-i is parsed; rank-local CSR offsets are rebased after scatter; the timed loop invokes spmvCpu once per iteration, and each row routine traverses its nonzero interval, accumulates products, and stores output.",
+      "sha256": "0b077c4911227c21ef928fcbe36dd8b14617014a709905bd6f354350db319231",
+      "git_blob": "adfcc7f57e96234357e5bfc8b4a6a31021fb2b4a"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "Timed main records start time, then runs an iteration counter around inlined row/nonzero loops with column/vector/value loads, multiply/add, output stores, and row/iteration backedges before the end-time call.",
+      "complete_dump_sha256": "09a13e1ba6be8f36452d3cf365554f3dc0a8e6497ff87bb9e0b53135abb5759d",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_mpi_r1/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2173,
+          "last_line": 2189,
+          "text": "    a075:\tlea    0xc1a4(%rip),%rdi        # 16220 <ompi_mpi_comm_world@@Base>\n    a07c:\tcall   8e90 <MPI_Barrier@plt>\n    a081:\tcall   91e0 <MPI_Wtime@plt>\n    a086:\tcmpl   $0x0,-0x1d0(%rbp)\n    a08d:\tmov    -0x110(%rbp),%rax\n    a094:\tvmovsd %xmm0,-0x210(%rbp)\n    a09c:\tmov    -0xd0(%rbp),%r14\n    a0a3:\tmov    -0xf0(%rbp),%r13\n    a0aa:\tmov    -0xb0(%rbp),%r12\n    a0b1:\tmov    %rax,-0x1c8(%rbp)\n    a0b8:\tje     a171 <main+0x991>\n    a0be:\tcmpl   $0x0,-0x1e0(%rbp)\n    a0c5:\tje     a171 <main+0x991>\n    a0cb:\tmov    -0x208(%rbp),%r8\n    a0d2:\tmov    -0x1d0(%rbp),%esi\n    a0d8:\txor    %ecx,%ecx\n    a0da:\tmov    -0x1c8(%rbp),%rdi\n"
+        },
+        {
+          "first_line": 2192,
+          "last_line": 2225,
+          "text": "    a0f0:\txor    %r9d,%r9d\n    a0f3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a0fe:\txchg   %ax,%ax\n    a100:\tmov    (%rdi,%r9,1),%eax\n    a104:\tmov    0x4(%rdi,%r9,1),%edx\n    a109:\tmov    %rdi,%r11\n    a10c:\tcmp    %edx,%eax\n    a10e:\tjae    a4f0 <main+0xd10>\n    a114:\tdec    %edx\n    a116:\tlea    0x0(%r13,%rax,4),%r10\n    a11b:\tlea    (%r14,%rax,8),%rdi\n    a11f:\tvxorpd %xmm1,%xmm1,%xmm1\n    a123:\tsub    %eax,%edx\n    a125:\tmov    %r11,-0x1c8(%rbp)\n    a12c:\txor    %eax,%eax\n    a12e:\txchg   %ax,%ax\n    a130:\tmov    (%r10,%rax,4),%r11d\n    a134:\tvmovsd (%rbx,%r11,8),%xmm0\n    a13a:\tmov    %rax,%r11\n    a13d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a142:\tinc    %rax\n    a145:\tvaddsd %xmm0,%xmm1,%xmm1\n    a149:\tcmp    %rdx,%r11\n    a14c:\tjne    a130 <main+0x950>\n    a14e:\tmov    -0x1c8(%rbp),%rdi\n    a155:\tvmovsd %xmm1,(%r12,%r9,2)\n    a15b:\tadd    $0x4,%r9\n    a15f:\tcmp    %r8,%r9\n    a162:\tjne    a100 <main+0x920>\n    a164:\tinc    %ecx\n    a166:\tcmp    %esi,%ecx\n    a168:\tjne    a0f0 <main+0x910>\n    a16a:\tmov    %rdi,-0x1c8(%rbp)\n    a171:\tcall   91e0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "MPI distribution was not run; partition/scatter coverage assessed from source only. Repeated output overwrite is consistent with doing matrix work on each iteration.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-astra-medium_mpi_r1",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "5d8aace3080cae3ed73c64cd03758a0d862e6b28dafb88d00a294cae9a428d27"
+  },
+  "binary_sha256": "fa2f9fd85758af2713f38a40f1162d778693a002ed06c7c63ece09543c907182",
+  "binding_sha256": "8cc307c57827135a7b76c7c542fea6c9f52ff18eef82849fa14b6748083edb8d",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "919cbb36d7a84371d5b7cdee1d82a4fb82cfd97112c9906db844e0a001d4418a",
+  "primary_quality_check": {
+    "reviewed_at": "2026-11-25T15:06:18Z",
+    "passed": true,
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_cuda_r1",
+      "spmv_gpt-6.2-astra-medium_hybrid_r1",
+      "spmv_gpt-6.2-astra-medium_mpi_r1",
+      "spmv_gpt-6.2-astra-medium_omp_r1"
+    ],
+    "work_count_disagreement": false,
+    "method": "Primary inspected all four pilot sources and emitted work: iteration parsing, owned row intervals, complete CSR/packed-row traversals, stores, and compiled iteration/row/nonzero backedges. Returned the initial GPU citations for precise arithmetic and complete dispatch coverage; accepted the revised evidence after inspection. No execution or compilation.",
+    "checked_examples": {
+      "omp": "Source99-109 and226-242; host852-918 retains row partitioning, CSR multiplication/addition/stores and all three nested backedges.",
+      "mpi": "Source235-301 covers contiguous row/item partition/scatter/rebasing and repeated local SpMV; host2173-2225 retains timed iteration, row and nonzero loops with actual indexed arithmetic and stores.",
+      "cuda": "Source143-195 and314-331; native host counter and cudaLaunchKernel paths for Width4(1316-1398), Width8(1550-1633), Width1(1657-1739); SASS has DMUL/DADD, nonzero backedges507/1648/2263 and stores519/1660/2271.",
+      "hybrid": "Source147-266 constructs/transverses packed row slices and handles the tail; source362-388 covers rank-local ownership and repeated launches; host6009-6034 retains counter/stub loop; SASS23-61 initial bounds/slice/length loads,397-417 batch arithmetic/backedge,895-935 tail arithmetic/backedge/store."
+    },
+    "metadata_note": "The first proposal's inferred start timestamp is unreliable and preserved as such. v2/v3 record clock-observed revision intervals only. No agent interval is used as a cost or throughput estimate.",
+    "full_review_authorized": true,
+    "maximum_parallel_luna_reviewers": 3,
+    "remaining_scope": "The other36 successfully validated SpMV implementations in the two-model batch.",
+    "escalation_policy": "Only uncertain/potential-failure findings to Sol-6.1; no blanket stronger-model review.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/gpt62_spmv_pilot",
+  "review_started_at": "2026-11-25T15:02:50Z",
+  "review_finished_at": "2026-11-25T15:03:44Z",
+  "review_input_sha256": "335e31b2487a8cf88048f1258784b4e709f4a3d565d6107288df22cd111d136f",
+  "pack_sha256": "ca19e088b3cf32c7465cb44b391ed7364f8db953aa41e695fc5a2681e4c2a143",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

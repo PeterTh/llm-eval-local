@@ -1,3 +1,4 @@
+import { allModelCount, defaultModelCount, defaultRunCount, totalRunCount } from "./release-counts";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { parse } from "csv-parse/sync";
@@ -12,24 +13,17 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await page.goto(basePath + "#/time");
   await expect(page.getByRole("link", { name: "Time Efficiency" })).toHaveClass(/active/);
   const summary = page.getByLabel("Current time efficiency selection summary");
-  await expect(summary.getByText("34", { exact: true })).toBeVisible();
-  await expect(summary.getByText("7,480", { exact: true })).toHaveCount(2);
+  await expect(summary.getByText(String(defaultModelCount), { exact: true })).toBeVisible();
+  await expect(summary.getByText(defaultRunCount.toLocaleString("en-US"), { exact: true })).toHaveCount(2);
   const scale = page.getByRole("combobox", { name: "Time scale" });
   await expect(scale).toHaveValue("linear");
   const points = page.locator(".time_points path");
   const outliers = page.locator(".time_outlier_points path");
-  await expect(points).toHaveCount(34);
-  await expect(page.locator(".time_boxes path")).toHaveCount(34);
-  await expect(page.locator(".time-distribution svg text").filter({ hasText: /^Opus 5 Medium$/ })).toHaveCount(1);
+  await expect(points).toHaveCount(defaultModelCount);
+  await expect(page.locator(".time_boxes path")).toHaveCount(defaultModelCount);
+  await expect(page.locator(".time-distribution svg text").filter({ hasText: /^Opus 5 Medium$/ })).toHaveCount(0);
   await expect(outliers.first()).toHaveAttribute("tabindex", "0");
   await page.screenshot({ path: testInfo.outputPath("time-default-linear.png"), fullPage: true });
-
-  // Locate by the generated accessible description, not chart placement.
-  const opus = page.locator('.time_points path[aria-label^="Opus 5 Medium;"]');
-  await opus.hover({ force: true });
-  await expect(page.locator("#vg-tooltip-element")).toContainText("29.62 min");
-  await expect(page.locator("#vg-tooltip-element")).toContainText("21.54 min");
-  await page.mouse.move(1, 1);
 
   await scale.selectOption("log");
   await expect(page).toHaveURL(/scale=log/);
@@ -44,10 +38,17 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await modelMenu.locator("summary").click();
   await modelMenu.getByRole("button", { name: "All", exact: true }).click();
   await page.mouse.click(4, 400);
-  await expect(summary.getByText("41", { exact: true })).toBeVisible();
-  await expect(summary.getByText("9,020", { exact: true })).toHaveCount(2);
-  await expect(points).toHaveCount(41);
-  await expect(page.locator(".time_boxes path")).toHaveCount(41);
+  await expect(summary.getByText(String(allModelCount), { exact: true })).toBeVisible();
+  await expect(summary.getByText(totalRunCount.toLocaleString("en-US"), { exact: true })).toHaveCount(2);
+  await expect(points).toHaveCount(allModelCount);
+  await expect(page.locator(".time_boxes path")).toHaveCount(allModelCount);
+
+  // Historical profiles remain available under All, with unchanged durations.
+  const opus = page.locator('.time_points path[aria-label^="Opus 5 Medium;"]');
+  await opus.hover({ force: true });
+  await expect(page.locator("#vg-tooltip-element")).toContainText("29.62 min");
+  await expect(page.locator("#vg-tooltip-element")).toContainText("21.54 min");
+  await page.mouse.move(1, 1);
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -55,8 +56,8 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   expect(download.suggestedFilename()).toBe("llm-eval-score-time.csv");
   const exported = parse(await readFile((await download.path())!, "utf8"), { columns: true }) as Record<string, string>[];
   const source = parse(await readFile(new URL("../../release/scored_results.csv", import.meta.url), "utf8"), { columns: true }) as Record<string, string>[];
-  expect(source).toHaveLength(9020);
-  expect(exported).toHaveLength(41);
+  expect(source).toHaveLength(totalRunCount);
+  expect(exported).toHaveLength(allModelCount);
   for (const row of exported) {
     const selected = source.filter((run) => run.model === row.model);
     const times = selected.map((run) => Number(run.total_time)).sort((a, b) => a - b);
@@ -91,7 +92,7 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await expect(page.getByRole("heading", { name: /min generation time/ })).toBeVisible();
   await page.getByRole("link", { name: /Back to Time Efficiency/ }).click();
   await expect(scale).toHaveValue("log");
-  await expect(summary.getByText("41", { exact: true })).toBeVisible();
+  await expect(summary.getByText(String(allModelCount), { exact: true })).toBeVisible();
 
   await points.first().focus();
   await page.keyboard.press("Enter");
@@ -99,7 +100,7 @@ test("time efficiency filters, reconciles durations, exports and opens runs", as
   await page.goBack();
   await page.getByRole("button", { name: /Reset/ }).click();
   await expect(scale).toHaveValue("linear");
-  await expect(summary.getByText("34", { exact: true })).toBeVisible();
+  await expect(summary.getByText(String(defaultModelCount), { exact: true })).toBeVisible();
 
   await page.goto(basePath + "#/time?model=claude-opus-5-cc-medium&benchmark=black-scholes&backend=omp&scale=log");
   await expect(points).toHaveCount(1);
@@ -126,8 +127,8 @@ test("time charts retain labels and complete ranges at every scale and theme", a
     for (const scale of ["linear", "log"]) {
       await page.goto(basePath + "#/time?model-set=all&scale=" + scale);
       const labels = page.locator(".time_labels text");
-      await expect(labels).toHaveCount(41);
-      await expect(page.locator(".time_boxes path")).toHaveCount(41);
+      await expect(labels).toHaveCount(allModelCount);
+      await expect(page.locator(".time_boxes path")).toHaveCount(allModelCount);
       const layout = await labels.evaluateAll((elements) => {
         const visible = elements.filter((element) => {
           const style = getComputedStyle(element);
@@ -145,15 +146,15 @@ test("time charts retain labels and complete ranges at every scale and theme", a
         return { count: visible.length, overlaps, hidden: elements.filter((element) => !visible.includes(element)).map((element) => element.textContent) };
       });
       await page.screenshot({ path: testInfo.outputPath("time-all-" + colorScheme + "-" + scale + ".png"), fullPage: true });
-      expect(layout).toEqual({ count: 41, overlaps: 0, hidden: [] });
+      expect(layout).toEqual({ count: allModelCount, overlaps: 0, hidden: [] });
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
     }
   }
   if (testInfo.project.name === "mobile") {
     await page.setViewportSize({ width: 320, height: 844 });
     await page.goto(basePath + "#/time");
-    await expect(page.locator(".time_points path")).toHaveCount(34);
-    await expect(page.locator(".time_boxes path")).toHaveCount(34);
+    await expect(page.locator(".time_points path")).toHaveCount(defaultModelCount);
+    await expect(page.locator(".time_boxes path")).toHaveCount(defaultModelCount);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
     await page.screenshot({ path: testInfo.outputPath("time-320-dark.png"), fullPage: true });
   }

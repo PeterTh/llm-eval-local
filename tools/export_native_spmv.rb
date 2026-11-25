@@ -16,7 +16,21 @@ module NativeSpmvExport
     raise 'Native SpMV evidence not verified' unless current.fetch('evidence_verified')
   end
 
-  def run(method_root:, workspace:, evidence:, destination:)
+  def add_supplemental_sources!(sources, supplemental)
+    supplemental.each do |relative, path|
+      unless relative.match?(/\Aquality-evidence\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.json\z/) &&
+          relative.split('/').none? { |part| %w[. ..].include?(part) }
+        raise "Unsafe supplemental evidence name: #{relative}"
+      end
+      raise "Duplicate supplemental evidence: #{relative}" if sources.key?(relative)
+      raise "Not regular supplemental evidence: #{path}" unless File.file?(path) && !File.symlink?(path)
+      JSON.parse(File.read(path))
+      sources[relative] = path
+    end
+    sources
+  end
+
+  def run(method_root:, workspace:, evidence:, destination:, pilot_quality: nil, supplemental: {})
     require File.join(method_root, 'tools/validation_audit/spmv_native_review')
     require File.join(method_root, 'tools/validation_audit/export_spmv_full')
     reviewer = ValidationAudit::SpmvNativeReview.new(workspace: workspace, evidence: evidence)
@@ -26,7 +40,7 @@ module NativeSpmvExport
     sources = {
       'completion.json' => completion_path,
       'authorization.json' => File.join(reviewer.root, 'authorization.json'),
-      'pilot-quality-check.json' => File.join(reviewer.root, 'pilot-quality-check.json'),
+      'pilot-quality-check.json' => pilot_quality || File.join(reviewer.root, 'pilot-quality-check.json'),
       'native-spmv-inventory.json' => File.join(evidence, 'native-spmv-inventory.json')
     }
     { 'inventory_sha256' => 'native-spmv-inventory.json', 'authorization_sha256' => 'authorization.json' }.each do |key, name|
@@ -47,6 +61,7 @@ module NativeSpmvExport
     Dir[File.join(reviewer.root, 'delegated-proposals/*.json')].sort.each do |path|
       sources["delegated-proposals/#{File.basename(path)}"] = path
     end
+    add_supplemental_sources!(sources, supplemental)
     names = %w[tools/validation_audit/spmv_native_review.rb tools/validation_audit/spmv_full_review.rb
       tools/validation_audit/spmv_work_count.rb tools/validation_audit/export_spmv_full.rb]
     commit, error, status = Open3.capture3('git', '-C', method_root, 'rev-parse', 'HEAD')

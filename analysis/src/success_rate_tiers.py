@@ -25,6 +25,8 @@ DEFAULT_TABLE = REPOSITORY_ROOT / "analysis" / "tables" / "8_success_rate_tiers.
 MODEL_LABELS = {
     "claude-fable-5.1-cc-medium": "Fable 5.1 Medium",
     "beam-1.0-oc-medium": "Beam 1.0 Medium (OpenCode)",
+    "gpt-6.2-astra-medium": "GPT-6.2 Astra Medium",
+    "gpt-6.2-sol-medium": "GPT-6.2 Sol Medium",
     "gpt-6.1-terra-ultra": "GPT-6.1 Terra Ultra",
     "gpt-6.1-terra-xhigh": "GPT-6.1 Terra XHigh",
     "gpt-6.1-terra-medium": "GPT-6.1 Terra Medium",

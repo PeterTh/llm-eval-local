@@ -1,0 +1,59 @@
+{
+  "program_id": "qtclustering_gpt-6.2-sol-medium_hybrid_r3",
+  "verdict": "valid",
+  "issue_categories": [
+    "none"
+  ],
+  "confidence": "high",
+  "timed_region": "The interval at qtclustering/qtclustering.cpp:803-805 encloses qtClustering, including algorithmic preprocessing, device preparation, distributed seed scoring, cluster selection, membership construction and root result assembly.",
+  "start_synchronization": "Root records its start before entering qtClustering's initial MPI_Allgather. Every rank must receive root's contribution before proceeding to the first algorithmic preprocessing. Consequently, no useful clustering computation can precede root's start, even if another rank records an earlier timestamp.",
+  "stop_synchronization": "Every scoring stream is synchronized before its score participates in MPI_Allreduce. Any subsequent membership kernel is synchronized before its output is communicated to root or consumed locally by root. Root assembles the final result before stopping. The full-set shortcut similarly synchronizes the selected owner's membership kernel and delivers its complete output to root.",
+  "rank_aggregation": "Elapsed durations are not reduced. Instead, the initial Allgather and the completed-score/member dependencies establish a root-clock global makespan. The MPI_MAX at line 636 reduces cluster scores, not elapsed times.",
+  "reported_value": "Only root prints 'Clustering time', using its enclosing interval converted to whole milliseconds. The label, duration and declared unit agree.",
+  "semantic_equivalence_basis": "This is cooperative computation: workers score disjoint strided seed subsets, global selection combines their scores, and root assembles the clusters. Replicated inputs do not make these independent complete-result replicas. Root's start precedes required computation on all workers, and its stop follows completed scoring and delivery of the final required membership data, establishing the permitted makespan equivalent.",
+  "evidence": [
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "803-811",
+      "finding": "Every rank brackets qtClustering with timestamps; only root reports the enclosing interval as 'Clustering time' in milliseconds."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "545-566",
+      "finding": "The initial worker-count Allgather occurs before finite checks and sorting. Its root contribution is issued after root's start timestamp, gating useful work on every rank."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "573-620",
+      "finding": "Point reordering, cutoff calculation, bounding-box detection, search-window construction and device initialization all occur inside the timed call."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "442-450",
+      "finding": "firstSeed, stride and seedCount assign each device a seed partition; devices do not independently evaluate every seed."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "491-524",
+      "finding": "collect synchronizes the scoring stream, including its result download. readMembers synchronizes the membership kernel and download before returning host members."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "626-660",
+      "finding": "All scoring completes before global score selection. Singleton termination needs no further membership kernel; otherwise the selected owner completes readMembers before broadcasting or sending members to root. The full-set shortcut also follows this membership-completion path."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "662-675",
+      "finding": "Root converts received members into the final clusters before qtClustering returns and its timer stops."
+    },
+    {
+      "path": "qtclustering/qtclustering.cpp",
+      "lines": "840-859",
+      "finding": "External result reporting and validation execute after timing; neither flag selects a different clustering implementation."
+    }
+  ],
+  "timing_only_fix_possible": false,
+  "minimal_fix": "",
+  "notes": "Applies to the supplied four-rank hybrid benchmark configuration (-n 5000, default threshold 2.0). Device setup and input generation/broadcast precede timing and are permitted initialization. Some allocation and teardown remain inside timing. The supplied target-type evidence establishes that the millisecond count is long, matching %ld; whole-millisecond formatting is valid."
+}

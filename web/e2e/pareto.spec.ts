@@ -1,3 +1,4 @@
+import { allModelCount } from "./release-counts";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
@@ -15,7 +16,7 @@ for (const kind of ["cost", "time"] as const) {
         await page.goto(`${basePath}#/${kind}?model-set=all&scale=${scale}`);
         const chart = page.locator(`.${kind}-analysis`);
         const points = page.locator(`.${kind}_points path`);
-        await expect(points).toHaveCount(41);
+        await expect(points).toHaveCount(allModelCount);
         await page.evaluate(async () => { await document.fonts.ready; });
         const values = await points.evaluateAll((elements, route) => elements.map((element) => {
           const item = (element as SVGElement & { __data__: { x: number; y: number; datum: {
@@ -62,7 +63,7 @@ for (const kind of ["cost", "time"] as const) {
           }
           return { visible: visible.length, overlaps, hidden: elements.filter((element) => getComputedStyle(element).opacity === "0").map((element) => element.textContent) };
         });
-        expect(labelLayout).toEqual({ visible: 41, overlaps: [], hidden: [] });
+        expect(labelLayout).toEqual({ visible: allModelCount, overlaps: [], hidden: [] });
         await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
         await page.screenshot({ path: testInfo.outputPath(`${kind}-pareto-${colorScheme}-${scale}.png`), fullPage: true, clip: (await chart.boundingBox())! });
 
@@ -111,7 +112,7 @@ for (const kind of ["cost", "time"] as const) {
   test(`${kind} promotes filtered models and handles singleton and coincident fronts`, async ({ page }) => {
     await page.goto(`${basePath}#/${kind}?model-set=all`);
     const points = page.locator(`.${kind}_points path`);
-    await expect(points).toHaveCount(41);
+    await expect(points).toHaveCount(allModelCount);
     const hiddenFront = await points.evaluateAll((elements) => elements.map((element) => {
       const datum = (element as SVGElement & { __data__: { datum: { modelId: string; isPareto: boolean } } }).__data__.datum;
       return { id: datum.modelId, isPareto: datum.isPareto };

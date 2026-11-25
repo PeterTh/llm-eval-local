@@ -1,6 +1,6 @@
-# Combined release: 2026-11-08
+# Combined release: 2026-11-25
 
-This is a reproducible view over sixteen retained campaigns, not a second raw-data archive.
+This is a reproducible view over seventeen retained campaigns, not a second raw-data archive.
 `catalog.json` declares the input locations, generated-source revisions and expected counts.
 The original campaign remains unchanged in `data/`; the 660 Claude 5 runs remain in
 `batches/20260901-162328/`; GPT-6 is under `batches/20260929-135931/`;
@@ -15,7 +15,8 @@ Sonnet 5.5 is under `batches/20261014-212207/`; Sol 6.1 Medium in OpenCode is un
 `batches/20261025-170121/`; Terra 6.1 XHigh in Codex is under
 `batches/20261102-030935/`; Terra 6.1 Ultra in Codex is under
 `batches/20261105-131145/`; Fable 5.1 Medium in Claude Code is under
-`batches/20261011-092100/`. Catalog-declared observation replacements join their
+`batches/20261011-092100/`; Astra and Sol 6.2 Medium in Codex are under
+`batches/20261123-155235/`. Catalog-declared observation replacements join their
 own validation, benchmark and generation evidence by exact run ID; untouched
 observations retain their original records and source revisions.
 
@@ -49,10 +50,10 @@ This is a post-campaign source snapshot, not a claim that the runs were launched
 from that later commit. The catalog pins the generation script/helper; retained
 manifests and the pipeline layout pin the actual evaluation method files by content.
 
-- 9,020 programs, 41 model/effort/harness profiles, 220 programs each.
-- 7,783 effectively validated programs and eligible benchmark attempts; 7,380 successful measurements.
-- 1,354 timing-fixed programs (including two failed revalidations), with source history.
-- 44 benchmark/backend cells, all with reviewed winners; 99 retained reviews total.
+- 9,460 programs, 43 model/effort/harness profiles, 220 programs each.
+- 8,222 effectively validated programs and eligible benchmark attempts; 7,819 successful measurements.
+- 1,378 timing-fixed programs (including two failed revalidations), with source history.
+- 44 benchmark/backend cells, all with reviewed winners; 108 retained reviews total.
 
 The [seven Sonnet 5 replacements](../batches/20260901-162328/replacements/20261025-isolated-sonnet5/README.md)
 include six successful benchmarks and one retained numerical validation failure.
@@ -111,6 +112,15 @@ The [comparison snapshot](../analysis/notes/2026-11-08-fable51-medium-winner-con
 binds unchanged observations for all 8,800 prior programs, and the
 [pricing note](../analysis/notes/2026-11-08-fable51-pricing.md) describes native
 accepted-attempt accounting and frozen rates.
+
+Astra and Sol 6.2 Medium contribute 439 successful measurements from 440 programs,
+with one original build failure and 24 timing-only corrections. Their nine new
+cell winners have individual reviews; two temporary ablations explain the
+Black–Scholes caching and Floyd–Warshall pruning outliers. The
+[comparison snapshot](../analysis/notes/2026-11-25-gpt62-medium-winner-context.json)
+binds all 9,020 prior observations unchanged apart from joint scoring. Exact
+native usage and request-context checks support the
+[Standard-price comparison](../analysis/notes/2026-11-25-gpt62-pricing.md).
 
 The [supplemental correctness checks](../analysis/notes/2026-11-04-validation-strengthening.md),
 [complete-array comparisons](../analysis/notes/2026-11-04-full-array-validation.md)

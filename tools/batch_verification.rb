@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require_relative "artifact_common"
 require_relative "codex_usage_records"
+require_relative "observer_continuations"
 require_relative "../method/external-validation/tools/timing_audit/lib/external_validation_exclusions"
 
 # Checks retained batch evidence without needing the native workspace or Git sources.
@@ -502,6 +503,10 @@ module BatchVerification
     read_json = ->(relative) { JSON.parse(File.read(path("#{base}/#{relative}"))) }
     read_yaml = ->(relative) { LocalEvalArtifact.load_yaml(path("#{base}/#{relative}")) }
     summary = read_json.call("summary.json")
+    if campaign['observer_continuations']
+      ObserverContinuations.verify(root: @root, campaign: campaign,
+        index: JSON.parse(File.read(path(campaign.fetch('observer_continuations')))))
+    end
     verify_native_spmv!(campaign, original, summary) if campaign['native_spmv_review'] || summary['native_spmv_review']
     benchmark_summary = read_json.call("benchmark/summary.json")
     raise "stale batch summary" unless summary.fetch("benchmark") == benchmark_summary

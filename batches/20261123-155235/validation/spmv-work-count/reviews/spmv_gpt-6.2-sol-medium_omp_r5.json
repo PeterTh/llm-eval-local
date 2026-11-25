@@ -1,0 +1,92 @@
+{
+  "id": "spmv_gpt-6.2-sol-medium_omp_r5",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The active OpenMP function maps adjacent work boundaries to contiguous rows and repeats the CSR kernel for parsed -i iterations. Emitted code retains indexed arithmetic, row stores, and row/nonzero/iteration branches.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          53,
+          81
+        ],
+        [
+          100,
+          110
+        ],
+        [
+          113,
+          153
+        ],
+        [
+          210,
+          232
+        ],
+        [
+          263,
+          271
+        ]
+      ],
+      "claim": "CSR delimiters cover nItems; the kernel traverses each row interval and stores output; findRowBoundary defines worker ownership; the iteration loop repeats the kernel; main parses -i and dispatches spmvParallel.",
+      "sha256": "6f11649df81724d3088a2dbc6c26c82fa5390be7530818161a4e9e98ac8c6681",
+      "git_blob": "95bd5f884817b368fdd68990b6366f102c9dedb4"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The emitted worker loads indexed columns, values, and vector data, multiplies/accumulates, stores output, and retains sparse-entry, row, and iteration backedges.",
+      "complete_dump_sha256": "2ef30f47dc945e4c1ea774c409b6594de889b84aeabcf376719f2c816f940ded",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-sol-medium_omp_r5/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 957,
+          "last_line": 971,
+          "text": "    1f20:\tmov    (%r8,%rax,4),%r15d\n    1f24:\tvmovsd (%rdi,%r15,8),%xmm0\n    1f2a:\tmov    %rax,%r15\n    1f2d:\tvmulsd (%rsi,%rax,8),%xmm0,%xmm0\n    1f32:\tinc    %rax\n    1f35:\tvaddsd %xmm0,%xmm1,%xmm1\n    1f39:\tcmp    %rdx,%r15\n    1f3c:\tjne    1f20 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xf0>\n    1f3e:\tvmovsd %xmm1,(%r9,%r14,2)\n    1f44:\tadd    $0x4,%r14\n    1f48:\tcmp    %r14,%rbx\n    1f4b:\tjne    1f00 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xd0>\n    1f4d:\tinc    %ecx\n    1f4f:\tcmp    %ecx,%r12d\n    1f52:\tjne    1ef0 <spmvParallel(double const*, unsigned int const*, unsigned int const*, double const*, unsigned int, unsigned int, double*) [clone ._omp_fn.0]+0xc0>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Inspected dispatched clone and source partition logic; no generated program was executed or compiled.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-sol-medium_omp_r5",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "b1022466a2cd1cad1a9aa553d66ca7cf71fcfa7ae2055f567e7d61b08ac1e334"
+  },
+  "binary_sha256": "77b12b958f8b527e72923108ea2cc9b2fbfb6375f41b62f26b5fd6733c6f64e6",
+  "binding_sha256": "ee8ea4484cdeaeec84397b503f9f0f05b59de0982847aa4d2833393ddea0d98b",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "05cee4079670aa4b6a338779118e9b5542610fe9cd4cde8968d65a57100c64e7",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_omp_r2",
+      "spmv_gpt-6.2-sol-medium_omp_r3",
+      "spmv_gpt-6.2-sol-medium_omp_r5"
+    ],
+    "checked_examples": "Astra r2 source225-253 and native worker840-914 derive both adjacent row bounds and retain CSR arithmetic/stores plus three nested loops. Sol r3 source129-163/host1034-1078 and Sol r5 source113-153/host932-975 retain actual indexed multiplication/addition, row stores and outer iteration backedges; revised citations now include arithmetic rather than only loop tails.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "gpt62_spmv_omp",
+  "review_started_at": "2026-11-25T15:11:52Z",
+  "review_finished_at": "2026-11-25T15:13:37Z",
+  "review_input_sha256": "99b72d2a859dbd7407b2a06d61cafcb68a95d497b7c0d5f43d497c368929974c",
+  "pack_sha256": "a6a1f021779ff40de7d55e82b82599148f3fb4e3425aaf75276b12d3aee494f9",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

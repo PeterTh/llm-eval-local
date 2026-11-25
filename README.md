@@ -22,14 +22,14 @@ SHA-256 digest.
 ## What is retained
 
 - immutable provenance, environment, preflight, calibration, and amendment records;
-- all 9,020 current validation outcomes and scoped revalidations, including exact execution output;
+- all 9,460 current validation outcomes and scoped revalidations, including exact execution output;
 - original benchmark outcomes, measured values and wall times, including results now excluded by external validation;
-- the current eligible view: 7,783 validated programs and 7,380 successful measurements;
+- the current eligible view: 8,222 validated programs and 7,819 successful measurements;
 - raw diagnostic logs for failures, sequential references, and amended attempts;
 - static MPI/hybrid timing audits, all-backend QT boundary audits,
-  1,354 timing-fixed implementations, and scoped rerun comparisons;
+  1,378 timing-fixed implementations, and scoped rerun comparisons;
 - aggregate datasets, scoring inputs, audit records, and final scores;
-- compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6 and 1,100 GPT-6.1 runs;
+- compact, provenance-bound Codex usage records for 1,980 GPT-5.6, 660 GPT-6, 1,100 GPT-6.1 and 440 GPT-6.2 runs;
 - native OpenCode usage, shared effective configuration and request-context evidence for 1,100 runs
   (1,096 complete usage records and four explicit partial records);
 - request-context pricing evidence for all 440 Haiku 5.5 runs across both harnesses;
@@ -55,11 +55,13 @@ immutable correction-amendment digest. Schemas are under
 [`schemas/`](schemas/). Original canonical YAML and CSV outputs remain under their
 respective phase directories.
 
-The current combined release is under [`release/`](release/README.md): 9,020 scored
-programs across 41 model/effort/harness profiles, using the same scoring procedure applied jointly to sixteen
-campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Terra 6.1, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6, DeepSeek V4.1 Flash, Haiku 5.5 and Beam 1.0 in OpenCode, with timing-corrected measurements and
+The current combined release is under [`release/`](release/README.md): 9,460 scored
+programs across 43 model/effort/harness profiles, using the same scoring procedure applied jointly to seventeen
+campaigns. It includes Claude 5, GPT-6, Opus 5.5, Sol 6.1, Terra 6.1, Astra/Sol 6.2, Haiku 5.5, Sonnet 5.5, and Sol 6.1, Luna 6, DeepSeek V4.1 Flash, Haiku 5.5 and Beam 1.0 in OpenCode, with timing-corrected measurements and
 per-run source history. All 44 current cell winners have individual
-analyses; superseded reviews are retained too (99 notes in total).
+analyses; superseded reviews are retained too (108 notes in total).
+The website defaults to 30 profiles, retaining Sol 6.1's Medium/XHigh/OpenCode
+comparisons; every profile remains available under “All.”
 
 Codex cost estimates use recorded token counts from retained native sessions.
 Terra Ultra includes parent and child requests; observations with interrupted
@@ -96,6 +98,7 @@ counts and provenance are in [`release/catalog.json`](release/catalog.json).
 | [Terra 6.1 XHigh in Codex](batches/20261102-030935/README.md) | 220 | 220 | 220 |
 | [Terra 6.1 Ultra in Codex](batches/20261105-131145/README.md) | 220 | 219 | 219 |
 | [Fable 5.1 Medium](batches/20261011-092100/README.md) | 220 | 220 | 220 |
+| [Astra and Sol 6.2 Medium](batches/20261123-155235/README.md) | 440 | 439 | 439 |
 
 Counts include the [supplemental correctness checks](analysis/notes/2026-11-04-validation-strengthening.md),
 [complete-array validation](analysis/notes/2026-11-04-full-array-validation.md)

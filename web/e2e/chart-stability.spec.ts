@@ -1,3 +1,4 @@
+import { allModelCount } from "./release-counts";
 import { expect, test } from "@playwright/test";
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
@@ -10,7 +11,7 @@ for (const route of ["cost", "time"]) {
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(basePath + "#/" + route + "?model-set=all&scale=" + scale);
       const points = page.locator("." + route + "_points path");
-      await expect(points).toHaveCount(41);
+      await expect(points).toHaveCount(allModelCount);
       const selectedIds = await points.evaluateAll((elements) => {
         const data = elements.map((element) => (element as SVGElement & { __data__: { datum: { modelId: string; isPareto: boolean } } }).__data__.datum);
         return [data.find((point) => point.isPareto)!.modelId, data.find((point) => !point.isPareto)!.modelId];

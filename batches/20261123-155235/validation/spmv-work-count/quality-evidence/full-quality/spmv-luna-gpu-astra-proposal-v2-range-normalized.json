@@ -1,0 +1,742 @@
+{
+  "reviewer": "/root/gpt62_spmv_gpu",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-25T15:10:42Z",
+  "review_finished_at": "2026-11-25T15:15:55Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "metadata_note": "Continuation clock interval: 2026-11-25 15:10:42 UTC to 2026-11-25 15:15:55 UTC. Review limited to static inspection of the eight Astra CUDA/hybrid r2-r5 prepared source/disassembly packs.",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.2-astra-medium_cuda_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i is parsed and the timed host path repeats the selected actual kernel call until its counter reaches the iteration bound. Dispatch is mean row length: short rows launch one thread per row; otherwise grouped warps cover all rows. SASS for both variants has CSR global loads, FP64 multiplication and accumulation, CSR/tile loop backedges and output stores. No graph or persistent-device iteration loop is used.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              105,
+              153
+            ],
+            [
+              229,
+              242
+            ],
+            [
+              300,
+              320
+            ]
+          ],
+          "claim": "The short kernel walks offsets[row]..offsets[row+1] and stores each row; grouped kernel tiles that same interval and stores from lane 0. The parsed iteration count wraps either all-row launch, selected at mean-length 16."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1304,
+              1331
+            ],
+            [
+              1471,
+              1496
+            ]
+          ],
+          "claim": "For the short path, host counter increment/limit check branches to exit, then call to the short-row device stub returns to that check. The grouped path likewise increments/checks its counter and calls grouped stub before returning to the check."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              19
+            ],
+            [
+              65,
+              65
+            ],
+            [
+              151,
+              255
+            ],
+            [
+              323,
+              343
+            ],
+            [
+              843,
+              855
+            ],
+            [
+              888,
+              888
+            ],
+            [
+              922,
+              974
+            ],
+            [
+              1052,
+              1060
+            ]
+          ],
+          "claim": "Grouped and short-row functions show global input activity, FP64 product/accumulation, loop branches through the row/tile traversal, and row output stores (grouped 855, short 1060). These correspond to both source dispatch variants."
+        }
+      ],
+      "notes": "Static native SASS is the available artifact; no runtime/JIT execution was authorized or performed. Work-count conclusion is about source dispatch and emitted variants, not runtime rank/input validation."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_cuda_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed wrapper has separate iterations loops for warp and sliced-CSR dispatch, and both host loops are present in native assembly with counter backedges around actual device stubs. The warp path walks CSR entries in tiles; the sliced path iterates each row's full recorded length. Both emit FP64 arithmetic, loop branches and per-row stores. No graph/persistent loop is used.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              149,
+              194
+            ],
+            [
+              198,
+              220
+            ],
+            [
+              235,
+              260
+            ],
+            [
+              265,
+              265
+            ],
+            [
+              322,
+              334
+            ]
+          ],
+          "claim": "Both device strategies cover every row, traverse either CSR offsets or each sliced-row length, accumulate products and store output; the timed path repeats whichever strategy dispatch selects for each iteration."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2412,
+              2436
+            ],
+            [
+              2475,
+              2484
+            ],
+            [
+              2581,
+              2610
+            ]
+          ],
+          "claim": "Warp path increments and checks its timed counter, calls the warp device stub, then returns to the counter check; stop event/synchronization follows. Sliced path does the same around the sliced kernel stub."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              19
+            ],
+            [
+              141,
+              179
+            ],
+            [
+              225,
+              249
+            ],
+            [
+              475,
+              487
+            ],
+            [
+              520,
+              520
+            ],
+            [
+              562,
+              576
+            ],
+            [
+              644,
+              718
+            ]
+          ],
+          "claim": "Warp kernel has FP64 products and accumulation, tile/control-flow backedges and output store. Sliced CSR kernel likewise has FP64 multiply/add, row traversal backedges and output store."
+        }
+      ],
+      "notes": "Host resolves the selected kernel and synchronizes before/after timing; JIT/module loading is deliberately outside timing. No graph or persistent loop observed."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_cuda_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "-i reaches a per-width benchmark function; main dispatches among widths 1,4,8,16,32 by mean row length. Each emitted host specialization has an iteration counter/backedge around cudaLaunchKernel. Each device specialization walks the row CSR interval by lane stride, reduces lane sums and stores the row result. No device persistent loop or graph is used.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              128,
+              143
+            ],
+            [
+              147,
+              169
+            ],
+            [
+              222,
+              234
+            ],
+            [
+              289,
+              303
+            ]
+          ],
+          "claim": "Kernel lanes stride through each row's CSR entries, reduce, and one lane stores output; benchmark loops over requested iterations, and main selects Width 1/4/8/16/32 from mean row length and passes iterations."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2057,
+              2144
+            ],
+            [
+              2291,
+              2378
+            ],
+            [
+              2525,
+              2612
+            ],
+            [
+              2759,
+              2846
+            ],
+            [
+              2993,
+              3080
+            ],
+            [
+              1308,
+              1312
+            ],
+            [
+              1456,
+              1468
+            ]
+          ],
+          "claim": "The five benchmark specializations respectively call cudaLaunchKernel inside a counter loop that compares against the iteration bound and branches back; main's function-pointer setup selects these specialization functions based on the computed mean-length thresholds."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              518
+            ],
+            [
+              519,
+              595
+            ],
+            [
+              632,
+              1131
+            ],
+            [
+              1132,
+              1242
+            ],
+            [
+              1277,
+              1776
+            ],
+            [
+              1777,
+              1893
+            ],
+            [
+              1922,
+              2421
+            ],
+            [
+              2422,
+              2550
+            ],
+            [
+              2583,
+              3082
+            ],
+            [
+              3083,
+              3205
+            ]
+          ],
+          "claim": "All five emitted widths contain entry/indexed global loads, double FMA accumulation, loop/reduction control flow and a per-row STG output (ends at 595, 1242, 1893, 2550, 3205 respectively). These are the five dispatched implementations."
+        }
+      ],
+      "notes": "Compiled native launch loops and all width-specific SASS bodies were inspected. SASS establishes the emitted implementation; dynamic library/JIT behavior was not executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_cuda_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The selected runIterations<Width> is called from source dispatch by average row length and loops over requested iterations, launching once on each trip. Native code has the counter and actual CUDA launch/backedge in each of four instantiated widths (1,4,8,32). Each SASS variant processes batch, full-width remainder and tail entries before storing output. No graph/persistent loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              114,
+              162
+            ],
+            [
+              190,
+              200
+            ],
+            [
+              253,
+              265
+            ],
+            [
+              322,
+              332
+            ]
+          ],
+          "claim": "Kernel traverses row CSR entries in batches plus full-width remainder and tail, then stores output; runIterations invokes it once per requested iteration; dispatch passes iterations into Width 1/4/8/32 choice."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2094,
+              2165
+            ],
+            [
+              2251,
+              2322
+            ],
+            [
+              2409,
+              2479
+            ],
+            [
+              2566,
+              2636
+            ],
+            [
+              1314,
+              1334
+            ],
+            [
+              1350,
+              1350
+            ]
+          ],
+          "claim": "Each of four runIterations specializations records timing and contains actual cudaLaunchKernel followed by increment/compare and a backedge until the passed limit; main selects the specialization by mean nonzeros per row and calls the selected function."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              461
+            ],
+            [
+              776,
+              1275
+            ],
+            [
+              1276,
+              1618
+            ],
+            [
+              2861,
+              3360
+            ],
+            [
+              3361,
+              3860
+            ],
+            [
+              3861,
+              4360
+            ],
+            [
+              4361,
+              4860
+            ],
+            [
+              4861,
+              4989
+            ],
+            [
+              11442,
+              11941
+            ],
+            [
+              11942,
+              12441
+            ],
+            [
+              12442,
+              12466
+            ]
+          ],
+          "claim": "Each emitted width implementation includes FP64 product/accumulation, traversal branches/backedges for chunks and remainder/tail, and a global output store; all four source-dispatched widths are represented."
+        }
+      ],
+      "notes": "Static SASS/native disassembly checked; no compile/runtime/JIT experiment. Repeated output overwrite does not remove the arithmetic in subsequent launches."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_hybrid_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Rows are divided into contiguous rank intervals by boundary(dim, rank, ranks), and each rank uploads its local CSR-derived packed rows. Timed local loop repeats the multiply kernel for iterations. Device code loads each local row's packed slice/length, batches eight products, processes the tail, accumulates and stores. No graph/persistent kernel loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              49,
+              50
+            ],
+            [
+              64,
+              106
+            ],
+            [
+              131,
+              157
+            ],
+            [
+              174,
+              186
+            ],
+            [
+              230,
+              260
+            ],
+            [
+              278,
+              285
+            ]
+          ],
+          "claim": "Boundary formulas and transfers give each rank its local rows/CSR data; packed kernel walks lengths for each row and stores output; -i is parsed and local GPU launch is repeated iterations times."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              3352,
+              3388
+            ],
+            [
+              3400,
+              3415
+            ]
+          ],
+          "claim": "Native run loop initializes counter, forms the multiply launch configuration, calls its actual device stub, increments/checks against the iteration limit and branches back; completion path checks launch and synchronizes."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              31
+            ],
+            [
+              73,
+              85
+            ],
+            [
+              153,
+              201
+            ],
+            [
+              397,
+              417
+            ],
+            [
+              895,
+              947
+            ]
+          ],
+          "claim": "Emitted kernel bounds-checks row id, performs packed input loads and FP64 multiply/add in batch and tail, loops while work remains, and stores result[row]."
+        }
+      ],
+      "notes": "MPI rank coverage and transfers are source-level (not run); kernel's local-row work and timed repeat are directly visible in native/device dumps."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_hybrid_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks use contiguous [boundary(rank), boundary(rank+1)) row intervals and gather those intervals back to the global output. The source dispatches Width 1 or 8. Native host code retains the selected-function call inside the iterations counter/backedge; device variants load CSR offsets/entries, multiply and reduce products, and store each local row. No graph/persistent loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              111,
+              170
+            ],
+            [
+              185,
+              208
+            ],
+            [
+              222,
+              237
+            ],
+            [
+              283,
+              285
+            ],
+            [
+              307,
+              325
+            ],
+            [
+              342,
+              353
+            ]
+          ],
+          "claim": "Per-rank CSR construction/rebasing covers its assigned rows, run selects lanes and computes the complete local row domain, repeats launch by iterations, then gathers using matching rank boundaries."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              6512,
+              6518
+            ],
+            [
+              6527,
+              6568
+            ],
+            [
+              6569,
+              6575
+            ],
+            [
+              7140,
+              7197
+            ],
+            [
+              7201,
+              7258
+            ]
+          ],
+          "claim": "Native run selects one of the two kernel functions before timing; timed loop invokes the selected function pointer, increments/checks iteration bound and returns to launch setup. Kernel wrapper specializations call cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              497
+            ],
+            [
+              137,
+              199
+            ],
+            [
+              243,
+              277
+            ],
+            [
+              497,
+              497
+            ],
+            [
+              1256,
+              1532
+            ],
+            [
+              1446,
+              1550
+            ]
+          ],
+          "claim": "Width-8 and Width-1 kernels contain FP64 multiplies, accumulation/reduction, entry-loop backedges and output stores at 497 and 1532 respectively."
+        }
+      ],
+      "notes": "Rank interval and gather semantics assessed statically; no MPI execution. Kernel function pointer targets the two emitted width variants; no graph/persistent loop observed."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_hybrid_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Source builds row/entry cuts and distributes CSR slices over ranks. Each rank runs a host iteration loop around multiply for all local rows; native run has actual multiply stub call inside a counter/backedge to the iteration limit. The kernel traverses each local packed row's full length and writes its result. No graph/persistent loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              192,
+              204
+            ],
+            [
+              210,
+              230
+            ],
+            [
+              284,
+              351
+            ],
+            [
+              386,
+              408
+            ]
+          ],
+          "claim": "Kernel maps threads over all local rows, traverses lengths and stores output; rowCuts/entryCuts partition and distribute the matrix; timed path repeats the kernel launch exactly iterations times."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              2616,
+              2635
+            ],
+            [
+              2637,
+              2666
+            ],
+            [
+              2668,
+              2675
+            ],
+            [
+              2871,
+              2877
+            ]
+          ],
+          "claim": "After pre-timing device synchronization/barrier and start time, native loop calculates grid, issues multiply device stub, increments/checks iteration counter and returns to launch; after loop it synchronizes before ending timing."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              61
+            ],
+            [
+              77,
+              77
+            ],
+            [
+              151,
+              213
+            ],
+            [
+              217,
+              267
+            ]
+          ],
+          "claim": "Kernel performs row-index/bounds work, global loads, double multiply/add, row-entry backedges and stores one output per row."
+        }
+      ],
+      "notes": "MPI data partition is established by source cuts/distribution, not runtime execution. No launch graph or device-persistent loop present."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_hybrid_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Ranks own contiguous row ranges computed from numRows*proc/ranks, with globally generated CSR data rebased to local offsets. Timed host loop launches the spmv kernel once per iteration; native code shows counter/backedge around the actual device stub then device synchronization. Kernel traverses each packed row length, accumulates FP64 products and stores output. No graph/persistent loop.",
+      "source_evidence": [
+        {
+          "file": "spmv/spmv.cpp",
+          "ranges": [
+            [
+              122,
+              132
+            ],
+            [
+              157,
+              178
+            ],
+            [
+              226,
+              239
+            ],
+            [
+              250,
+              267
+            ],
+            [
+              317,
+              347
+            ],
+            [
+              362,
+              373
+            ]
+          ],
+          "claim": "Local row boundaries and CSR rebasing define a complete rank-owned row interval; kernel iterates its row length and stores output; timed loop repeats launch by parsed -i count and gathers local outputs afterward."
+        }
+      ],
+      "compiled_evidence": [
+        {
+          "file": "host-assembly.txt",
+          "ranges": [
+            [
+              1466,
+              1498
+            ],
+            [
+              1499,
+              1507
+            ],
+            [
+              3245,
+              3304
+            ]
+          ],
+          "claim": "Native timed path increments and checks counter, invokes actual spmv device stub and branches back until the limit, then checks launch and synchronizes. Stub dispatches through cudaLaunchKernel."
+        },
+        {
+          "file": "device-sass.txt",
+          "ranges": [
+            [
+              19,
+              61
+            ],
+            [
+              77,
+              77
+            ],
+            [
+              151,
+              213
+            ],
+            [
+              217,
+              267
+            ]
+          ],
+          "claim": "Kernel's row bounds and packed-row input loads precede FP64 product/accumulation; loop branches cover row entries and final STG stores result."
+        }
+      ],
+      "notes": "No graph/persistent execution was identified. MPI partition/gather is source-inspected only; JIT/runtime behavior not executed."
+    }
+  ],
+  "citation_format_normalization": {
+    "original_proposal_sha256": "d36ea5af55c0e91cac2a5306270a36a8ef475163eea65cc1376a615b04b63711",
+    "split_ranges": 8,
+    "method": "Split ranges longer than500 lines into consecutive chunks of at most500, preserving exactly the same cited lines, order, scientific findings and prose. Raw proposals retained."
+  }
+}

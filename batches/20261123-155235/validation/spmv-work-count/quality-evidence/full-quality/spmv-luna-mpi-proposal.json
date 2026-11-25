@@ -1,0 +1,103 @@
+{
+  "reviewer": "/root/gpt62_spmv_mpi",
+  "reviewer_model": "gpt-6-luna",
+  "review_started_at": "2026-11-25T15:08:04Z",
+  "review_finished_at": "2026-11-25T15:09:49Z",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0,
+  "metadata_note": "Read-only review of the nine specified MPI variants; no source changes, compilation, linking, execution, or benchmarking.",
+  "reviews": [
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The parsed iteration count encloses a call to local SpMV. Rank row counts and entry offsets define contiguous row/nonzero slices, and local CSR offsets are rebased. Emitted spmvCpu assembly retains row and nonzero backedges, indexed loads, multiply/add, and output stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[95,104],[182,194],[250,285],[297,300],[315,316]],"claim":"spmvCpu walks every local row and its CSR delimiter interval, accumulates val[j]*vec[cols[j]], and stores each output; -i is parsed, rank row/entry boundaries drive scatter, and the timed loop invokes spmvCpu once per iteration."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1974,2012]],"claim":"Emitted spmvCpu has indexed value/vector loads, vmulsd/vaddsd arithmetic, a nonzero-loop backedge, a row output store, and a row-loop backedge."}],
+      "notes":"Repeated output overwrite is intended. MPI scatter/gather runtime coverage was not executed; the contiguous rank partition is assessed from source. Timing reduction is outside this work-count finding."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The requested iteration loop calls local CSR SpMV each time. Source partitions rows and nonzeros using rank starts and entry starts, then rebases local row offsets. Emitted assembly retains the row/nonzero work, arithmetic, and stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[96,105],[186,198],[261,288],[297,300],[314,315]],"claim":"The kernel body traverses each row delimiter range and stores its accumulated result; parsed iterations govern repeated timed calls. Rank row counts/entry starts and scattered delimiter/value/column slices establish local ownership."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1975,2012]],"claim":"Emitted spmvCpu contains indexed value and vector loads, multiply/add, nonzero and row loop branches, and output stores."}],
+      "notes":"Repeated output overwrite is intended. Distribution coverage is assessed statically; no MPI runtime was executed. Timing reduction is not treated as a work-count failure."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The iteration loop repeats the local CSR calculation. Rank row and entry bounds define the distributed slices; the compiled spmvCpu body retains indexed nonzero work, arithmetic, row stores, and both loop backedges.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[102,111],[187,199],[252,282],[288,291],[312,313]],"claim":"spmvCpu traverses every local row's delimiter interval and stores the sum; -i controls timed repeated calls. Row/entry bounds and scattered or moved local CSR arrays encode rank partition ownership."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2148,2184]],"claim":"Emitted spmvCpu uses indexed CSR/vector loads and double multiplication/addition, branches over nonzeros and rows, and stores the row result."}],
+      "notes":"Repeated output overwrite is intended. Static partition review only; MPI runtime not executed. Timing reduction is reviewed separately."
+    },
+    {
+      "id": "spmv_gpt-6.2-astra-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each timed iteration calls local SpMV. The row-offset representation spans the local nonzero array and output rows; assembly confirms indexed loads, multiply/add, and row/nonzero loop backedges in the emitted function.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[89,98],[156,168],[234,244],[261,268],[293,294]],"claim":"The CSR function traverses delimiter intervals and stores one result per row; -i is parsed and each timed iteration calls it. Rank-local values/columns/offsets are used, then local outputs are gathered according to rank sizes/starts."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[3178,3227]],"claim":"Emitted spmvCpu retains CSR indexed loads, multiply/add, a nonzero loop backedge, output store, and row-loop backedge."}],
+      "notes":"Repeated output overwrite is intended. Rank coverage is based on source partition/scatter/gather logic; runtime MPI behavior was not exercised."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r1",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed iteration loop repeats the local kernel. Its paired-row optimization still computes both rows across their CSR intervals and handles a remaining row; emitted assembly has arithmetic, indexed access, loop backedges, and output stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[223,251],[320,325],[374,386],[396,397],[428,429]],"claim":"spmvCpu handles pairs of rows and its odd-row tail via row delimiters; iteration count is parsed and the timed loop repeats the kernel. RowRange-based local matrix construction and MPI_Gatherv cover rank outputs."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2807,2933],[4026,4026]],"claim":"The emitted paired-row spmvCpu has repeated arithmetic/access loops and backedges with output paths; main calls it from the timed region."}],
+      "notes":"The two-row specialization is not an omission: it advances across two CSR rows and has a tail path. MPI runtime coverage was not executed."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r2",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop invokes SpMV for each requested iteration, while each invocation visits local rows and their full delimiter intervals. Existing host assembly confirms arithmetic, indexed work, and row/nonzero backedges.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[59,81],[105,150],[160,169],[234,247],[298,310],[338,341]],"claim":"Local row delimiters terminate at the local column count; matrix pieces are transmitted/received by chunks. The kernel traverses every local row and nonzero, -i is parsed, timed calls repeat, and output rows are gathered."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[1083,1114]],"claim":"Emitted spmvCpu performs indexed value/vector loads and multiply-add work, loops over nonzeros and rows with conditional backedges, and stores row outputs."}],
+      "notes":"Repeated output overwrite is intended. Distributed matrix coverage is evaluated from chunk-transfer and local-boundary source; no MPI execution occurred."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r3",
+      "finding": "no_work_count_omission_identified",
+      "summary": "Each iteration repeats the local CSR kernel. Rank-local row offsets and columns are distributed, and the emitted kernel has indexed value/vector loads, multiply/add, row/nonzero branches, and stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[69,111],[127,135],[195,206],[250,265],[294,303],[331,332]],"claim":"Distribution constructs rowOffsets for local rows and transfers row offsets/columns; spmvCpu traverses every row's CSR range and stores its sum. Parsed iterations control the repeated timed calls; gathered output covers the row partition."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[587,618]],"claim":"Emitted spmvCpu performs indexed CSR/vector loads, vmulsd/vaddsd arithmetic, a nonzero-loop backedge, an output store, and a row-loop backedge."}],
+      "notes":"Repeated output overwrite is intended. MPI partition and collective coverage are assessed statically only."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r4",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop repeats the local CSR kernel for the parsed iteration count. Source describes local row delimiters and chunked matrix transfers; emitted assembly retains indexed loads, arithmetic, stores, and loop backedges.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[36,62],[78,126],[132,155],[198,210],[265,277],[299,304]],"claim":"Local matrix storage has one delimiter per row boundary and transfers all row delimiters, columns, and values in chunks. Kernel traverses each row's full nonzero interval and stores output; timed iterations repeat it and gathered output follows rank row counts."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2293,2327]],"claim":"Emitted spmvCpu includes indexed value/vector loads, double multiply/add, nonzero and row loop branches, and row output store."}],
+      "notes":"Repeated output overwrite is intended. MPI transfer coverage remains a source-level conclusion; runtime not exercised."
+    },
+    {
+      "id": "spmv_gpt-6.2-sol-medium_mpi_r5",
+      "finding": "no_work_count_omission_identified",
+      "summary": "The timed loop invokes local CSR SpMV on every requested iteration. The local row-offset array bounds each row and spans its values/columns; emitted function code has indexed accesses, arithmetic, row/nonzero backedges, and stores.",
+      "source_evidence": [
+        {"file":"spmv/spmv.cpp","ranges":[[128,160],[184,228],[262,268],[320,341],[398,410],[432,439]],"claim":"Rank-local row offsets are constructed with their columns/values; spmvCpu visits each row's entire offset interval and stores its result. Parsed -i controls repeated timed calls; MPI_Gatherv uses row ownership counts."}
+      ],
+      "compiled_evidence": [{"file":"host-assembly.txt","ranges":[[2480,2514]],"claim":"Emitted spmvCpu has indexed value/vector loads, multiply/add work, conditional nonzero and row backedges, and output stores."}],
+      "notes":"Repeated output overwrite is intended. Partition coverage reviewed statically; MPI runtime was not executed."
+    }
+  ]
+}

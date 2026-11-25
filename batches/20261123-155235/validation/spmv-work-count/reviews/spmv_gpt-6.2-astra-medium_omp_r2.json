@@ -1,0 +1,97 @@
+{
+  "id": "spmv_gpt-6.2-astra-medium_omp_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "Parsed -i controls repeated timed CSR SpMV for each thread's owned half-open row interval. The emitted worker retains indexed loads, multiply/add, stores, row/nonzero loops, and iteration loop.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          51,
+          79
+        ],
+        [
+          98,
+          107
+        ],
+        [
+          166,
+          172
+        ],
+        [
+          225,
+          240
+        ],
+        [
+          248,
+          253
+        ]
+      ],
+      "claim": "CSR delimiters cover all nItems; the row kernel walks each row's nonzero interval and stores output; -i is parsed and main repeatedly invokes the kernel over adjacent floor-partitioned row ranges.",
+      "sha256": "f6280b189a131443ffc5a141739d08f71fd67b4f510b416b243aa8fcdc65f042",
+      "git_blob": "601822d6a036494dd5606716b1cb2d5173ef045e"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The OpenMP worker derives both floor-scaled row bounds from thread id/count, then checks iterations and performs indexed CSR/vector loads, multiply/add, row stores, and row/nonzero/iteration backedges.",
+      "complete_dump_sha256": "5d15fc46bd884f30b4d9a3fe51b65da296ada340d80a0ed683363f291bb74c5d",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_omp_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 849,
+          "last_line": 865,
+          "text": "    1e2f:\tcall   1230 <omp_get_thread_num@plt>\n    1e34:\tmov    %eax,%ebx\n    1e36:\tcall   1260 <omp_get_num_threads@plt>\n    1e3b:\tmov    (%r12),%rdx\n    1e3f:\tmovslq %ebx,%rcx\n    1e42:\tmovslq %eax,%rsi\n    1e45:\tmov    (%rdx),%edi\n    1e47:\txor    %edx,%edx\n    1e49:\timul   %rdi,%rcx\n    1e4d:\tmov    %rcx,%rax\n    1e50:\tdiv    %rsi\n    1e53:\txor    %edx,%edx\n    1e55:\tmov    %rax,%r8\n    1e58:\tlea    (%rdi,%rcx,1),%rax\n    1e5c:\tdiv    %rsi\n    1e5f:\tcmp    %eax,%r8d\n    1e62:\tjae    1f24 <main._omp_fn.0+0x104>\n"
+        },
+        {
+          "first_line": 891,
+          "last_line": 914,
+          "text": "    1ed4:\tmov    0x4(%r9,%r8,4),%edx\n    1ed9:\tcmp    %edx,%eax\n    1edb:\tjae    1f30 <main._omp_fn.0+0x110>\n    1edd:\tdec    %edx\n    1edf:\tlea    0x0(%rbp,%rax,4),%rsi\n    1ee4:\tlea    (%rbx,%rax,8),%rcx\n    1ee8:\tvxorpd %xmm1,%xmm1,%xmm1\n    1eec:\tsub    %eax,%edx\n    1eee:\txor    %eax,%eax\n    1ef0:\tmov    (%rsi,%rax,4),%r14d\n    1ef4:\tvmovsd (%rdi,%r14,8),%xmm0\n    1efa:\tmov    %rax,%r14\n    1efd:\tvmulsd (%rcx,%rax,8),%xmm0,%xmm0\n    1f02:\tinc    %rax\n    1f05:\tvaddsd %xmm0,%xmm1,%xmm1\n    1f09:\tcmp    %r14,%rdx\n    1f0c:\tjne    1ef0 <main._omp_fn.0+0xd0>\n    1f0e:\tvmovsd %xmm1,(%r11,%r8,8)\n    1f14:\tinc    %r8\n    1f17:\tcmp    %r10d,%r8d\n    1f1a:\tjb     1ed0 <main._omp_fn.0+0xb0>\n    1f1c:\tinc    %r12d\n    1f1f:\tcmp    %r12d,%r13d\n    1f22:\tjne    1ec0 <main._omp_fn.0+0xa0>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Source and pre-existing host assembly only; no runtime coverage was executed.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-astra-medium_omp_r2",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "28f76eea3b22c3d3d653a670260c55ea8e0a60ffa3e9373e2451ae94e5cfd64e"
+  },
+  "binary_sha256": "7e1d05ad0e710c0a82c7c76dff91940aa7bbc40c37be6b3770bd3a82526911ad",
+  "binding_sha256": "9cbb2f6864b266f1c3d79919fd15b80fca65dfc5bd165395e3f3ed66180b3040",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "05cee4079670aa4b6a338779118e9b5542610fe9cd4cde8968d65a57100c64e7",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_omp_r2",
+      "spmv_gpt-6.2-sol-medium_omp_r3",
+      "spmv_gpt-6.2-sol-medium_omp_r5"
+    ],
+    "checked_examples": "Astra r2 source225-253 and native worker840-914 derive both adjacent row bounds and retain CSR arithmetic/stores plus three nested loops. Sol r3 source129-163/host1034-1078 and Sol r5 source113-153/host932-975 retain actual indexed multiplication/addition, row stores and outer iteration backedges; revised citations now include arithmetic rather than only loop tails.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "gpt62_spmv_omp",
+  "review_started_at": "2026-11-25T15:11:52Z",
+  "review_finished_at": "2026-11-25T15:13:37Z",
+  "review_input_sha256": "99b72d2a859dbd7407b2a06d61cafcb68a95d497b7c0d5f43d497c368929974c",
+  "pack_sha256": "bc3088feb6e47d2ac5bc1a9f1f190bdfaae71bc6f61c3496878b9eff05db1394",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}

@@ -1,0 +1,91 @@
+{
+  "id": "spmv_gpt-6.2-astra-medium_mpi_r2",
+  "finding": "no_work_count_omission_identified",
+  "summary": "The parsed iteration count encloses a call to local SpMV. Rank row counts and entry offsets define contiguous row/nonzero slices, and local CSR offsets are rebased. Emitted host code inlines the timed iteration, row, and nonzero loops with indexed loads, multiply/add, and row stores; the outer counter/backedge is visible around that work.",
+  "source_evidence": [
+    {
+      "file": "spmv/spmv.cpp",
+      "ranges": [
+        [
+          95,
+          104
+        ],
+        [
+          182,
+          194
+        ],
+        [
+          250,
+          285
+        ],
+        [
+          297,
+          300
+        ],
+        [
+          315,
+          316
+        ]
+      ],
+      "claim": "spmvCpu walks every local row and its CSR delimiter interval, accumulates val[j]*vec[cols[j]], and stores each output; -i is parsed, rank row/entry boundaries drive scatter, and the timed loop invokes spmvCpu once per iteration.",
+      "sha256": "51803df457d70117df5136309d85f0271045ea0e5ad5f3d1e36e0fa188dd60be",
+      "git_blob": "447ed2904710585c6221205d9366f5054fb07f2b"
+    }
+  ],
+  "compiled_evidence": [
+    {
+      "file": "host-assembly.txt",
+      "claim": "The actual timed run path records MPI_Wtime, then its outer counter loop encloses local row and nonzero traversal; each nonzero performs indexed column/vector/value loads and multiply/add, each row stores output, and the assembly increments/compares the iteration counter and branches back before the ending MPI_Wtime.",
+      "complete_dump_sha256": "7691fce956d1455adb12d99a08387bf07e347b0efecc3b1226dc542723a77b61",
+      "inspection_command": [
+        "objdump",
+        "-d",
+        "-C",
+        "--no-show-raw-insn",
+        "/tmp/gpt62-medium-spmv-review-20261125-829313-s2ppjr/executables/spmv_gpt-6.2-astra-medium_mpi_r2/spmv"
+      ],
+      "excerpts": [
+        {
+          "first_line": 2591,
+          "last_line": 2634,
+          "text": "    a779:\tlea    0xbaa0(%rip),%rdi        # 16220 <ompi_mpi_comm_world@@Base>\n    a780:\tcall   8e70 <MPI_Barrier@plt>\n    a785:\tcall   91c0 <MPI_Wtime@plt>\n    a78a:\tmov    -0x1a8(%rbp),%r8d\n    a791:\tvmovsd %xmm0,-0x1e8(%rbp)\n    a799:\ttest   %r8d,%r8d\n    a79c:\tje     a833 <run(int, char**, int, int)+0xaa3>\n    a7a2:\tmov    -0x190(%rbp),%r8d\n    a7a9:\ttest   %r8d,%r8d\n    a7ac:\tje     a833 <run(int, char**, int, int)+0xaa3>\n    a7b2:\tmov    -0x1a8(%rbp),%esi\n    a7b8:\txor    %ecx,%ecx\n    a7ba:\tnopw   0x0(%rax,%rax,1)\n    a7c0:\txor    %r9d,%r9d\n    a7c3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a7ce:\txchg   %ax,%ax\n    a7d0:\tmov    (%r12,%r9,4),%eax\n    a7d4:\tmov    0x4(%r12,%r9,4),%edx\n    a7d9:\tcmp    %edx,%eax\n    a7db:\tjae    ab20 <run(int, char**, int, int)+0xd90>\n    a7e1:\tdec    %edx\n    a7e3:\tlea    (%r14,%rax,4),%r10\n    a7e7:\tlea    (%r15,%rax,8),%rdi\n    a7eb:\tvxorpd %xmm1,%xmm1,%xmm1\n    a7ef:\tsub    %eax,%edx\n    a7f1:\txor    %eax,%eax\n    a7f3:\tdata16 cs nopw 0x0(%rax,%rax,1)\n    a7fe:\txchg   %ax,%ax\n    a800:\tmov    (%r10,%rax,4),%r11d\n    a804:\tvmovsd (%rbx,%r11,8),%xmm0\n    a80a:\tmov    %rax,%r11\n    a80d:\tvmulsd (%rdi,%rax,8),%xmm0,%xmm0\n    a812:\tinc    %rax\n    a815:\tvaddsd %xmm0,%xmm1,%xmm1\n    a819:\tcmp    %rdx,%r11\n    a81c:\tjne    a800 <run(int, char**, int, int)+0xa70>\n    a81e:\tvmovsd %xmm1,0x0(%r13,%r9,8)\n    a825:\tinc    %r9\n    a828:\tcmp    %r9,%r8\n    a82b:\tjne    a7d0 <run(int, char**, int, int)+0xa40>\n    a82d:\tinc    %ecx\n    a82f:\tcmp    %ecx,%esi\n    a831:\tjne    a7c0 <run(int, char**, int, int)+0xa30>\n    a833:\tcall   91c0 <MPI_Wtime@plt>\n"
+        }
+      ]
+    }
+  ],
+  "notes": "Repeated output overwrite is intended. The contiguous rank partition is assessed from source. Timing reduction is outside this work-count finding.",
+  "source": {
+    "source_path": "20261123-155235/spmv_gpt-6.2-astra-medium_mpi_r2",
+    "source_commit": "7a0a8b8e28af48d4ee2525c13ced317726536b25",
+    "staged_source_sha256": "2497766b6dc8a67c05dfd42901d4ea2f83a4a0fbf61f3aa3aca96082e28e044c"
+  },
+  "binary_sha256": "eec073c8503bcb14870fcca87e3455f59cf5f07d869ecdfc905e4d1e69c3d2ac",
+  "binding_sha256": "a2f7b8f2956f5ce1349fc4aa20a6ef8fadb19a5ad214ea3558a9b3ef9c1192ee",
+  "reviewer_model": "gpt-6-luna",
+  "proposal_sha256": "2281f81015b110303f09fdd89c057f60915bbbc2323e809fd1e4c3758ee93f42",
+  "primary_quality_check": {
+    "sampled_ids": [
+      "spmv_gpt-6.2-astra-medium_mpi_r2",
+      "spmv_gpt-6.2-sol-medium_mpi_r1"
+    ],
+    "checked_examples": "Astra r2 source95-104,250-285,292-322 and host2591-2634 retain contiguous owned CSR work and nested nonzero/row/iteration loops. Sol r1 source223-251,370-402,418-437, host2807-2933,4002-4044 retain paired rows plus tail and the timed caller repetition around the actual native function.",
+    "reviewed_at": "2026-11-25T15:25:58Z",
+    "passed": true,
+    "work_count_disagreement": false,
+    "method": "Primary read every finding/evidence claim in this batch and checked the stated samples against original source and pre-existing native/device disassembly. Returned incomplete initial traces to Luna, then accepted the completed revisions. Tool separately verifies every source/executable binding and citation range. No compilation or program execution.",
+    "program_executions": 0,
+    "compilation": 0,
+    "benchmark_runs": 0,
+    "program_changes": 0
+  },
+  "schema_version": 2,
+  "reviewer": "/root/gpt62_spmv_mpi",
+  "review_started_at": "2026-11-25T15:14:25Z",
+  "review_finished_at": "2026-11-25T15:17:31Z",
+  "review_input_sha256": "a3af69424a7cf9e448e80c00977ac87d460bac3c91336ba38c109f54f9e3e753",
+  "pack_sha256": "8ee86b5165a7e61f023ec1e42017a137871803190782b0911203f68b57c76a9a",
+  "program_executions": 0,
+  "compilation": 0,
+  "benchmark_runs": 0,
+  "program_changes": 0
+}
